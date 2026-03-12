@@ -1,6 +1,6 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.1.6
+// Version 1.1.7
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs: v1.0.2 - kappa_H2O × H2O_VAPOR_EDS_SCALE (évite masquage CO2, doc/API/VAPEUR_VS_NUAGES.md)
@@ -14,6 +14,7 @@
 // Logs: v1.0.10 - Attribution EDS par absorption propre de composant (1-exp(-τ_i)) avec normalisation globale ; nuages non écrasés par τ_tot
 // Logs: v1.0.11 - Diagnostic aliasing CO2 bande 15µm (13–17µm) : table sigma/kappa + ratio modèle/théorie
 // Logs: v1.0.12 - Grille spectrale λ adaptative (zones CO2/CH4/H2O densifiées) + lambda_weights non-uniformes
+// Logs: v1.1.7 - displayDichotomyStep émet plot:drawn(iteration) après draw spectral pour bridge IO_LISTENER
 // Logs: v1.0.13 - retrait gardes défensives CONFIG_COMPUTE sur les derniers ajouts (règle crash)
 // Logs: v1.0.14 - Grille λ : retour aux bornes d'origine (calculs spectraux inchangés)
 // Logs: v1.0.15 - CONFIG_COMPUTE.spectralGridHomogeneous : si true, poids ∝ largeur (répartition homogène)
@@ -1031,7 +1032,25 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
         canvas.style.setProperty('z-index', '0', 'important');
         canvas.style.setProperty('position', 'absolute', 'important');
     }
+    /*
+     * ================================================================
+     * ACK OBLIGATOIRE du bridge plot
+     * ================================================================
+     * displayDichotomyStep() est le point où l'UI a effectivement :
+     * - mis à jour les courbes
+     * - lancé le draw spectral du cycle courant
+     *
+     * Le calcul amont (calculations_flux.js) attend explicitement
+     * IO_LISTENER.emit('plot:drawn', { iteration }) avec la même iteration.
+     *
+     * NE PAS supprimer cet emit.
+     * NE PAS le déplacer avant updateSpectralVisualization().
+     * Sinon le calcul repart trop tôt et les flux intermédiaires
+     * se recompactent à la fin au lieu d'apparaître cycle par cycle.
+     * ================================================================
+     */
     if (tempPlotData.current) window.updateSpectralVisualization(tempPlotData.current);
+    window.IO_LISTENER.emit('plot:drawn', { iteration: iteration });
 
     // Mettre à jour le statut
     if (typeof document !== 'undefined') {

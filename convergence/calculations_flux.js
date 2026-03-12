@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.71
+// Version 1.2.73
 // Date: [March 2026]
 // Logs:
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 et lastInitPayload pour convergence reproductible visu/scie
@@ -10,6 +10,7 @@
 // - v1.2.70: attente draw via window.VISUALWAIT.isDrawn(cycleToken) (globals rangées)
 // - v1.2.71: supprime double émission compute:progress (visu_+anim→displayDichotomyStep direct ; scie_/non-anim→IO_LISTENER seul)
 // - v1.2.72: supprime VISUALWAIT.isDrawn (boucle while morte) ; remplace par await RAF direct après displayDichotomyStep (seul async indispensable)
+// - v1.2.73: bridge anim+visu_ via IO_LISTENER: compute:progress(payload spectral) -> plot:drawn -> await RAF
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -1128,11 +1129,49 @@ async function computeRadiativeTransfer(callback, options) {
 
         var payload = { iteration: DATA['🧮']['🧮🔄☀️'] - 1, T0: DATA['🧮']['🧮🌡️'], total_flux: spectral_result.total_flux, phase: phaseForStep };
         if (callback) callback('cycleCalcul', payload);
-        var showSteps = window.showDichotomySteps && window.isVisuPanelActive();
+        var showSteps = DATA['🔘']['🔘🎞'] && window.isVisuPanelActive();
         if (showSteps) {
-            // visu_ + anim : appel direct — pas d'event bus, pas de file
-            window.displayDichotomyStep(DATA['🫧']['🍰🫧🏭'], DATA['🧮']['🧮🌡️'], spectral_result, DATA['🧮']['🧮🔄☀️'] - 1, false);
-            // yield 1 frame : seul async indispensable — canvas 2D est sync mais le browser ne repeint qu'entre tasks
+            /*
+             * ================================================================
+             * BRIDGE OBLIGATOIRE visuel+anim
+             * ================================================================
+             * NE PAS re-simplifier ce bloc en appel direct displayDichotomyStep().
+             *
+             * But recherché :
+             * 1. le cycle de calcul envoie le résultat spectral courant à l'UI
+             *    via IO_LISTENER.emit('compute:progress', payload)
+             * 2. l'UI (loader_panels.js) reçoit ce payload, appelle
+             *    displayDichotomyStep(), puis le plot se dessine
+             * 3. displayDichotomyStep() renvoie IO_LISTENER.emit('plot:drawn', { iteration })
+             * 4. SEULEMENT APRÈS ce retour, le calcul reprend le cycle suivant
+             *
+             * Pourquoi :
+             * - en anim + visu_, si on appelle displayDichotomyStep() directement ici,
+             *   le navigateur flush les draws tardivement et on perd l'enchaînement
+             *   "un cycle -> un flux visible -> cycle suivant"
+             * - le requestAnimationFrame seul ne suffit pas si on court-circuite
+             *   le passage par l'UI / le plot
+             *
+             * Contrat :
+             * - émission:   compute:progress(payload spectral complet)
+             * - accusé:     plot:drawn(iteration identique)
+             * - attente:    await plotDrawnPromise puis await RAF
+             * ================================================================
+             */
+            payload.CO2_fraction = DATA['🫧']['🍰🫧🏭'];
+            payload.result = spectral_result;
+            payload.isInitial = false;
+            const cycleIteration = payload.iteration;
+            const plotDrawnPromise = new Promise(function (resolve) {
+                const offPlotDrawn = function (drawPayload) {
+                    if (drawPayload.iteration !== cycleIteration) return;
+                    window.IO_LISTENER.off('plot:drawn', offPlotDrawn);
+                    resolve();
+                };
+                window.IO_LISTENER.on('plot:drawn', offPlotDrawn);
+            });
+            window.IO_LISTENER.emit('compute:progress', payload);
+            await plotDrawnPromise;
             await new Promise(function (resolve) { requestAnimationFrame(resolve); });
         } else {
             // scie_ ou sans anim : mise à jour légère (pas de draw spectral)
