@@ -66,12 +66,9 @@ function getMasses() {
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = window.TIMELINE[epochIndex];
+    // ⚖️💧 = ⚖️💧_init (EPOCH) + 📿☄️ * 🔺⚖️💧☄️ — 📿☄️ incrémenté directement par le bouton ☄️
     let h2o_kg = EPOCH['⚖️💧'] || 0;
-    
-    // Appliquer les événements
-    const meteoriteCount = DATA['📜']['📿☄️'] || 0;
-    const deltaWater = DATA['📜']['🔺⚖️💧☄️'] || 0;
-    h2o_kg += deltaWater * meteoriteCount;
+    h2o_kg += DATA['📜']['🔺⚖️💧☄️'] * DATA['📜']['📿☄️'];
     
     // Mettre à jour DATA directement
     // 🔒 Protection contre undefined : traiter comme 0
@@ -112,50 +109,29 @@ function getEpochDateConfig() {
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = window.TIMELINE[epochIndex];
     
-    let meteoriteCount = 0;
-    let ticTime = 0;
-    let deltaTicTime_per_tic = null;
-    let water_added_kg = 0;
-    // Calculer le nombre de météorites
-    const h2oTotalFromMeteorites = window.h2oTotalFromMeteorites || 0;
-    meteoriteCount = 0;
-    water_added_kg = 0;
+    // Masse d'eau par météorite — depuis config ☄️ (Corps noir, Hadéen)
+    // ⚠️ Ne pas écraser 📿☄️ ni 📿💫 — compteurs exclusifs des boutons (events.js)
     if (EPOCH['🕰'] && EPOCH['🕰']['☄️']) {
-        const mass_kg = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
-        const h2oPerMeteorite = (mass_kg / CONST.EARTH_TOTAL_WATER_MASS_KG) * 100;
-        const h2oPerMeteoriteAdjusted = Math.max(h2oPerMeteorite * 10, 2.1);
-        meteoriteCount = Math.floor(h2oTotalFromMeteorites / h2oPerMeteoriteAdjusted);
-        water_added_kg = mass_kg;
+        DATA['📜']['🔺⚖️💧☄️'] = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
     }
-    
-    ticTime = (DATA['📜'] && DATA['📜']['📿💫'] != null) ? DATA['📜']['📿💫'] : Math.floor((window.infoTimeMa || 0) / 50);
-    
-    // Vérifier si 💫 existe dans les événements (certaines époques n'ont pas de ticTime)
-    if (EPOCH['🕰']['💫']) {
+
+    // Delta température et flux géothermique par TicTime — depuis config 💫
+    let deltaTicTime_per_tic = 0;
+    if (EPOCH['🕰'] && EPOCH['🕰']['💫']) {
         deltaTicTime_per_tic = EPOCH['🕰']['💫']['🔺🌡️💫'];
-        DATA['📜']['🔺🧲🌕💫'] = {
-            '▶': EPOCH['🕰']['💫']['🔺🧲🌕💫']['▶'],
-            '◀': EPOCH['🕰']['💫']['🔺🧲🌕💫']['◀']
-        };
-        DATA['📜']['🔺⏳'] = EPOCH['🕰']['💫']['🔺⏳'] != null ? EPOCH['🕰']['💫']['🔺⏳'] : 50;
+        const star = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
+        DATA['📜']['🔺🧲🌕💫'] = star ? { '▶': star['▶'], '◀': star['◀'] } : { '▶': 0, '◀': 0 };
     } else {
-        DATA['📜']['🔺⏳'] = 50;
-        // Pas de ticTime pour cette époque
-        deltaTicTime_per_tic = 0;
         DATA['📜']['🔺🧲🌕💫'] = { '▶': 0, '◀': 0 };
     }
-    
+
     // Mettre à jour DATA directement (source unique de vérité)
     DATA['📜']['🌡️🧮'] = EPOCH['🌡️🧮'];
     DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];                  // Température attendue de l'époque
-    DATA['📅']['📿💫'] = ticTime || 0;                    // Nombre de ticTime
-    DATA['📜']['📿☄️'] = meteoriteCount || 0;              // Nombre de météorites
-    DATA['📜']['🔺⚖️💧☄️'] = water_added_kg || 0;               // Masse d'eau ajoutée / météorite
-    DATA['📜']['📿💫'] = ticTime || 0;                     // Nombre de ticTime
-    DATA['📜']['🔺🌡️💫'] = deltaTicTime_per_tic || 0;     // Delta température / ticTime
-    DATA['📜']['🧲🔬'] = (typeof EPOCH['🧲🔬'] === 'number' && Number.isFinite(EPOCH['🧲🔬'])) ? EPOCH['🧲🔬'] : 0.01;  // Précision convergence (K) ; défaut 0.01 si époque sans 🧲🔬
-    DATA['📜']['👉'] = epochIndex;                         // Index de l'époque
-    DATA['📜']['🗿'] = epochId;                            // Logo de l'époque (emoji)
+    DATA['📜']['🔺🌡️💫'] = deltaTicTime_per_tic;          // Delta température / ticTime
+    DATA['📜']['🧲🔬'] = (typeof EPOCH['🧲🔬'] === 'number' && Number.isFinite(EPOCH['🧲🔬'])) ? EPOCH['🧲🔬'] : 0.01;
+    DATA['📜']['👉'] = epochIndex;
+    DATA['📜']['🗿'] = epochId;
     
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
@@ -209,8 +185,8 @@ function getNoyau() {
     // Flux géothermique en W/m² (depuis TIMELINE)
     if (EPOCH['🕰'] && EPOCH['🕰']['💫'] && EPOCH['🕰']['💫']['🔺🧲🌕💫']) {
         const geo = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
-        const tic = (DATA['📜'] && DATA['📜']['📿💫'] != null) ? DATA['📜']['📿💫'] : 0;
-        const durationMa = (DATA['📜'] && DATA['📜']['🔺⏳'] != null) ? DATA['📜']['🔺⏳'] : 50;
+        const tic = DATA['📜']['📿💫'];
+        const durationMa = EPOCH['🕰']['💫']['🔺⏳'];
         const spanYears = Math.max(0, (EPOCH['▶'] || 0) - (EPOCH['◀'] || 0));
         const maxTics = durationMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / durationMa)) : 1;
         const f = Math.min(1, tic / maxTics);

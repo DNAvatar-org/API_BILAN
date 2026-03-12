@@ -956,9 +956,13 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
             cloud_coverage: cloud_coverage
         });
 
-    // Mettre à jour les labels du flux pendant le calcul (sauf si FPS dans zone rouge : courbe toujours affichée)
+    // Mettre à jour les labels du flux pendant le calcul : écrire albedo/cloud dans DATA pour que updateFluxLabels (cycleCalcul) mette à jour le DOM (albedo_percent, etc.)
     DATA['📊'] = DATA['📊'] || {};
     DATA['📊'].total_flux = result.total_flux;
+    if (DATA['🪩']) {
+        if (albedo != null) DATA['🪩']['🍰🪩📿'] = albedo;
+        if (cloud_coverage != null) DATA['🪩']['☁️'] = cloud_coverage;
+    }
     if (window.IO_LISTENER) window.IO_LISTENER.emit('cycleCalcul');
     const fpsOk = (typeof window.fps === 'number' && window.fps >= (window.FPSalert || 25));
     if (fpsOk && typeof window.updateFluxLabels === 'function') {

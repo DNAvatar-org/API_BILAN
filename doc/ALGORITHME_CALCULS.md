@@ -8,7 +8,7 @@ Ce document décrit la **structure conceptuelle** de l'algorithme (étapes, ordr
 - **`computeRadiativeTransfer(callback)`** — Chemin principal (API) : `API_BILAN/api.js` appelle `initForConfig()` puis `computeRadiativeTransfer(dispatcher)`. Implémentation dans `API_BILAN/convergence/calculations_flux.js` (async, phases Init → Search → Dicho, cycle eau, franchissements 0°C/T_boil). C'est le chemin utilisé par l'interface (sync_panels, scie_compute).
 - **`simulateRadiativeTransfer()`** — Chemin legacy (sync) : `API_BILAN/radiative/calculations.js`, appelé par `static/ui/main.js` dans certains contextes. Boucle dichotomie propre, pas de cycle eau/albédo itératif.
 
-Les deux chemins partagent : lecture config époque (DATA, TIMELINE), calcul flux pour une T donnée (`calculateFluxForT0`), convergence vers équilibre radiatif (flux_entrant ≈ flux_sortant).
+Les deux chemins partagent : lecture config époque (DATA, TIMELINE), calcul flux pour une T donnée (`calculateFluxForT0`), convergence vers équilibre radiatif (flux_entrant ≈ flux_sortant). Le flux spectral est calculé couche par couche (une ligne en mémoire) ; le résultat est stocké en `DATA['📊']` au format compressé (3 flottants par λ : flux_init, ychange, flux_final). L’affichage utilise `getSpectralResultFromDATA()` qui reconstruit une grille 100×nL à la volée.
 
 1. **Boucle extérieure** (conceptuelle) : Changements d'époque, événements (météorites, ticTime), recalculs
 2. **Boucle intérieure** : Itérations de convergence (Search puis dichotomie) pour trouver T0

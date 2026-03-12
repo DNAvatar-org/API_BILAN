@@ -152,7 +152,7 @@ Tout le **calcul pur** (sans DOM/Plotly) est sous API_BILAN (config, data, physi
 | **atmosphere/** | calculations_atm.js. |
 | **albedo/** | calculations_albedo.js. |
 | **h2o/** | calculations_h2o.js. |
-| **radiative/** | calculations.js (flux spectral, EDS, OLR). |
+| **radiative/** | calculations.js (flux spectral couche par couche, EDS, OLR). Stockage spectral : 3 floats/λ (flux_init, ychange, flux_final) en DATA['📊'] ; getSpectralResultFromDATA reconstruit la grille pour l’affichage. |
 | **convergence/** | compute.js (getMasses, getEpochDateConfig), calculations_flux.js (computeRadiativeTransfer, initForConfig). |
 | **geology/** | calculations_geology.js. |
 | **STRUCTURE.md** | Catégories de calculs, étapes du pipeline, liste des JS par catégorie. |
@@ -162,10 +162,11 @@ Tout le **calcul pur** (sans DOM/Plotly) est sous API_BILAN (config, data, physi
 
 ## 8. Workers (workers/)
 
+- **worker_pool.js** : pool de N−1 workers (`navigator.hardwareConcurrency - 1`), optionnel `CONFIG_COMPUTE.maxWorkers` pour plafonner. Répartition des bins λ en tranches.
 - **spectral_slice_worker.js** : tranche spectrale (parallélisation bande λ). Le main thread passe `constants` (Planck, etc.) depuis `window.CONST` dans chaque message.
 - **compute_worker.js** : stub pour déporter le calcul (cycles) hors du main thread.
 
-Création : `new Worker('API_BILAN/workers/spectral_slice_worker.js')` (chemin relatif depuis la page).
+Création : chargement de `worker_pool.js` crée le pool ; chemin worker `API_BILAN/workers/spectral_slice_worker.js` (relatif à la page).
 
 ---
 

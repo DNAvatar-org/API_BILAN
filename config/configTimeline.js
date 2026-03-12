@@ -60,11 +60,11 @@ const timeline = [
         '⚖️🫁': 0, // o2_kg (Quantité de O2 en kg)
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
-        // Événements interactifs
+        // Événements interactifs (météorites uniquement Corps noir + Hadéen) ; 💫 = bouton timeline (logo)
         '🕰': {
             '☄️': {
-                '🔺⚖️💧☄️': 2.0e19, // water_added_kg (~10^20 kg)
-                // deltaTemp: -3.5 // Inutile, déclenche aussi 📿💫++
+                '🔺⚖️💧☄️': 0.95e12, // water_added_kg (~10^20 kg)
+                '🔺⏳': 100,
             },
             '🎇': {
                 '⏩': '🔥' // Transition vers Hadéen
@@ -108,16 +108,16 @@ const timeline = [
         // Hadéen dure 500 Ma (▶ 4.5 Ga → ◀ 4.0 Ga). Courbes : T° = 🌡️🧮 + 🔺🌡️💫×tic ; 🧲🌕 = ▶→◀ ; gaz fixes.
         '🕰': {
             '💫': {
-                '🔺⏳': 50,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
                 '🔺🌡️💫': -300, // delta T° par tic (K) — refroidissement linéaire
                 '🔺🧲🌕💫': {
                     '▶': 2000000, // flux géothermique début (W/m²)
                     '◀': 0.3     // flux géothermique fin (W/m²) — interpolation selon tic
-                }
+                },
+                '🔺⏳': 50,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
             },
             '☄️': {
                 '🔺⚖️💧☄️': 1.0e18, // water_added_kg (~10% de l'eau initiale)
-                // deltaTemp: -3 // Inutile, déclenche aussi 📿💫++
+                '🔺⏳': 100,       // durée d'un tic en Ma (météorites)
             }
         }
     },
@@ -152,10 +152,9 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg
-                // deltaTemp: -5 // Inutile, déclenche aussi 📿💫++
-            }
+            '💫': {
+                '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
+            },
         }
     },
     {
@@ -187,10 +186,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg
-                // deltaTemp: -2 // Inutile, déclenche aussi 📿💫++
-            }
+            '💫': { '🔺⏳': 100 },
         }
     },
     // 🦴 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
@@ -220,7 +216,7 @@ const timeline = [
         '⚖️💧': 1.3e21,
         '⚖️🫁': 0,
         '🕰': {
-            '☄️': { '🔺⚖️💧☄️': 1.0e18 }
+            '💫': { '🔺⏳': 100 },
         }
     },
     {
@@ -247,7 +243,11 @@ const timeline = [
         '⚖️💧': 1.33e21,
         '⚖️🫁': 0,
         '🕰': {
-            '💫': { '🔺🌡️💫': -2, '🔺⏳': 86400, '🔺🧲🌕💫': { '▶': 0, '◀': 0 } }, // Événement 50 Ma
+            '💫': {
+                '🔺🌡️💫': -2,
+                '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
+                '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
+            }, // Événement 50 Ma
             '🎇': { '⏩': '🦣' } // Big impact (K-Pg) → Cénozoïque
         }
     },
@@ -281,10 +281,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg
-                // deltaTemp: -1 // Inutile, déclenche aussi 📿💫++
-            }
+            '💫': { '🔺⏳': 100 },
         }
     },
     // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
@@ -308,7 +305,9 @@ const timeline = [
         '⚖️🫁': 1.08e18,
         '⚖️🌫': 1e12,
         '⚖️💨': 3.97e18,
-        '🕰': {}
+        '🕰': {
+            '💫': { '🔺⏳': 100 },
+        }
     },
     {
         '📅': '🚂', // 1800
@@ -341,10 +340,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg
-                // deltaTemp: -0.5 // Inutile, déclenche aussi 📿💫++
-            }
+            '💫': { '🔺⏳': 100 },
         }
     },
     {
@@ -379,10 +375,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg
-                // deltaTemp: -0.5 // Inutile, déclenche aussi 📿💫++
-            }
+            '💫': { '🔺⏳': 100 },
         }
     }
 ];

@@ -23,7 +23,7 @@ const KEYS = {
     // États activés
     '🔘': ['🔘💧📛', '🔘⛽📛', '🔘🏭📛', '🔘🪩', '🔘🎞'],
     // Configuration de date / Événements
-    '📜': ['🌡️🧮', '📿☄️', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫','🧲🔬'],
+    '📜': ['🌡️🧮', '📿☄️', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮','📿💫', '🔺⏳'],
     // Masses
@@ -68,6 +68,7 @@ const DESC = {
         '🔺⚖️💧☄️': 'Masse H₂O / météore',
         '🔺🌡️💫': 'Delta t° / ticTime',
         '🔺🧲🌕💫': 'Delta Geoth / ticTime',
+        '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
         '🧲🔬': 'Précision Flux',
     },
     '📅': {

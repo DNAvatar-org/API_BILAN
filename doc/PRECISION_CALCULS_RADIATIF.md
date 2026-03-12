@@ -17,13 +17,24 @@ Littérature (Charnay 2017, Kienert 2013) : 281–303 K (8–30°C) plausible po
 
 | Paramètre | Valeur | Fichier |
 |-----------|--------|---------|
-| Résolution spectrale (🔬🌈) | 150 bins | `API_BILAN/config/configTimeline.js` → `CONFIG_COMPUTE.maxSpectralBinsConvergence` |
+| Résolution spectrale (🔬🌈) | max 2000 bins | `API_BILAN/config/configTimeline.js` → `CONFIG_COMPUTE.maxSpectralBinsConvergence` |
 | Plage spectrale | 0.1 μm – 100 μm | `API_BILAN/radiative/calculations.js` |
-| Pas spectral effectif | ~0.67 μm/bin | (100−0.1)/149 |
-| Résolution verticale troposphère | 50 m | `API_BILAN/radiative/calculations.js` delta_z_troposphere |
-| Résolution verticale stratosphère | 250–500 m (selon FPS) | `API_BILAN/radiative/calculations.js` |
+| Pas spectral effectif | adaptatif (régions CO2/H2O/CH4 densifiées) | idem, grille non uniforme |
+| Résolution verticale troposphère | 30 m | `API_BILAN/radiative/calculations.js` delta_z_troposphere |
+| Plafond couches (nZ) | 800 | `CONFIG_COMPUTE.maxLayersConvergence` (z_range écrêté) |
+| Résolution verticale stratosphère | ~100–500 m | idem, delta_z_stratosphere |
 | Précision convergence (🧲🔬) Archéen | 1.0 K | `API_BILAN/config/configTimeline.js` (🧲🔬 par époque) |
 | Tolérance flux | 4σT³ × precision_K ≈ 5.3 W/m² à 285 K | `API_BILAN/convergence/calculations_flux.js` (computeToleranceWm2) |
+
+### Stockage spectral et performance (calculations.js v1.2.0+)
+
+- **Pendant le calcul** : une seule ligne de flux en mémoire (`flux_in[j]`), propagation couche par couche. Pas de matrices nZ×nL allouées.
+- **Stockage en `DATA['📊']`** : format **3 flottants par λ** au lieu de 4 matrices nZ×nL :
+  - `flux_init[j]` : intensité surface (earth_flux)
+  - `flux_final[j]` : intensité sommet (OLR par λ)
+  - `ychange[j]` : altitude (m) de la « rupture » (première baisse > 5 % vs surface)
+- **Affichage** : `getSpectralResultFromDATA()` reconstruit à la volée une grille 100×nL (step function + interpolation linéaire au Ychange) pour le canvas spectral. Pas de matrice pleine stockée.
+- **Workers** : `workers/worker_pool.js` — N−1 workers (N = `navigator.hardwareConcurrency`), optionnel `CONFIG_COMPUTE.maxWorkers` pour plafonner.
 
 ---
 
@@ -59,22 +70,20 @@ Littérature (Charnay 2017, Kienert 2013) : 281–303 K (8–30°C) plausible po
 
 ---
 
-### 2.3 Résolution spectrale (150 bins)
+### 2.3 Résolution spectrale (max 2000 bins)
 
-**Problème** : 150 bins sur ~100 μm → ~0.67 μm/bin. Les bandes étroites (largeur ~1–5 μm) peuvent être mal échantillonnées.
+**Actuel** : `maxSpectralBinsConvergence` = 2000 par défaut, grille λ adaptative (régions CO2/H2O/CH4 plus denses). Les bandes étroites sont mieux échantillonnées qu’avec 150 bins.
 
-**Exemple** : Bande CO₂ 15 μm (largeur ~10 μm) : ~15 bins. Le pic peut être lissé si le centre de bin ne coïncide pas avec le maximum.
-
-**Impact** : Modéré. Une augmentation à 300–500 bins améliorerait la précision au prix du temps de calcul.
+**Impact** : Augmenter au-delà de 2000 augmente le temps de calcul et la RAM (workers, tranches λ).
 
 ---
 
 ### 2.4 Résolution verticale
 
-- Troposphère : 50 m (correct pour une échelle de hauteur ~8 km)
-- Stratosphère : 250–500 m selon `precisionFactor` (FPS)
+- Troposphère : 30 m (`delta_z_troposphere`). Plafond total : 800 couches (`maxLayersConvergence`).
+- Stratosphère : ~100–500 m selon z_max.
 
-À 2 bar, l’échelle de hauteur H = RT/(Mg) est plus petite qu’à 1 bar (H ∝ T, P0 plus élevé). Une résolution plus fine en bas de l’atmosphère pourrait améliorer la précision.
+À 2 bar, l’échelle de hauteur H = RT/(Mg) est plus petite qu’à 1 bar. Une résolution plus fine en bas pourrait améliorer la précision (au prix de plus de couches, plafonnées à 800).
 
 ---
 
@@ -113,13 +122,12 @@ La section efficace CO₂ du modèle est environ 10–100× plus faible que les 
 ### Priorité 2 – Ajouter le pressure broadening ✅ (implémenté)
 - Facteur : σ_eff = σ × √(P/P_ref), cap 2.0. `CONFIG_COMPUTE.pressureBroadening = true`
 
-### Priorité 3 – Augmenter la résolution spectrale (optionnel)
-- Passer à 300 bins pour les époques à haute pression
-- Ou utiliser une grille adaptative plus fine dans les bandes d’absorption
+### Priorité 3 – Résolution spectrale
+- Défaut 2000 bins (`maxSpectralBinsConvergence`). Pour tests de sensibilité : 150, 500, 2000.
 
 ### Priorité 4 – Test de sensibilité
-- Faire varier `maxSpectralBinsConvergence` (50, 150, 300) et comparer T finale
-- Tester un facteur de pressure broadening manuel pour l’Archéen
+- Faire varier `maxSpectralBinsConvergence` et comparer T finale
+- Optionnel : `CONFIG_COMPUTE.maxWorkers` pour limiter le nombre de workers (perf / RAM)
 
 ---
 
@@ -127,11 +135,12 @@ La section efficace CO₂ du modèle est environ 10–100× plus faible que les 
 
 | Fichier | Rôle |
 |---------|------|
-| `API_BILAN/radiative/calculations.js` | `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` ; `calculateFluxForT0` dans convergence/calculations_flux.js |
-| `API_BILAN/physics/physics.js` | `LAMBDA_CO2_CENTER`, `LAMBDA_H2O_1/2`, `LAMBDA_CH4_1/2`, `getH2OVaporEDSScale` |
-| `API_BILAN/config/configTimeline.js` | `maxSpectralBinsConvergence` (CONFIG_COMPUTE), `🧲🔬` par époque |
-| `static/calculations_atm.js` | `airNumberDensityAtZ`, `pressureAtZ` |
-| `static/compute/calculations_flux.js` | `computeRadiativeTransfer`, convergence Search/Dicho |
+| `API_BILAN/radiative/calculations.js` | `calculateFluxForT0` (flux couche par couche, stockage 3 floats/λ), `getSpectralResultFromDATA`, sections efficaces CO2/H2O/CH4 |
+| `API_BILAN/physics/physics.js` | CONST, Planck, `getH2OVaporEDSScale` |
+| `API_BILAN/config/configTimeline.js` | `maxSpectralBinsConvergence` (2000), `maxLayersConvergence` (800), `maxWorkers` (optionnel), `🧲🔬` par époque |
+| `API_BILAN/workers/worker_pool.js` | Pool N−1 workers (tranches λ), optionnel `maxWorkers` |
+| `API_BILAN/atmosphere/` ou app | `airNumberDensityAtZ`, `pressureAtZ` |
+| `API_BILAN/convergence/calculations_flux.js` | `computeRadiativeTransfer`, convergence Search/Dicho |
 
 ---
 
