@@ -1,8 +1,10 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.1.7
+// Version 1.2.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.1.9: plafond couches (maxLayersConvergence 800) + sous-échantillonnage stockage (max 400×600 en DATA) pour limiter RAM
+// - v1.2.0: format 3-flottants-par-λ (flux_init, ychange, flux_final) — supprime 4 matrices nZ×nL (×800 moins RAM) ; reconstruction 100 lignes dans getSpectralResultFromDATA
 // Logs: v1.0.2 - kappa_H2O × H2O_VAPOR_EDS_SCALE (évite masquage CO2, doc/API/VAPEUR_VS_NUAGES.md)
 // Logs: v1.0.3 - Attribution EDS Schmidt 2010 : transfert overlap/2 de H2O vers CO2 à chaque (couche,λ), total 100%
 // Logs: v1.0.4 - Nuages EDS : τ_cloud (corps gris) ∝ 🍰🪩⛅ (albédo), réparti troposphère ; eds_breakdown.Clouds
@@ -15,6 +17,7 @@
 // Logs: v1.0.11 - Diagnostic aliasing CO2 bande 15µm (13–17µm) : table sigma/kappa + ratio modèle/théorie
 // Logs: v1.0.12 - Grille spectrale λ adaptative (zones CO2/CH4/H2O densifiées) + lambda_weights non-uniformes
 // Logs: v1.1.7 - displayDichotomyStep émet plot:drawn(iteration) après draw spectral pour bridge IO_LISTENER
+// - v1.1.8: max bins spectral = déf en pixels axe X (PLOT_AXIS_X_PX), fallback CONFIG/2000 ; même seuil pour showSpectralBackground
 // Logs: v1.0.13 - retrait gardes défensives CONFIG_COMPUTE sur les derniers ajouts (règle crash)
 // Logs: v1.0.14 - Grille λ : retour aux bornes d'origine (calculs spectraux inchangés)
 // Logs: v1.0.15 - CONFIG_COMPUTE.spectralGridHomogeneous : si true, poids ∝ largeur (répartition homogène)
@@ -142,15 +145,16 @@ async function calculateFluxForT0() {
     const lambda_range = [];
     const lambda_weights = []; // Poids pour les moyennes pondérées
 
-    // 💧 Résolution spectrale : DATA['🧮']['🔬🌈'] = target (entrée) puis lambda_range.length (sortie). Aujourd'hui N fixe (maxSpectralBinsConvergence) ; évolution possible : N_min (HITRAN) + N_max (CONFIG), N = clamp(…, N_min, N_max), FPS bas → ne pas descendre sous N_min.
+    // 💧 Résolution spectrale : plafond = CONFIG_COMPUTE.maxSpectralBinsConvergence (défaut 2000)
     // Credence ~70%. Plage lit. bins λ : 100–1000+ (LBL 200–500 typique). 150 = bas de plage ; augmenter si EDS insuffisant.
     const lambda_span = lambda_max - lambda_min;
 
     {
+        const maxAllowedBins = (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
         let expected_points = Math.max(2, Math.min(DATA['🧮']['🔬🌈'], 10000));
         const nMinHITRAN = window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN != null && Number.isFinite(window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN) ? window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN : 0;
         if (nMinHITRAN > 0) expected_points = Math.max(expected_points, Math.min(nMinHITRAN, 10000));
-        expected_points = Math.max(24, expected_points); // 8 régions × min 3 bins
+        expected_points = Math.max(24, Math.min(expected_points, maxAllowedBins)); // plafond = CONFIG
 
         function buildAdaptiveLambdaGrid(totalBins) {
             // Grille d'origine (bornes fixes) : utilisée pour les calculs spectraux ; HITRAN sert aux sections efficaces, pas aux bornes ici.
@@ -302,6 +306,20 @@ async function calculateFluxForT0() {
         z_range.push(z_max);
     }
 
+    // Plafond couches pour limiter la RAM (4 matrices × nZ × nL peuvent dépasser 1–4 Go)
+    const maxLayersConvergence = (window.CONFIG_COMPUTE && typeof window.CONFIG_COMPUTE.maxLayersConvergence === 'number')
+        ? Math.max(100, window.CONFIG_COMPUTE.maxLayersConvergence) : 800;
+    if (z_range.length > maxLayersConvergence) {
+        const step = (z_range.length - 1) / (maxLayersConvergence - 1);
+        const thinned = [];
+        for (let k = 0; k < maxLayersConvergence; k++) {
+            const idx = (k === maxLayersConvergence - 1) ? z_range.length - 1 : Math.min(Math.floor(k * step), z_range.length - 1);
+            thinned.push(z_range[idx]);
+        }
+        z_range.length = 0;
+        z_range.push(...thinned);
+    }
+
     // ⚠️ IMPORTANT : S'assurer que lambda_range est complètement construit avant de créer upward_flux
     // Vérifier la cohérence des longueurs
     if (lambda_range.length !== lambda_weights.length) {
@@ -309,15 +327,8 @@ async function calculateFluxForT0() {
         throw new Error(`Longueurs incompatibles : lambda_range (${lambda_range.length}) != lambda_weights (${lambda_weights.length})`);
     }
 
-    // Initialiser les tableaux avec la longueur finale de lambda_range
+    // (flux_init, ychange, YCHANGE_THR initialisés après earth_flux — voir ci-dessous)
     const final_lambda_length = lambda_range.length;
-    const num_couches = z_range.length;
-    const num_plages_spectre = final_lambda_length;
-    const total_cases = num_couches * num_plages_spectre;
-    const upward_flux = Array(z_range.length).fill(0).map(() => Array(final_lambda_length).fill(0));
-    const optical_thickness = Array(z_range.length).fill(0).map(() => Array(final_lambda_length).fill(0));
-    const emitted_flux = Array(z_range.length).fill(0).map(() => Array(final_lambda_length).fill(0));
-    const absorbed_flux = Array(z_range.length).fill(0).map(() => Array(final_lambda_length).fill(0));
     let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
 
     // Log du calcul spectral (désactivé pour réduire la taille des logs)
@@ -341,6 +352,12 @@ async function calculateFluxForT0() {
         const B = PHYS.planckFunction(lambda, T_surf_flux);
         return Math.PI * B * effective_delta_lambda * lambda_weights[idx];
     });
+
+    // Format 3-flottants-par-λ : flux_init = copie de earth_flux (défini juste au-dessus)
+    // ychange = altitude de coupure par λ (init = z_max = pas de coupure observée)
+    const flux_init = earth_flux.slice();
+    const ychange = new Float64Array(final_lambda_length).fill(z_range[z_range.length - 1]);
+    const YCHANGE_THR = 0.05; // 5 % de baisse = début absorption significative
 
     const lambda_9um = 9e-6; // 9 microns en mètres
     const flux_below_9um = earth_flux.filter((flux, idx) => lambda_range[idx] < lambda_9um).reduce((sum, f) => sum + f, 0);
@@ -469,13 +486,26 @@ async function calculateFluxForT0() {
             T_surf: DATA['🧮']['🧮🌡️'],
             constants: { PLANCK_H: CONST.PLANCK_H, SPEED_OF_LIGHT: CONST.SPEED_OF_LIGHT, BOLTZMANN_KB: CONST.BOLTZMANN_KB, MAX_PLANCK_SAFE: CONST.MAX_PLANCK_SAFE }
         }, nZ, nL);
-        for (let i = 0; i < nZ; i++) {
-            for (let j = 0; j < nL; j++) upward_flux[i][j] = resultBuf[i * nL + j];
-        }
         sum_blocked_CO2 = sums.CO2; sum_blocked_H2O = sums.H2O;
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
-        for (let j = 0; j < nL; j++) flux_in[j] = upward_flux[nZ - 1][j];
-        console.log('⚙️ [workers] done OLR=' + upward_flux[nZ-1].reduce((s,v)=>s+v,0).toFixed(2) + ' W/m²');
+        // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
+        let OLR_w = 0;
+        for (let j = 0; j < nL; j++) {
+            const f = resultBuf[(nZ - 1) * nL + j];
+            flux_in[j] = f;
+            OLR_w += f;
+        }
+        const z_last_w = z_range[nZ - 1];
+        for (let j = 0; j < nL; j++) {
+            for (let i = 0; i < nZ; i++) {
+                if (resultBuf[i * nL + j] < flux_init[j] * (1 - YCHANGE_THR)) {
+                    ychange[j] = z_range[i];
+                    break;
+                }
+            }
+        }
+        console.log('⚙️ [workers] done OLR=' + OLR_w.toFixed(2) + ' W/m²');
+        // resultBuf non référencé après ici → GC peut collecter le Transferable
     } else {
     // ── Voie série (fallback) ────────────────────────────────────────────────────────
     for (let i = 0; i < i_trop; i++) {
@@ -493,73 +523,36 @@ async function calculateFluxForT0() {
         // Épaisseur réelle de la couche i → τ cohérent quel que soit delta_z (convergence quand précision augmente).
         const delta_z_real = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : delta_z_troposphere;
 
-        // Vérifier que flux_in et upward_flux[i] ont la bonne longueur avant la boucle
         if (flux_in.length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE dans boucle troposphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles dans boucle troposphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
-        }
-        if (upward_flux[i].length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE dans boucle troposphère i=${i}: upward_flux[${i}].length (${upward_flux[i].length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles dans boucle troposphère: upward_flux[${i}] (${upward_flux[i].length}) != lambda_range (${lambda_range.length})`);
+            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE troposphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
+            throw new Error(`Longueurs incompatibles troposphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
         }
 
-        // Calculer pour chaque longueur d'onde
+        const z_last = z_range[z_range.length - 1];
         for (let j = 0; j < lambda_range.length; j++) {
-            if (j >= flux_in.length || j >= upward_flux[i].length) {
-                console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE troposphère: j=${j}, flux_in.length=${flux_in.length}, upward_flux[${i}].length=${upward_flux[i].length}, lambda_range.length=${lambda_range.length}`);
-                throw new Error(`Index j=${j} hors limites`);
-            }
-
             const lambda = lambda_range[j];
-
-            // ⚡ OPTIMISATION : Utiliser les sections efficaces précalculées + pressure broadening
             const sigma_broad = pressureBroadening;
             const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * sigma_broad * n_CO2 : 0;
             const kappa_H2O_raw = isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * sigma_broad * n_H2O : 0;
             const kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
             const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
-
-            // Coefficient d'absorption total (CO2 + H2O + CH4) + nuages (corps gris, même τ pour toutes les λ)
             const kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
             const tau_cloud_layer = tau_cloud_per_layer;
-
             const tau_raw = kappa * delta_z_real + tau_cloud_layer;
-            optical_thickness[i][j] = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(tau_raw, TAU_EFF_MAX) : 0;
+            const tau_eff = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(tau_raw, TAU_EFF_MAX) : 0;
 
-            // 🔒 Corps noir = pas d'absorption (gaz + nuages)
             const has_absorption = (DATA['🫧']['🍰🫧🏭'] > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
+            let out_clamped;
             if (!has_absorption) {
-                // Pas d'absorption : corps noir pur, flux passe sans modification (clamp pour éviter overflow en somme)
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
-                emitted_flux[i][j] = 0;
-                absorbed_flux[i][j] = 0;
+                out_clamped = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
             } else {
-                // Transfert radiatif dans la couche (Formule exacte avec exponentielle)
-                // I_out = I_in * exp(-tau) + B(T) * (1 - exp(-tau))
-                const tau = Math.max(TAU_EFF_MIN, Math.min(TAU_EFF_MAX, optical_thickness[i][j]));
+                const tau = Math.max(TAU_EFF_MIN, tau_eff);
                 const transmission = Math.exp(-tau);
-                const emissivity = 1 - transmission; // Kirchhoff: epsilon = 1 - transmission, ∈ [0,1]
-
-                // 1. Flux absorbé
-                const abs_flux = flux_in[j] * (1 - transmission);
-
-                // 2. Flux émis
-                // F_émis = (1 - exp(-tau)) × π × B_λ(T_couche) × Δλ × poids (Δλ = pas réel de la grille)
+                const emissivity = 1 - transmission;
                 const em_flux = emissivity * Math.PI * PHYS.planckFunction(lambda, T) * effective_delta_lambda * lambda_weights[j];
-
-                // 3. Flux sortant + clamp pour éviter overflow de la somme totale
                 let out = flux_in[j] * transmission + em_flux;
                 if (!Number.isFinite(out)) out = flux_in[j];
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out));
-
-                // Stocker les valeurs pour la visualisation
-                emitted_flux[i][j] = em_flux;
-                absorbed_flux[i][j] = abs_flux;
-
-                // Attribution EDS (diagnostic) :
-                // contribution "propre" de chaque composant = flux_in * (1 - exp(-τ_i)).
-                // Puis normalisation globale en fin de calcul.
-                // Objectif : éviter que 🍰📛⛅ soit mécaniquement écrasé par τ_tot quand H2O domine.
+                out_clamped = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out));
                 const tau_CO2 = Math.max(0, kappa_CO2 * delta_z_real);
                 const tau_H2O = Math.max(0, kappa_H2O * delta_z_real);
                 const tau_CH4 = Math.max(0, kappa_CH4 * delta_z_real);
@@ -568,8 +561,11 @@ async function calculateFluxForT0() {
                 sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-tau_CH4));
                 sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
             }
-
-            flux_in[j] = upward_flux[i][j];
+            flux_in[j] = out_clamped;
+            // Tracking Ychange : première couche où le flux descend de > YCHANGE_THR vs surface
+            if (ychange[j] >= z_last && out_clamped < flux_init[j] * (1 - YCHANGE_THR)) {
+                ychange[j] = z_range[i];
+            }
         }
     }
 
@@ -587,98 +583,47 @@ async function calculateFluxForT0() {
         // Épaisseur réelle de la couche i (z_range[i-1] → z_range[i]) : cohérent avec troposphère, pas de pas fixe stratosphère.
         const delta_z_real = i > 0 ? (z_range[i] - z_range[i - 1]) : delta_z_stratosphere;
 
-        // Vérifier que flux_in et upward_flux[i] ont la bonne longueur avant la boucle
         if (flux_in.length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE dans boucle stratosphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles dans boucle stratosphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
-        }
-        if (upward_flux[i].length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE dans boucle stratosphère i=${i}: upward_flux[${i}].length (${upward_flux[i].length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles dans boucle stratosphère: upward_flux[${i}] (${upward_flux[i].length}) != lambda_range (${lambda_range.length})`);
+            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE stratosphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
+            throw new Error(`Longueurs incompatibles stratosphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
         }
 
-        // Calculer pour chaque longueur d'onde
+        const z_last_s = z_range[z_range.length - 1];
         for (let j = 0; j < lambda_range.length; j++) {
-            if (j >= flux_in.length || j >= upward_flux[i].length) {
-                console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE stratosphère: j=${j}, flux_in.length=${flux_in.length}, upward_flux[${i}].length=${upward_flux[i].length}, lambda_range.length=${lambda_range.length}`);
-                throw new Error(`Index j=${j} hors limites`);
-            }
-
-            const lambda = lambda_range[j];
-
-            const sigma_broad_s = pressureBroadening_s;
-            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * sigma_broad_s * n_CO2 : 0;
-            const kappa_H2O_raw_s = isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * sigma_broad_s * n_H2O : 0;
-            const kappa_H2O = kappa_H2O_raw_s * h2o_eds_scale;
-            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * sigma_broad_s * n_CH4 : 0;
-
+            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * pressureBroadening_s * n_CO2 : 0;
+            const kappa_H2O = (isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * pressureBroadening_s * n_H2O : 0) * h2o_eds_scale;
+            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * pressureBroadening_s * n_CH4 : 0;
             const kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
-
-            const tau_raw_s = kappa * delta_z_real;
-            optical_thickness[i][j] = (Number.isFinite(tau_raw_s) && tau_raw_s >= 0) ? Math.min(tau_raw_s, TAU_EFF_MAX) : 0;
-
-            // 🔒 Corps noir = pas d'absorption (CO2=0 ET H2O réellement absent ET CH4 réellement absent)
-            // Vérifier les valeurs réelles, pas seulement les boutons
+            const tau_eff_s = (Number.isFinite(kappa * delta_z_real) && kappa * delta_z_real >= 0) ? Math.min(kappa * delta_z_real, TAU_EFF_MAX) : 0;
             const has_absorption = (DATA['🫧']['🍰🫧🏭'] > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10);
+            let out_clamped_s;
             if (!has_absorption) {
-                // Pas d'absorption : corps noir pur, flux passe sans modification (clamp pour éviter overflow en somme)
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
-                emitted_flux[i][j] = 0;
-                absorbed_flux[i][j] = 0;
+                out_clamped_s = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
             } else {
-                // Transfert radiatif dans la couche (Formule exacte avec exponentielle)
-                const tau = Math.max(TAU_EFF_MIN, Math.min(TAU_EFF_MAX, optical_thickness[i][j]));
+                const tau = Math.max(TAU_EFF_MIN, tau_eff_s);
                 const transmission = Math.exp(-tau);
                 const emissivity = 1 - transmission;
-
-                // 1. Flux absorbé
-                const abs_flux = flux_in[j] * (1 - transmission);
-
-                // 2. Flux émis
-                // ⚡ OPTIMISATION : Utiliser B_λ(T_trop) précalculé ; Δλ = pas réel de la grille
                 const em_flux = emissivity * Math.PI * planck_trop[j] * effective_delta_lambda * lambda_weights[j];
-
-                // 3. Flux sortant + clamp pour éviter overflow de la somme totale
                 let out_s = flux_in[j] * transmission + em_flux;
                 if (!Number.isFinite(out_s)) out_s = flux_in[j];
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out_s));
-
-                // Stocker les valeurs pour la visualisation
-                emitted_flux[i][j] = em_flux;
-                absorbed_flux[i][j] = abs_flux;
-
-                // Attribution EDS (diagnostic) : absorption propre par composant (sans nuages en stratosphère).
-                const tau_CO2_s = Math.max(0, kappa_CO2 * delta_z_real);
-                const tau_H2O_s = Math.max(0, kappa_H2O * delta_z_real);
-                const tau_CH4_s = Math.max(0, kappa_CH4 * delta_z_real);
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-tau_CO2_s));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-tau_H2O_s));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-tau_CH4_s));
+                out_clamped_s = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out_s));
+                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
+                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
+                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
             }
-
-            flux_in[j] = upward_flux[i][j];
+            flux_in[j] = out_clamped_s;
+            if (ychange[j] >= z_last_s && out_clamped_s < flux_init[j] * (1 - YCHANGE_THR)) {
+                ychange[j] = z_range[i];
+            }
         }
     }
     } // fin else (voie série)
 
     // Log supprimé (non essentiel)
 
-    // Calculer le flux total au sommet
-    // Vérifier que upward_flux n'est pas vide avant d'appeler reduce
-    // Vérifier la longueur de upward_flux avant de retourner
-    if (upward_flux.length > 0) {
-        const topFluxLength = upward_flux[upward_flux.length - 1].length;
-        if (topFluxLength !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE FINALE: upward_flux[top].length (${topFluxLength}) != lambda_range.length (${lambda_range.length})`);
-        }
-    }
-    
-    // 🔒 CRASH si upward_flux invalide (pas de fallback)
-    if (!upward_flux || upward_flux.length === 0 || !upward_flux[upward_flux.length - 1]) {
-        throw new Error('[calculateFluxForT0] upward_flux est vide ou invalide');
-    }
-    // OLR = somme sur λ du flux au sommet ; pas de division par n_layers (propagation couche par couche, pas moyenne).
-    const total_flux = upward_flux[upward_flux.length - 1].reduce((sum, val) => sum + val, 0);
+    // flux_in contient le flux au sommet après propagation complète (OLR)
+    if (!flux_in || flux_in.length === 0) throw new Error('[calculateFluxForT0] flux_in vide ou invalide après boucle');
+    const total_flux = flux_in.reduce((sum, val) => sum + val, 0);
     const earth_flux_total = earth_flux.reduce((sum, val) => sum + val, 0);
     const EDS = earth_flux_total - total_flux;
     const sum_blocked = sum_blocked_CO2 + sum_blocked_H2O + sum_blocked_CH4 + sum_blocked_clouds;
@@ -700,11 +645,10 @@ async function calculateFluxForT0() {
     // console.log(`   Flux sortant final (sommet atm): ${total_flux.toFixed(2)} W/m²`);
     // console.log(`   Delta (sortant - entrant): ${delta_spectral.toFixed(2)} W/m²`);
 
-    // Debug: analyser le flux < 9μm au sommet de l'atmosphère
-    const top_flux = upward_flux[upward_flux.length - 1];
+    // flux < 9μm au sommet (diagnostic, flux_in = OLR par λ)
     const lambda_9um_top = 9e-6;
-    const top_flux_below_9um = top_flux.filter((flux, idx) => lambda_range[idx] < lambda_9um_top).reduce((sum, f) => sum + f, 0);
-    const top_flux_total = top_flux.reduce((sum, f) => sum + f, 0);
+    const top_flux_below_9um = flux_in.reduce((s, f, idx) => s + (lambda_range[idx] < lambda_9um_top ? f : 0), 0);
+    const top_flux_total = total_flux;
 
     // 🔒 Stocker les résultats dans DATA (crash si DATA['📊'] n'existe pas)
     if (!DATA['📊']) throw new Error('[calculateFluxForT0] DATA[📊] requis avant écriture');
@@ -714,17 +658,18 @@ async function calculateFluxForT0() {
     }
     DATA['📊'].total_flux = total_flux;
     DATA['📊'].eds_breakdown = eds_breakdown;
+    DATA['📊'].delta_z = delta_z;
+
+    // Stockage compressé : 3 × nL flottants (flux_init, ychange, flux_final) au lieu de 4 × nZ × nL.
+    // getSpectralResultFromDATA reconstruit upward_flux à la volée (100 lignes) pour plot.js.
     DATA['📊'].lambda_range = lambda_range;
     DATA['📊'].lambda_weights = lambda_weights;
     DATA['📊'].z_range = z_range;
-    DATA['📊'].upward_flux = upward_flux;
-    DATA['📊'].optical_thickness = optical_thickness;
-    DATA['📊'].emitted_flux = emitted_flux;
-    DATA['📊'].absorbed_flux = absorbed_flux;
-    DATA['📊'].earth_flux = earth_flux;
-    DATA['📊'].delta_z = delta_z;
+    DATA['📊'].flux_init = flux_init;                  // 1D nL : intensité surface
+    DATA['📊'].flux_final = flux_in.slice();            // 1D nL : intensité sommet (OLR par λ)
+    DATA['📊'].ychange = Array.from(ychange);           // 1D nL : altitude coupure (m) par λ
+    DATA['📊'].earth_flux = flux_init;                  // alias pour plot.js
 
-    // Mettre à jour les résolutions dans DATA['🧮'] (crash si DATA['🧮'] n'existe pas)
     DATA['🧮']['🔬🌈'] = lambda_range.length;
     DATA['🧮']['🔬🫧'] = z_range.length;
 
@@ -735,22 +680,53 @@ async function calculateFluxForT0() {
     return true; // Succès
 }
 
+// Reconstruction de upward_flux à la volée depuis le format compressé (flux_init, ychange, flux_final).
+// Produit DISPLAY_ROWS lignes pour plot.js sans stocker la matrice pleine en DATA.
+// Profil par λ : intensityInit → (transition au Ychange) → intensityFinal (step function lissée linéairement).
+// O(DISPLAY_ROWS × nL) = ~100 × 2000 = rapide ; backward-compatible avec plot.js (upward_flux[i][j] toujours valide).
 function getSpectralResultFromDATA() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const total_flux = DATA['📊'].total_flux;
     const effective_temperature = (total_flux > 0 && CONST.STEFAN_BOLTZMANN) ? Math.pow(total_flux / CONST.STEFAN_BOLTZMANN, 0.25) : null;
+    const { lambda_range, lambda_weights, z_range, flux_init, flux_final, ychange, earth_flux } = DATA['📊'];
+    if (!lambda_range || !flux_init || !flux_final || !ychange) {
+        // Données compressées pas encore disponibles (premier appel avant tout calcul)
+        return { total_flux, effective_temperature, lambda_range: null, lambda_weights: null, z_range: null, upward_flux: null, optical_thickness: null, emitted_flux: null, absorbed_flux: null, earth_flux: null };
+    }
+    const nL = lambda_range.length;
+    const z_max = z_range[z_range.length - 1];
+
+    // Reconstruction : 100 lignes (z=0 → z=z_max), transition linéaire au Ychange par λ
+    const DISPLAY_ROWS = 100;
+    const upward_flux = new Array(DISPLAY_ROWS);
+    const z_range_display = new Array(DISPLAY_ROWS);
+    for (let di = 0; di < DISPLAY_ROWS; di++) {
+        const z_rev = (di / Math.max(1, DISPLAY_ROWS - 1)) * z_max; // z=0 (surface) … z=z_max (sommet)
+        z_range_display[di] = z_rev;
+        const row = new Array(nL);
+        for (let j = 0; j < nL; j++) {
+            if (z_rev <= ychange[j]) {
+                row[j] = flux_init[j]; // en dessous de la coupure : transparent, flux surface
+            } else {
+                const t = (z_rev - ychange[j]) / Math.max(1, z_max - ychange[j]);
+                row[j] = flux_init[j] + t * (flux_final[j] - flux_init[j]); // interpolation linéaire vers OLR
+            }
+        }
+        upward_flux[di] = row;
+    }
+
     return {
         total_flux,
         effective_temperature,
-        lambda_range: DATA['📊'].lambda_range,
-        lambda_weights: DATA['📊'].lambda_weights,
-        z_range: DATA['📊'].z_range,
-        upward_flux: DATA['📊'].upward_flux,
-        optical_thickness: DATA['📊'].optical_thickness,
-        emitted_flux: DATA['📊'].emitted_flux,
-        absorbed_flux: DATA['📊'].absorbed_flux,
-        earth_flux: DATA['📊'].earth_flux
+        lambda_range,
+        lambda_weights,
+        z_range: z_range_display,
+        upward_flux,          // 100 × nL reconstruit — backward-compatible plot.js
+        optical_thickness: null,
+        emitted_flux: null,
+        absorbed_flux: null,
+        earth_flux: flux_init
     };
 }
 
@@ -1975,7 +1951,9 @@ function finalizeResults(final_result, final_T0, CO2_fraction, resolve) {
         temp_surface_c: final_T0 - CONST.KELVIN_TO_CELSIUS // 🔒 Température de surface (°C) - nécessaire pour updateH2OLevelDirect
     };
 
-    const maxBinsFinal = (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
+    const maxBinsFinal = (window.FLUX && typeof window.FLUX.plotAxisXPx === 'number' && window.FLUX.plotAxisXPx > 0)
+        ? Math.max(24, Math.floor(window.FLUX.plotAxisXPx))
+        : (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
     window.showSpectralBackground = !!(lambda_range && lambda_range.length >= maxBinsFinal);
     window.spectralConverged = true;
     window.spectralPrecisionTarget = 'max';
@@ -2073,7 +2051,9 @@ function finalizeResultsSync(result, T0, lambda_range, lambda_weights, z_range, 
     window.plotData.temp_surface_c = T0 - CONST.KELVIN_TO_CELSIUS;
     DATA['🧮']['🧮🌡️'] = T0;
 
-    const maxBinsSync = (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
+    const maxBinsSync = (window.FLUX && typeof window.FLUX.plotAxisXPx === 'number' && window.FLUX.plotAxisXPx > 0)
+        ? Math.max(24, Math.floor(window.FLUX.plotAxisXPx))
+        : (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
     window.showSpectralBackground = !!(lambda_range && lambda_range.length >= maxBinsSync);
     window.spectralConverged = true;
     window.spectralPrecisionTarget = 'max';

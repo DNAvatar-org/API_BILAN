@@ -3,7 +3,7 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.1.1
+// Version 1.1.2
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: March 08, 2026
@@ -11,13 +11,17 @@
 // - v1.0.0 Initial: N-1 workers, SAB Float32 pour upward_flux, sums EDS via postMessage
 // - v1.1.0 Transferable au lieu de SharedArrayBuffer (pas de headers COOP/COEP requis, compatible prod)
 // - v1.1.1 Retrait typeof navigator guard (regle-js-crash)
+// - v1.1.2 Plafond optionnel CONFIG_COMPUTE.maxWorkers (si défini) ; sinon nCPU - 1
 
 (function () {
     'use strict';
 
     var nCPU = navigator.hardwareConcurrency;
-    // 1 CPU réservé au rendu/main thread
-    var nWorkers = Math.max(1, nCPU - 1);
+    // 1 CPU réservé au rendu ; optionnel : CONFIG_COMPUTE.maxWorkers plafonne (ex. 4) si tu veux limiter
+    var rawWorkers = Math.max(1, nCPU - 1);
+    var maxCap = (window.CONFIG_COMPUTE && typeof window.CONFIG_COMPUTE.maxWorkers === 'number')
+        ? Math.max(1, window.CONFIG_COMPUTE.maxWorkers) : rawWorkers;
+    var nWorkers = Math.min(rawWorkers, maxCap);
 
     // Chemin relatif au document HTML qui charge ce script (depuis html/)
     var workerPath = '../API_BILAN/workers/spectral_slice_worker.js';

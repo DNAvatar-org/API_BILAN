@@ -406,18 +406,25 @@ window.CONFIG_COMPUTE.maxSpectralBinsConvergence = 2000;            // [OBS/CALI
 window.CONFIG_COMPUTE.initSpectralBinsConvergence = 200;            // [OBS/CALIB] N initial (anim : 200 → … → max ; passe finale à max après convergence)
 // spectralMaxMB : si défini, pas de passe finale à maxBins si grille dépasserait ce seuil (évite Brave code 5). Ex. 25.
 window.CONFIG_COMPUTE.spectralMaxMB = null;                         // [OBS/CALIB] null = pas de plafond ; 25 = skip passe finale si > 25 MB
+// Workers spectraux : par défaut nWorkers = navigator.hardwareConcurrency - 1. Optionnel : maxWorkers (ex. 4) pour plafonner.
+// window.CONFIG_COMPUTE.maxWorkers = 4;                            // [OBS/CALIB] décommenter pour limiter (ex. 4)
+// Limite RAM (calculations.js) : plafond couches convergence + résolution stockée en DATA['📊'] (évite 1–4 Go heap).
+window.CONFIG_COMPUTE.maxLayersConvergence = 800;                   // [OBS/CALIB] max couches atmosphère pour le calcul (z_range écrêté)
+window.CONFIG_COMPUTE.maxStoredSpectralLayers = 400;                // [OBS/CALIB] max couches gardées en DATA pour affichage (sous-échant.)
+window.CONFIG_COMPUTE.maxStoredSpectralBins = 600;                 // [OBS/CALIB] max bins λ gardés en DATA pour affichage (sous-échant.)
 window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN = null;            // [OBS/CALIB]
 // true = répartition homogène (poids ∝ largeur région → même densité bins/μm partout) ; false = grille d'origine (converge bien).
 window.CONFIG_COMPUTE.spectralGridHomogeneous = true;             // [OBS/CALIB]
 // Pondération physique du spin-up : cycles_effectifs = cycles × f(⚖️🫧) × f(⚖️💧). Refs confirmés >= 1 au set.
-var CLIMATE_SPINUP_ATM_MASS_REF_KG = 1e18;
-var CLIMATE_SPINUP_WATER_MASS_REF_KG = 1e20;
-window.CONFIG_COMPUTE.climateSpinupAtmMassRefKg = Math.max(1, CLIMATE_SPINUP_ATM_MASS_REF_KG);   // [OBS/CALIB]
-window.CONFIG_COMPUTE.climateSpinupWaterMassRefKg = Math.max(1, CLIMATE_SPINUP_WATER_MASS_REF_KG); // [OBS/CALIB]
+
+window.CONFIG_COMPUTE.climateSpinupAtmMassRefKg = 1e18; // [OBS/CALIB]
+window.CONFIG_COMPUTE.climateSpinupWaterMassRefKg = 1e20; // [OBS/CALIB]
 // Temps caractéristique fonte calotte pour l'héritage glaciaire (ans)
 window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
+// Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
+window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
 
 // ===================== [EQ/NUM] =====================
 window.CONFIG_COMPUTE.maxRadiatifIters = 101;                      // [EQ/NUM]
