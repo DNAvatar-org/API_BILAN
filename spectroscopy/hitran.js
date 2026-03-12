@@ -203,19 +203,22 @@
 
     /**
      * Section efficace σ(λ, T, P) en m²/molécule à partir des lignes (réf. doc/HITRAN.txt).
-     * lines = tableau de lignes { nu, sw, elower, gamma_air, gamma_self, n_air, delta_air }.
+     * lines = tableau de lignes trié par nu. On parcourt [i0, i1[ sans allouer inRange pour limiter la mémoire.
      * X_self = fraction molaire du gaz (0 pour CO2/CH4 en air, >0 pour H2O humide). n_self non dans JSON → on utilise n_air.
      */
     function crossSectionFromLines(lines, lambda_m, T_K, P_Pa, M_kg_mol, X_self, molecule) {
         var nu_cm = wavelengthToWavenumber(lambda_m);
-        var inRange = getLinesInRange(lines, nu_cm, HALF_WINDOW_CM);
+        var nuMin = nu_cm - HALF_WINDOW_CM;
+        var nuMax = nu_cm + HALF_WINDOW_CM;
+        var i0 = binarySearchGe(lines, nuMin);
+        var i1 = binarySearchGe(lines, nuMax + 1e-9);
         var Q_ref = partitionFunctionQ(HITRAN_T_REF_K, molecule);
         var Q_T = partitionFunctionQ(T_K, molecule);
         var P_atm = pressurePaToAtm(P_Pa);
         var X_air = 1 - X_self;
         var sum_cm2 = 0;
-        for (var k = 0; k < inRange.length; k++) {
-            var line = inRange[k];
+        for (var k = i0; k < i1; k++) {
+            var line = lines[k];
             var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             var g_air_T = gammaLorentzAir(T_K, line.gamma_air, line.n_air, HITRAN_T_REF_K);
             var g_self_T = gammaLorentzSelf(T_K, line.gamma_self, line.n_air, HITRAN_T_REF_K);

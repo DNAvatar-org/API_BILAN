@@ -69,15 +69,15 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     DATA['🧮']['🧮🔄🌊'] = 0;
     DATA['🧮']['🧮🔄🪩'] = 0;
     window.h2oTotalFromMeteorites = 0;
-    if (typeof window.calculationInProgress !== 'undefined') window.calculationInProgress = true;
+    if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
 
     if (typeof initForConfig !== 'function') {
-        if (typeof window.calculationInProgress !== 'undefined') window.calculationInProgress = false;
+        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         return Promise.resolve(null);
     }
 
     if (!initForConfig()) {
-        if (typeof window.calculationInProgress !== 'undefined') window.calculationInProgress = false;
+        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         return Promise.resolve(null);
     }
 
@@ -96,12 +96,12 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
 
     return computePromise.then(function (result) {
         const DATA = window.DATA;
-        if (typeof window.calculationInProgress !== 'undefined') window.calculationInProgress = false;
+        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         if (callbackStack) callbackStack.pop();
         self.callback('ProcessFinished', { DATA: DATA, result: result });
         return result;
     }).catch(function (e) {
-        if (typeof window.calculationInProgress !== 'undefined') window.calculationInProgress = false;
+        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         if (callbackStack) callbackStack.pop();
         throw e;
     });
