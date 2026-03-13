@@ -63,7 +63,7 @@ const timeline = [
         // Événements interactifs (météorites uniquement Corps noir + Hadéen) ; 💫 = bouton timeline (logo)
         '🕰': {
             '☄️': {
-                '🔺⚖️💧☄️': 0.95e12, // water_added_kg (~10^20 kg)
+                '🔺⚖️💧☄️': 0.905e12, // water_added_kg (~10^20 kg)
                 '🔺⏳': 100,
             },
             '🎇': {
@@ -119,7 +119,8 @@ const timeline = [
                 '🔺⚖️💧☄️': 1.0e20, // water_added_kg (~10% de l'eau initiale)
                 '🔺⏳': 50,       // durée d'un tic en Ma (météorites)
             }
-        }
+        },
+        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
     {
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
@@ -138,10 +139,11 @@ const timeline = [
         '🐚': 1.0, // Facteur relief sous-marin 
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 0.80, // Surface océanique potentielle (80% - moins de continents qu'aujourd'hui)
-            '🍰🗻🏔': 0.05, // Hautes terres (5% - peu de relief élevé)
+            '🍰🗻🌊': 0.85, // Surface océanique potentielle (80% - moins de continents qu'aujourd'hui)
+            '🍰🗻🏔': 0.00, // Hautes terres (5% - peu de relief élevé)
             '🍰🗻🌍': 0.15  // Terres basses (15% - premiers continents)
         },
+        '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         '⚖️🫧': 1.0e19, // Masse atmosphère (Atmosphère dense ~2 bar)
         // Simulation parameters - Quantités en kg (lit. 1000×–10000× PAL ; 40k ppm calibré ~15°C)
@@ -156,10 +158,11 @@ const timeline = [
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
             },
-        }
+        },
+        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
     {
-        '📅': '🌿', // Protérozoïque
+        '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
         '◀': 541e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
@@ -188,7 +191,8 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
     // 🦴 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
     // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
@@ -218,7 +222,8 @@ const timeline = [
         '⚖️🫁': 0,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres (FAO 2020)
     },
     {
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
@@ -250,7 +255,8 @@ const timeline = [
                 '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
             }, // Événement 50 Ma
             '🎇': { '⏩': '🦣' } // Big impact (K-Pg) → Cénozoïque
-        }
+        },
+        '🌱': 0.31
     },
     {
         '📅': '🦣', // Cénozoïque
@@ -283,7 +289,8 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.31
     },
     // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
     {
@@ -308,7 +315,8 @@ const timeline = [
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.31
     },
     {
         '📅': '🚂', // 1800
@@ -342,7 +350,8 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.31
     },
     {
         '📅': '📱', // 2025
@@ -377,7 +386,8 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
-        }
+        },
+        '🌱': 0.31  // 2025 et après -400 Ma (FAO 2020)
     }
 ];
 

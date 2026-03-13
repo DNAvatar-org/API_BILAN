@@ -72,7 +72,7 @@ const CHARS = {
     CORPS_NOIR: '⚫', // Corps noir
     HADEEN: '🔥',   // Hadéen : feu/lave
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
-    PROTEROZOIC: '🌿', // Protérozoïque : plantes primitives
+    PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
     CRETACEOUS: '🦴', // Paléozoïque (541–252 Ma) : os/fossile
     CENOZOIC: '🦣', // Cénozoïque : mammouth
@@ -174,7 +174,7 @@ const CHARS_DESC = {
     '⚫': 'Corps noir',
     '🔥': 'Hadéen',
     '🦠': 'Archéen',
-    '🌿': 'Protérozoïque',
+    '🥟': 'Protérozoïque',
     '🦕': 'Mésozoïque',
     '🦴': 'Paléozoïque',
     '🦣': 'Cénozoïque',
