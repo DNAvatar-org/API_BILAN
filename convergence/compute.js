@@ -118,7 +118,8 @@ function getEpochDateConfig() {
     // Delta température et flux géothermique par TicTime — depuis config 💫
     let deltaTicTime_per_tic = 0;
     if (EPOCH['🕰'] && EPOCH['🕰']['💫']) {
-        deltaTicTime_per_tic = EPOCH['🕰']['💫']['🔺🌡️💫'];
+        const raw = EPOCH['🕰']['💫']['🔺🌡️💫'];
+        deltaTicTime_per_tic = (typeof raw === 'number' && Number.isFinite(raw)) ? raw : 0;
         const star = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
         DATA['📜']['🔺🧲🌕💫'] = star ? { '▶': star['▶'], '◀': star['◀'] } : { '▶': 0, '◀': 0 };
     } else {
@@ -128,7 +129,7 @@ function getEpochDateConfig() {
     // Mettre à jour DATA directement (source unique de vérité)
     DATA['📜']['🌡️🧮'] = EPOCH['🌡️🧮'];
     DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];                  // Température attendue de l'époque
-    DATA['📜']['🔺🌡️💫'] = deltaTicTime_per_tic;          // Delta température / ticTime
+    DATA['📜']['🔺🌡️💫'] = deltaTicTime_per_tic;          // Delta température / ticTime (jamais undefined → calculateT0 sans NaN)
     DATA['📜']['🧲🔬'] = (typeof EPOCH['🧲🔬'] === 'number' && Number.isFinite(EPOCH['🧲🔬'])) ? EPOCH['🧲🔬'] : 0.01;
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;

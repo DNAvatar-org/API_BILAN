@@ -153,6 +153,7 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': {
+                '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
             },
         }
@@ -186,7 +187,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     },
     // 🦴 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
@@ -216,7 +217,7 @@ const timeline = [
         '⚖️💧': 1.3e21,
         '⚖️🫁': 0,
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     },
     {
@@ -281,7 +282,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     },
     // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
@@ -306,7 +307,7 @@ const timeline = [
         '⚖️🌫': 1e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     },
     {
@@ -340,7 +341,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     },
     {
@@ -375,7 +376,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         }
     }
 ];
