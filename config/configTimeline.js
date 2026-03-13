@@ -113,11 +113,11 @@ const timeline = [
                     '▶': 2000000, // flux géothermique début (W/m²)
                     '◀': 0.3     // flux géothermique fin (W/m²) — interpolation selon tic
                 },
-                '🔺⏳': 50,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
+                '🔺⏳': 100,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
             },
             '☄️': {
-                '🔺⚖️💧☄️': 1.0e18, // water_added_kg (~10% de l'eau initiale)
-                '🔺⏳': 100,       // durée d'un tic en Ma (météorites)
+                '🔺⚖️💧☄️': 1.0e20, // water_added_kg (~10% de l'eau initiale)
+                '🔺⏳': 50,       // durée d'un tic en Ma (météorites)
             }
         }
     },
