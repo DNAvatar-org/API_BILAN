@@ -433,6 +433,13 @@ async function calculateFluxForT0() {
         console.log('[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)');
     }
 
+    // H2O_EDS_SCALE : modulation physique (P, CO2) — cible 0.92 en 2025, plafonné à 1.0. TODO quand validé : formules + doc/API.
+    const M_ATM_REF_KG = 5.148e18;
+    const P_ratio = DATA['⚖️']['⚖️🫧'] / M_ATM_REF_KG;
+    const CO2_factor = Math.max(0.7, 1.0 - (DATA['🫧']['🍰🫧🏭'] * 2.0));
+    EARTH.H2O_EDS_SCALE = Math.min(1.0, 0.92 * Math.sqrt(Math.max(0, P_ratio)) * CO2_factor);
+    console.log('***[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
+
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
 
     // h2o_enabled et ch4_enabled sont déjà lus depuis DATA au début de la fonction

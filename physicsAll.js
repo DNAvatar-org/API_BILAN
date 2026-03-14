@@ -24,6 +24,7 @@
 // - v2.0.5 : règle simple h2o_eds_scale = 0.92 si T>290K, sinon 1.0
 // - v2.0.6 : essai calibration 2025 (EDS H2O) : h2o_eds_scale = 0.92 en base, sans branchement epoch
 // - v2.0.7 : CONV (convention) et EARTH (terrestre) extraits de CONST ; albédos 🪩🍰 dans EARTH, override par EPOCH['🪩🍰']
+// - v2.0.8 : H2O_EDS_SCALE calculé depuis DATA : 0.92 × sqrt(P_ratio) × CO2_factor (P_ratio=⚖️🫧/5.148e18, CO2_factor=max(0.7,1−2×🍰🫧🏭)). TODO quand validé : formules + doc/API.
 // ============================================================================
 
 // Initialiser CONST (pointeur vers window.CONST)
@@ -123,7 +124,8 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
-EARTH.H2O_EDS_SCALE = 0.92;  // Facteur κ_H2O dans EDS (calculations.js), calibration 2025
+// Facteur κ_H2O dans EDS (calculations.js). Valeur par défaut 0.92 ; recalculé depuis DATA quand disponible (formule P_ratio × CO2).
+EARTH.H2O_EDS_SCALE = 0.92;
 EARTH['🪩🍰'] = {
     '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
@@ -1161,6 +1163,13 @@ async function calculateFluxForT0() {
         console.log('[DIAG CO2] ratio modèle/théorie : ' + ratio_modele_theorie.toFixed(3));
         console.log('[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)');
     }
+
+    // H2O_EDS_SCALE : modulation physique (P, CO2) — cible 0.92 en 2025, plafonné à 1.0. TODO quand validé : formules + doc/API.
+    const M_ATM_REF_KG = 5.148e18;
+    const P_ratio = DATA['⚖️']['⚖️🫧'] / M_ATM_REF_KG;
+    const CO2_factor = Math.max(0.7, 1.0 - (DATA['🫧']['🍰🫧🏭'] * 2.0));
+    EARTH.H2O_EDS_SCALE = Math.min(1.0, 0.92 * Math.sqrt(Math.max(0, P_ratio)) * CO2_factor);
+    console.log('[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
 
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
 

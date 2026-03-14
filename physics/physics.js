@@ -117,7 +117,8 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
-EARTH.H2O_EDS_SCALE = 0.92;  // Facteur κ_H2O dans EDS (calculations.js), calibration 2025
+// Facteur κ_H2O dans EDS. Défaut 0.92 ; recalculé dans calculateFluxForT0 (calculations.js) : 0.92×sqrt(P_ratio)×CO2_factor.
+EARTH.H2O_EDS_SCALE = 0.92;
 EARTH['🪩🍰'] = {
     '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18

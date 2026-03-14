@@ -348,14 +348,15 @@ const timeline = [
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        // Échelle récente (plus de Ma) : 🔺⏳ en Ma → 0.00001 Ma = 10 ans par pas (calibration 100 ans)
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.00001},
         },
         '🌱': 0.31
     },
     {
-        '📅': '📱', // 2025
-        '▶': 2025,
+        '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
+        '▶': 2000,
         '◀': -1,
         // 🌡️🧮 : ~288.8 K (15.6–16°C, record chaud 2025)
         '🌡️🧮': 288.8,
@@ -384,8 +385,9 @@ const timeline = [
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas (calibration 25 ans)
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000025},
         },
         '🌱': 0.31  // 2025 et après -400 Ma (FAO 2020)
     }
