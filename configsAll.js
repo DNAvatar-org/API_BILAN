@@ -80,7 +80,7 @@ const CHARS = {
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
     PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
-    CRETACEOUS: '🦴', // Paléozoïque (541–252 Ma) : os/fossile
+    CRETACEOUS: '🌿', // Paléozoïque (541–252 Ma) : os/fossile
     CENOZOIC: '🦣', // Cénozoïque : mammouth
     EOT: '🏔',      // EOT (33,9 Ma) : montagnes (Transition Éocène-Oligocène)
     TODAY: '🚂',    // 1800 : train (1800)
@@ -182,7 +182,7 @@ const CHARS_DESC = {
     '🦠': 'Archéen',
     '🥟': 'Protérozoïque',
     '🦕': 'Mésozoïque',
-    '🦴': 'Paléozoïque',
+    '🌿': 'Paléozoïque',
     '🦣': 'Cénozoïque',
     '🏔': 'La Grande Coupure',
     '🚂': '1800',
@@ -1123,13 +1123,13 @@ window.FINE_TUNING_BOUNDS = {
 // - v1.2.1: add sulfate proxy mass ⚖️🌫 for 🚂/📱 and disable verbose debug flags
 // - v1.2.2: paramètres solveur issus de static/tuning/model_tuning.js (source unique tuning)
 // - v1.2.3: fallback synchrone des paramètres solveur si window.TUNING non chargé
-// - v1.2.4: 🦴 = Paléozoïque (541–252 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
+// - v1.2.4: 🌿 = Paléozoïque (541–252 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
 // - v1.2.5: baryByGroupDefault (CLOUD_SW/SCIENCE/SOLVER %) pour init DATA['🎚️'].baryByGroup dans initDATA.js
 //
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
 // ============================================================================
-// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🦴' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
+// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🌿' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
@@ -1300,10 +1300,10 @@ const timeline = [
             '💫': { '🔺⏳': 100 },
         }
     },
-    // 🦴 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
+    // 🌿 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
     // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
     {
-        '📅': '🦴', // Paléozoïque (541–252 Ma)
+        '📅': '🌿', // Paléozoïque (541–252 Ma)
         '▶': 541e6,
         '◀': 252e6,
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations)

@@ -74,7 +74,7 @@ const CHARS = {
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
     PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
-    CRETACEOUS: '🦴', // Paléozoïque (541–252 Ma) : os/fossile
+    CRETACEOUS: '🌿', // Paléozoïque (541–252 Ma) : os/fossile
     CENOZOIC: '🦣', // Cénozoïque : mammouth
     EOT: '🏔',      // EOT (33,9 Ma) : montagnes (Transition Éocène-Oligocène)
     TODAY: '🚂',    // 1800 : train (1800)
@@ -176,7 +176,7 @@ const CHARS_DESC = {
     '🦠': 'Archéen',
     '🥟': 'Protérozoïque',
     '🦕': 'Mésozoïque',
-    '🦴': 'Paléozoïque',
+    '🌿': 'Paléozoïque',
     '🦣': 'Cénozoïque',
     '🏔': 'La Grande Coupure',
     '🚂': '1800',

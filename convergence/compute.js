@@ -1,9 +1,13 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.1
+// Version 1.0.5
 // Date: [January 2025]
 // logs :
+// - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
+// - v1.0.3: bary (📿💫+📿☄️)/maxTics; interpolation via 🕰['🔀'] and 🕰['◀']; getMasses/getSoleil/getNoyau use interpolated DATA when 🔀
+// - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
+// - v1.0.5: debug log getEpochDateConfig (transition époque + état tics)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -58,39 +62,42 @@ function getEnabledStates() {
 
 //Calcule les masses en tenant compte des événements (meteor, etc.) :: utilise DATA directement
 function getMasses() {
-    // Utiliser DATA directement (pas de paramètres)
     const DATA = window.DATA;
-    //const CONST = window.CONST;
-    
-    // Récupérer l'époque directement depuis TIMELINE avec l'index depuis DATA
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = window.TIMELINE[epochIndex];
-    // ⚖️💧 = ⚖️💧_init (EPOCH) + 📿☄️ * 🔺⚖️💧☄️ — 📿☄️ incrémenté directement par le bouton ☄️
-    let h2o_kg = EPOCH['⚖️💧'] || 0;
-    h2o_kg += DATA['📜']['🔺⚖️💧☄️'] * DATA['📜']['📿☄️'];
-    
-    // Mettre à jour DATA directement
-    // 🔒 Protection contre undefined : traiter comme 0
-    DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
-    DATA['⚖️']['⚖️⛽'] = isFinite(EPOCH['⚖️⛽']) ? EPOCH['⚖️⛽'] : 0;
-    DATA['⚖️']['⚖️💧'] = h2o_kg;
-    DATA['⚖️']['⚖️🫁'] = isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0;
-    DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;  // N2 depuis EPOCH
-    DATA['⚖️']['⚖️🌫'] = isFinite(EPOCH['⚖️🌫']) ? EPOCH['⚖️🌫'] : 0;  // Sulfate (proxy CCN), séparé de l'air sec
-    
-    // ⚖️🫧 = masse atmosphérique totale (air sec, sans vapeur d'eau)
-    // Si EPOCH définit ⚖️🫧, l'utiliser, sinon calculer comme somme des gaz
-    if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
-        DATA['⚖️']['⚖️🫧'] = EPOCH['⚖️🫧'];
-        // Si ⚖️💨 non défini, N₂ implicite = reste pour atteindre ⚖️🫧 (évite M_dry faux → vapeur/albédo erronés)
-        if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
-            DATA['⚖️']['⚖️💨'] = Math.max(0, DATA['⚖️']['⚖️🫧'] - (DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️⛽'] + DATA['⚖️']['⚖️🫁']));
-        }
+    const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
+    if (!EPOCH) return false;
+    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('⚖️') && DATA['⚖️'] && typeof DATA['⚖️'] === 'object';
+
+    let base;
+    if (useInterpolated) {
+        base = DATA['⚖️'];
     } else {
-        // ⚖️🫧 = somme de tous les gaz atmosphériques (CO2, CH4, O2, N2)
-        DATA['⚖️']['⚖️🫧'] = DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️⛽'] + DATA['⚖️']['⚖️🫁'] + DATA['⚖️']['⚖️💨'];
+        base = {
+            '⚖️🏭': isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0,
+            '⚖️⛽': isFinite(EPOCH['⚖️⛽']) ? EPOCH['⚖️⛽'] : 0,
+            '⚖️💧': EPOCH['⚖️💧'] || 0,
+            '⚖️🫁': isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0,
+            '⚖️💨': isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0,
+            '⚖️🌫': isFinite(EPOCH['⚖️🌫']) ? EPOCH['⚖️🌫'] : 0
+        };
     }
+    // ⚖️💧 += 📿☄️ * 🔺⚖️💧☄️ (météorites)
+    let h2o_kg = (base['⚖️💧'] != null && isFinite(base['⚖️💧'])) ? base['⚖️💧'] : 0;
+    h2o_kg += (DATA['📜']['🔺⚖️💧☄️'] || 0) * (DATA['📜']['📿☄️'] || 0);
+    base['⚖️💧'] = h2o_kg;
+
+    if (!useInterpolated) {
+        if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
+            base['⚖️🫧'] = EPOCH['⚖️🫧'];
+            if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
+                base['⚖️💨'] = Math.max(0, base['⚖️🫧'] - (base['⚖️🏭'] + base['⚖️⛽'] + base['⚖️🫁']));
+            }
+        } else {
+            base['⚖️🫧'] = base['⚖️🏭'] + base['⚖️⛽'] + base['⚖️🫁'] + base['⚖️💨'];
+        }
+    }
+    DATA['⚖️'] = base;
     
     // Logs désactivés pour réduire la taille
     // console.log(`📋 [getMasses@compute.js]`);
@@ -105,10 +112,41 @@ function getEpochDateConfig() {
     // Utiliser DATA directement (pas de paramètres)
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const epochId = DATA['📜']['🗿'];
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = window.TIMELINE[epochIndex];
-    
+    let epochId = DATA['📜']['🗿'];
+    let epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
+    let EPOCH = window.TIMELINE[epochIndex];
+    if (!EPOCH) return false;
+
+    // Si date >= ◀(epoch) (en années : date courante <= ◀) → passer à l'époque suivante et remettre tics à 0
+    let refDeltaMa = 0;
+    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+        for (const tk of Object.keys(EPOCH['🕰'])) {
+            if (tk === '🔀' || tk === '◀') continue;
+            const cfg = EPOCH['🕰'][tk];
+            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                refDeltaMa = cfg['🔺⏳'];
+                break;
+            }
+        }
+    }
+    const totalTics = (DATA['📜']['📿💫'] != null ? DATA['📜']['📿💫'] : 0) + (DATA['📜']['📿☄️'] != null ? DATA['📜']['📿☄️'] : 0);
+    const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    const dateYears = refDeltaMa > 0 && EPOCH['▶'] != null
+        ? (EPOCH['▶'] || 0) - totalTics * refDeltaMa * 1e6
+        : (EPOCH['▶'] || 0);
+    console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma epochEnd=' + (epochEnd != null ? (epochEnd/1e6).toFixed(0) + 'Ma' : 'null'));
+    if (epochEnd != null && dateYears <= epochEnd && epochIndex + 1 < window.TIMELINE.length) {
+        const nextEpoch = window.TIMELINE[epochIndex + 1];
+        console.log('[DBG compute] ⚡TRANSITION ' + epochId + ' → ' + nextEpoch['📅'] + ' (dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma <= epochEnd=' + (epochEnd/1e6).toFixed(0) + 'Ma)');
+        DATA['📜']['🗿'] = nextEpoch['📅'];
+        DATA['📜']['👉'] = epochIndex + 1;
+        DATA['📜']['📿💫'] = 0;
+        DATA['📜']['📿☄️'] = 0;
+        epochId = nextEpoch['📅'];
+        epochIndex = epochIndex + 1;
+        EPOCH = nextEpoch;
+    }
+
     // Masse d'eau par météorite — depuis config ☄️ (Corps noir, Hadéen)
     // ⚠️ Ne pas écraser 📿☄️ ni 📿💫 — compteurs exclusifs des boutons (events.js)
     if (EPOCH['🕰'] && EPOCH['🕰']['☄️']) {
@@ -133,7 +171,59 @@ function getEpochDateConfig() {
     DATA['📜']['🧲🔬'] = (typeof EPOCH['🧲🔬'] === 'number' && Number.isFinite(EPOCH['🧲🔬'])) ? EPOCH['🧲🔬'] : 0.01;
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;
-    
+
+    // Rayon effectif : base EPOCH['📐'] + somme des deltas 🔺📐 par tic (générique ; ignorer 🕰['🔀'] et 🕰['◀'])
+    const baseRadiusKm = (typeof EPOCH['📐'] === 'number' && Number.isFinite(EPOCH['📐'])) ? EPOCH['📐'] : 6371;
+    let deltaRadiusKm = 0;
+    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+        for (const ticKey of Object.keys(EPOCH['🕰'])) {
+            if (ticKey === '🔀' || ticKey === '◀') continue;
+            const ticCfg = EPOCH['🕰'][ticKey];
+            if (ticCfg && typeof ticCfg['🔺📐'] === 'number' && Number.isFinite(ticCfg['🔺📐'])) {
+                const count = (DATA['📜']['📿' + ticKey] != null && Number.isFinite(DATA['📜']['📿' + ticKey])) ? DATA['📜']['📿' + ticKey] : 0;
+                deltaRadiusKm += count * ticCfg['🔺📐'];
+            }
+        }
+    }
+    DATA['📜']['📐'] = baseRadiusKm + deltaRadiusKm;
+
+    // Barycentre (📿💫+📿☄️)/maxTics : interpolation des params listés dans 🕰['🔀'] entre epoch (▶) et 🕰['◀']
+    const interpolKeys = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) ? EPOCH['🕰']['🔀'] : null;
+    const interpolEnd = EPOCH['🕰'] && EPOCH['🕰']['◀'] && typeof EPOCH['🕰']['◀'] === 'object' ? EPOCH['🕰']['◀'] : null;
+    if (interpolKeys && interpolEnd) {
+        let refDeltaMa = 0;
+        for (const tk of Object.keys(EPOCH['🕰'])) {
+            if (tk === '🔀' || tk === '◀') continue;
+            const cfg = EPOCH['🕰'][tk];
+            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                refDeltaMa = cfg['🔺⏳'];
+                break;
+            }
+        }
+        const spanYears = Math.max(0, (EPOCH['▶'] || 0) - (EPOCH['◀'] || 0));
+        const maxTics = refDeltaMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / refDeltaMa)) : 1;
+        const totalTics = (DATA['📜']['📿💫'] != null ? DATA['📜']['📿💫'] : 0) + (DATA['📜']['📿☄️'] != null ? DATA['📜']['📿☄️'] : 0);
+        const bary = Math.max(0, Math.min(1, totalTics / maxTics));
+        DATA['📜']['bary'] = bary;
+        for (let i = 0; i < interpolKeys.length; i++) {
+            const groupKey = interpolKeys[i];
+            const endObj = interpolEnd[groupKey];
+            if (!endObj || typeof endObj !== 'object') continue;
+            const out = {};
+            for (const subkey of Object.keys(endObj)) {
+                const startVal = EPOCH[subkey];
+                const endVal = endObj[subkey];
+                if (typeof endVal === 'number' && Number.isFinite(endVal)) {
+                    const s = (typeof startVal === 'number' && Number.isFinite(startVal)) ? startVal : endVal;
+                    out[subkey] = s + bary * (endVal - s);
+                } else {
+                    out[subkey] = endVal;
+                }
+            }
+            DATA[groupKey] = out;
+        }
+    }
+
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
     
@@ -153,17 +243,13 @@ function getSoleil() {
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH || EPOCH['🔋☀️'] == null) return false;
+    if (!EPOCH) return false;
+    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('☀️') && DATA['☀️'] && typeof DATA['☀️']['🔋☀️'] === 'number';
+    const P_watts = useInterpolated ? DATA['☀️']['🔋☀️'] : (EPOCH['🔋☀️'] != null ? EPOCH['🔋☀️'] : null);
+    if (P_watts == null || !Number.isFinite(P_watts)) return false;
     if (!DATA['☀️']) DATA['☀️'] = {};
-    DATA['☀️']['🔋☀️'] = EPOCH['🔋☀️'];
-    
-    // Calculer la constante solaire à 1 UA depuis la puissance totale
-    // Relation: P = S * 4πr² où P est la puissance totale, S est la constante solaire, r = 1 UA = 1.496e11 m
-    // Donc: S = P / (4π * (1 UA)²)
-    DATA['☀️']['🧲☀️'] = DATA['☀️']['🔋☀️'] / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
-    
-    // Flux solaire à 1 UA / 4 (moyenne sphérique, AVANT albedo)
-    // 🎱 représente la géométrie (division par 4 pour la moyenne sphérique)
+    DATA['☀️']['🔋☀️'] = P_watts;
+    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
     
     // console.log(`☀️ [getSoleil@compute.js]`);
@@ -183,6 +269,11 @@ function getNoyau() {
     const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
     if (!EPOCH) return false;
     if (!DATA['🌕']) DATA['🌕'] = {};
+    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('🌕') && DATA['🌕'] && (DATA['🌕']['🧲🌕'] != null || DATA['🌕']['🔋🌕'] != null);
+    if (useInterpolated) {
+        // Garder DATA['🌕'] déjà rempli par getEpochDateConfig (interpolation bary)
+        return true;
+    }
     // Flux géothermique en W/m² (depuis TIMELINE)
     if (EPOCH['🕰'] && EPOCH['🕰']['💫'] && EPOCH['🕰']['💫']['🔺🧲🌕💫']) {
         const geo = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
@@ -196,9 +287,10 @@ function getNoyau() {
         // Flux directement dans l'époque (ex: Hadéen)
         DATA['🌕']['🧲🌕'] = EPOCH['🧲🌕'];
     } else {
-        // Calculer depuis la puissance du noyau si disponible
+        // Calculer depuis la puissance du noyau si disponible (rayon effectif depuis DATA['📜']['📐'] si défini)
         if (EPOCH['🔋🌕'] !== undefined) {
-            const planet_radius_m = EPOCH['📐'] * 1000;
+            const radiusKm = (DATA['📜']['📐'] != null && Number.isFinite(DATA['📜']['📐'])) ? DATA['📜']['📐'] : EPOCH['📐'];
+            const planet_radius_m = (typeof radiusKm === 'number' && Number.isFinite(radiusKm)) ? radiusKm * 1000 : (EPOCH['📐'] || 6371) * 1000;
             const surface_area = 4 * Math.PI * Math.pow(planet_radius_m, 2);
             DATA['🌕']['🧲🌕'] = surface_area > 0 ? EPOCH['🔋🌕'] / surface_area : 0.087;
         } else {

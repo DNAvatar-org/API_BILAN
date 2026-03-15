@@ -1,6 +1,6 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.2.4
+// Version 1.2.6
 // Date: [June 08, 2025] [HH:MM UTC+1]
 // logs :
 // © 2025 DNAvatar.org - Arnaud Maignan
@@ -12,13 +12,14 @@
 // - v1.2.1: add sulfate proxy mass ⚖️🌫 for 🚂/📱 and disable verbose debug flags
 // - v1.2.2: paramètres solveur issus de static/tuning/model_tuning.js (source unique tuning)
 // - v1.2.3: fallback synchrone des paramètres solveur si window.TUNING non chargé
-// - v1.2.4: 🦴 = Paléozoïque (541–252 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
+// - v1.2.4: 🌿 = Paléozoïque (500–250 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
 // - v1.2.5: baryByGroupDefault (CLOUD_SW/SCIENCE/SOLVER %) pour init DATA['🎚️'].baryByGroup dans initDATA.js
+// - v1.2.6: dates simplifiées Protérozoïque ◀ 500 Ma, Paléozoïque 500–250 Ma ; 🏔 ▶ 33 Ma déjà en place
 //
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
 // ============================================================================
-// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🦴' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
+// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🌿' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
@@ -113,11 +114,13 @@ const timeline = [
                     '▶': 2000000, // flux géothermique début (W/m²)
                     '◀': 0.3     // flux géothermique fin (W/m²) — interpolation selon tic
                 },
+                '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
                 '🔺⏳': 100,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
             },
             '☄️': {
                 '🔺⚖️💧☄️': 1.0e20, // water_added_kg (~10% de l'eau initiale)
-                '🔺⏳': 50,       // durée d'un tic en Ma (météorites)
+                '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
+                '🔺⏳': 100,       // durée d'un tic en Ma (météorites)
             }
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -156,15 +159,22 @@ const timeline = [
         '🕰': {
             '💫': {
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
-                '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
+                '🔺⏳': 500,       // durée d'un tic en Ma (bouton timeline)
             },
+            // Barycentre (📿💫+📿☄️)/maxTics → interpolation des params entre ▶ et ◀
+            '🔀': ['⚖️', '🌕', '☀️'],
+            '◀': {
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.15e18, '⚖️🏭': 1.2e16, '⚖️⛽': 3e13, '⚖️🫁': 0, '⚖️🌫': 0, '⚖️💨': 5.138e18 },
+                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 },
+                '☀️': { '🧲☀️': 1.28e3, '🧲☀️🎱': 320.014, '🔋☀️': 3.6e26 }
+            }
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
     {
         '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
-        '◀': 541e6,
+        '◀': 500e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
@@ -194,12 +204,12 @@ const timeline = [
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    // 🦴 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
+    // 🌿 = Paléozoïque (500–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
     // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
     {
-        '📅': '🦴', // Paléozoïque (541–252 Ma)
-        '▶': 541e6,
-        '◀': 252e6,
+        '📅': '🌿', // Paléozoïque (500–250 Ma)
+        '▶': 500e6,
+        '◀': 250e6,
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations)
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
@@ -227,7 +237,7 @@ const timeline = [
     },
     {
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
-        '▶': 252e6,
+        '▶': 250e6,
         '◀': 66e6,
         // 🌡️🧮 : ~295–305 K (lit. Mésozoïque)
         '🌡️🧮': 298,
@@ -295,7 +305,7 @@ const timeline = [
     // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
     {
         '📅': '🏔',
-        '▶': 33.9e6,
+        '▶': 33e6,
         '◀': 23e6,
         '🌡️🧮': 285,
         '🧲🔬': 0.05,
