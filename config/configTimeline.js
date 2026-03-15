@@ -200,7 +200,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 500 },
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
@@ -231,7 +231,7 @@ const timeline = [
         '⚖️💧': 1.3e21,
         '⚖️🫁': 0,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 250 },
         },
         '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres (FAO 2020)
     },
@@ -298,7 +298,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 33 },
         },
         '🌱': 0.31
     },
