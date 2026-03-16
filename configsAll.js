@@ -91,19 +91,15 @@ const CHARS = {
     PLANET_RADIUS: '📐', // Rayon de la planète : équerre
     GRAVITY: '🍎',  // Gravité : pomme (gravité)
     MOLAR_MASS_AIR: '🧪', // Masse molaire de l'air : flacon (chimie)
-    ALEMBIC: '⚗',  // Alembic (chimie / science)
     PRESSURE: '🎈', // Pression : ballon (pression)
     INDEX_EPOCH: '👉', // Index de l'époque : pointeur
     LOGO_EPOCH: '🗿', // Logo/Nom de l'époque : statue
     TRIPLE_POINT: '┴', // Point triple : pont (P,T au point triple)
-    GLOBE_AFRICA: '🌍',   // Globe Afrique (terre Protérozoïque, Cénozoïque)
-    GLOBE_AMERICAS: '🌎', // Globe Amériques (terre Mésozoïque)
-    GLOBE_ASIA: '🌏',     // Globe Asie (terre Paléozoïque)
 };
 
 // Logo (emoji) -> image pour affichage des PICTO (boutons, frise).
 // ⚠️ charsImages ne touche JAMAIS aux textures Three.js !
-// Les textures Three.js (text_*.png) sont dans configOrganigramme.epochTextures.
+// Les textures Three.js (fonds/*.png) : chemin déduit de la date (getPlanetTexturePathFromEpoch) ; liste préload : configOrganigramme.TEXTURES_THREEJS.
 const charsImages = {
     '☀️': 'fonts/pics/sun.png',           // Soleil
     //'⚫': 'fonts/pics/corps_noir.png',    // Corps noir
@@ -193,7 +189,6 @@ const CHARS_DESC = {
     '📐': 'Rayon planète',
     '🍎': 'Gravité (m/s²)',
     '┴': 'Point triple (🎈,🌡️)',
-    '⚗': 'Alembic (chimie / science)'
 };
 
 // ============================================================================
@@ -243,7 +238,6 @@ function createAlphabetHtml() {
         
         const hasImage = charsImages[char] && (charsImages[char].endsWith('.png') || charsImages[char].endsWith('.svg') || charsImages[char].endsWith('.jpg'));
         const imgInParens = hasImage ? ' (' + getDisplayChar(char) + ')' : '';
-        const logoClass = char === '⚗' ? 'logo logo-alembic' : 'logo';
         
         return `<div class="legend-item"><span class="${logoClass}">${char}</span><span class="description">${description}${imgInParens}</span></div>`;
     };
@@ -969,7 +963,7 @@ window.TUNING_BIBLIO = {
 // - v1.2.0: biblio intégrée dans chaque target (source + effet + référence)
 // - v1.3.0: couverture complète biblio CLOUD_SW + SOLVER (toutes entrées avec bornes)
 // - v1.3.1: default (nominal) par target ; 100% jauge = default (OPTICAL_EFF_CCN_GAIN etc. pris en compte)
-// - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science ⚗)
+// - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science)
 
 window.FINE_TUNING_BOUNDS = {
     targets: [
