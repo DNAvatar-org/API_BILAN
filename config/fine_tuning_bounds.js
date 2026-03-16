@@ -14,7 +14,7 @@
 // - v1.2.0: biblio intégrée dans chaque target (source + effet + référence)
 // - v1.3.0: couverture complète biblio CLOUD_SW + SOLVER (toutes entrées avec bornes)
 // - v1.3.1: default (nominal) par target ; 100% jauge = default (OPTICAL_EFF_CCN_GAIN etc. pris en compte)
-// - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science ⚗)
+// - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science)
 
 window.FINE_TUNING_BOUNDS = {
     targets: [
