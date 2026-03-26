@@ -40,8 +40,7 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     var self = this;
 
     if (!DATA || !TIMELINE) {
-        if (typeof console !== 'undefined') console.error('[BilanRadiatifAPI] DATA ou TIMELINE manquant');
-        return Promise.resolve(null);
+        throw new Error('[BilanRadiatifAPI] DATA ou TIMELINE manquant — scripts non chargés');
     }
 
     var config = (typeof configOrEpochId === 'string' || typeof configOrEpochId === 'undefined')
@@ -58,9 +57,9 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     }
     if (config.animEnabled !== undefined && SYNC_STATE) SYNC_STATE.animEnabled = config.animEnabled;
     if (config.ticTime !== undefined && SYNC_STATE) SYNC_STATE.ticTime = config.ticTime;
-    if (config.tuning && typeof window.applyTuningPayload === 'function') window.applyTuningPayload(config.tuning);
-    if (typeof window.getEnabledStates === 'function') window.getEnabledStates();
-    if (typeof window.getMasses === 'function') window.getMasses();
+    if (config.tuning) window.applyTuningPayload(config.tuning);
+    window.getEnabledStates();
+    window.getMasses();
     if (config.animEnabled === false) {
         DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];
     }
@@ -70,11 +69,6 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     DATA['🧮']['🧮🔄🪩'] = 0;
     window.h2oTotalFromMeteorites = 0;
     if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
-
-    if (typeof initForConfig !== 'function') {
-        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
-        return Promise.resolve(null);
-    }
 
     if (!initForConfig()) {
         if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
@@ -90,9 +84,7 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
         };
     }
 
-    var computePromise = (typeof computeRadiativeTransfer === 'function')
-        ? computeRadiativeTransfer(dispatcher)
-        : Promise.resolve(null);
+    var computePromise = computeRadiativeTransfer(dispatcher);
 
     return computePromise.then(function (result) {
         const DATA = window.DATA;

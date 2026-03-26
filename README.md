@@ -20,6 +20,7 @@ Entrée : une époque (ou une configuration). Sortie : températures, flux, spec
 </script>
 
 <script src="https://dnavatar.org/pages/API_BILAN/convergence/calculations_flux.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/tuning.js"></script>
 <script src="https://dnavatar.org/pages/API_BILAN/callback_stack.js"></script>
 <script src="https://dnavatar.org/pages/API_BILAN/api.js"></script>
 ```
@@ -43,17 +44,31 @@ api.run({ epochId: '🚂', animEnabled: false }).then(function (result) {
 });
 ```
 
-### 3. Exemple avec configuration personnalisée
+### 3. Barycentre de tuning 🧩 (incertitude scientifique)
+
+Le modèle dépend de paramètres dont la valeur exacte est scientifiquement incertaine (propriétés optiques des nuages, sensibilité aux CCN, effet sulfate, etc.). Plutôt que de fixer chaque paramètre arbitrairement, un **curseur unique** [0–100 %] interpole entre les bornes basses (conservatrices) et les valeurs nominales (calibrées) :
+
+- **100 %** = valeurs nominales (calibration climat moderne → ~16 °C)
+- **0 %** = valeurs minimales (bornes basses de la littérature)
+
+Ce curseur est stocké dans `DATA['🎚️'].baryByGroup` et contrôle trois groupes :
+
+| Groupe | Rôle | Paramètres concernés |
+|--------|------|---------------------|
+| **CLOUD_SW** | Propriétés optiques des nuages (albédo SW) | couverture, efficacité optique, boost sulfate, référence thermique |
+| **SCIENCE** | Sensibilités scientifiques (sous-groupe) | gain index nuageux, sensibilité CCN |
+| **SOLVER** | Convergence numérique | tolérance flux, pas de recherche |
+
+Les bornes min/max/default de chaque paramètre et leurs sources bibliographiques sont dans `config/fine_tuning_bounds.js`.
 
 ```js
+// Exemple : régler le barycentre nuages à 70 % (entre conservateur et nominal)
 api.run({
     epochId: '🚂',
     animEnabled: false,
-    tuning: {
-        CLOUD_SW: 0.5
-    }
+    tuning: { CLOUD_SW: 70, SCIENCE: 100, SOLVER: 100 }
 }).then(function (result) {
-    console.log('Résultat avec tuning personnalisé', result);
+    console.log('Résultat avec tuning à 70 %', result);
 });
 ```
 
@@ -128,6 +143,7 @@ stack.push(function (event, payload) { /* listener supplémentaire */ });
 | Fichier / dossier | Rôle |
 |------------------|------|
 | **api.js** | `BilanRadiatifAPI`, `run()` → Promise |
+| **tuning.js** | Interpolation barycentre fine-tuning → DATA['🎚️'] |
 | **callback_stack.js** | Pile de listeners synchrones |
 | **receiver.js** | `createReceiver(options)` — callback pour dispatch visu/scie |
 | **configsAll.js** | Bundle : alphabet + dico + initDATA + tuning + timeline |
