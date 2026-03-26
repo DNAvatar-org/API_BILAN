@@ -30,7 +30,7 @@ const timeline = [
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
         '◀': 4.5e9, // Fin
-        // 🌡️🧮 : ~255 K équilibre corps noir (σT⁴ = S/4)
+        // 🌡️🧮 : ~255 K équilibre corps noir (σT⁴ = S/4) — -18 °C
         '🌡️🧮': 255,
         '🧲🔬': 0.3,
         '🔋☀️': 2.6796e26, // Puissance totale du soleil (W) - 70% de 3.828e26 W
@@ -76,7 +76,7 @@ const timeline = [
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
         '▶': 4.5e9,
         '◀': 4.0e9,
-        // 🌡️🧮 : océan de magma ~2000–2500 K (surface en fusion)
+        // 🌡️🧮 : océan de magma ~2000–2500 K (surface en fusion) — ~2177 °C
         '🌡️🧮': 2450,
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.871e26, // Puissance totale du soleil (W) - 75% de 3.828e26 W
@@ -129,7 +129,7 @@ const timeline = [
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
         '▶': 4.0e9,
         '◀': 2.5e9,
-        // 🌡️🧮 : 288 K (15°C cible indicative). Lit. 281–303 K plausible (Charnay 2017, Kienert 2013).
+        // 🌡️🧮 : 288 K (15°C cible indicative). Lit. 281–303 K plausible (Charnay 2017, Kienert 2013). — 15 °C
         // 288 K = état stable documenté (Clim. Past 9:1841, Astrobiology 2014). Parcours temporel à venir.
         '🌡️🧮': 288,
         '🌡️📚': [281, 303], // Fourchette littérature (K) — disclaimer si T simulée hors plage
@@ -166,7 +166,7 @@ const timeline = [
             '◀': {
                 '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.15e18, '⚖️🏭': 1.2e16, '⚖️🐄': 3e13, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 },
-                '☀️': { '🧲☀️': 1.28e3, '🧲☀️🎱': 320.014, '🔋☀️': 3.6e26 }
+                '☀️': { '🔋☀️': 3.6e26 } // 🧲☀️ et 🧲☀️🎱 sont dérivés de 🔋☀️ par getSoleil()
             }
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -175,7 +175,7 @@ const timeline = [
         '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
         '◀': 500e6,
-        // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
+        // 🌡️🧮 : ~280–290 K (lit. Protérozoïque) — 12 °C
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
         '🔋☀️': 3.4452e26, // Puissance totale du soleil (W) - 90% de 3.828e26 W
@@ -210,7 +210,7 @@ const timeline = [
         '📅': '🌿', // Paléozoïque (500–250 Ma)
         '▶': 500e6,
         '◀': 250e6,
-        // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations)
+        // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations) — 17 °C
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
         '🔋☀️': 3.6e26, // Puissance soleil (~94% actuel)
@@ -239,7 +239,7 @@ const timeline = [
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
         '▶': 250e6,
         '◀': 66e6,
-        // 🌡️🧮 : ~295–305 K (lit. Mésozoïque)
+        // 🌡️🧮 : ~295–305 K (lit. Mésozoïque) — 25 °C
         '🌡️🧮': 298,
         '🧲🔬': 0.1,
         '🔋☀️': 3.75144e26, // Puissance totale du soleil (W) - 98% de 3.828e26 W
@@ -272,7 +272,7 @@ const timeline = [
         '📅': '🦣', // Cénozoïque
         '▶': 66e6,
         '◀': 0,
-        // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016).
+        // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016). — 18 °C
         '🌡️🧮': 291,
         // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).
         '🧲🔬': 0.1,
@@ -307,7 +307,7 @@ const timeline = [
         '📅': '🏔',
         '▶': 33e6,
         '◀': 23e6,
-        '🌡️🧮': 285,
+        '🌡️🧮': 285, // 12 °C
         '🧲🔬': 0.05,
         '🔋☀️': 3.82e26,
         '🔋🌕': 4.6e13,
@@ -332,7 +332,7 @@ const timeline = [
         '📅': '🚂', // 1800
         '▶': 1800,
         '◀': 2025,
-        // 🌡️🧮 : ~287 K (14°C, pré-industriel)
+        // 🌡️🧮 : ~287 K (pré-industriel) — 14 °C
         '🌡️🧮': 287,
         '🧲🔬': 0.01,
         '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
@@ -368,7 +368,7 @@ const timeline = [
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
         '◀': -1,
-        // 🌡️🧮 : ~288.8 K (15.6–16°C, record chaud 2025)
+        // 🌡️🧮 : ~288.8 K (record chaud 2025) — 15.6 °C
         '🌡️🧮': 288.8,
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)

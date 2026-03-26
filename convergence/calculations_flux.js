@@ -260,11 +260,13 @@ function initForConfig() {
         if (typeof console !== 'undefined') console.error('[initForConfig][calculations_flux.js] DATA ou TIMELINE manquant');
         return false;
     }
+    // getEpochDateConfig AVANT getSoleil/getNoyau : l'interpolation barycentrique
+    // écrit DATA['☀️']['🔋☀️'] et DATA['🌕'], puis getSoleil/getNoyau en dérivent les flux.
+    COMPUTE.getEpochDateConfig();
     if (!COMPUTE.getSoleil() || !COMPUTE.getNoyau()) {
-        if (typeof console !== 'undefined') console.error('[initForConfig][calculations_flux.js] getSoleil ou getNoyau invalide');
+        console.error('[initForConfig] getSoleil ou getNoyau invalide');
         return false;
     }
-    COMPUTE.getEpochDateConfig();
     if (!calculateT0()) {
         if (typeof console !== 'undefined') console.error('[initForConfig][calculations_flux.js] calculateT0 a échoué');
         return false;

@@ -96,12 +96,12 @@ EARTH.T_ICE_TRANSITION_RANGE_K = 20;
 EARTH.EVAPORATION_E0 = 0.001;
 EARTH.EVAPORATION_T_REF = 288;
 EARTH.EVAPORATION_T_SCALE = 20;
-/** Cap vapeur dynamique (approx Clausius-Clapeyron, calibrage ERA5/AIRS). calculations_h2o.js : c_c_max = BASE + SLOPE × (T - EVAPORATION_T_REF). */
-EARTH.H2O_VAPOR_CAP_BASE = 0.0065;       // fraction massique vapeur à T_ref (~0.5–0.8 %)
-EARTH.H2O_VAPOR_CAP_SLOPE_PER_K = 0.0007; // pente /K
-/** Cap vapeur final Init (AIRS/ERA5 ~7%/K). calculations_h2o.js : realistic_vapor_max = BASE + SLOPE × (T - EVAPORATION_T_REF). */
-EARTH.H2O_VAPOR_REALISTIC_MAX_BASE = 0.0052;
-EARTH.H2O_VAPOR_REALISTIC_MAX_SLOPE_PER_K = 0.00007;
+/** Cap vapeur dynamique Clausius-Clapeyron (ERA5/AIRS). calculations_h2o.js : c_c_max = REF × exp(RATE × (T - T_REF)). */
+EARTH.H2O_VAPOR_CAP_REF = 0.0065;        // fraction massique vapeur à T_ref (~0.65 %, ERA5/AIRS)
+EARTH.H2O_VAPOR_CAP_RATE_PER_K = 0.065;  // taux exponentiel /K — C-C ≈ Lv/(Rv×T²) ≈ 6.5 %/K à 288 K
+/** Cap vapeur final Init (AIRS/ERA5). calculations_h2o.js : realistic_vapor_max = REF × exp(RATE × (T - T_REF)). */
+EARTH.H2O_VAPOR_REALISTIC_MAX_REF = 0.0052;
+EARTH.H2O_VAPOR_REALISTIC_MAX_RATE_PER_K = 0.013;
 /** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
 EARTH.IRIS_STRENGTH = 0.02;   // amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
 EARTH.IRIS_T_SCALE_K = 10;    // échelle thermique (par 10 K)
@@ -3405,7 +3405,7 @@ function calculateH2OParametersWithIteration() {
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
     // [OBS/CALIB] Cap vapeur dynamique (EARTH.H2O_VAPOR_CAP_* + EARTH.EVAPORATION_T_REF). Borné ≥0.
-    const c_c_max = Math.max(0, EARTH.H2O_VAPOR_CAP_BASE + EARTH.H2O_VAPOR_CAP_SLOPE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
+    const c_c_max = EARTH.H2O_VAPOR_CAP_REF * Math.exp(EARTH.H2O_VAPOR_CAP_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
     // [EQ] Fermeture numérique : vapeur potentielle = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_potentielle = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
@@ -3500,7 +3500,7 @@ function calculateH2OParametersWithIteration() {
     calculateCloudAlbedoContribution();
 
     // Limite dynamique réaliste observée (EARTH.H2O_VAPOR_REALISTIC_MAX_*, AIRS/ERA5) sur la vapeur finale Init.
-    const realistic_vapor_max = EARTH.H2O_VAPOR_REALISTIC_MAX_BASE + EARTH.H2O_VAPOR_REALISTIC_MAX_SLOPE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF);
+    const realistic_vapor_max = EARTH.H2O_VAPOR_REALISTIC_MAX_REF * Math.exp(EARTH.H2O_VAPOR_REALISTIC_MAX_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
     DATA['💧']['🍰🫧💧'] = Math.min(realistic_vapor_max, DATA['💧']['🍰🫧💧']);
     
     return true;
@@ -3550,7 +3550,7 @@ H2O.calculateH2OParameters = function () {
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
     // [OBS/CALIB] Cap vapeur dynamique (EARTH.H2O_VAPOR_CAP_* + EARTH.EVAPORATION_T_REF). Borné ≥0.
-    const c_c_max = Math.max(0, EARTH.H2O_VAPOR_CAP_BASE + EARTH.H2O_VAPOR_CAP_SLOPE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
+    const c_c_max = EARTH.H2O_VAPOR_CAP_REF * Math.exp(EARTH.H2O_VAPOR_CAP_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
     // [EQ] Fermeture numérique : vapeur effective = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_result = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
