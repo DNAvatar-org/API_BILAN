@@ -22,6 +22,18 @@
 // Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🌿' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
+// ============================================================================
+// 🔒 LUMINOSITÉ SOLAIRE — NE PAS MODIFIER
+// Formule de Gough (1981), Solar Physics 74:21 — physique nucléaire stellaire :
+//   L(t_ago) = L☉ / (1 + 0.4 × t_ago / 4.57)
+//   L☉ = 3.828e26 W (IAU 2015 Resolution B3)
+//   t_ago = temps avant présent en Ga ; 4.57 Ga = âge du Soleil
+//   🧲☀️ = L / (4π × AU²), AU = 1.496e11 m → TSI = 1361 W/m² (Kopp & Lean 2011)
+//   🧲☀️🎱 = 🧲☀️ / 4 (géométrie sphérique)
+// Confirmé par Bahcall, Pinsonneault & Basu (2001), ApJ 555:990 (Standard Solar Model).
+// Toute valeur de 🔋☀️ DOIT être calculée avec cette formule. Pas d'arrondi arbitraire.
+// ============================================================================
+//
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
 // Clouds/Faint Young Sun Copernicus 2011 ; Astrobiology 2014. Valeurs au DÉBUT de chaque époque (parcours temporel à venir).
 // Réfs masses gaz (⚖️🏭, ⚖️🐄) : doc/VALIDATION_CONFIG_GAZ.md
@@ -33,7 +45,7 @@ const timeline = [
         // 🌡️🧮 : ~255 K équilibre corps noir (σT⁴ = S/4) — -18 °C
         '🌡️🧮': 255,
         '🧲🔬': 0.3,
-        '🔋☀️': 2.6796e26, // Puissance totale du soleil (W) - 70% de 3.828e26 W
+        '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '🔋🌕': 0, // core_temperature (Pas de noyau en K)
         '🍰🧲🌕': 0.0, // geothermal_diffusion_factor (Facteur de diffusion du noyau vers la surface 0-1)
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
@@ -79,7 +91,7 @@ const timeline = [
         // 🌡️🧮 : océan de magma ~2000–2500 K (surface en fusion) — ~2177 °C
         '🌡️🧮': 2450,
         '🧲🔬': 1.7,//596,
-        '🔋☀️': 2.871e26, // Puissance totale du soleil (W) - 75% de 3.828e26 W
+        '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         '🔋🌕': 1.23e21, // core_power_watts (Puissance géothermique totale calculée depuis 🧲🌕 = 2 MW/m² et R = 7008.1 km)
         // Flux géothermique colossal (2 MW/m²) pour maintenir la surface en fusion (~2400K)
         // Phase immédiate post-impact (océan de magma rayonnant) ; le temps peut avancer dans la simu
@@ -134,7 +146,7 @@ const timeline = [
         '🌡️🧮': 288,
         '🌡️📚': [281, 303], // Fourchette littérature (K) — disclaimer si T simulée hors plage
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
-        '🔋☀️': 3.0624e26, // Puissance totale du soleil (W) - 80% de 3.828e26 W
+        '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
@@ -148,12 +160,16 @@ const timeline = [
         },
         '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 1.0e19, // Masse atmosphère (Atmosphère dense ~2 bar)
-        // Simulation parameters - Quantités en kg (lit. 1000×–10000× PAL ; 40k ppm calibré ~15°C)
-        '⚖️🏭': 8.0e16, // co2_kg (~40000 ppm, calibré équilibre ~15°C, commit 5ecb155)
-        '⚖️🐄': 2.0e15, // ch4_kg (~800 ppm, lit. 100–10000 ppm)
+        // Simulation parameters - Quantités en kg. Recalib post-fix solaire 80% (272 W/m² vs ancien 320 W/m²)
+        // Faint Young Sun Paradox : soleil 20% plus faible → CO₂+CH₄ très élevés requis
+        // Lit. Sleep & Zahnle 2001 : 0.2–10 bar CO₂ ; Haqq-Misra 2008 : CH₄/CO₂ > 0.1 ; Charnay 2013 : 0.1–1 bar CO₂
+        '⚖️🏭': 1.5e18, // co2_kg (~10% atm, ~0.1 bar CO₂ partiel, lit. 0.01–10 bar ; Sleep & Zahnle 2001)
+        '⚖️🐄': 3.0e16, // ch4_kg (~0.2% atm, ~5000 ppm, lit. 100–10000 ppm ; Pavlov 2000, Haqq-Misra 2008)
         '⚖️💧': 1.8e21, // h2o_kg (~129% actuel, litt. Harvard océans +26%)
         '⚖️🫁': 0, // o2_kg
+        '⚖️💨': 9.918e18, // n2_kg (base azote Archéen, lit. ~1–2× PAL ; Marty 2013)
+        '⚖️✈': 0, // proxy_sulfates
+        '⚖️🫧': 1.145e19, // Masse atmosphère = N₂ + CO₂ + CH₄ = 9.918e18 + 1.5e18 + 3e16 (calculée, ~2.2 bar)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -162,11 +178,11 @@ const timeline = [
                 '🔺⏳': 500,       // durée d'un tic en Ma (bouton timeline)
             },
             // Barycentre (📿💫+📿☄️)/maxTics → interpolation des params entre ▶ et ◀
-            '🔀': ['⚖️', '🌕', '☀️'],
+            // 🔒 ☀️ n'est PAS dans 🔀 : luminosité calculée par Gough (1981) depuis la date, pas interpolée linéairement
+            '🔀': ['⚖️', '🌕'],
             '◀': {
-                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.15e18, '⚖️🏭': 1.2e16, '⚖️🐄': 3e13, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
-                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 },
-                '☀️': { '🔋☀️': 3.6e26 } // 🧲☀️ et 🧲☀️🎱 sont dérivés de 🔋☀️ par getSoleil()
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.19e18, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
+                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -178,7 +194,7 @@ const timeline = [
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque) — 12 °C
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.4452e26, // Puissance totale du soleil (W) - 90% de 3.828e26 W
+        '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
         '🔋🌕': 1.0e14, // core_power_watts (Puissance géothermique totale ~100 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
@@ -213,7 +229,7 @@ const timeline = [
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations) — 17 °C
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.6e26, // Puissance soleil (~94% actuel)
+        '🔋☀️': 3.668e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.5/4.57) = 95.8% — NE PAS MODIFIER
         '🔋🌕': 6.5e13, // core_power_watts
         '📐': 6371,
         '🍎': 9.81,
@@ -242,7 +258,7 @@ const timeline = [
         // 🌡️🧮 : ~295–305 K (lit. Mésozoïque) — 25 °C
         '🌡️🧮': 298,
         '🧲🔬': 0.1,
-        '🔋☀️': 3.75144e26, // Puissance totale du soleil (W) - 98% de 3.828e26 W
+        '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
         '🔋🌕': 6.0e13, // core_power_watts (Puissance géothermique totale ~60 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
@@ -276,7 +292,7 @@ const timeline = [
         '🌡️🧮': 291,
         // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).
         '🧲🔬': 0.1,
-        '🔋☀️': 3.80886e26, // Puissance totale du soleil (W) - 99.5% de 3.828e26 W
+        '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) = 99.4% — NE PAS MODIFIER
         '🔋🌕': 5.0e13, // core_power_watts (Puissance géothermique totale ~50 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
@@ -309,7 +325,7 @@ const timeline = [
         '◀': 23e6,
         '🌡️🧮': 285, // 12 °C
         '🧲🔬': 0.05,
-        '🔋☀️': 3.82e26,
+        '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
@@ -335,7 +351,7 @@ const timeline = [
         // 🌡️🧮 : ~287 K (pré-industriel) — 14 °C
         '🌡️🧮': 287,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
+        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉ = 100% (IAU 2015) — NE PAS MODIFIER
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
@@ -371,7 +387,7 @@ const timeline = [
         // 🌡️🧮 : ~288.8 K (record chaud 2025) — 15.6 °C
         '🌡️🧮': 288.8,
         '🧲🔬': 0.010,
-        '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
+        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²

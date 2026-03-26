@@ -29,7 +29,7 @@ CONST.PLANCK_H = 6.62607015e-34;      // Planck, J·s (CODATA 2018)
 CONST.SPEED_OF_LIGHT = 2.998e8;       // c, m/s
 CONST.BOLTZMANN_KB = 1.380649e-23;    // Boltzmann, J/K (CODATA 2018)
 CONST.STEFAN_BOLTZMANN = 5.670374419e-8; // Stefan-Boltzmann, W/(m²·K⁴)
-CONST.SOLAR_CONSTANT = 1366;              // Constante solaire, W/m² (satellites, ~1361–1366 selon cycle)
+CONST.SOLAR_CONSTANT = 1361;              // TSI W/m² (Kopp & Lean 2011, TSIS-1). 🔒 = L☉/(4π×AU²) = 3.828e26/(4π×1.496e11²)
 CONST.MAX_PLANCK_SAFE = 1e30;         // Cap Planck (W/(m²·sr·m)) pour workers / transfert radiatif
 
 // ========== 2. PHYSIQUE DURE (propriétés intrinsèques) ==========

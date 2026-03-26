@@ -123,7 +123,39 @@ $$T_{\text{eff}} = \left(\frac{F_{\text{total}}}{\sigma}\right)^{1/4}$$
 
 Cette température effective correspond à la température d'un corps noir qui émettrait le même flux total. C'est pourquoi chaque courbe de flux observée "descend" sur sa courbe Planck correspondante : elles ont la même intégrale (surface sous la courbe), garantie par la conservation de l'énergie.
 
-## 6. Forçage Radiatif
+## 6. Luminosité solaire — Gough (1981)
+
+L'évolution de la luminosité solaire au cours du temps est donnée par la formule de Gough (1981) :
+
+$$L(t) = \frac{L_\odot}{1 + \frac{2}{5} \cdot \frac{t}{t_\odot}}$$
+
+où :
+- $L_\odot = 3.828 \times 10^{26}$ W (luminosité solaire actuelle, IAU 2015 Résolution B3)
+- $t_\odot = 4.57$ Ga (âge du Soleil)
+- $t$ : temps avant le présent en années (ou Ga pour le calcul)
+- $2/5 = 0.4$ : coefficient d'évolution (homologie stellaire H→He)
+
+Le flux solaire à 1 UA et le flux moyen sphérique se déduisent :
+
+$$S(t) = \frac{L(t)}{4\pi \cdot \text{UA}^2} \quad;\quad \bar{S}(t) = \frac{S(t)}{4}$$
+
+Valeurs clés :
+| Époque | t (Ga) | L/L☉ | S̄ (W/m²) |
+|--------|--------|------|-----------|
+| Archéen | 4.0 | 74.1 % | 252 |
+| Protérozoïque | 2.5 | 82.0 % | 279 |
+| Paléozoïque | 0.5 | 95.8 % | 326 |
+| Moderne | 0 | 100 % | 340 |
+
+Références :
+- Gough, D.O. (1981) *Solar interior structure and luminosity variations*, Solar Physics 74:21–34
+- Bahcall, J.N., Pinsonneault, M.H. & Basu, S. (2001) *Solar Models*, ApJ 555:990
+- Kopp, G. & Lean, J.L. (2011) *A new, lower value of total solar irradiance*, GRL 38:L01706 → TSI = 1361 W/m²
+- IAU 2015 Resolution B3 → L☉ = 3.828×10²⁶ W
+
+🔒 Cette formule est hyperbolique (pas linéaire). La luminosité est calculée dynamiquement depuis la date, pas interpolée.
+
+## 7. Forçage Radiatif
 
 Le diagnostic ΔF (convention affichage, climate.js) est la différence de flux total entre deux scénarios :
 
@@ -131,7 +163,7 @@ $$\Delta F = F_{\text{total}}(f_{\text{CO}_2}) - F_{\text{total}}(f_{\text{CO}_2
 
 où $f_{\text{CO}_2, \text{ref}}$ est généralement la concentration de référence (0 ppm ou 280 ppm).
 
-## 7. Variation de Température
+## 8. Variation de Température
 
 La variation de température effective est :
 

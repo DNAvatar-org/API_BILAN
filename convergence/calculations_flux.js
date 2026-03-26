@@ -4,7 +4,7 @@
 // Version 1.2.73
 // Date: [March 2026]
 // Logs:
-// - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 et lastInitPayload pour convergence reproductible visu/scie
+// - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
 // - v1.2.68: mode anim: yield 1 frame par cycle (await requestAnimationFrame) pour affichage inter progressif, éviter flush final
 // - v1.2.69: computeRadiativeTransfer(callback, options): renderMode visu_/scie_ + attente bridge draw par cycle (visu_+anim)
 // - v1.2.70: attente draw via window.VISUALWAIT.isDrawn(cycleToken) (globals rangées)
@@ -106,6 +106,10 @@ window.appendConvergenceStep = function () {};
 /** bins = 1980000/(19*|delta|+800), minoré 100, plafonné maxSpectralBinsConvergence. */
 function getBinsFromDelta(delta) {
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
+    // _REGLE_JS_CRASH : si delta est NaN, crash visible ici plutôt que deep dans buildAdaptiveLambdaGrid
+    if (!Number.isFinite(delta)) {
+        console.error('[getBinsFromDelta] delta invalide (' + delta + ') — NaN dans DATA[🧲][🔺🧲]. Vérifier getEpochDateConfig/interpolation.');
+    }
     return Math.min(Math.max(100, Math.floor(1980000 / (19 * Math.abs(Number(delta)) + 800))), CONFIG_COMPUTE.maxSpectralBinsConvergence);
 }
 
@@ -211,7 +215,6 @@ function calculateT0() {
     DATA['🧮']['🧮🔄'] = 0; // Réinitialiser le compteur d'itérations
     delete DATA['🧮']['🧮🌡️🔽'];
     delete DATA['🧮']['🧮🌡️🔼'];
-    DATA['🧮']['lastInitPayload'] = null;
     DATA['🧲']['🧲☀️🔽'] = 0;
     DATA['🧲']['🧲🌕🔽'] = 0;
     DATA['🧲']['🧲🌑🔼'] = 0;
@@ -473,7 +476,6 @@ async function computeRadiativeTransfer(callback, options) {
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const H2O = window.H2O;
     if (!DATA['🧮']['previous']) DATA['🧮']['previous'] = [];
-    DATA['🧮']['lastInitPayload'] = null;
     window.clearConvergenceTrace();
     if (DATA['🧮']['🧮🔄🌊'] == null) DATA['🧮']['🧮🔄🌊'] = 0;
     const currentWaterPass = DATA['🧮']['🧮🔄🌊'];
@@ -640,7 +642,6 @@ async function computeRadiativeTransfer(callback, options) {
             '📛': snapshotEdsForConvergence()
         }
     };
-    DATA['🧮']['lastInitPayload'] = { temperature_C: initPayload.temperature_C, delta_equilibre: initPayload.delta_equilibre };
     window.appendConvergenceStep(initPayload);
     if (callback) callback('convergenceStep', initPayload);
     dropLastStepSnapshot(DATA);

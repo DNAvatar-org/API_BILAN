@@ -192,11 +192,11 @@ function calculateAlbedo() {
     // 🔒 ÉTAPE 2 : Calculer la couverture océanique réelle depuis la géologie + stocks d'eau
     // La surface océanique est limitée par la géologie ET par la quantité d'eau disponible
     // Si volcano_coverage = 1.0, alors ocean_coverage = 0 (pas de mer possible)
-    const planet_surface_m2 = 4 * Math.PI * EPOCH['📐'] * EPOCH['📐'];
+    const planet_surface_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
     
     // Volume maximum que peut contenir le bassin océanique
     const ocean_basin_surface_m2 = DATA['🗻']['🍰🗻🌊'] * planet_surface_m2;
-    const ocean_volume_max_m3 = (ocean_basin_surface_m2 / EPOCH['🐚']) * EPOCH['📏🌊'] * 1000;
+    const ocean_volume_max_m3 = (ocean_basin_surface_m2 / EPOCH['🐚']) * (EPOCH['📏🌊'] * 1000);
     const ocean_mass_max_kg = ocean_volume_max_m3 * CONST.RHO_WATER;
     
     // Masse d'eau océanique réelle = min(stock_total, capacité_bassin)
@@ -204,7 +204,7 @@ function calculateAlbedo() {
     
     // Surface océanique réelle (peut être < bassin si pas assez d'eau)
     const ocean_volume_actual_m3 = ocean_mass_actual_kg / CONST.RHO_WATER;
-    const ocean_surface_actual_m2 = (ocean_volume_actual_m3 / EPOCH['📏🌊'] / 1000) * EPOCH['🐚'];
+    const ocean_surface_actual_m2 = (ocean_volume_actual_m3 / (EPOCH['📏🌊'] * 1000)) * EPOCH['🐚'];
     const ocean_coverage_base = Math.min(DATA['🗻']['🍰🗻🌊'], Math.max(0.0, ocean_surface_actual_m2 / planet_surface_m2));
     
     // Réduire ocean_coverage proportionnellement à volcano_coverage
@@ -276,9 +276,10 @@ function calculateAlbedo() {
     ALBEDO.calculateCloudFormationIndex();
     
     // 🔒 ÉTAPE 5 : Calculer les terres disponibles (🍰🪩🌍_)
-    // FORMULE : 🍰🪩🌍_ = 1 - 🍰🗻🌊 - 🍰🪩🧊
-    // Terres disponibles = surface totale - océans - glace
-    const land_available = Math.max(0, 1.0 - DATA['🗻']['🍰🗻🌊'] - DATA['🪩']['🍰🪩🧊']);
+    // FORMULE : 🍰🪩🌍_ = 1 - ocean_coverage_réel - 🍰🪩🧊
+    // Utiliser ocean_coverage (surface réelle) au lieu du bassin géologique (🍰🗻🌊)
+    // Si le bassin n'est pas rempli, la portion sèche revient aux terres (sinon trou dans la somme → normalisation abusive)
+    const land_available = Math.max(0, 1.0 - ocean_coverage - DATA['🪩']['🍰🪩🧊']);
     
     // 🔒 ÉTAPE 6 : Calculer forêts 🌳
     // === FORÊT - VERSION RÉALISTE (pas de if d'époque) ===
@@ -328,6 +329,8 @@ function calculateAlbedo() {
     const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
     if (Math.abs(surface_sum - 1.0) > 0.03) {
         console.warn(`⚠️ [calculateAlbedo] Somme surfaces=${surface_sum.toFixed(4)} -> normalisation`);
+        console.warn(`   RAW: volcan=${volcano_surface.toFixed(4)} ocean=${ocean_surface.toFixed(4)} foret=${forest_surface.toFixed(4)} glace=${ice_surface.toFixed(4)} terre=${land_surface.toFixed(4)} desert=${desert_surface.toFixed(4)}`);
+        console.warn(`   GEOL: 🍰🗻🌊=${DATA['🗻']['🍰🗻🌊'].toFixed(4)} 🍰🗻🏔=${DATA['🗻']['🍰🗻🏔'].toFixed(4)} 🍰🗻🌍=${DATA['🗻']['🍰🗻🌍'].toFixed(4)} ice_cap_surface=${ice_cap_surface.toFixed(4)} hydrosphere=${hydrosphere_surface_support.toFixed(4)}`);
         const scale = 1.0 / surface_sum;
         volcano_surface = volcano_surface * scale;
         ocean_surface = ocean_surface * scale;

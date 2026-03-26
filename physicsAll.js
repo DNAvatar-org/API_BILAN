@@ -36,7 +36,7 @@ CONST.PLANCK_H = 6.62607015e-34;      // Planck, J·s (CODATA 2018)
 CONST.SPEED_OF_LIGHT = 2.998e8;       // c, m/s
 CONST.BOLTZMANN_KB = 1.380649e-23;    // Boltzmann, J/K (CODATA 2018)
 CONST.STEFAN_BOLTZMANN = 5.670374419e-8; // Stefan-Boltzmann, W/(m²·K⁴)
-CONST.SOLAR_CONSTANT = 1366;              // Constante solaire, W/m² (satellites, ~1361–1366 selon cycle)
+CONST.SOLAR_CONSTANT = 1361;              // TSI W/m² (Kopp & Lean 2011, TSIS-1). 🔒 = L☉/(4π×AU²)
 CONST.MAX_PLANCK_SAFE = 1e30;         // Cap Planck (W/(m²·sr·m)) pour workers / transfert radiatif
 
 // ========== 2. PHYSIQUE DURE (propriétés intrinsèques) ==========
@@ -4621,7 +4621,22 @@ function getEpochDateConfig() {
     DATA['📜']['🧲🔬'] = (typeof EPOCH['🧲🔬'] === 'number' && Number.isFinite(EPOCH['🧲🔬'])) ? EPOCH['🧲🔬'] : 0.01;
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;
-    
+
+    // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
+    // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])
+    var deltaYearsFromTics = 0;
+    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+        for (var tk of Object.keys(EPOCH['🕰'])) {
+            if (tk === '🔀' || tk === '◀') continue;
+            var cfg = EPOCH['🕰'][tk];
+            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                var count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
+                deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
+            }
+        }
+    }
+    DATA['📜']['📅'] = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
+
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
     
@@ -4633,31 +4648,29 @@ function getEpochDateConfig() {
     return true;
 }
 
-//Calcule les valeurs du soleil (utilise DATA directement)
+// 🔒 FORMULE DE GOUGH (1981), Solar Physics 74:21
+// L(t_ago) = L_SUN / (1 + 0.4 × t_ago_Ga / T_SUN_GA)
+// NE PAS REMPLACER PAR UNE INTERPOLATION LINÉAIRE.
+var GOUGH_L_SUN_W = 3.828e26;  // IAU 2015 Resolution B3
+var GOUGH_T_SUN_GA = 4.57;     // Âge du Soleil en Ga
+var GOUGH_COEFF = 0.4;         // Coefficient d'évolution (homologie stellaire H→He)
+
+function goughLuminosity(t_ago_years) {
+    var t_ago_Ga = t_ago_years / 1e9;
+    return GOUGH_L_SUN_W / (1 + GOUGH_COEFF * t_ago_Ga / GOUGH_T_SUN_GA);
+}
+
+//Calcule les valeurs du soleil depuis la date courante via Gough (1981)
 function getSoleil() {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    if (!DATA || !DATA['📜'] || !window.TIMELINE) return false;
-    const epochId = DATA['📜']['🗿'];
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH || EPOCH['🔋☀️'] == null) return false;
+    if (!DATA || !DATA['📜']) throw new Error('getSoleil: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
+    const dateYears = DATA['📜']['📅'];
+    if (dateYears == null || !Number.isFinite(dateYears)) throw new Error('getSoleil: DATA[📜][📅] invalide (' + dateYears + ') — getEpochDateConfig() doit stocker la date en années');
+    const P_watts = goughLuminosity(dateYears);
     if (!DATA['☀️']) DATA['☀️'] = {};
-    DATA['☀️']['🔋☀️'] = EPOCH['🔋☀️'];
-    
-    // Calculer la constante solaire à 1 UA depuis la puissance totale
-    // Relation: P = S * 4πr² où P est la puissance totale, S est la constante solaire, r = 1 UA = 1.496e11 m
-    // Donc: S = P / (4π * (1 UA)²)
-    DATA['☀️']['🧲☀️'] = DATA['☀️']['🔋☀️'] / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
-    
-    // Flux solaire à 1 UA / 4 (moyenne sphérique, AVANT albedo)
-    // 🎱 représente la géométrie (division par 4 pour la moyenne sphérique)
+    DATA['☀️']['🔋☀️'] = P_watts;
+    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
-    
-    // console.log(`☀️ [getSoleil@compute.js]`);
-    // console.log(`soleil=${JSON.stringify(DATA['☀️'])}`);
-    
-    // Retourner true car DATA a été modifié
     return true;
 }
 
@@ -4665,11 +4678,12 @@ function getSoleil() {
 function getNoyau() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    if (!DATA || !DATA['📜'] || !window.TIMELINE) return false;
+    if (!DATA || !DATA['📜']) throw new Error('getNoyau: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
+    if (!window.TIMELINE) throw new Error('getNoyau: window.TIMELINE manquant — configTimeline.js non chargé ?');
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH) return false;
+    if (!EPOCH) throw new Error('getNoyau: époque "' + epochId + '" introuvable dans TIMELINE');
     if (!DATA['🌕']) DATA['🌕'] = {};
     // Flux géothermique en W/m² (depuis TIMELINE)
     if (EPOCH['🕰'] && EPOCH['🕰']['💫'] && EPOCH['🕰']['💫']['🔺🧲🌕💫']) {

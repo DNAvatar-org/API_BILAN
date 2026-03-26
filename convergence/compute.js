@@ -186,6 +186,10 @@ function getEpochDateConfig() {
     }
     DATA['📜']['📐'] = baseRadiusKm + deltaRadiusKm;
 
+    // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
+    // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])
+    DATA['📜']['📅'] = dateYears;
+
     // Barycentre (📿💫+📿☄️)/maxTics : interpolation des params listés dans 🕰['🔀'] entre epoch (▶) et 🕰['◀']
     const interpolKeys = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) ? EPOCH['🕰']['🔀'] : null;
     const interpolEnd = EPOCH['🕰'] && EPOCH['🕰']['◀'] && typeof EPOCH['🕰']['◀'] === 'object' ? EPOCH['🕰']['◀'] : null;
@@ -213,8 +217,9 @@ function getEpochDateConfig() {
                 const startVal = EPOCH[subkey];
                 const endVal = endObj[subkey];
                 if (typeof endVal === 'number' && Number.isFinite(endVal)) {
-                    const s = (typeof startVal === 'number' && Number.isFinite(startVal)) ? startVal : endVal;
-                    out[subkey] = s + bary * (endVal - s);
+                    // _REGLE_JS_CRASH : Aucun fallback ou typeof abusif.
+                    // Si startVal est undefined, le calcul donne NaN et l'application plantera naturellement (ce qui est voulu).
+                    out[subkey] = startVal + bary * (endVal - startVal);
                 } else {
                     out[subkey] = endVal;
                 }
@@ -234,27 +239,32 @@ function getEpochDateConfig() {
     return true;
 }
 
-//Calcule les valeurs du soleil (utilise DATA directement)
+// 🔒 FORMULE DE GOUGH (1981), Solar Physics 74:21
+// L(t_ago) = L_SUN / (1 + 0.4 × t_ago_Ga / T_SUN_GA)
+// Confirmé par Bahcall, Pinsonneault & Basu (2001), ApJ 555:990.
+// NE PAS REMPLACER PAR UNE INTERPOLATION LINÉAIRE — la relation est hyperbolique.
+var GOUGH_L_SUN_W = 3.828e26;  // IAU 2015 Resolution B3
+var GOUGH_T_SUN_GA = 4.57;     // Âge du Soleil en Ga
+var GOUGH_COEFF = 0.4;         // Coefficient d'évolution (homologie stellaire H→He)
+
+function goughLuminosity(t_ago_years) {
+    var t_ago_Ga = t_ago_years / 1e9;
+    return GOUGH_L_SUN_W / (1 + GOUGH_COEFF * t_ago_Ga / GOUGH_T_SUN_GA);
+}
+
+//Calcule les valeurs du soleil depuis la date courante via Gough (1981)
 function getSoleil() {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    if (!DATA || !DATA['📜'] || !window.TIMELINE) return false;
-    const epochId = DATA['📜']['🗿'];
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH) return false;
-    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('☀️') && DATA['☀️'] && typeof DATA['☀️']['🔋☀️'] === 'number';
-    const P_watts = useInterpolated ? DATA['☀️']['🔋☀️'] : (EPOCH['🔋☀️'] != null ? EPOCH['🔋☀️'] : null);
-    if (P_watts == null || !Number.isFinite(P_watts)) return false;
+    if (!DATA || !DATA['📜']) throw new Error('getSoleil: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
+    // Date courante en années avant le présent (stockée par getEpochDateConfig dans 📜, pas 📅)
+    const dateYears = DATA['📜']['📅'];
+    if (dateYears == null || !Number.isFinite(dateYears)) throw new Error('getSoleil: DATA[📜][📅] invalide (' + dateYears + ') — getEpochDateConfig() doit stocker la date en années');
+    // 🔒 Luminosité exacte via Gough — pas d'interpolation linéaire
+    const P_watts = goughLuminosity(dateYears);
     if (!DATA['☀️']) DATA['☀️'] = {};
     DATA['☀️']['🔋☀️'] = P_watts;
     DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
-    
-    // console.log(`☀️ [getSoleil@compute.js]`);
-    // console.log(`soleil=${JSON.stringify(DATA['☀️'])}`);
-    
-    // Retourner true car DATA a été modifié
     return true;
 }
 
@@ -262,11 +272,12 @@ function getSoleil() {
 function getNoyau() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    if (!DATA || !DATA['📜'] || !window.TIMELINE) return false;
+    if (!DATA || !DATA['📜']) throw new Error('getNoyau: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
+    if (!window.TIMELINE) throw new Error('getNoyau: window.TIMELINE manquant — configTimeline.js non chargé ?');
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH) return false;
+    if (!EPOCH) throw new Error('getNoyau: époque "' + epochId + '" introuvable dans TIMELINE');
     if (!DATA['🌕']) DATA['🌕'] = {};
     const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('🌕') && DATA['🌕'] && (DATA['🌕']['🧲🌕'] != null || DATA['🌕']['🔋🌕'] != null);
     if (useInterpolated) {
@@ -317,12 +328,14 @@ COMPUTE.getDateConfig = getEpochDateConfig;
 COMPUTE.getMasses = getMasses;
 COMPUTE.getEnabledStates = getEnabledStates;
 COMPUTE.getSoleil = getSoleil;
+COMPUTE.goughLuminosity = goughLuminosity;
 COMPUTE.getNoyau = getNoyau;
 window.getEpochDateConfig = getEpochDateConfig;
 window.getDateConfig = getEpochDateConfig;
 window.getMasses = getMasses;
 window.getEnabledStates = getEnabledStates;
 window.getSoleil = getSoleil;
+window.goughLuminosity = goughLuminosity;
 window.getNoyau = getNoyau;
 // T0 est dans DATA['🧮']['🧮🌡️'], pas besoin de window.T0
 // getLogo et getLogoKey sont exposés par alphabet.js

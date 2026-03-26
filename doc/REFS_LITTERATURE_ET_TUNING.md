@@ -27,4 +27,26 @@
 
 ---
 
+---
+
+## 3. Luminosité solaire — Formule de Gough (1981)
+
+La luminosité solaire est calculée dynamiquement par la formule de Gough (1981), **pas** par interpolation linéaire entre époques.
+
+$$L(t) = \frac{L_\odot}{1 + 0.4 \times t / t_\odot}$$
+
+| Référence | Valeur | Source |
+|-----------|--------|--------|
+| L☉ | 3.828×10²⁶ W | IAU 2015 Resolution B3 |
+| TSI | 1361 W/m² | Kopp & Lean (2011) GRL 38:L01706, TSIS-1 |
+| Âge Soleil | 4.57 Ga | Standard solaire |
+| Coeff. 0.4 | Homologie stellaire H→He | Gough (1981) Solar Physics 74:21–34 |
+| Confirmation | Modèles numériques | Bahcall, Pinsonneault & Basu (2001) ApJ 555:990 |
+
+Code : `goughLuminosity()` dans `API_BILAN/convergence/compute.js` et `API_BILAN/physicsAll.js`.
+
+🔒 Les valeurs 🔋☀️ dans `configTimeline.js` servent uniquement de référence statique. Le calcul réel utilise toujours Gough dynamiquement.
+
+---
+
 *Créé 2025-03-08 — à mettre à jour si déplacement de fichiers.*
