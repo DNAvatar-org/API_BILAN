@@ -20,7 +20,7 @@ Les deux chemins partagent : lecture config époque (DATA, TIMELINE), calcul flu
 ### BOUCLE EXTÉRIEURE (simulateRadiativeTransfer)
 
 ```javascript
-function simulateRadiativeTransfer(CO2_fraction, options = {}) {
+function simulateRadiativeTransfer(options = {}) {
     // ============================================
     // ÉTAPE 1 : LECTURE DES DATA CONFIG (si changement d'époque)
     // ============================================
@@ -35,7 +35,7 @@ function simulateRadiativeTransfer(CO2_fraction, options = {}) {
             // 1.2.1. Réinitialiser les variables globales
             // 1.2.2. Charger les paramètres de l'époque :
             //   - t0 (température initiale)
-            //   - CO2, CH4, H2O (fractions)
+            //   - fractions de gaz (CO₂, CH₄, H₂O)
             //   - geothermal_flux
             //   - events (météorites, ticTime)
             //   - albedo_base
@@ -149,7 +149,7 @@ function simulateRadiativeTransfer(CO2_fraction, options = {}) {
         LABEL_ITERATION:
         {
             // 5.4.1. Calculer le flux pour T0_current
-            const result = calculateFluxForT0(CO2_fraction, T0_current, options);
+            const result = calculateFluxForT0(T0_current, options);
             
             // 5.4.2. Calculer delta_equilibre = flux_sortant - flux_entrant
             const delta_equilibre = result.total_flux - (solar_flux_absorbed + geo_flux);
@@ -170,10 +170,10 @@ function simulateRadiativeTransfer(CO2_fraction, options = {}) {
             // 5.4.5. Si convergence atteinte
             if (converged_by_flux || converged_by_temp || iter > 20) {
                 // Recalculer avec spectre complet pour précision finale
-                const final_result = calculateFluxForT0(CO2_fraction, T0_current, { ...options, fullSpectre: true });
-                
+                const final_result = calculateFluxForT0(T0_current, { ...options, fullSpectre: true });
+
                 // Finaliser les résultats
-                finalizeResults(final_result, T0_current, CO2_fraction);
+                finalizeResults(final_result, T0_current);
                 
                 // Stocker prev_T0 pour le prochain calcul
                 prev_T0 = T0_current;
@@ -229,7 +229,7 @@ function simulateRadiativeTransfer(CO2_fraction, options = {}) {
             
             // 5.4.8. Afficher l'étape si demandé
             if (window.showDichotomySteps) {
-                displayDichotomyStep(CO2_fraction, T0_current, result, iter);
+                displayDichotomyStep(T0_current, result, iter);
             }
             
             // 5.4.9. Incrémenter l'itération
@@ -274,7 +274,7 @@ function simulateRadiativeTransfer(CO2_fraction, options = {}) {
 - **Changement d'époque** → `goto LABEL_READ_CONFIG`
 - **Événement météorite** → `goto LABEL_INIT_DATA`
 - **Événement ticTime** → `goto LABEL_INIT_DATA`
-- **Changement CO2/H2O/CH4** → `goto LABEL_CALCUL_ATMOSPHERE`
+- **Changement gaz (CO₂/H₂O/CH₄)** → `goto LABEL_CALCUL_ATMOSPHERE`
 
 ### Boucle intérieure (convergence)
 - **Nouvelle itération** → `goto LABEL_ITERATION`

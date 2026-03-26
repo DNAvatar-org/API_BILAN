@@ -1,25 +1,22 @@
-# Documentation API_BILAN — Calcul bilan radiatif
+# Documentation API_BILAN
 
-Documentation technique du modèle et de l’API (algorithmes, convergence, formules, variables, diagnostic). Les chemins cités sont relatifs à la racine du projet (ex. `API_BILAN/convergence/calculations_flux.js`).
+Documentation technique du modèle et de l'API (algorithmes, convergence, formules, diagnostic). Les chemins sont relatifs à `API_BILAN/`.
 
 ## Fichiers
 
 | Fichier | Description |
 |---------|-------------|
-| **ALGORITHME_CALCULS.md** | Structure conceptuelle de l’algorithme (boucles, étapes), correspondance avec le code (computeRadiativeTransfer, simulateRadiativeTransfer, DATA). |
-| **ALPHABET_ET_DICO.txt** | Référence alphabet (CHARS, CHARS_DESC) et dico (KEYS, DESC, FORM) — synchro avec `data/alphabet.js` et `data/dico.js`. |
-| **SENS_CONVERGENCE_ET_VALEURS.md** | Sens de 🧮🛑, convention des flux (🔺🧲, 🧲🔬), diagnostic valeurs erronées / incohérentes. |
-| **FORMULES.md** | Formules du modèle (Planck, atmosphère, absorption CO₂, transfert radiatif, Stefan-Boltzmann). |
-| **VARIABLES_FLUX.md** | Variables vue Visuel (plotData, window) et mapping des étiquettes du flux. |
-| **PRECISION_CALCULS_RADIATIF.md** | Paramètres de précision, résolution spectrale/verticale, pressure broadening, sections efficaces. |
-| **EDS_VS_ALBEDO.md** | Distinction EDS (gaz IR) vs albédo (réflexion SW), forcing_Albedo, H₂O double rôle. |
-| **VAPEUR_VS_NUAGES.md** | Vapeur (bandes spectrales) vs nuages (IR large bande), architecture DATA, calcul spectral. |
-| **DEBUG_CONVERGENCE_TEMPERATURES.md** | Debug convergence T° par époque, philosophies code, pistes (SENS_CONVERGENCE_ET_VALEURS). |
-| **PLAN_HITRAN_CROSS_SECTIONS.md** | Plan : remplacer formules empiriques par sections efficaces HITRAN (σ(λ,T,P)). |
-| **DIAGNOSTIC_MODEL.md** | Points à traiter : affichage 📛 vs Schmidt, cloud_frac, runaway glace. |
-| **REFS_LITTERATURE_ET_TUNING.md** | Littérature et tuning. |
+| **[ALGORITHME_CALCULS.md](ALGORITHME_CALCULS.md)** | Structure de l'algorithme (boucles, étapes, convergence), correspondance avec le code. |
+| **[ALPHABET_ET_DICO.txt](ALPHABET_ET_DICO.txt)** | Référence : alphabet (49 emojis), dictionnaire des clés par catégorie, formules. |
+| **[FORMULES.md](FORMULES.md)** | Formules du modèle (Planck, atmosphère, absorption, transfert radiatif, Stefan-Boltzmann). |
+| **[PHYSIQUE_MODELE.md](PHYSIQUE_MODELE.md)** | Physique : EDS vs albédo, vapeur vs nuages, attribution (tau-ratio vs Schmidt), overlap H₂O–CO₂. |
+| **[CONVERGENCE_ET_DIAGNOSTIC.md](CONVERGENCE_ET_DIAGNOSTIC.md)** | Convergence (🧮🛑), convention des flux, diagnostic valeurs, credences, logs debug. |
+| **[PRECISION_CALCULS_RADIATIF.md](PRECISION_CALCULS_RADIATIF.md)** | Paramètres de précision, résolution spectrale/verticale, pressure broadening, sections efficaces. |
+| **[PLAN_HITRAN_CROSS_SECTIONS.md](PLAN_HITRAN_CROSS_SECTIONS.md)** | Plan : remplacer formules empiriques par sections efficaces HITRAN (σ(λ,T,P)). |
+| **[REFS_LITTERATURE_ET_TUNING.md](REFS_LITTERATURE_ET_TUNING.md)** | Fichiers de référence : littérature vs config, bornes du tuning. |
 
-## Liens
+## Liens utiles
 
 - Config époques : `API_BILAN/config/configTimeline.js`
-- MAJUSCULES (window) : voir README principal et `CO2/window_MAJUSCULE_creater_filler.txt`
+- Tuning : `API_BILAN/config/model_tuning.js`, `fine_tuning_bounds.js`
+- Structure des fichiers : `API_BILAN/STRUCTURE.md`

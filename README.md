@@ -1,55 +1,67 @@
 # API_BILAN — Bilan radiatif
 
-API de calcul du bilan radiatif terrestre. Entrée : une époque ou une configuration. Sortie : résultats (températures, flux, spectres) via Promise et callbacks.
+API JavaScript de calcul du bilan radiatif terrestre.
+Entrée : une époque (ou une configuration). Sortie : températures, flux, spectres — via Promise et callbacks synchrones.
 
 ---
 
-## 1. Intégration rapide
+## Intégration (copier-coller)
 
-### Scripts à charger
+### 1. Charger les scripts
 
 ```html
-<!-- 1. Configs + données (alphabet, dico, tuning, timeline) -->
-<script src="API_BILAN/configsAll.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/configsAll.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/physicsAll.js"></script>
 
-<!-- 2. Physique + spectroscopie + atmosphère + convergence -->
-<script src="API_BILAN/physicsAll.js"></script>
-
-<!-- 3. Hooks convergence (stubs si pas de rendu) -->
+<!-- Hooks convergence (stubs si pas de rendu) -->
 <script>
     window.clearConvergenceTrace = function () {};
     window.appendConvergenceStep = function () {};
 </script>
 
-<!-- 4. Moteur de calcul -->
-<script src="API_BILAN/convergence/calculations_flux.js"></script>
-
-<!-- 5. API + callback stack -->
-<script src="API_BILAN/callback_stack.js"></script>
-<script src="API_BILAN/api.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/convergence/calculations_flux.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/callback_stack.js"></script>
+<script src="https://dnavatar.org/pages/API_BILAN/api.js"></script>
 ```
 
-### Exemple minimal : lancer un calcul (époque 1800)
+### 2. Lancer un calcul (époque 1800)
 
 ```js
 var API = window.FUNC_API_BILAN;
 
-// Callback appelé à chaque étape du calcul
 function onStep(event, payload) {
     if (event === 'ProcessFinished') {
-        console.log('Température finale :', payload.DATA['🧮']['🧮🌡️'], 'K');
+        var T = payload.DATA['🧮']['🧮🌡️'];
+        console.log('Température de surface :', (T - 273.15).toFixed(1) + ' °C');
     }
 }
 
 var api = new API.BilanRadiatifAPI(onStep);
 
-// Lancer le calcul pour l'époque pré-industrielle (1800)
 api.run({ epochId: '🚂', animEnabled: false }).then(function (result) {
     console.log('Calcul terminé', result);
 });
 ```
 
-### Époques disponibles
+### 3. Exemple avec configuration personnalisée
+
+```js
+api.run({
+    epochId: '🚂',
+    animEnabled: false,
+    tuning: {
+        CLOUD_SW: 0.5
+    }
+}).then(function (result) {
+    console.log('Résultat avec tuning personnalisé', result);
+});
+```
+
+C'est tout. Le calcul tourne en quelques secondes et retourne les résultats via le callback et la Promise.
+
+---
+
+## Époques disponibles
 
 | epochId | Époque | Année |
 |---------|--------|-------|
@@ -63,35 +75,18 @@ api.run({ epochId: '🚂', animEnabled: false }).then(function (result) {
 | `'🚂'` | Pré-industriel | 1800 |
 | `'📱'` | Aujourd'hui | 2000 |
 
-### Exemple avec config personnalisée
+---
 
-```js
-api.run({
-    epochId: '🚂',
-    animEnabled: false,
-    tuning: {
-        CLOUD_SW: 0.5  // override d'un paramètre de tuning
-    }
-}).then(function (result) {
-    console.log('Résultat avec tuning personnalisé', result);
-});
-```
+## Alphabet et Dictionnaire des clés
+
+Les données utilisent des emojis comme identifiants (ex. `'🌡️'` = température, `'⚖️'` = masse).
+La référence complète (alphabet, catégories de clés, formules) est dans :
+
+> **[doc/ALPHABET_ET_DICO.txt](doc/ALPHABET_ET_DICO.txt)**
 
 ---
 
-## 2. Référence : Alphabet et Dico
-
-Les clés de données utilisent des emojis comme identifiants (ex. `'🌡️'` = température, `'⚖️'` = masse). Deux ressources décrivent l'ensemble des clés :
-
-- **Alphabet** — `data/alphabet.js` : caractères, descriptions, logos.
-  Consultation interactive : [`alphabet.html`](../CO2/static/compute/alphabet.html)
-
-- **Dico** — `data/dico.js` : structure des clés par catégorie, descriptions, formules.
-  Consultation interactive : [`dico.html`](../CO2/static/compute/dico.html)
-
----
-
-## 3. Entrée / Sortie
+## Entrée / Sortie
 
 ### Entrée de `api.run()`
 
@@ -116,7 +111,7 @@ Les clés de données utilisent des emojis comme identifiants (ex. `'🌡️'` =
 
 ---
 
-## 4. Pile de callbacks
+## Pile de callbacks
 
 Plusieurs listeners peuvent être empilés pour recevoir les événements du calcul.
 
@@ -128,7 +123,7 @@ stack.push(function (event, payload) { /* listener supplémentaire */ });
 
 ---
 
-## 5. Fichiers et structure
+## Fichiers et structure
 
 | Fichier / dossier | Rôle |
 |------------------|------|
@@ -151,6 +146,6 @@ stack.push(function (event, payload) { /* listener supplémentaire */ });
 
 ---
 
-## 6. Documentation détaillée
+## Documentation détaillée
 
 Voir [doc/README.md](doc/README.md) pour l'index complet : algorithmes, formules, convergence, diagnostic.

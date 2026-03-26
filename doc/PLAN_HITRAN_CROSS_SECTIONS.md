@@ -8,7 +8,7 @@
 
 ## 1. Compréhension de la demande
 
-- **Actuel** : `API_BILAN/physics/physics.js` définit des constantes (CO2_SIGMA_*, etc.) ; `API_BILAN/radiative/calculations.js` expose `crossSectionCO2(λ)`, `crossSectionH2O(λ)`, `crossSectionCH4(λ)` — formules gaussiennes en λ, **sans** dépendance T/P dans la forme (un simple `pressureBroadening = √(P/P_ref)` est appliqué côté κ).
+- **Actuel** : `API_BILAN/physics/physics.js` définit des constantes ; `API_BILAN/radiative/calculations.js` expose `crossSectionCO2(λ)`, `crossSectionH2O(λ)`, `crossSectionCH4(λ)` — formules gaussiennes en λ, **sans** dépendance T/P dans la forme (un simple `pressureBroadening = √(P/P_ref)` est appliqué côté κ).
 - **Cible** : Sections efficaces **σ(λ, T, P)** dérivées des **lignes HITRAN** : pour chaque ligne, intensité S(T), largeur γ(T,P), lineshape (Voigt), somme sur les lignes proches de λ. Pas d’interpolation empirique ; utilisation des équations du fichier HITRAN.txt.
 
 ---
@@ -60,12 +60,11 @@
 | Fichier | Rôle |
 |---------|------|
 | `doc/HITRAN.txt` | Méthode (Q, S, γ, Voigt, conseils). |
-| `static/physics.js` | Constantes actuelles (à garder en fallback ou supprimer selon choix). |
-| `static/calculations.js` | `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` ; boucles qui utilisent les sections efficaces ; `getSpectralResultFromDATA`. |
-| Nouveau : script Python | Fetch HAPI, export lignes (JSON/CSV). |
-| **`static/hitran.js`** | Q(T), S(T), γ(T,P), γ_D, Voigt (réf. doc/HITRAN.txt). |
-| Nouveau (optionnel) : JSON chargé | Données de lignes (CO2, H2O, CH4). |
-| Intégration dans `calculations.js` ou module dédié | `crossSectionCO2FromLines`, etc. |
+| `API_BILAN/physics/physics.js` | Constantes actuelles (fallback). |
+| `API_BILAN/radiative/calculations.js` | `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` ; boucles qui utilisent les sections efficaces ; `getSpectralResultFromDATA`. |
+| `scripts/hitran_fetch_lines.py` | Fetch HAPI, export lignes (JSON/CSV). |
+| `API_BILAN/spectroscopy/hitran.js` | Q(T), S(T), γ(T,P), γ_D, Voigt (réf. doc/HITRAN.txt). |
+| `API_BILAN/data/hitran_lines_*.js` | Données de lignes (CO₂, H₂O, CH₄). |
 
 ---
 
