@@ -11,6 +11,7 @@
 // - v1.2.71: supprime double émission compute:progress (visu_+anim→displayDichotomyStep direct ; scie_/non-anim→IO_LISTENER seul)
 // - v1.2.72: supprime VISUALWAIT.isDrawn (boucle while morte) ; remplace par await RAF direct après displayDichotomyStep (seul async indispensable)
 // - v1.2.73: bridge anim+visu_ via IO_LISTENER: compute:progress(payload spectral) -> plot:drawn -> await RAF
+// - v1.2.74: initForConfig ne re-clamp plus le verrou albédo glace sur 🍰🗻🏔 ; conserve la glace de surface déjà calculée
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -156,11 +157,11 @@ function buildEdsBreakdown(b) {
         '🧲📛': E,
         '🍰📛🏭': b.CO2.pct,
         '🍰📛💧': b.H2O.pct,
-        '🍰📛⛽': b.CH4.pct,
+        '🍰📛🐄': b.CH4.pct,
         '🍰📛⛅': pCloud,
         '🧲📛🏭': E * b.CO2.pct,
         '🧲📛💧': E * b.H2O.pct,
-        '🧲📛⛽': E * b.CH4.pct,
+        '🧲📛🐄': E * b.CH4.pct,
         '🧲📛⛅': E * pCloud
     };
 }
@@ -296,7 +297,7 @@ function initForConfig() {
         ? Number(OVERRIDES['⛄'])
         : ice_data_continuity;
     const albedo_ice_raw = DATA['🪩']['🍰🪩🧊'];
-    const albedo_ice_effective = Math.max(0, Math.min(Math.max(0, DATA['🗻']['🍰🗻🏔']), albedo_ice_raw));
+    const albedo_ice_effective = Math.max(0, albedo_ice_raw);
     STATE.iceEpochFixedWaterState = {
         epochId: DATA['📜']['🗿'],
         value: Math.max(0, Math.min(Math.max(0, DATA['🗻']['🍰🗻🏔']), ice_fixed_value))
@@ -1179,7 +1180,7 @@ async function computeRadiativeTransfer(callback, options) {
             var h2o_meteorites = (typeof window.h2oTotalFromMeteorites !== 'undefined') ? window.h2oTotalFromMeteorites : 0;
             window.h2oVaporPercent = Math.min(100, Math.max(0, h2o_frac * 100 + h2o_meteorites));
             if (window.plotData) {
-                window.plotData.ch4_ppm = (DATA['🫧']['🍰🫧⛽'] != null ? DATA['🫧']['🍰🫧⛽'] : 0) * 1e6;
+                window.plotData.ch4_ppm = (DATA['🫧']['🍰🫧🐄'] != null ? DATA['🫧']['🍰🫧🐄'] : 0) * 1e6;
             }
             DATA['📊'] = DATA['📊'] || {};
             DATA['📊'].total_flux = spectral_result.total_flux;

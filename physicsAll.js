@@ -826,9 +826,9 @@ function crossSectionCH4(wavelength) {
 
 function methaneFractionAtZ(z) {
     const DATA = window.DATA;
-    if (!DATA['🔘']['🔘⛽📛']) return 0;
-    if (!DATA['🫧']['🍰🫧⛽']) return 0;
-    return DATA['🫧']['🍰🫧⛽'];
+    if (!DATA['🔘']['🔘🐄📛']) return 0;
+    if (!DATA['🫧']['🍰🫧🐄']) return 0;
+    return DATA['🫧']['🍰🫧🐄'];
 }
 
 function evaporationRate() {
@@ -1496,7 +1496,7 @@ function calculateRadiativeCapacities() {
     // 🔒 Initialiser toutes les capacités radiatives à 0
     DATA['🫧']['🍰🫧🏭🌈'] = 0;
     DATA['🫧']['🍰🫧💧🌈'] = 0;
-    DATA['🫧']['🍰🫧⛽🌈'] = 0;
+    DATA['🫧']['🍰🫧🐄🌈'] = 0;
     DATA['🫧']['🍰🫧📿🌈'] = 0;
     
     // 🔒 CRASH si données manquantes (pas de fallback) - utiliser DATA directement
@@ -1592,8 +1592,8 @@ function calculateRadiativeCapacities() {
     if (weight_integral > 0) {
         DATA['🫧']['🍰🫧🏭🌈'] = Math.max(0, Math.min(1, integral_CO2 / weight_integral));
         DATA['🫧']['🍰🫧💧🌈'] = Math.max(0, Math.min(1, integral_H2O / weight_integral));
-        DATA['🫧']['🍰🫧⛽🌈'] = Math.max(0, Math.min(1, integral_CH4 / weight_integral));
-        DATA['🫧']['🍰🫧📿🌈'] = DATA['🫧']['🍰🫧🏭🌈'] + DATA['🫧']['🍰🫧💧🌈'] + DATA['🫧']['🍰🫧⛽🌈'];
+        DATA['🫧']['🍰🫧🐄🌈'] = Math.max(0, Math.min(1, integral_CH4 / weight_integral));
+        DATA['🫧']['🍰🫧📿🌈'] = DATA['🫧']['🍰🫧🏭🌈'] + DATA['🫧']['🍰🫧💧🌈'] + DATA['🫧']['🍰🫧🐄🌈'];
     }
     // Sinon, les valeurs restent à 0 (déjà initialisées)
     
@@ -1609,11 +1609,11 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     // Récupérer H2O et CH4 pour le log
     // 🔒 CORRECTION : Utiliser DATA['💧']['🍰🫧💧'] comme source unique de vérité
     const h2o_total = DATA['💧']['🍰🫧💧'] * 100; // Fraction → %
-    const ch4_ppm = (options && options.CH4_fraction != null) ? options.CH4_fraction * 1e6 : (DATA['🫧']['🍰🫧⛽'] != null ? DATA['🫧']['🍰🫧⛽'] * 1e6 : 0);
+    const ch4_ppm = (options && options.CH4_fraction != null) ? options.CH4_fraction * 1e6 : (DATA['🫧']['🍰🫧🐄'] != null ? DATA['🫧']['🍰🫧🐄'] * 1e6 : 0);
     
     // Log supprimé : affichage uniquement du mode (dichotomie/exponentielle) dans la boucle principale
     // if (iteration === 0 || isInitial) {
-    //     console.log(`📛 [displayDichotomyStep@calculations.js] iter=${iteration} T0=${T0_test.toFixed(2)}K 🏭=${(CO2_fraction * 1e6).toFixed(0)}ppm 💧=${h2o_total.toFixed(1)}% ⛽=${ch4_ppm.toFixed(0)}ppm`);
+    //     console.log(`📛 [displayDichotomyStep@calculations.js] iter=${iteration} T0=${T0_test.toFixed(2)}K 🏭=${(CO2_fraction * 1e6).toFixed(0)}ppm 💧=${h2o_total.toFixed(1)}% 🐄=${ch4_ppm.toFixed(0)}ppm`);
     // }
     if (typeof window === 'undefined') return;
 
@@ -1637,8 +1637,8 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     const h2o_enabled = DATA['🔘']['🔘💧📛'];
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const geo_flux = EPOCH['🧲🌕'];
-    const ch4_enabled = DATA['🔘']['🔘⛽📛'];
-    const CH4_fraction = DATA['🫧']['🍰🫧⛽'];
+    const ch4_enabled = DATA['🔘']['🔘🐄📛'];
+    const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
 
     // ⚠️ CAS PARTICULIER : Corps noir (pas d'atmosphère, albedo = 0)
     //   → Pas d'effet de serre, donc temp_surface = effective_temperature
@@ -1792,7 +1792,7 @@ async function simulateRadiativeTransfer() {
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     
     const CO2_fraction = DATA['🫧']['🍰🫧🏭'];
-    const CH4_fraction = DATA['🫧']['🍰🫧⛽'];
+    const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
     
     const t0_config = EPOCH['🌡️🧮'];
     const animEnabled = DATA['🔘']['🔘🎞'];
@@ -2458,7 +2458,7 @@ async function simulateRadiativeTransfer() {
                         const albedo = window.calculateAlbedo();
                         const cloud_coverage = DATA['🪩']['🍰🪩⛅'];
                         const co2_ppm = DATA['🫧']['🍰🫧🏭'] * 1e6;
-                        const ch4_ppm = DATA['🫧']['🍰🫧⛽'] * 1e6;
+                        const ch4_ppm = DATA['🫧']['🍰🫧🐄'] * 1e6;
 
                         // Mettre à jour les labels et la légende (K, °C, °F + couleur)
                         const fluxData = {
@@ -2983,7 +2983,7 @@ window.simulateRadiativeTransfer = simulateRadiativeTransfer;
 // - v1.0.8 : recalage humide 2025 (c_c_max base 0.006, iris 0.03, exposants précip 1.2/1.0) avec justification biblio
 // - v1.0.9 : fine-tuning léger 2025 (c_c_max base 0.0065, iris 0.02) pour remonter T sans perdre la stabilité
 // - v1.0.10 : cap vapeur final observé (AIRS/ERA5, ~7%/K) en fin d'itération Init
-// - v1.0.11 : propagation sulfate proxy 🍰🫧🌫 depuis ⚖️🌫 dans la composition atmosphérique avec vapeur
+// - v1.0.11 : propagation sulfate proxy 🍰🫧✈ depuis ⚖️✈ dans la composition atmosphérique avec vapeur
 // - v1.0.13 : en Search/Dicho pas de cache H2O (recalcul vapeur à T courante) pour reproductibilité albedo_nuages (35.9% vs 35.3%)
 // - v1.0.14 : logs cap vapeur C-C simplifiés en "[cycle] H2O cap @...°C"
 // - v1.0.12 : sans atmosphère (⚖️🫧=0) avec ⚖️💧>0 (Corps noir météorites) : 🍰💧🧊=1 si T<0°C, sinon 🍰💧🌊=1 (didactique)
@@ -3201,15 +3201,15 @@ function calculateWaterPartition() {
     // Calculer les fractions de l'air sec depuis les masses, puis multiplier par dry_air_fraction
     if (DATA['⚖️']['⚖️🫧'] > 0) {
         DATA['🫧']['🍰🫧🏭'] = (DATA['⚖️']['⚖️🏭'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
-        DATA['🫧']['🍰🫧⛽'] = (DATA['⚖️']['⚖️⛽'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
+        DATA['🫧']['🍰🫧🐄'] = (DATA['⚖️']['⚖️🐄'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧🫁'] = (DATA['⚖️']['⚖️🫁'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
-        DATA['🫧']['🍰🫧🌫'] = (DATA['⚖️']['⚖️🌫'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
+        DATA['🫧']['🍰🫧✈'] = (DATA['⚖️']['⚖️✈'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧💨'] = (DATA['⚖️']['⚖️💨'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
     } else {
         DATA['🫧']['🍰🫧🏭'] = 0;
-        DATA['🫧']['🍰🫧⛽'] = 0;
+        DATA['🫧']['🍰🫧🐄'] = 0;
         DATA['🫧']['🍰🫧🫁'] = 0;
-        DATA['🫧']['🍰🫧🌫'] = 0;
+        DATA['🫧']['🍰🫧✈'] = 0;
         DATA['🫧']['🍰🫧💨'] = 0;
     }
     
@@ -3398,7 +3398,7 @@ function calculateH2OParametersWithIteration() {
     
     // 🔒 ÉTAPE 3 : Calculer vapeur potentielle = min(disponible, saturation massique)
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️⛽'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
+        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
         : CONV.molar_mass_air_ref;
     const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
@@ -3525,7 +3525,7 @@ H2O.calculateH2OParameters = function () {
     ATM.calculatePressureAtm();
     const T = DATA['🧮']['🧮🌡️'];
     const P = DATA['🫧']['🎈'];
-    const sum_f = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'] + DATA['💧']['🍰🫧💧'];
+    const sum_f = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'] + DATA['💧']['🍰🫧💧'];
     const fractionsOk = sum_f > 0.5 && Math.abs(sum_f - 1) < 0.01;
     const phase = DATA['🧮']['🧮⚧'];
     const inSolver = (phase === 'Search' || phase === 'Dicho');
@@ -3543,7 +3543,7 @@ H2O.calculateH2OParameters = function () {
     DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
     // 🔒 M_dry depuis masses (air sec) : évite dépendance circulaire avec 🍰🫧💧 (M_air = f(🍰🫧💧) → 🍰🫧💧 = f(M_air))
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️⛽'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
+        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
         : CONV.molar_mass_air_ref;
     const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
@@ -3619,16 +3619,18 @@ window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
 // - v1.2.19 : fine-tuning forêt réaliste (31% terres, suitability thermique bornée) pour stabiliser CCN moderne
 // - v1.2.20 : normalisation stricte des surfaces au sol + nuages traités en voile optique (pas en surface additionnelle)
 // - v1.2.21 : retour calculateAlbedo aligné sur DATA['🪩']['🍰🪩📿'] (final_albedo_with_water) pour cohérence solveur/UI
-// - v1.2.22 : SO₄²⁻ branché dans proxy CCN via DATA (⚖️🌫, 🍰🫧🌫) + log cloud-proxy enrichi
+// - v1.2.22 : SO₄²⁻ branché dans proxy CCN via DATA (⚖️✈, 🍰🫧✈) + log cloud-proxy enrichi
 // - v1.2.23 : coefficients cloud SW externalisés vers static/tuning/model_tuning.js (iso-résultats)
 // - v1.2.24 : fallback synchrone cloud tuning si window.TUNING absent
 // - v1.2.25 : Corps noir avec ⚖️💧>0 → ice_cap_surface 0.9 pour 🍰🪩🧊 (glace météorites didactique)
 // - v1.2.27 : ne pas écraser iceEpochFixedWaterState en Search/Dicho (bloc blend glace) pour reproductibilité visu vs scie
 // - v1.2.26 : source unique CLOUD_SW : lecture DATA['🎚️'].CLOUD_SW en priorité (pas variable dupliquée)
+// - v1.2.28 : ice_cap_surface piloté par la couche d'eau globale équivalente (⚖️💧 / surface planète), sans if spécial corps noir
+// - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
 //
 // FORMULES ALBEDO :
 // 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🌋,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
-//   où contribution_glace = (🪩🍰🧊 - albedo_base) × 🍰💧🧊 × 0.5
+//   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅
 // 🍰🪩🌋 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
@@ -3688,7 +3690,7 @@ function calculateCloudFormationIndex() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
+    //const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
     // 🔒 CALCUL DE 🍰🫧☔ (Humidité relative moyenne globale)
     // FORMULE : 🍰🫧☔ = clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧮🌧), 0, 1)
@@ -3708,8 +3710,8 @@ function calculateCloudFormationIndex() {
     DATA['💧']['💭☔'] = Math.max(0.7, Math.min(0.95, 0.75 + 0.05 * temp_factor));
 
     // 🔒 CALCUL DE 🍰💭 (CCN - Efficacité condensation nuageuse)
-    // FORMULE : 🍰💭 = clamp(0.4 + 0.5×(⚖️🫁/CCN_O2_REF + ⚖️⛽/CCN_CH4_REF) + 0.1×(⚖️🌫/CCN_SULFATE_REF), 0.3, 1.0)
-    const ccn_efficiency = Math.max(0.3, Math.min(1.0, 0.4 + 0.5 * (DATA['⚖️']['⚖️🫁'] / CONV.CCN_O2_REF_KG + DATA['⚖️']['⚖️⛽'] / CONV.CCN_CH4_REF_KG) + 0.1 * (DATA['⚖️']['⚖️🌫'] / CONV.CCN_SULFATE_REF_KG)));
+    // FORMULE : 🍰💭 = clamp(0.4 + 0.5×(⚖️🫁/CCN_O2_REF + ⚖️🐄/CCN_CH4_REF) + 0.1×(⚖️✈/CCN_SULFATE_REF), 0.3, 1.0)
+    const ccn_efficiency = Math.max(0.3, Math.min(1.0, 0.4 + 0.5 * (DATA['⚖️']['⚖️🫁'] / CONV.CCN_O2_REF_KG + DATA['⚖️']['⚖️🐄'] / CONV.CCN_CH4_REF_KG) + 0.1 * (DATA['⚖️']['⚖️✈'] / CONV.CCN_SULFATE_REF_KG)));
     DATA['🫧']['🍰💭'] = ccn_efficiency;
     
     // 🔒 FORMULE SUNDQVIST : ☁️ = (1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)) × 🍰💭 (exposant 0.6 Sundqvist 1989)
@@ -3802,10 +3804,14 @@ function calculateAlbedo() {
     let albedo_base = 0.0;
     
     // 🔒 ÉTAPE 3 : Calculer la couverture de glace depuis les hautes terres + climat
-    // 🍰🪩🧊 = min(🗻.🍰🗻🏔, 0.46 × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K). Si T > T_NO_POLAR_ICE_K, plus de glace.
+    // 🍰🪩🧊 est borné par le support physique disponible :
+    // - hautes terres géologiques
+    // - ou couche d'eau globale équivalente si l'astre a peu/pas de relief mais assez d'eau pour geler en surface
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-    // Corps noir avec eau météorites : autoriser glace de surface (didactique) même si 🍰🗻🏔 = 0
-    const ice_cap_surface = (DATA['📜']['🗿'] === '⚫' && DATA['⚖️']['⚖️💧'] > 0) ? 0.9 : DATA['🗻']['🍰🗻🏔'];
+    const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+    const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
+    const hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
+    const ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
     const ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
     if (!STATE.iceCoverageRampState || STATE.iceCoverageRampState.epochId !== DATA['📜']['🗿']) {
         STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
@@ -3944,11 +3950,13 @@ function calculateAlbedo() {
     let albedo = albedo_base;
 
     // 🔒 CONTRIBUTION H2O (GLACE) : Calculée séparément, n'affecte PAS la somme des surfaces
-    // ice_fraction = fraction du stock d'eau (0-1), PAS fraction de surface. Utiliser albedo_coeff (merge CONST+EPOCH) pour éviter NaN si clé absente.
+    // Mais elle doit rester bornée par le support de surface réellement disponible :
+    // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
     const ice_albedo = albedo_coeff['🪩🍰🧊'];
     const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
     const ice_impact_factor = 0.5;
-    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_fraction_stock * ice_impact_factor;
+    const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
+    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction * ice_impact_factor;
     albedo = albedo_base + ice_albedo_contribution;
 
     // Contribution des nuages (H2O activé)
@@ -3995,7 +4003,7 @@ function calculateAlbedo() {
             anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
         }
         const sulfate_boost = (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR)
-            ? (1.0 + Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧🌫'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
+            ? (1.0 + Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧✈'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
             : 1.0;
         const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
         // [OBS/CALIB] Référence moderne explicite : O2=21%, biomasse efficace ~3%, anthro courant.
@@ -4033,7 +4041,7 @@ function calculateAlbedo() {
                 + ' ccn=' + ccn_proxy.toFixed(3)
                 + ' ccn_ref=' + ccn_ref_modern.toFixed(3)
                 + ' ccn_ratio=' + ccn_ratio.toFixed(3)
-                + ' so4=' + DATA['🫧']['🍰🫧🌫'].toExponential(2)
+                + ' so4=' + DATA['🫧']['🍰🫧✈'].toExponential(2)
                 + ' so4_boost=' + sulfate_boost.toFixed(3)
                 + ' anthro=' + anthro_factor.toFixed(3)
                 + ' press=' + pressure_factor.toFixed(3)
@@ -4160,8 +4168,8 @@ function updateLevelsConfig() {
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
-    if (!isCorpsNoir && EPOCH['⚖️⛽'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️⛽'], total_atmosphere_mass_kg, molar_mass_air);
+    if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
+        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], total_atmosphere_mass_kg, molar_mass_air);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -4192,7 +4200,7 @@ function updateLevelsConfig() {
     window.h2oTotalFromMeteorites = 0;
     
     const h2o_total_kg = DATA['⚖️']['⚖️💧'];
-    console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% ⛽=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
+    console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% 🐄=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
 }
 
 // Exposer globalement pour utilisation dans main.js
@@ -4214,7 +4222,7 @@ window.updateLevelsConfig = updateLevelsConfig;
 // - co2KgToFraction, ch4KgToFraction (masse kg → fraction molaire pour updateLevelsConfig)
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
-// - v1.1.5 : add sulfate proxy fraction 🍰🫧🌫 from DATA['⚖️']['⚖️🌫'] (separate from dry-air renormalization)
+// - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
 //
 // ============================================================================
 // CALCUL DE PRESSION ET STRUCTURE ATMOSPHÉRIQUE
@@ -4296,9 +4304,9 @@ function calculateMolarMassAir() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     // 🔒 UTILISER LES FRACTIONS ACTUELLES (après renormalisation avec H2O), pas les masses de l'époque
-    // Les fractions sont déjà normalisées : 🍰🫧🏭 + 🍰🫧⛽ + 🍰🫧🫁 + 🍰🫧💨 + 🍰🫧💧 = 1.0
+    // Les fractions sont déjà normalisées : 🍰🫧🏭 + 🍰🫧🐄 + 🍰🫧🫁 + 🍰🫧💨 + 🍰🫧💧 = 1.0
     const frac_CO2 = DATA['🫧']['🍰🫧🏭'] || 0;
-    const frac_CH4 = DATA['🫧']['🍰🫧⛽'] || 0;
+    const frac_CH4 = DATA['🫧']['🍰🫧🐄'] || 0;
     const frac_O2 = DATA['🫧']['🍰🫧🫁'] || 0;
     const frac_N2 = DATA['🫧']['🍰🫧💨'] || 0;
     const frac_H2O = DATA['💧']['🍰🫧💧'] || 0;
@@ -4346,39 +4354,39 @@ function calculatePressureAtm() {
 function calculateAtmosphereComposition() {
     const DATA = window.DATA;
     // 🔒 CORRECTION : Les fractions sont calculées par rapport à ⚖️🫧 (masse atmosphérique totale)
-    // ⚖️🫧 = ⚖️🏭 + ⚖️⛽ + ⚖️🫁 + ⚖️💨 (air sec, sans vapeur d'eau pour l'instant)
+    // ⚖️🫧 = ⚖️🏭 + ⚖️🐄 + ⚖️🫁 + ⚖️💨 (air sec, sans vapeur d'eau pour l'instant)
     // La vapeur d'eau sera ajoutée après dans calculateWaterPartition()
     const atm_mass_total = DATA['⚖️']['⚖️🫧'];
     
     // 🔒 Protection contre undefined/NaN : traiter comme 0
     const mass_CO2 = isFinite(DATA['⚖️']['⚖️🏭']) ? DATA['⚖️']['⚖️🏭'] : 0;
-    const mass_CH4 = isFinite(DATA['⚖️']['⚖️⛽']) ? DATA['⚖️']['⚖️⛽'] : 0;
+    const mass_CH4 = isFinite(DATA['⚖️']['⚖️🐄']) ? DATA['⚖️']['⚖️🐄'] : 0;
     const mass_O2 = isFinite(DATA['⚖️']['⚖️🫁']) ? DATA['⚖️']['⚖️🫁'] : 0;
     const mass_N2 = isFinite(DATA['⚖️']['⚖️💨']) ? DATA['⚖️']['⚖️💨'] : 0;
-    const mass_SULFATE = isFinite(DATA['⚖️']['⚖️🌫']) ? DATA['⚖️']['⚖️🌫'] : 0;
+    const mass_SULFATE = isFinite(DATA['⚖️']['⚖️✈']) ? DATA['⚖️']['⚖️✈'] : 0;
     
     // 🔒 GESTION CAS SANS ATMOSPHÈRE (corps noir, etc.) : toutes les fractions à 0
     if (atm_mass_total <= 0) {
         DATA['🫧']['🍰🫧🏭'] = 0;
-        DATA['🫧']['🍰🫧⛽'] = 0;
+        DATA['🫧']['🍰🫧🐄'] = 0;
         DATA['🫧']['🍰🫧🫁'] = 0;
         DATA['🫧']['🍰🫧💨'] = 0;
-        DATA['🫧']['🍰🫧🌫'] = 0;
+        DATA['🫧']['🍰🫧✈'] = 0;
         DATA['💧']['🍰🫧💧'] = 0;
     } else {
         // 🔒 FORMULES CORRIGÉES : Toutes les fractions sont calculées par rapport à ⚖️🫧
         // 🍰🫧🏭 = ⚖️🏭 / ⚖️🫧
         DATA['🫧']['🍰🫧🏭'] = mass_CO2 / atm_mass_total;
-        // 🍰🫧⛽ = ⚖️⛽ / ⚖️🫧
-        DATA['🫧']['🍰🫧⛽'] = mass_CH4 / atm_mass_total;
+        // 🍰🫧🐄 = ⚖️🐄 / ⚖️🫧
+        DATA['🫧']['🍰🫧🐄'] = mass_CH4 / atm_mass_total;
         
         // 🍰🫧🫁 = ⚖️🫁 / ⚖️🫧
         DATA['🫧']['🍰🫧🫁'] = mass_O2 / atm_mass_total;
         
         // 🍰🫧💨 = ⚖️💨 / ⚖️🫧
         DATA['🫧']['🍰🫧💨'] = mass_N2 / atm_mass_total;
-        // 🍰🫧🌫 = ⚖️🌫 / ⚖️🫧 (proxy CCN ; hors renormalisation air sec)
-        DATA['🫧']['🍰🫧🌫'] = mass_SULFATE / atm_mass_total;
+        // 🍰🫧✈ = ⚖️✈ / ⚖️🫧 (proxy CCN ; hors renormalisation air sec)
+        DATA['🫧']['🍰🫧✈'] = mass_SULFATE / atm_mass_total;
     }
         
     // H2O atmosphérique (vapeur) : sera calculé dans calculateWaterPartition()
@@ -4386,10 +4394,10 @@ function calculateAtmosphereComposition() {
     DATA['💧']['🍰🫧💧'] = 0;
         
     // Vérifier que la somme des fractions de l'air sec = 1.0 (avec tolérance)
-    const total_fraction_dry = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'];
+    const total_fraction_dry = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'];
     if (Math.abs(total_fraction_dry - 1.0) > 0.01) {
         // Ajuster N2 pour que la somme de l'air sec = 1.0
-        DATA['🫧']['🍰🫧💨'] = Math.max(0, 1.0 - (DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁']));
+        DATA['🫧']['🍰🫧💨'] = Math.max(0, 1.0 - (DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁']));
     }
     
     const props = window.calculateAtmosphereProperties();
@@ -4491,7 +4499,7 @@ window.ch4KgToFraction = ch4KgToFraction;
 // Ā unit : non Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.1: add sulfate mass key ⚖️🌫 in DATA init from epoch (proxy CCN, separate from dry-air mass)
+// - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
 // ============================================================================
 
 // ============================================================================
@@ -4527,7 +4535,7 @@ function getEnabledStates() {
     const albedoCell = document.getElementById('cell-albedo-btn');
 
     DATA['🔘']['🔘💧📛'] = h2oCell ? h2oCell.classList.contains('checked') : true;
-    DATA['🔘']['🔘⛽📛'] = ch4Cell ? ch4Cell.classList.contains('checked') : true;
+    DATA['🔘']['🔘🐄📛'] = ch4Cell ? ch4Cell.classList.contains('checked') : true;
     DATA['🔘']['🔘🏭📛'] = co2Cell ? co2Cell.classList.contains('checked') : true;
     DATA['🔘']['🔘🪩'] = albedoCell ? albedoCell.classList.contains('checked') : true;
     // Anim : source de vérité = DATA (bouton animation est normal, pas on/off)
@@ -4554,11 +4562,11 @@ function getMasses() {
     // Mettre à jour DATA directement
     // 🔒 Protection contre undefined : traiter comme 0
     DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
-    DATA['⚖️']['⚖️⛽'] = isFinite(EPOCH['⚖️⛽']) ? EPOCH['⚖️⛽'] : 0;
+    DATA['⚖️']['⚖️🐄'] = isFinite(EPOCH['⚖️🐄']) ? EPOCH['⚖️🐄'] : 0;
     DATA['⚖️']['⚖️💧'] = h2o_kg;
     DATA['⚖️']['⚖️🫁'] = isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0;
     DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;  // N2 depuis EPOCH
-    DATA['⚖️']['⚖️🌫'] = isFinite(EPOCH['⚖️🌫']) ? EPOCH['⚖️🌫'] : 0;  // Sulfate (proxy CCN), séparé de l'air sec
+    DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;  // Sulfate (proxy CCN), séparé de l'air sec
     
     // ⚖️🫧 = masse atmosphérique totale (air sec, sans vapeur d'eau)
     // Si EPOCH définit ⚖️🫧, l'utiliser, sinon calculer comme somme des gaz
@@ -4566,11 +4574,11 @@ function getMasses() {
         DATA['⚖️']['⚖️🫧'] = EPOCH['⚖️🫧'];
         // Si ⚖️💨 non défini, N₂ implicite = reste pour atteindre ⚖️🫧 (évite M_dry faux → vapeur/albédo erronés)
         if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
-            DATA['⚖️']['⚖️💨'] = Math.max(0, DATA['⚖️']['⚖️🫧'] - (DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️⛽'] + DATA['⚖️']['⚖️🫁']));
+            DATA['⚖️']['⚖️💨'] = Math.max(0, DATA['⚖️']['⚖️🫧'] - (DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁']));
         }
     } else {
         // ⚖️🫧 = somme de tous les gaz atmosphériques (CO2, CH4, O2, N2)
-        DATA['⚖️']['⚖️🫧'] = DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️⛽'] + DATA['⚖️']['⚖️🫁'] + DATA['⚖️']['⚖️💨'];
+        DATA['⚖️']['⚖️🫧'] = DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁'] + DATA['⚖️']['⚖️💨'];
     }
     
     // Logs désactivés pour réduire la taille

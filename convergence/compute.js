@@ -14,7 +14,7 @@
 // Ā unit : non Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.1: add sulfate mass key ⚖️🌫 in DATA init from epoch (proxy CCN, separate from dry-air mass)
+// - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
 // ============================================================================
 
 // ============================================================================
@@ -50,7 +50,7 @@ function getEnabledStates() {
     const albedoCell = document.getElementById('cell-albedo-btn');
 
     DATA['🔘']['🔘💧📛'] = h2oCell ? h2oCell.classList.contains('checked') : true;
-    DATA['🔘']['🔘⛽📛'] = ch4Cell ? ch4Cell.classList.contains('checked') : true;
+    DATA['🔘']['🔘🐄📛'] = ch4Cell ? ch4Cell.classList.contains('checked') : true;
     DATA['🔘']['🔘🏭📛'] = co2Cell ? co2Cell.classList.contains('checked') : true;
     DATA['🔘']['🔘🪩'] = albedoCell ? albedoCell.classList.contains('checked') : true;
     // Anim : source de vérité = DATA (bouton animation est normal, pas on/off)
@@ -75,11 +75,11 @@ function getMasses() {
     } else {
         base = {
             '⚖️🏭': isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0,
-            '⚖️⛽': isFinite(EPOCH['⚖️⛽']) ? EPOCH['⚖️⛽'] : 0,
+            '⚖️🐄': isFinite(EPOCH['⚖️🐄']) ? EPOCH['⚖️🐄'] : 0,
             '⚖️💧': EPOCH['⚖️💧'] || 0,
             '⚖️🫁': isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0,
             '⚖️💨': isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0,
-            '⚖️🌫': isFinite(EPOCH['⚖️🌫']) ? EPOCH['⚖️🌫'] : 0
+            '⚖️✈': isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0
         };
     }
     // ⚖️💧 += 📿☄️ * 🔺⚖️💧☄️ (météorites)
@@ -91,10 +91,10 @@ function getMasses() {
         if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
             base['⚖️🫧'] = EPOCH['⚖️🫧'];
             if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
-                base['⚖️💨'] = Math.max(0, base['⚖️🫧'] - (base['⚖️🏭'] + base['⚖️⛽'] + base['⚖️🫁']));
+                base['⚖️💨'] = Math.max(0, base['⚖️🫧'] - (base['⚖️🏭'] + base['⚖️🐄'] + base['⚖️🫁']));
             }
         } else {
-            base['⚖️🫧'] = base['⚖️🏭'] + base['⚖️⛽'] + base['⚖️🫁'] + base['⚖️💨'];
+            base['⚖️🫧'] = base['⚖️🏭'] + base['⚖️🐄'] + base['⚖️🫁'] + base['⚖️💨'];
         }
     }
     DATA['⚖️'] = base;
@@ -118,22 +118,21 @@ function getEpochDateConfig() {
     if (!EPOCH) return false;
 
     // Si date >= ◀(epoch) (en années : date courante <= ◀) → passer à l'époque suivante et remettre tics à 0
-    let refDeltaMa = 0;
-    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+    // dateYears = ▶ - sum( (📿[ticKey] * 🔺⏳[ticKey]) ) * 1e6 pour éviter mélange de pas (ex. ☄️ 100 Ma + 💫 100 Ma)
+    let deltaYearsFromTics = 0;
+    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
         for (const tk of Object.keys(EPOCH['🕰'])) {
             if (tk === '🔀' || tk === '◀') continue;
             const cfg = EPOCH['🕰'][tk];
             if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                refDeltaMa = cfg['🔺⏳'];
-                break;
+                const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
+                deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
             }
         }
     }
-    const totalTics = (DATA['📜']['📿💫'] != null ? DATA['📜']['📿💫'] : 0) + (DATA['📜']['📿☄️'] != null ? DATA['📜']['📿☄️'] : 0);
     const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
-    const dateYears = refDeltaMa > 0 && EPOCH['▶'] != null
-        ? (EPOCH['▶'] || 0) - totalTics * refDeltaMa * 1e6
-        : (EPOCH['▶'] || 0);
+    const dateYears = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
+    const totalTics = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
     console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma epochEnd=' + (epochEnd != null ? (epochEnd/1e6).toFixed(0) + 'Ma' : 'null'));
     if (epochEnd != null && dateYears <= epochEnd && epochIndex + 1 < window.TIMELINE.length) {
         const nextEpoch = window.TIMELINE[epochIndex + 1];
@@ -202,8 +201,8 @@ function getEpochDateConfig() {
         }
         const spanYears = Math.max(0, (EPOCH['▶'] || 0) - (EPOCH['◀'] || 0));
         const maxTics = refDeltaMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / refDeltaMa)) : 1;
-        const totalTics = (DATA['📜']['📿💫'] != null ? DATA['📜']['📿💫'] : 0) + (DATA['📜']['📿☄️'] != null ? DATA['📜']['📿☄️'] : 0);
-        const bary = Math.max(0, Math.min(1, totalTics / maxTics));
+        const totalTicsBary = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
+        const bary = Math.max(0, Math.min(1, totalTicsBary / maxTics));
         DATA['📜']['bary'] = bary;
         for (let i = 0; i < interpolKeys.length; i++) {
             const groupKey = interpolKeys[i];

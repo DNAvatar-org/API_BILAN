@@ -95,9 +95,9 @@ function crossSectionCH4(wavelength) {
 
 function methaneFractionAtZ(z) {
     const DATA = window.DATA;
-    if (!DATA['🔘']['🔘⛽📛']) return 0;
-    if (!DATA['🫧']['🍰🫧⛽']) return 0;
-    return DATA['🫧']['🍰🫧⛽'];
+    if (!DATA['🔘']['🔘🐄📛']) return 0;
+    if (!DATA['🫧']['🍰🫧🐄']) return 0;
+    return DATA['🫧']['🍰🫧🐄'];
 }
 
 function evaporationRate() {
@@ -765,7 +765,7 @@ function calculateRadiativeCapacities() {
     // 🔒 Initialiser toutes les capacités radiatives à 0
     DATA['🫧']['🍰🫧🏭🌈'] = 0;
     DATA['🫧']['🍰🫧💧🌈'] = 0;
-    DATA['🫧']['🍰🫧⛽🌈'] = 0;
+    DATA['🫧']['🍰🫧🐄🌈'] = 0;
     DATA['🫧']['🍰🫧📿🌈'] = 0;
     
     // 🔒 CRASH si données manquantes (pas de fallback) - utiliser DATA directement
@@ -861,8 +861,8 @@ function calculateRadiativeCapacities() {
     if (weight_integral > 0) {
         DATA['🫧']['🍰🫧🏭🌈'] = Math.max(0, Math.min(1, integral_CO2 / weight_integral));
         DATA['🫧']['🍰🫧💧🌈'] = Math.max(0, Math.min(1, integral_H2O / weight_integral));
-        DATA['🫧']['🍰🫧⛽🌈'] = Math.max(0, Math.min(1, integral_CH4 / weight_integral));
-        DATA['🫧']['🍰🫧📿🌈'] = DATA['🫧']['🍰🫧🏭🌈'] + DATA['🫧']['🍰🫧💧🌈'] + DATA['🫧']['🍰🫧⛽🌈'];
+        DATA['🫧']['🍰🫧🐄🌈'] = Math.max(0, Math.min(1, integral_CH4 / weight_integral));
+        DATA['🫧']['🍰🫧📿🌈'] = DATA['🫧']['🍰🫧🏭🌈'] + DATA['🫧']['🍰🫧💧🌈'] + DATA['🫧']['🍰🫧🐄🌈'];
     }
     // Sinon, les valeurs restent à 0 (déjà initialisées)
     
@@ -878,11 +878,11 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     // Récupérer H2O et CH4 pour le log
     // 🔒 CORRECTION : Utiliser DATA['💧']['🍰🫧💧'] comme source unique de vérité
     const h2o_total = DATA['💧']['🍰🫧💧'] * 100; // Fraction → %
-    const ch4_ppm = (options && options.CH4_fraction != null) ? options.CH4_fraction * 1e6 : (DATA['🫧']['🍰🫧⛽'] != null ? DATA['🫧']['🍰🫧⛽'] * 1e6 : 0);
+    const ch4_ppm = (options && options.CH4_fraction != null) ? options.CH4_fraction * 1e6 : (DATA['🫧']['🍰🫧🐄'] != null ? DATA['🫧']['🍰🫧🐄'] * 1e6 : 0);
     
     // Log supprimé : affichage uniquement du mode (dichotomie/exponentielle) dans la boucle principale
     // if (iteration === 0 || isInitial) {
-    //     console.log(`📛 [displayDichotomyStep@calculations.js] iter=${iteration} T0=${T0_test.toFixed(2)}K 🏭=${(CO2_fraction * 1e6).toFixed(0)}ppm 💧=${h2o_total.toFixed(1)}% ⛽=${ch4_ppm.toFixed(0)}ppm`);
+    //     console.log(`📛 [displayDichotomyStep@calculations.js] iter=${iteration} T0=${T0_test.toFixed(2)}K 🏭=${(CO2_fraction * 1e6).toFixed(0)}ppm 💧=${h2o_total.toFixed(1)}% 🐄=${ch4_ppm.toFixed(0)}ppm`);
     // }
     if (typeof window === 'undefined') return;
 
@@ -906,8 +906,8 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     const h2o_enabled = DATA['🔘']['🔘💧📛'];
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const geo_flux = EPOCH['🧲🌕'];
-    const ch4_enabled = DATA['🔘']['🔘⛽📛'];
-    const CH4_fraction = DATA['🫧']['🍰🫧⛽'];
+    const ch4_enabled = DATA['🔘']['🔘🐄📛'];
+    const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
 
     // ⚠️ CAS PARTICULIER : Corps noir (pas d'atmosphère, albedo = 0)
     //   → Pas d'effet de serre, donc temp_surface = effective_temperature
@@ -1061,7 +1061,7 @@ async function simulateRadiativeTransfer() {
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     
     const CO2_fraction = DATA['🫧']['🍰🫧🏭'];
-    const CH4_fraction = DATA['🫧']['🍰🫧⛽'];
+    const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
     
     const t0_config = EPOCH['🌡️🧮'];
     const animEnabled = DATA['🔘']['🔘🎞'];
@@ -1727,7 +1727,7 @@ async function simulateRadiativeTransfer() {
                         const albedo = window.calculateAlbedo();
                         const cloud_coverage = DATA['🪩']['🍰🪩⛅'];
                         const co2_ppm = DATA['🫧']['🍰🫧🏭'] * 1e6;
-                        const ch4_ppm = DATA['🫧']['🍰🫧⛽'] * 1e6;
+                        const ch4_ppm = DATA['🫧']['🍰🫧🐄'] * 1e6;
 
                         // Mettre à jour les labels et la légende (K, °C, °F + couleur)
                         const fluxData = {

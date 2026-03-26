@@ -20,7 +20,7 @@
 // - v1.0.8 : recalage humide 2025 (c_c_max base 0.006, iris 0.03, exposants précip 1.2/1.0) avec justification biblio
 // - v1.0.9 : fine-tuning léger 2025 (c_c_max base 0.0065, iris 0.02) pour remonter T sans perdre la stabilité
 // - v1.0.10 : cap vapeur final observé (AIRS/ERA5, ~7%/K) en fin d'itération Init
-// - v1.0.11 : propagation sulfate proxy 🍰🫧🌫 depuis ⚖️🌫 dans la composition atmosphérique avec vapeur
+// - v1.0.11 : propagation sulfate proxy 🍰🫧✈ depuis ⚖️✈ dans la composition atmosphérique avec vapeur
 // - v1.0.13 : en Search/Dicho pas de cache H2O (recalcul vapeur à T courante) pour reproductibilité albedo_nuages (35.9% vs 35.3%)
 // - v1.0.14 : logs cap vapeur C-C simplifiés en "[cycle] H2O cap @...°C"
 // - v1.0.12 : sans atmosphère (⚖️🫧=0) avec ⚖️💧>0 (Corps noir météorites) : 🍰💧🧊=1 si T<0°C, sinon 🍰💧🌊=1 (didactique)
@@ -127,18 +127,18 @@ function calculateCloudAlbedoContribution() {
 function calculateWaterPartition() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    //const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const STATE = window.STATE;
     const ALBEDO = window.ALBEDO;
 
     if (DATA['⚖️']['⚖️🫧'] == 0) {
         DATA['💧']['🍰🧮🌧'] = 0;
         DATA['💧']['🍰🫧💧'] = 0;
-        if (DATA['⚖️']['⚖️💧'] == null || DATA['⚖️']['⚖️💧'] <= 0) {
+        if (DATA['⚖️']['⚖️💧'] <= 0) {
             DATA['💧']['🍰💧🧊'] = 0;
             DATA['💧']['🍰💧🌊'] = 0;
             return true;
-        }
+        }else
         // Corps noir (ou sans atmosphère) avec eau météorites : toute l'eau en glace si T < 0°C, sinon océan (didactique)
         if (DATA['🧮']['🧮🌡️'] < CONST.T0_WATER) {
             DATA['💧']['🍰💧🧊'] = 1;
@@ -238,15 +238,15 @@ function calculateWaterPartition() {
     // Calculer les fractions de l'air sec depuis les masses, puis multiplier par dry_air_fraction
     if (DATA['⚖️']['⚖️🫧'] > 0) {
         DATA['🫧']['🍰🫧🏭'] = (DATA['⚖️']['⚖️🏭'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
-        DATA['🫧']['🍰🫧⛽'] = (DATA['⚖️']['⚖️⛽'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
+        DATA['🫧']['🍰🫧🐄'] = (DATA['⚖️']['⚖️🐄'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧🫁'] = (DATA['⚖️']['⚖️🫁'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
-        DATA['🫧']['🍰🫧🌫'] = (DATA['⚖️']['⚖️🌫'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
+        DATA['🫧']['🍰🫧✈'] = (DATA['⚖️']['⚖️✈'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧💨'] = (DATA['⚖️']['⚖️💨'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
     } else {
         DATA['🫧']['🍰🫧🏭'] = 0;
-        DATA['🫧']['🍰🫧⛽'] = 0;
+        DATA['🫧']['🍰🫧🐄'] = 0;
         DATA['🫧']['🍰🫧🫁'] = 0;
-        DATA['🫧']['🍰🫧🌫'] = 0;
+        DATA['🫧']['🍰🫧✈'] = 0;
         DATA['🫧']['🍰🫧💨'] = 0;
     }
     
@@ -435,7 +435,7 @@ function calculateH2OParametersWithIteration() {
     
     // 🔒 ÉTAPE 3 : Calculer vapeur potentielle = min(disponible, saturation massique)
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️⛽'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
+        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
         : CONV.molar_mass_air_ref;
     const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
@@ -562,7 +562,7 @@ H2O.calculateH2OParameters = function () {
     ATM.calculatePressureAtm();
     const T = DATA['🧮']['🧮🌡️'];
     const P = DATA['🫧']['🎈'];
-    const sum_f = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'] + DATA['💧']['🍰🫧💧'];
+    const sum_f = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'] + DATA['💧']['🍰🫧💧'];
     const fractionsOk = sum_f > 0.5 && Math.abs(sum_f - 1) < 0.01;
     const phase = DATA['🧮']['🧮⚧'];
     const inSolver = (phase === 'Search' || phase === 'Dicho');
@@ -580,7 +580,7 @@ H2O.calculateH2OParameters = function () {
     DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
     // 🔒 M_dry depuis masses (air sec) : évite dépendance circulaire avec 🍰🫧💧 (M_air = f(🍰🫧💧) → 🍰🫧💧 = f(M_air))
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️⛽'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
+        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
         : CONV.molar_mass_air_ref;
     const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;

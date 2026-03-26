@@ -14,7 +14,7 @@
 // - co2KgToFraction, ch4KgToFraction (masse kg → fraction molaire pour updateLevelsConfig)
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
-// - v1.1.5 : add sulfate proxy fraction 🍰🫧🌫 from DATA['⚖️']['⚖️🌫'] (separate from dry-air renormalization)
+// - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
 //
 // ============================================================================
 // CALCUL DE PRESSION ET STRUCTURE ATMOSPHÉRIQUE
@@ -96,9 +96,9 @@ function calculateMolarMassAir() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     // 🔒 UTILISER LES FRACTIONS ACTUELLES (après renormalisation avec H2O), pas les masses de l'époque
-    // Les fractions sont déjà normalisées : 🍰🫧🏭 + 🍰🫧⛽ + 🍰🫧🫁 + 🍰🫧💨 + 🍰🫧💧 = 1.0
+    // Les fractions sont déjà normalisées : 🍰🫧🏭 + 🍰🫧🐄 + 🍰🫧🫁 + 🍰🫧💨 + 🍰🫧💧 = 1.0
     const frac_CO2 = DATA['🫧']['🍰🫧🏭'] || 0;
-    const frac_CH4 = DATA['🫧']['🍰🫧⛽'] || 0;
+    const frac_CH4 = DATA['🫧']['🍰🫧🐄'] || 0;
     const frac_O2 = DATA['🫧']['🍰🫧🫁'] || 0;
     const frac_N2 = DATA['🫧']['🍰🫧💨'] || 0;
     const frac_H2O = DATA['💧']['🍰🫧💧'] || 0;
@@ -146,39 +146,39 @@ function calculatePressureAtm() {
 function calculateAtmosphereComposition() {
     const DATA = window.DATA;
     // 🔒 CORRECTION : Les fractions sont calculées par rapport à ⚖️🫧 (masse atmosphérique totale)
-    // ⚖️🫧 = ⚖️🏭 + ⚖️⛽ + ⚖️🫁 + ⚖️💨 (air sec, sans vapeur d'eau pour l'instant)
+    // ⚖️🫧 = ⚖️🏭 + ⚖️🐄 + ⚖️🫁 + ⚖️💨 (air sec, sans vapeur d'eau pour l'instant)
     // La vapeur d'eau sera ajoutée après dans calculateWaterPartition()
     const atm_mass_total = DATA['⚖️']['⚖️🫧'];
     
     // 🔒 Protection contre undefined/NaN : traiter comme 0
     const mass_CO2 = isFinite(DATA['⚖️']['⚖️🏭']) ? DATA['⚖️']['⚖️🏭'] : 0;
-    const mass_CH4 = isFinite(DATA['⚖️']['⚖️⛽']) ? DATA['⚖️']['⚖️⛽'] : 0;
+    const mass_CH4 = isFinite(DATA['⚖️']['⚖️🐄']) ? DATA['⚖️']['⚖️🐄'] : 0;
     const mass_O2 = isFinite(DATA['⚖️']['⚖️🫁']) ? DATA['⚖️']['⚖️🫁'] : 0;
     const mass_N2 = isFinite(DATA['⚖️']['⚖️💨']) ? DATA['⚖️']['⚖️💨'] : 0;
-    const mass_SULFATE = isFinite(DATA['⚖️']['⚖️🌫']) ? DATA['⚖️']['⚖️🌫'] : 0;
+    const mass_SULFATE = isFinite(DATA['⚖️']['⚖️✈']) ? DATA['⚖️']['⚖️✈'] : 0;
     
     // 🔒 GESTION CAS SANS ATMOSPHÈRE (corps noir, etc.) : toutes les fractions à 0
     if (atm_mass_total <= 0) {
         DATA['🫧']['🍰🫧🏭'] = 0;
-        DATA['🫧']['🍰🫧⛽'] = 0;
+        DATA['🫧']['🍰🫧🐄'] = 0;
         DATA['🫧']['🍰🫧🫁'] = 0;
         DATA['🫧']['🍰🫧💨'] = 0;
-        DATA['🫧']['🍰🫧🌫'] = 0;
+        DATA['🫧']['🍰🫧✈'] = 0;
         DATA['💧']['🍰🫧💧'] = 0;
     } else {
         // 🔒 FORMULES CORRIGÉES : Toutes les fractions sont calculées par rapport à ⚖️🫧
         // 🍰🫧🏭 = ⚖️🏭 / ⚖️🫧
         DATA['🫧']['🍰🫧🏭'] = mass_CO2 / atm_mass_total;
-        // 🍰🫧⛽ = ⚖️⛽ / ⚖️🫧
-        DATA['🫧']['🍰🫧⛽'] = mass_CH4 / atm_mass_total;
+        // 🍰🫧🐄 = ⚖️🐄 / ⚖️🫧
+        DATA['🫧']['🍰🫧🐄'] = mass_CH4 / atm_mass_total;
         
         // 🍰🫧🫁 = ⚖️🫁 / ⚖️🫧
         DATA['🫧']['🍰🫧🫁'] = mass_O2 / atm_mass_total;
         
         // 🍰🫧💨 = ⚖️💨 / ⚖️🫧
         DATA['🫧']['🍰🫧💨'] = mass_N2 / atm_mass_total;
-        // 🍰🫧🌫 = ⚖️🌫 / ⚖️🫧 (proxy CCN ; hors renormalisation air sec)
-        DATA['🫧']['🍰🫧🌫'] = mass_SULFATE / atm_mass_total;
+        // 🍰🫧✈ = ⚖️✈ / ⚖️🫧 (proxy CCN ; hors renormalisation air sec)
+        DATA['🫧']['🍰🫧✈'] = mass_SULFATE / atm_mass_total;
     }
         
     // H2O atmosphérique (vapeur) : sera calculé dans calculateWaterPartition()
@@ -186,10 +186,10 @@ function calculateAtmosphereComposition() {
     DATA['💧']['🍰🫧💧'] = 0;
         
     // Vérifier que la somme des fractions de l'air sec = 1.0 (avec tolérance)
-    const total_fraction_dry = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'];
+    const total_fraction_dry = DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁'] + DATA['🫧']['🍰🫧💨'];
     if (Math.abs(total_fraction_dry - 1.0) > 0.01) {
         // Ajuster N2 pour que la somme de l'air sec = 1.0
-        DATA['🫧']['🍰🫧💨'] = Math.max(0, 1.0 - (DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧⛽'] + DATA['🫧']['🍰🫧🫁']));
+        DATA['🫧']['🍰🫧💨'] = Math.max(0, 1.0 - (DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁']));
     }
     
     const props = window.calculateAtmosphereProperties();

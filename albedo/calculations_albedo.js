@@ -1,6 +1,6 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.27
+// Version 1.2.28
 // Date: [June 08, 2025] [HH:MM UTC+1]
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -32,16 +32,18 @@
 // - v1.2.19 : fine-tuning forêt réaliste (31% terres, suitability thermique bornée) pour stabiliser CCN moderne
 // - v1.2.20 : normalisation stricte des surfaces au sol + nuages traités en voile optique (pas en surface additionnelle)
 // - v1.2.21 : retour calculateAlbedo aligné sur DATA['🪩']['🍰🪩📿'] (final_albedo_with_water) pour cohérence solveur/UI
-// - v1.2.22 : SO₄²⁻ branché dans proxy CCN via DATA (⚖️🌫, 🍰🫧🌫) + log cloud-proxy enrichi
+// - v1.2.22 : SO₄²⁻ branché dans proxy CCN via DATA (⚖️✈, 🍰🫧✈) + log cloud-proxy enrichi
 // - v1.2.23 : coefficients cloud SW externalisés vers static/tuning/model_tuning.js (iso-résultats)
 // - v1.2.24 : fallback synchrone cloud tuning si window.TUNING absent
 // - v1.2.25 : Corps noir avec ⚖️💧>0 → ice_cap_surface 0.9 pour 🍰🪩🧊 (glace météorites didactique)
 // - v1.2.27 : ne pas écraser iceEpochFixedWaterState en Search/Dicho (bloc blend glace) pour reproductibilité visu vs scie
 // - v1.2.26 : source unique CLOUD_SW : lecture DATA['🎚️'].CLOUD_SW en priorité (pas variable dupliquée)
+// - v1.2.28 : ice_cap_surface piloté par la couche d'eau globale équivalente (⚖️💧 / surface planète), sans if spécial corps noir
+// - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
 //
 // FORMULES ALBEDO :
 // 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🌋,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
-//   où contribution_glace = (🪩🍰🧊 - albedo_base) × 🍰💧🧊 × 0.5
+//   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅
 // 🍰🪩🌋 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
@@ -121,8 +123,8 @@ function calculateCloudFormationIndex() {
     DATA['💧']['💭☔'] = Math.max(0.7, Math.min(0.95, 0.75 + 0.05 * temp_factor));
 
     // 🔒 CALCUL DE 🍰💭 (CCN - Efficacité condensation nuageuse)
-    // FORMULE : 🍰💭 = clamp(0.4 + 0.5×(⚖️🫁/CCN_O2_REF + ⚖️⛽/CCN_CH4_REF) + 0.1×(⚖️🌫/CCN_SULFATE_REF), 0.3, 1.0)
-    const ccn_efficiency = Math.max(0.3, Math.min(1.0, 0.4 + 0.5 * (DATA['⚖️']['⚖️🫁'] / CONV.CCN_O2_REF_KG + DATA['⚖️']['⚖️⛽'] / CONV.CCN_CH4_REF_KG) + 0.1 * (DATA['⚖️']['⚖️🌫'] / CONV.CCN_SULFATE_REF_KG)));
+    // FORMULE : 🍰💭 = clamp(0.4 + 0.5×(⚖️🫁/CCN_O2_REF + ⚖️🐄/CCN_CH4_REF) + 0.1×(⚖️✈/CCN_SULFATE_REF), 0.3, 1.0)
+    const ccn_efficiency = Math.max(0.3, Math.min(1.0, 0.4 + 0.5 * (DATA['⚖️']['⚖️🫁'] / CONV.CCN_O2_REF_KG + DATA['⚖️']['⚖️🐄'] / CONV.CCN_CH4_REF_KG) + 0.1 * (DATA['⚖️']['⚖️✈'] / CONV.CCN_SULFATE_REF_KG)));
     DATA['🫧']['🍰💭'] = ccn_efficiency;
     
     // 🔒 FORMULE SUNDQVIST : ☁️ = (1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)) × 🍰💭 (exposant 0.6 Sundqvist 1989)
@@ -215,10 +217,14 @@ function calculateAlbedo() {
     let albedo_base = 0.0;
     
     // 🔒 ÉTAPE 3 : Calculer la couverture de glace depuis les hautes terres + climat
-    // 🍰🪩🧊 = min(🗻.🍰🗻🏔, 0.46 × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K). Si T > T_NO_POLAR_ICE_K, plus de glace.
+    // 🍰🪩🧊 est borné par le support physique disponible :
+    // - hautes terres géologiques
+    // - ou couche d'eau globale équivalente si l'astre a peu/pas de relief mais assez d'eau pour geler en surface
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-    // Corps noir avec eau météorites : autoriser glace de surface (didactique) même si 🍰🗻🏔 = 0
-    const ice_cap_surface = (DATA['📜']['🗿'] === '⚫' && DATA['⚖️']['⚖️💧'] > 0) ? 0.9 : DATA['🗻']['🍰🗻🏔'];
+    const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+    const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
+    const hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
+    const ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
     const ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
     if (!STATE.iceCoverageRampState || STATE.iceCoverageRampState.epochId !== DATA['📜']['🗿']) {
         STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
@@ -277,10 +283,11 @@ function calculateAlbedo() {
     // 🔒 ÉTAPE 6 : Calculer forêts 🌳
     // === FORÊT - VERSION RÉALISTE (pas de if d'époque) ===
     // Réf : FAO Global Forest Resources Assessment 2020 ~31% des terres émergées. Formule en K : (T_K - 268.15) / 25 = (°C + 5) / 25.
+    // Corps noir (⚫) : pas de CO2/atmosphère pour plantes → forêt = 0 (à reprendre pour époques tardives)
     const relative_humidity = DATA['💧']['🍰🫧☔'];
     const temp_suitability = Math.max(0.4, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - 268.15) / 25));
     const forest_potential = 0.31 * land_available * temp_suitability;
-    const forest_coverage = Math.min(land_available, forest_potential);
+    const forest_coverage = (DATA['📜']['🗿'] === '⚫') ? 0 : Math.min(land_available, forest_potential);
     
     // 🔒 ÉTAPE 7 : Calculer déserts 🏜️
     // FORMULE CORRIGÉE : 🍰🪩🏜️ = 🍰🪩🌍_ × (base_aridité + variabilité_régionale)
@@ -357,11 +364,13 @@ function calculateAlbedo() {
     let albedo = albedo_base;
 
     // 🔒 CONTRIBUTION H2O (GLACE) : Calculée séparément, n'affecte PAS la somme des surfaces
-    // ice_fraction = fraction du stock d'eau (0-1), PAS fraction de surface. Utiliser albedo_coeff (merge CONST+EPOCH) pour éviter NaN si clé absente.
+    // Mais elle doit rester bornée par le support de surface réellement disponible :
+    // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
     const ice_albedo = albedo_coeff['🪩🍰🧊'];
     const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
     const ice_impact_factor = 0.5;
-    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_fraction_stock * ice_impact_factor;
+    const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
+    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction * ice_impact_factor;
     albedo = albedo_base + ice_albedo_contribution;
 
     // Contribution des nuages (H2O activé)
@@ -408,7 +417,7 @@ function calculateAlbedo() {
             anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
         }
         const sulfate_boost = (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR)
-            ? (1.0 + Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧🌫'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
+            ? (1.0 + Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧✈'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
             : 1.0;
         const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
         // [OBS/CALIB] Référence moderne explicite : O2=21%, biomasse efficace ~3%, anthro courant.
@@ -446,7 +455,7 @@ function calculateAlbedo() {
                 + ' ccn=' + ccn_proxy.toFixed(3)
                 + ' ccn_ref=' + ccn_ref_modern.toFixed(3)
                 + ' ccn_ratio=' + ccn_ratio.toFixed(3)
-                + ' so4=' + DATA['🫧']['🍰🫧🌫'].toExponential(2)
+                + ' so4=' + DATA['🫧']['🍰🫧✈'].toExponential(2)
                 + ' so4_boost=' + sulfate_boost.toFixed(3)
                 + ' anthro=' + anthro_factor.toFixed(3)
                 + ' press=' + pressure_factor.toFixed(3)
@@ -573,8 +582,8 @@ function updateLevelsConfig() {
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
-    if (!isCorpsNoir && EPOCH['⚖️⛽'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️⛽'], total_atmosphere_mass_kg, molar_mass_air);
+    if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
+        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], total_atmosphere_mass_kg, molar_mass_air);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -605,7 +614,7 @@ function updateLevelsConfig() {
     window.h2oTotalFromMeteorites = 0;
     
     const h2o_total_kg = DATA['⚖️']['⚖️💧'];
-    console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% ⛽=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
+    console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% 🐄=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
 }
 
 // Exposer globalement pour utilisation dans main.js

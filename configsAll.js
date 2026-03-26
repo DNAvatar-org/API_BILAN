@@ -22,7 +22,7 @@
 // Source unique de référence pour tous les caractères (logos) utilisés dans l'application
 const CHARS = {
     CO2: '🏭',      // CO2 : usine (émissions industrielles)
-    CH4: '⛽',       // CH4 : pompe à essence (combustibles fossiles, pets de vache)
+    CH4: '🐄',       // CH4 : pompe à essence (combustibles fossiles, pets de vache)
     H2O: '💧',      // H2O : goutte d'eau
     GEOTHERMAL_FLUX: '🌕', // Geothermal flux : lune (flux géothermique)
     FLUX_START: '▶', // Flux start : flèche droite (valeur de départ)
@@ -30,7 +30,7 @@ const CHARS = {
     ENERGY_FLUX: '🧲', // Energy flux : sources chaudes (W/m²)
     O2: '🫁',       // O2 : poumons (affichage)
     N2: '💨',       // N2 : vent (azote/air)
-    SULFATE: '🌫',  // Aérosols sulfate (proxy CCN/optique nuageuse)
+    SULFATE: '✈',  // Aérosols sulfate (proxy CCN/optique nuageuse)
     WEIGHT: '⚖️',   // Poids : balance (masse)
     DENSITY: '💨',  // Densité : vent
     ALTITUDE: '🧿', // Altitude : galaxie (Ligne de Kármán, frontière atmosphère/espace)
@@ -131,10 +131,10 @@ const CHARS_DESC = {
     '☯': 'Direction Search (+/-)',
     // Éléments
     '💧': 'H₂O',
-    '⛽': 'CH₄',
+    '🐄': 'CH₄',
     '🏭': 'CO₂',
     '🫁': 'O₂',
-    '🌫': 'SO₄²⁻ (aérosols sulfate)',
+    '✈': 'SO₄²⁻ (aérosols sulfate)',
     '🧊': 'Glace',
     '⛅': 'Nuages',
     '🌊': 'Océan',
@@ -158,7 +158,7 @@ const CHARS_DESC = {
     '🌑': 'Flux sortant (σT⁴)',
     '☁️': 'Index formation nuageuse [0,1]',
     // Événements
-    '💫': 'TicTime (+50 Ma)',
+    '💫': 'TicTime',
     '☄️': 'Météorite de glace',
     '🛰': 'Satellite',
     '🌧': 'Saturation H₂O',
@@ -224,7 +224,7 @@ function createAlphabetHtml() {
     
     // Descriptions personnalisées pour certains caractères
     const customDescriptions = {
-        'TIC_TIME': 'TicTime (+50 Ma)',
+        'TIC_TIME': 'TicTime',
         'T0': 'T0 (t° initiale)'
     };
     
@@ -367,7 +367,7 @@ window.initCharsForDisplay = function () {
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: KEYS/DESC 📛 + 🍰📛⛅ (EDS nuages), DESC 🧲📛/🍰📛❀
 // - v1.0.2: FORM sync with runtime code for 🎈 (dry+vapor mass) and 🍰🪩⛅ (cloud optical proxy)
-// - v1.0.3: add sulfate keys in DATA (⚖️🌫, 🍰🫧🌫) + CCN formula mention sulfate term
+// - v1.0.3: add sulfate keys in DATA (⚖️✈, 🍰🫧✈) + CCN formula mention sulfate term
 // - v1.0.4: DATA['🎚️'] init ici (source unique) ; baryByGroup depuis CONFIG_COMPUTE.baryByGroupDefault, DATA seule ref
 // - v1.0.5: SOLVER init avec TOL_MIN_WM2/MAX_SEARCH_STEP_K/etc. (éviter tol=NaN si compute avant fillDataTuningFromBary)
 // - v1.0.6: init DATA déplacée dans initDATA.js (chargé après dico.js) ; KEYS exposé pour initDATA
@@ -377,15 +377,15 @@ window.initCharsForDisplay = function () {
 // ============================================================================
 const KEYS = {
     // États activés
-    '🔘': ['🔘💧📛', '🔘⛽📛', '🔘🏭📛', '🔘🪩', '🔘🎞'],
+    '🔘': ['🔘💧📛', '🔘🐄📛', '🔘🏭📛', '🔘🪩', '🔘🎞'],
     // Configuration de date / Événements
     '📜': ['🌡️🧮', '📿☄️', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮','📿💫', '🔺⏳'],
     // Masses
-    '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️⛽', '⚖️🫁', '⚖️🌫', '⚖️💨'],
+    '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
     // Composition atmosphérique
-    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧⛽', '🍰🫧🫁', '🍰🫧🌫', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧⛽🌈', '🍰💭'],
+    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈', '🍰💭'],
     // Cycle de l'eau
     '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧮🌧', '🍰🫧💧', '🍰🫧☔', '🍰⚖️💦', '💭☔', '⏳☔'],
     // Albédo
@@ -399,7 +399,7 @@ const KEYS = {
     // Noyau
     '🌕': ['🧲🌕', '🔋🌕'],
     // EDS breakdown (🧲📛, 🍰📛❀, 🧲📛❀) ; 🔺📛❀ = diagnostic ΔF (convention affichage, pas calcul T)
-    '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛⛽', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛⛽', '🍰📛⛅', '🔺📛💧', '🔺📛🏭', '🔺📛⛽', '🔺📿📛'],
+    '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧', '🔺📛🏭', '🔺📛🐄', '🔺📿📛'],
     // Géologie (Surfaces géologiques - Couche A)
     '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍'],
     // Constantes physiques
@@ -413,7 +413,7 @@ const KEYS = {
 const DESC = {
     '🔘': {
         '🔘💧📛': 'H₂O EDS on/off',
-        '🔘⛽📛': 'CH₄ EDS on/off',
+        '🔘🐄📛': 'CH₄ EDS on/off',
         '🔘🏭📛': 'CO₂ EDS on/off',
         '🔘🪩': 'Albedo on/off',
         '🔘🎞': 'Animation on/off',
@@ -452,27 +452,27 @@ const DESC = {
         '🧪': '!Masse molaire (kg/mol)',
         '📏🫧🧿': 'Ligne de Kármán',
         '📏🫧🛩': 'Tropopause',
-        '🍰🫧❀': 'Prop.Rad.EDS<sub>❀∈{🏭, ⛽, 🫁, 💨}</sub>',
+        '🍰🫧❀': 'Prop.Rad.EDS<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub>',
         '🍰🫧🏭': '!CO₂',
-        '🍰🫧⛽': '!CH₄',
+        '🍰🫧🐄': '!CH₄',
         '🍰🫧🫁': '!O₂ (🫁) [clé historique 🫁]',
-        '🍰🫧🌫': 'SO₄²⁻ (🌫) - proxy CCN',
+        '🍰🫧✈': 'SO₄²⁻ (✈) - proxy CCN',
         '🍰🫧💨': '!N₂',
-        '🍰🫧❀🌈': 'Cap.Rad.IR<sub>❀∈{🏭, ⛽, 💧}</sub>',
-        '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈)<sub>❀∈{🏭,⛽,💧}</sub>',
+        '🍰🫧❀🌈': 'Cap.Rad.IR<sub>❀∈{🏭, 🐄, 💧}</sub>',
+        '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈)<sub>❀∈{🏭,🐄,💧}</sub>',
         '🍰🫧🏭🌈': '!Capacité radiative IR de CO₂',
         '🍰🫧💧🌈': 'Cap.Rad.IR H₂O atm.',
-        '🍰🫧⛽🌈': '!Capacité radiative IR de CH₄',
+        '🍰🫧🐄🌈': '!Capacité radiative IR de CH₄',
         '🍰💭': 'CCN - Eff.Cond nuageuse [0.3,1.0]',
     },
     '⚖️': {
-        '⚖️❀': 'Masse<sub>❀∈{🏭, ⛽, 🫁, 💨}</sub> (+ ⚖️🌫 proxy sulfate)',
+        '⚖️❀': 'Masse<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub> (+ ⚖️✈ proxy sulfate)',
         '⚖️💧': 'Masse H₂O totale',
         '⚖️🫧': 'Masse atmosphère sec',
         '⚖️🏭': '!Masse CO₂',
-        '⚖️⛽': '!Masse CH₄',
+        '⚖️🐄': '!Masse CH₄',
         '⚖️🫁': '!Masse O₂ (🫁) [clé historique 🫁]',
-        '⚖️🌫': 'Masse SO₄²⁻ (🌫) [proxy CCN]',
+        '⚖️✈': 'Masse SO₄²⁻ (✈) [proxy CCN]',
         '⚖️💨': '!Masse N₂',
     },
     '💧': {
@@ -513,15 +513,15 @@ const DESC = {
         '🧲📛': 'EDS (effet de serre) W/m² = 🧲🌑🔼 − 🧲🌈🔼. OLR = 🧲🌈🔼 = flux IR sortant au sommet ; EDS = flux « bloqué » par l’atmosphère. EDS insuffisant ⟺ OLR trop élevé (même T surface).',
         '🧲📛🏭': 'EDS CO₂ W/m² (part retenue par CO₂)',
         '🧲📛💧': 'EDS H₂O W/m² (part retenue par vapeur)',
-        '🧲📛⛽': 'EDS CH₄ W/m² (part retenue par CH₄)',
+        '🧲📛🐄': 'EDS CH₄ W/m² (part retenue par CH₄)',
         '🧲📛⛅': 'EDS nuages W/m² (part retenue par nuages)',
         '🍰📛🏭': 'Part EDS CO₂ [0,1]',
         '🍰📛💧': 'Part EDS H₂O (vapeur) [0,1]',
-        '🍰📛⛽': 'Part EDS CH₄ [0,1]',
+        '🍰📛🐄': 'Part EDS CH₄ [0,1]',
         '🍰📛⛅': 'Part EDS nuages [0,1]',
         '🔺📛💧': 'ΔF H₂O affichage (W/m², convention)',
         '🔺📛🏭': 'ΔF CO₂ affichage (W/m², convention)',
-        '🔺📛⛽': 'ΔF CH₄ affichage (W/m², convention)',
+        '🔺📛🐄': 'ΔF CH₄ affichage (W/m², convention)',
         '🔺📿📛': 'ΔF total affichage (W/m², convention)',
     },
     '🗻': {
@@ -579,11 +579,11 @@ const FORM = {
         '🧪': '!Masse molaire (kg/mol)',
         '📏🫧🧿': 'H × ln(P₀ / P_limit) où H = RT/(Mg) [von Kármán] - Ligne de Kármán (altitude où P = 0.01 Pa)',
         '📏🫧🛩': 'RT/(Mg) [équation hydrostatique] - Tropopause (échelle de hauteur atmosphérique)',
-        '🍰🫧❀': 'Proportion radiative EDS - ∀ ❀ ∈ {🏭, ⛽, 🫁, 💨}',
-        '🍰🫧❀🌈': 'Capacité radiative IR de ❀ - ∀ ❀ ∈ {🏭, ⛽, 💧}',
-        '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈) - ∀ ❀ ∈ {🏭, ⛽, 💧} (pour normalisation)',
-        '🍰🫧🌫': '⚖️🌫 / ⚖️🫧 (proxy sulfate pour microphysique nuageuse, hors normalisation air sec)',
-        '🍰💭': 'clamp(0.4 + 0.5×(⚖️🫁/1.08e18 + ⚖️⛽/5.2e12) + 0.1×(⚖️🌫/1.0e14), 0.3, 1.0) - CCN - Eff.Cond nuageuse [0.3,1.0]'
+        '🍰🫧❀': 'Proportion radiative EDS - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨}',
+        '🍰🫧❀🌈': 'Capacité radiative IR de ❀ - ∀ ❀ ∈ {🏭, 🐄, 💧}',
+        '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈) - ∀ ❀ ∈ {🏭, 🐄, 💧} (pour normalisation)',
+        '🍰🫧✈': '⚖️✈ / ⚖️🫧 (proxy sulfate pour microphysique nuageuse, hors normalisation air sec)',
+        '🍰💭': 'clamp(0.4 + 0.5×(⚖️🫁/1.08e18 + ⚖️🐄/5.2e12) + 0.1×(⚖️✈/1.0e14), 0.3, 1.0) - CCN - Eff.Cond nuageuse [0.3,1.0]'
     },
     '💧': {
         '🍰💧🧊': 'Si T < ❄️ alors toute l\'eau restante (après vapeur) est glace, sinon glace polaire (10% à 0°C → 0% à 20°C) - ❄️ = 271.15K - (P-1)×1.0',
@@ -627,9 +627,9 @@ const FORM = {
         '_note': '🗻 = Géologie (Couche A) : surfaces fixes déterminées par la géologie/relief, indépendantes des stocks d\'eau'
     },
     '⚖️': {
-        '⚖️❀': 'Masse ❀ - ∀ ❀ ∈ {🏭, ⛽, 🫁, 💨} (+ ⚖️🌫 proxy sulfate)',
+        '⚖️❀': 'Masse ❀ - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨} (+ ⚖️✈ proxy sulfate)',
         '⚖️💧': 'Masse H2O totale',
-        '⚖️🫧': 'Masse atmosphère sec = ⚖️🏭 + ⚖️⛽ + ⚖️🫁 + ⚖️💨 (sans vapeur d\'eau ; ⚖️🌫 = proxy CCN séparé)'
+        '⚖️🫧': 'Masse atmosphère sec = ⚖️🏭 + ⚖️🐄 + ⚖️🫁 + ⚖️💨 (sans vapeur d\'eau ; ⚖️✈ = proxy CCN séparé)'
     }
 };
 
@@ -1114,7 +1114,7 @@ window.FINE_TUNING_BOUNDS = {
 // Ā unit : non Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.2.1: add sulfate proxy mass ⚖️🌫 for 🚂/📱 and disable verbose debug flags
+// - v1.2.1: add sulfate proxy mass ⚖️✈ for 🚂/📱 and disable verbose debug flags
 // - v1.2.2: paramètres solveur issus de static/tuning/model_tuning.js (source unique tuning)
 // - v1.2.3: fallback synchrone des paramètres solveur si window.TUNING non chargé
 // - v1.2.4: 🌿 = Paléozoïque (541–252 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
@@ -1128,7 +1128,7 @@ window.FINE_TUNING_BOUNDS = {
 //
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
 // Clouds/Faint Young Sun Copernicus 2011 ; Astrobiology 2014. Valeurs au DÉBUT de chaque époque (parcours temporel à venir).
-// Réfs masses gaz (⚖️🏭, ⚖️⛽) : doc/VALIDATION_CONFIG_GAZ.md
+// Réfs masses gaz (⚖️🏭, ⚖️🐄) : doc/VALIDATION_CONFIG_GAZ.md
 const timeline = [
     {
         '📅': '⚫', // Corps noir
@@ -1160,7 +1160,7 @@ const timeline = [
         // Note: geothermal_flux sera calculé à partir de core_temperature et geothermal_diffusion_factor
         // Simulation parameters - Quantités en kg (pas de ppm/%)
         '⚖️🏭': 0, // co2_kg (Quantité de CO2 en kg)
-        '⚖️⛽': 0, // ch4_kg (Quantité de CH4 en kg)
+        '⚖️🐄': 0, // ch4_kg (Quantité de CH4 en kg)
         '⚖️💧': 0, // h2o_kg (Quantité totale d'eau en kg)
         '⚖️🫁': 0, // o2_kg (Quantité de O2 en kg)
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
@@ -1168,7 +1168,7 @@ const timeline = [
         // Événements interactifs (météorites uniquement Corps noir + Hadéen) ; 💫 = bouton timeline (logo)
         '🕰': {
             '☄️': {
-                '🔺⚖️💧☄️': 0.95e12, // water_added_kg (~10^20 kg)
+                '🔺⚖️💧☄️': 1.07e18, // water_added_kg (~+10% d'albedo en ⚫ froid avec la formule actuelle)
                 '🔺⏳': 100,
             },
             '🎇': {
@@ -1202,7 +1202,7 @@ const timeline = [
         '⚖️🫧': 5.3e20, // Masse atmosphère (Atmosphère très dense ~100 bar)
         // Simulation parameters - Quantités en kg (pas de ppm/%)
         '⚖️🏭': 5.15e17, // co2_kg (~10% de l'atmosphère moderne)
-        '⚖️⛽': 5.15e15, // ch4_kg (~1000 ppm)
+        '⚖️🐄': 5.15e15, // ch4_kg (~1000 ppm)
         '⚖️💧': 2.1e20, // h2o_kg (~15% de 1.4e21 kg)
         '⚖️🫁': 0, // o2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
@@ -1251,7 +1251,7 @@ const timeline = [
         '⚖️🫧': 1.0e19, // Masse atmosphère (Atmosphère dense ~2 bar)
         // Simulation parameters - Quantités en kg (lit. 1000×–10000× PAL ; 40k ppm calibré ~15°C)
         '⚖️🏭': 8.0e16, // co2_kg (~40000 ppm, calibré équilibre ~15°C, commit 5ecb155)
-        '⚖️⛽': 2.0e15, // ch4_kg (~800 ppm, lit. 100–10000 ppm)
+        '⚖️🐄': 2.0e15, // ch4_kg (~800 ppm, lit. 100–10000 ppm)
         '⚖️💧': 1.8e21, // h2o_kg (~129% actuel, litt. Harvard océans +26%)
         '⚖️🫁': 0, // o2_kg
         // Note: Les % seront calculés via calculations_atm.js
@@ -1285,7 +1285,7 @@ const timeline = [
         '⚖️🫧': 5.15e18, // Masse atmosphère (~1 bar). Lit. 2.7 Ga: pression possiblement <0.5 bar.
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
         '⚖️🏭': 4.7e16,  // co2_kg (~6000 ppm, milieu de fourchette lit. 5–9k ppm)
-        '⚖️⛽': 2.85e14,  // ch4_kg (~100 ppm, lit. 100–300 ppm)
+        '⚖️🐄': 2.85e14,  // ch4_kg (~100 ppm, lit. 100–300 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 0,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
         // Note: Les % seront calculés via calculations_atm.js
@@ -1317,7 +1317,7 @@ const timeline = [
         '⚖️🫧': 5.15e18,
         // CO2 Paléozoïque : élevé début (Ordovicien–Dévonien), plus bas Carbonifère–Permien ; valeur représentative
         '⚖️🏭': 1.2e16,  // co2_kg (~2300 ppm)
-        '⚖️⛽': 3e13,
+        '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 0,
         '🕰': {
@@ -1344,7 +1344,7 @@ const timeline = [
         },
         '⚖️🫧': 5.15e18,
         '⚖️🏭': 1.2875e16, // co2_kg (~2500 ppm)
-        '⚖️⛽': 4.12e13,
+        '⚖️🐄': 4.12e13,
         '⚖️💧': 1.33e21,
         '⚖️🫁': 0,
         '🕰': {
@@ -1380,7 +1380,7 @@ const timeline = [
         '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
         // Simulation parameters - Quantités en kg. Lit. EECO ~1000-1400 ppm ; Paléocène ~600-800 ppm.
         '⚖️🏭': 5.15e15, // co2_kg (~1000 ppm, Paléocène/Eocène — baisse CO2 explique refroidissement → 1800)
-        '⚖️⛽': 3.605e12, // ch4_kg (~0.7 ppm)
+        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm)
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
         // Note: Les % seront calculés via calculations_atm.js
@@ -1405,10 +1405,10 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
         '⚖️🫧': 5.15e18,
         '⚖️🏭': 2.06e15,
-        '⚖️⛽': 3.6e12,
+        '⚖️🐄': 3.6e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
-        '⚖️🌫': 1e12,
+        '⚖️✈': 1e12,
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺⏳': 100 },
@@ -1437,10 +1437,10 @@ const timeline = [
         '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
         // Simulation parameters - Quantités en kg
         '⚖️🏭': 1.443e15, // co2_kg (~280 ppm, niveau pré-industriel)
-        '⚖️⛽': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
+        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
-        '⚖️🌫': 1.5e12, // sulfate_kg (CCN naturels uniquement : sel marin, aérosols volcaniques ; pas de pollution industrielle en 1800)
+        '⚖️✈': 1.5e12, // sulfate_kg (CCN naturels uniquement : sel marin, aérosols volcaniques ; pas de pollution industrielle en 1800)
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
@@ -1472,10 +1472,10 @@ const timeline = [
         '⚖️🫧': 5.15e18, // Masse atmosphère (air sec ~1 bar, comme Industriel)
         // Simulation parameters - Quantités en kg
         '⚖️🏭': 3.3e15,   // ~420-450 ppm CO2 2025
-        '⚖️⛽': 5.5e12,
+        '⚖️🐄': 5.5e12,
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
-        '⚖️🌫': 8.0e13, // sulfate_kg (proxy CCN moderne)
+        '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
