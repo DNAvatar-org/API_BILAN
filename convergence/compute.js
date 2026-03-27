@@ -1,13 +1,18 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.5
+// Version 1.0.10
 // Date: [January 2025]
 // logs :
 // - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
 // - v1.0.3: bary (📿💫+📿☄️)/maxTics; interpolation via 🕰['🔀'] and 🕰['◀']; getMasses/getSoleil/getNoyau use interpolated DATA when 🔀
 // - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
 // - v1.0.5: debug log getEpochDateConfig (transition époque + état tics)
+// - v1.0.6: transition auto seulement si ▶ > ◀ (échelle géologique) — évite saut 🚂→📱 car 1800 <= 2025 était toujours vrai
+// - v1.0.7: log debug getEpochDateConfig inclut 📿☄️ (météorites) en plus de 📿💫
+// - v1.0.8: getEpochDateConfig — window.infoTimeMa = somme Ma des tics (📿×🔺⏳) pour aligner timeline.js (#info-time) sur DATA['📜']['📅']
+// - v1.0.9: log [DBG compute] sync infoTimeMa (avant/après + deltaMa) pour diagnostic UI +0 Ma
+// - v1.0.10: retrait log sync infoTimeMa (correctif dans sync_panels + main setEpoch #info-time)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -133,8 +138,11 @@ function getEpochDateConfig() {
     const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
     const dateYears = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
     const totalTics = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
-    console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma epochEnd=' + (epochEnd != null ? (epochEnd/1e6).toFixed(0) + 'Ma' : 'null'));
-    if (epochEnd != null && dateYears <= epochEnd && epochIndex + 1 < window.TIMELINE.length) {
+    console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿☄️=' + DATA['📜']['📿☄️'] + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma epochEnd=' + (epochEnd != null ? (epochEnd/1e6).toFixed(0) + 'Ma' : 'null'));
+    // Échelle géologique : ▶ > ◀ (temps avant présent décroît vers le présent). Échelle calendaire (🚂 1800–2025) : ▶ < ◀ → ne pas appliquer ce saut
+    const startA = EPOCH['▶'];
+    const geologicEpochOrder = (typeof startA === 'number' && typeof epochEnd === 'number' && startA > epochEnd);
+    if (epochEnd != null && geologicEpochOrder && dateYears <= epochEnd && epochIndex + 1 < window.TIMELINE.length) {
         const nextEpoch = window.TIMELINE[epochIndex + 1];
         console.log('[DBG compute] ⚡TRANSITION ' + epochId + ' → ' + nextEpoch['📅'] + ' (dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma <= epochEnd=' + (epochEnd/1e6).toFixed(0) + 'Ma)');
         DATA['📜']['🗿'] = nextEpoch['📅'];
@@ -230,6 +238,23 @@ function getEpochDateConfig() {
 
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
+
+    // Horloge visuelle (organigramme/timeline.js #info-time « +X Ma ») : même agrégat que deltaYearsFromTics / 1e6,
+    // recalculé sur l’époque finale EPOCH — évite +0 Ma quand un reset async efface window.infoTimeMa alors que 📿☄️/📅 sont cohérents.
+    if (typeof window !== 'undefined') {
+        let deltaMaFromTicsUi = 0;
+        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
+            for (const tk of Object.keys(EPOCH['🕰'])) {
+                if (tk === '🔀' || tk === '◀') continue;
+                const cfg = EPOCH['🕰'][tk];
+                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                    const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
+                    deltaMaFromTicsUi += count * cfg['🔺⏳'];
+                }
+            }
+        }
+        window.infoTimeMa = deltaMaFromTicsUi;
+    }
     
     // Logs désactivés pour réduire la taille
     // console.log(`💫🛠 [getEpochDateConfig@compute.js]`);
