@@ -161,10 +161,19 @@ const timeline = [
         '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Simulation parameters - Quantités en kg. Recalib post-fix solaire 80% (272 W/m² vs ancien 320 W/m²)
-        // Faint Young Sun Paradox : soleil 20% plus faible → CO₂+CH₄ très élevés requis
-        // Lit. Sleep & Zahnle 2001 : 0.2–10 bar CO₂ ; Haqq-Misra 2008 : CH₄/CO₂ > 0.1 ; Charnay 2013 : 0.1–1 bar CO₂
-        '⚖️🏭': 1.5e18, // co2_kg (~10% atm, ~0.1 bar CO₂ partiel, lit. 0.01–10 bar ; Sleep & Zahnle 2001)
-        '⚖️🐄': 3.0e16, // ch4_kg (~0.2% atm, ~5000 ppm, lit. 100–10000 ppm ; Pavlov 2000, Haqq-Misra 2008)
+        // Faint Young Sun Paradox : soleil ~74% à 4 Ga → CO₂+CH₄ élevés requis pour maintenir ~288 K.
+        // ✅ CO₂ : 1.5e18 kg → ~0.19 bar CO₂ partiel (~8.7% molaire, ~87 000 ppm).
+        //    Sleep & Zahnle 2001 (JGR) : 0.2–10 bar early Archean ✓
+        //    Charnay et al. 2013 (GRL) : 0.1–0.5 bar requis pour eau liquide avec soleil faible ✓
+        //    Charnay et al. 2020 (Space Sci. Rev.) : CO₂ 10–2500× PAL consensus ✓
+        //    Krissansen-Totton et al. 2018 (Sci. Adv.) : ~0.1 bar à 4 Ga (cycle C-Si) ✓
+        //    NB : contraintes paléosols (Rye 1995, Driese 2011) ← late Archean (< 3 Ga) seulement, pas applicables ici.
+        // ✅ CH₄ : 3.0e16 kg → ~4 780 ppm molaire (~0.19% atm).
+        //    Haqq-Misra et al. 2008 (Astrobiology) : jusqu'à 10 000 ppm, brume si CH₄/CO₂ > 0.1 ✓
+        //    Pavlov et al. 2000 : 100–1 000 ppm ; Charnay 2020 : 100–17 000 ppm ✓
+        // ✅ Ratio CH₄/CO₂ = 3.0e16 / 1.5e18 = 0.02 — sous le seuil de brume organique (0.1, Haqq-Misra 2008) ✓
+        '⚖️🏭': 1.5e18, // co2_kg — ~0.19 bar, validé Archéen précoce (4 Ga) — voir commentaire ci-dessus
+        '⚖️🐄': 3.0e16, // ch4_kg — ~4 780 ppm, CH₄/CO₂=0.02 < 0.1 (pas de brume) — voir commentaire ci-dessus
         '⚖️💧': 1.8e21, // h2o_kg (~129% actuel, litt. Harvard océans +26%)
         '⚖️🫁': 0, // o2_kg
         '⚖️💨': 9.918e18, // n2_kg (base azote Archéen, lit. ~1–2× PAL ; Marty 2013)
