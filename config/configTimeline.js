@@ -296,7 +296,7 @@ const timeline = [
     {
         '📅': '🦣', // Cénozoïque
         '▶': 66e6,
-        '◀': 0,
+        '◀': 33e6, // Grande coupure Éocène-Oligocène (~33.9 Ma) → transition vers 🏔 après 1 tic (🔺⏳=33Ma)
         // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016). — 18 °C
         '🌡️🧮': 291,
         // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).

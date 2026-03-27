@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.6
+// Version 1.0.8
 // Date: [January 2025]
 // logs :
 // - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
@@ -9,6 +9,7 @@
 // - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
 // - v1.0.5: debug log getEpochDateConfig (transition époque + état tics)
 // - v1.0.6: transition époque : support direction forward (▶ < ◀, ex. 🚂 1800→2025) — dateYears additionne deltaTics, condition >=
+// - v1.0.7: logs détaillés deltaYearsFromTics (tic par tic) + état TIMELINE[epochIndex+1] pour débug grande coupure 🦣→🏔
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -137,15 +138,10 @@ function getEpochDateConfig() {
     const dateYears = (EPOCH['▶'] != null)
         ? (isForwardTime ? (EPOCH['▶'] || 0) + deltaYearsFromTics : (EPOCH['▶'] || 0) - deltaYearsFromTics)
         : 0;
-    const totalTics = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
-    const dateLabel = isForwardTime ? dateYears.toFixed(0) + 'CE' : (dateYears/1e6).toFixed(0) + 'Ma';
-    const endLabel  = epochEnd != null ? (isForwardTime ? epochEnd.toFixed(0) + 'CE' : (epochEnd/1e6).toFixed(0) + 'Ma') : 'null';
-    console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + dateLabel + ' epochEnd=' + endLabel + ' forward=' + isForwardTime);
     const shouldTransition = (epochEnd != null && epochIndex + 1 < window.TIMELINE.length)
         && (isForwardTime ? dateYears >= epochEnd : dateYears <= epochEnd);
     if (shouldTransition) {
         const nextEpoch = window.TIMELINE[epochIndex + 1];
-        console.log('[DBG compute] ⚡TRANSITION ' + epochId + ' → ' + nextEpoch['📅'] + ' (dateYears=' + dateLabel + (isForwardTime ? ' >= ' : ' <= ') + 'epochEnd=' + endLabel + ')');
         DATA['📜']['🗿'] = nextEpoch['📅'];
         DATA['📜']['👉'] = epochIndex + 1;
         DATA['📜']['📿💫'] = 0;
