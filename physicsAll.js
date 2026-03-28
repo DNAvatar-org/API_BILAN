@@ -1800,7 +1800,7 @@ async function simulateRadiativeTransfer() {
     // En mode normal : partir de la T0 de référence de l'époque
     const baseTemp = animEnabled ? DATA['🧮']['🧮🌡️'] : t0_config;
     
-    const meteoriteCount = DATA['📜']['📿☄️'];
+    // (📿☄️ retiré — l'eau s'accumule directement dans 🔺⚖️💧, 📿💫 gère le temps)
     const ticTime = DATA['📜']['📿💫'];
     const deltaTicTime_per_tic = DATA['📜']['🔺🌡️💫'];
     
@@ -4555,46 +4555,29 @@ function getMasses() {
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = window.TIMELINE[epochIndex];
-    // ⚖️💧 = ⚖️💧_init (EPOCH) + 📿☄️ * 🔺⚖️💧☄️ — 📿☄️ incrémenté directement par le bouton ☄️
+    // ⚖️💧 = valeur initiale + delta pending (météorites), consommé à chaque appel
     let h2o_kg = EPOCH['⚖️💧'] || 0;
-    h2o_kg += DATA['📜']['🔺⚖️💧☄️'] * DATA['📜']['📿☄️'];
-    
+    h2o_kg += (DATA['📜']['🔺⚖️💧'] || 0);
+
     // Mettre à jour DATA directement
-    // 🔒 Protection contre undefined : traiter comme 0
-    DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+    var isYearIndexedM = EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(function(k) { return !isNaN(Number(k)); });
+    if (isYearIndexedM) {
+        // 📱 year-indexed : ⚖️🏭 est la variable de référence unique
+        // Initialiser depuis EPOCH au chargement (📿💫=0), sinon consommer le delta pending
+        var ticCountM = (DATA['📜']['📿💫'] || 0);
+        if (ticCountM === 0) {
+            DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+        }
+        DATA['⚖️']['⚖️🏭'] += (DATA['📜']['🔺⚖️🏭'] || 0);
+        DATA['📜']['🔺⚖️🏭'] = 0; // consommé
+    } else {
+        DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+    }
     DATA['⚖️']['⚖️🐄'] = isFinite(EPOCH['⚖️🐄']) ? EPOCH['⚖️🐄'] : 0;
     DATA['⚖️']['⚖️💧'] = h2o_kg;
     DATA['⚖️']['⚖️🫁'] = isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0;
     DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;
     DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;
-
-    // 🏭📊 Fraction aéroportée — source unique ici pour survivre aux rappels dans la boucle de convergence
-    var epochEndM = (typeof EPOCH['◀'] === 'number' && isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
-    var isForwardM = (EPOCH['▶'] != null && epochEndM != null && EPOCH['▶'] < epochEndM);
-    if (isForwardM && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
-        var deltaTicsM = 0;
-        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
-            for (var tkM in EPOCH['🕰']) {
-                if (tkM === '🔀' || tkM === '◀') continue;
-                var cfgM = EPOCH['🕰'][tkM];
-                if (cfgM && typeof cfgM['🔺⏳'] === 'number' && isFinite(cfgM['🔺⏳'])) {
-                    var cntM = (DATA['📜']['📿' + tkM] != null && isFinite(DATA['📜']['📿' + tkM])) ? DATA['📜']['📿' + tkM] : 0;
-                    deltaTicsM += cntM * cfgM['🔺⏳'] * 1e6;
-                }
-            }
-        }
-        var curYearM = (EPOCH['▶'] || 0) + deltaTicsM;
-        var profileM = EPOCH['🏭📊'];
-        var cumulGtM = 0;
-        for (var iM = 0; iM < profileM.tranches.length; iM++) {
-            var trM = profileM.tranches[iM];
-            if (curYearM <= trM.from) break;
-            var spanM = trM.to - trM.from;
-            cumulGtM += (spanM > 0 ? trM.Gt / spanM : 0) * (Math.min(curYearM, trM.to) - trM.from);
-        }
-        var airborneM = (typeof profileM.airborne === 'number') ? profileM.airborne : 0.45;
-        DATA['⚖️']['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
-    }
 
     // ⚖️🫧 = masse atmosphérique totale (air sec)
     if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
@@ -4620,7 +4603,7 @@ function getEpochDateConfig() {
     const EPOCH = window.TIMELINE[epochIndex];
     
     // Masse d'eau par météorite — depuis config ☄️ (Corps noir, Hadéen)
-    // ⚠️ Ne pas écraser 📿☄️ ni 📿💫 — compteurs exclusifs des boutons (events.js)
+    // ⚠️ Ne pas écraser 📿💫 — compteur de temps exclusif des boutons
     if (EPOCH['🕰'] && EPOCH['🕰']['☄️']) {
         DATA['📜']['🔺⚖️💧☄️'] = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
     }
@@ -4643,16 +4626,32 @@ function getEpochDateConfig() {
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;
 
-    // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
-    // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])
+    // 🔒 Date courante en années (pour Gough dans getSoleil)
+    // 📿💫 = compteur de temps universel (géologique ET 📱)
     var deltaYearsFromTics = 0;
+    var ticCount = (DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
-        for (var tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀') continue;
-            var cfg = EPOCH['🕰'][tk];
-            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                var count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
-                deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
+        // Détecter format year-indexed (📱) vs géologique (💫/☄️)
+        var isYearIndexedE = Object.keys(EPOCH['🕰']).some(function(k) { return !isNaN(Number(k)); });
+        if (isYearIndexedE) {
+            // 📱 : extraire 🔺⏳ du premier bouton du premier bucket année
+            var firstYrKey = Object.keys(EPOCH['🕰']).filter(function(k) { return !isNaN(Number(k)); }).sort(function(a,b){return a-b;})[0];
+            var firstActions = EPOCH['🕰'][firstYrKey];
+            var dtMa = 0.000025; // fallback
+            if (firstActions) {
+                var fak = Object.keys(firstActions)[0];
+                if (firstActions[fak] && typeof firstActions[fak]['🔺⏳'] === 'number') dtMa = firstActions[fak]['🔺⏳'];
+            }
+            deltaYearsFromTics = ticCount * dtMa * 1e6;
+        } else {
+            // Géologique : itérer les clés tic string (💫, ☄️…) — 📿💫 porte tout
+            for (var tk of Object.keys(EPOCH['🕰'])) {
+                if (tk === '🔀' || tk === '◀') continue;
+                var cfg = EPOCH['🕰'][tk];
+                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                    deltaYearsFromTics += ticCount * cfg['🔺⏳'] * 1e6;
+                    break; // 📿💫 est le seul compteur
+                }
             }
         }
     }
@@ -4666,17 +4665,15 @@ function getEpochDateConfig() {
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
 
-    // 🏭📊 : le calcul est dans getMasses() (source unique, survit aux rappels de la boucle de convergence)
-    // Ici on génère seulement le log si l'époque a un profil d'émissions
-    if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+    // Log CO₂ courant pour époques forward (📱 year-indexed ou autre)
+    if (isForwardTime && DATA['⚖️'] && DATA['⚖️']['⚖️🫧'] > 0) {
         var ppm_approx = Math.round(
             (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
         );
-        window._co2ProfileLog = '[🏭📊] ' + Math.round((EPOCH['▶'] || 0) + deltaYearsFromTics)
-            + ' → ⚖️🏭=' + DATA['⚖️']['⚖️🏭'].toExponential(3)
+        window._co2ProfileLog = '[⚖️🏭] ' + Math.round(DATA['📜']['📅'] || 0)
+            + ' CE → ' + DATA['⚖️']['⚖️🏭'].toExponential(3)
             + ' kg (~' + ppm_approx + ' ppm)';
         window._co2ProfileLogInjected = false;
-        console.log(window._co2ProfileLog);
     }
 
     // Retourner true car DATA a été modifié

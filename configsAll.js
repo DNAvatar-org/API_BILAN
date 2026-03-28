@@ -1482,21 +1482,19 @@ const timeline = [
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        // 🕰 indexé par année : chaque bouton ajoute 🔺⚖️🏭 kg de CO₂ directement (sans airborne)
+        // ⚠️ valeurs 🔺⚖️🏭 en kg — calibration TODO
         '🕰': {
-            '🛢': { '🔺🌡️💫': 0, '🔺⏳': 0.000025 }, // 🛢 remplace 💫 pour 📱 (scénario émissions)
+            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e9 } },
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e11 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e11 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e11 } },
+            '◀': {
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
+                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
+            }
         },
-        '🌱': 0.31,
-        // 🏭📊 : Profil d'émissions anthropiques CO₂ (Gt CO₂ par tranche de 25 ans)
-        // Fraction aéroportée : 45% reste dans l'atmosphère (IPCC AR6, Friedlingstein 2022)
-        '🏭📊': {
-            airborne: 0.45,
-            tranches: [
-                { from: 2000, to: 2025, Gt: 850 },
-                { from: 2025, to: 2050, Gt: 900 },
-                { from: 2050, to: 2075, Gt: 600 },
-                { from: 2075, to: 2100, Gt: 350 }
-            ]
-        }
+        '🌱': 0.31
     }
 ];
 
