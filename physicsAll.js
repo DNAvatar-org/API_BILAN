@@ -127,8 +127,8 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib 
 // Facteur κ_H2O dans EDS (calculations.js). Valeur par défaut 0.92 ; recalculé depuis DATA quand disponible (formule P_ratio × CO2).
 EARTH.H2O_EDS_SCALE = 0.92;
 EARTH['🪩🍰'] = {
-    '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
-    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
+    '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
+    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.20
 };
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========

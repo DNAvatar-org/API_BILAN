@@ -262,6 +262,8 @@ const timeline = [
     },
     {
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
+        // 🦕 Mésozoïque : serre chaude, pas de calottes polaires
+        '⛄': 0,
         '▶': 250e6,
         '◀': 66e6,
         // 🌡️🧮 : ~295–305 K (lit. Mésozoïque) — 25 °C
@@ -297,6 +299,8 @@ const timeline = [
         '📅': '🦣', // Cénozoïque
         '▶': 66e6,
         '◀': 33e6, // Grande coupure Éocène-Oligocène (~33.9 Ma) → transition vers 🏔 après 1 tic (🔺⏳=33Ma)
+        // 🦣 Éocène chaud : pas de calotte polaire (CO2 ~1000 ppm, T > T_NO_POLAR_ICE)
+        '⛄': 0,
         // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016). — 18 °C
         '🌡️🧮': 291,
         // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).
@@ -330,6 +334,8 @@ const timeline = [
     // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
     {
         '📅': '🏔',
+        // 🏔 Grande Coupure : calotte Antarctique (~8.5% surface) — première glaciation polaire moderne
+        '⛄': 0.085,
         '▶': 33e6,
         '◀': 23e6,
         '🌡️🧮': 285, // 12 °C
@@ -375,7 +381,7 @@ const timeline = [
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 1.443e15, // co2_kg (~280 ppm, niveau pré-industriel)
+        '⚖️🏭': 2.191e15, // co2_kg (~280 ppm, niveau pré-industriel) — recalibré M_CO2/M_air×⚖️🫧
         '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
@@ -392,9 +398,9 @@ const timeline = [
     {
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
-        '◀': -1,
+        '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
         // 🌡️🧮 : ~288.8 K (record chaud 2025) — 15.6 °C
-        '🌡️🧮': 288.8,
+        '🌡️🧮': 288.3, // 288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -412,8 +418,8 @@ const timeline = [
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
         '⚖️🫧': 5.15e18, // Masse atmosphère (air sec ~1 bar, comme Industriel)
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 3.3e15,   // ~420-450 ppm CO2 2025
-        '⚖️🐄': 5.5e12,
+        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA
+        '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
         '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)
@@ -423,6 +429,10 @@ const timeline = [
         // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas (calibration 25 ans)
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000025},
+            '◀': {
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.19e18, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
+                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
+            }
         },
         '🌱': 0.31  // 2025 et après -400 Ma (FAO 2020)
     }

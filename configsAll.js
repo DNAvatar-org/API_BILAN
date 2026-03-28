@@ -1437,7 +1437,7 @@ const timeline = [
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 1.443e15, // co2_kg (~280 ppm, niveau pré-industriel)
+        '⚖️🏭': 2.191e15, // co2_kg (~280 ppm, niveau pré-industriel) — recalibré M_CO2/M_air×⚖️🫧
         '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
@@ -1452,9 +1452,9 @@ const timeline = [
     {
         '📅': '📱', // 2025
         '▶': 2025,
-        '◀': -1,
+        '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
         // 🌡️🧮 : ~288.8 K (15.6–16°C, record chaud 2025)
-        '🌡️🧮': 288.8,
+        '🌡️🧮': 288.3, // 288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -1472,8 +1472,8 @@ const timeline = [
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
         '⚖️🫧': 5.15e18, // Masse atmosphère (air sec ~1 bar, comme Industriel)
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 3.3e15,   // ~420-450 ppm CO2 2025
-        '⚖️🐄': 5.5e12,
+        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA
+        '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
         '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)

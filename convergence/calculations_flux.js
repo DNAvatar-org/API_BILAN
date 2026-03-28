@@ -298,8 +298,11 @@ function initForConfig() {
     const ice_data_continuity = hasAtmWaterSupport ? Math.min(DATA['🗻']['🍰🗻🏔'], DATA['💧']['🍰💧🧊']) : 0;
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - EPOCH['🌡️🧮']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
     const ice_formula_epoch = Math.min(DATA['🗻']['🍰🗻🏔'], EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
-    const ice_fixed_value = (OVERRIDES.useEpochIceFixed === true && OVERRIDES['⛄'] != null && Number.isFinite(Number(OVERRIDES['⛄'])))
-        ? Number(OVERRIDES['⛄'])
+    // Priorité : EPOCH['⛄'] (per-epoch) > OVERRIDES['⛄'] (global) > continuité DATA
+    const epochIceOverride = (EPOCH != null && EPOCH['⛄'] != null && Number.isFinite(Number(EPOCH['⛄']))) ? Number(EPOCH['⛄']) : null;
+    const globalIceOverride = (OVERRIDES.useEpochIceFixed === true && OVERRIDES['⛄'] != null && Number.isFinite(Number(OVERRIDES['⛄']))) ? Number(OVERRIDES['⛄']) : null;
+    const ice_fixed_value = epochIceOverride !== null ? epochIceOverride
+        : globalIceOverride !== null ? globalIceOverride
         : ice_data_continuity;
     const albedo_ice_raw = DATA['🪩']['🍰🪩🧊'];
     const albedo_ice_effective = Math.max(0, albedo_ice_raw);
