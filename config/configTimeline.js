@@ -434,7 +434,19 @@ const timeline = [
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
-        '🌱': 0.31  // 2025 et après -400 Ma (FAO 2020)
+        '🌱': 0.31,  // 2025 et après -400 Ma (FAO 2020)
+        // 🏭📊 : Profil d'émissions anthropiques CO₂ (Gt CO₂ par tranche de 25 ans)
+        // Fraction aéroportée : 45% reste dans l'atmosphère (IPCC AR6, Friedlingstein 2022)
+        // Les 55% restants → océan (~25%) + biosphère (~30%)
+        '🏭📊': {
+            airborne: 0.45,
+            tranches: [
+                { from: 2000, to: 2025, Gt: 850 },  // Industrialisation rapide Asie
+                { from: 2025, to: 2050, Gt: 900 },  // Pic puis plateau
+                { from: 2050, to: 2075, Gt: 600 },  // Transition énergétique
+                { from: 2075, to: 2100, Gt: 350 }   // Économie bas-carbone
+            ]
+        }
     }
 ];
 

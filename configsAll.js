@@ -1450,11 +1450,11 @@ const timeline = [
         }
     },
     {
-        '📅': '📱', // 2025
-        '▶': 2025,
+        '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100)
+        '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
-        // 🌡️🧮 : ~288.8 K (15.6–16°C, record chaud 2025)
-        '🌡️🧮': 288.3, // 288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
+        // 🌡️🧮 : ~288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
+        '🌡️🧮': 288.3,
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -1481,7 +1481,19 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000025 },
+        },
+        '🌱': 0.31,
+        // 🏭📊 : Profil d'émissions anthropiques CO₂ (Gt CO₂ par tranche de 25 ans)
+        // Fraction aéroportée : 45% reste dans l'atmosphère (IPCC AR6, Friedlingstein 2022)
+        '🏭📊': {
+            airborne: 0.45,
+            tranches: [
+                { from: 2000, to: 2025, Gt: 850 },
+                { from: 2025, to: 2050, Gt: 900 },
+                { from: 2050, to: 2075, Gt: 600 },
+                { from: 2075, to: 2100, Gt: 350 }
+            ]
         }
     }
 ];

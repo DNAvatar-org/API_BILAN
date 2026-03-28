@@ -4635,15 +4635,37 @@ function getEpochDateConfig() {
             }
         }
     }
-    DATA['📜']['📅'] = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
+    // Detect time direction: geological = backward (▶ > ◀), modern = forward (▶ < ◀)
+    var epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    var isForwardTime = (EPOCH['▶'] != null && epochEnd != null && EPOCH['▶'] < epochEnd);
+    DATA['📜']['📅'] = (EPOCH['▶'] != null)
+        ? (isForwardTime ? (EPOCH['▶'] || 0) + deltaYearsFromTics : (EPOCH['▶'] || 0) - deltaYearsFromTics)
+        : 0;
 
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`💫🛠 [getEpochDateConfig@compute.js]`);
-    // console.log(`dateConfig=${JSON.stringify(DATA['📜'])}`);
-    
+
+    // 🏭📊 Fraction aéroportée : si l'époque a un profil d'émissions anthropiques,
+    // ajouter les émissions cumulées × airborne (45%) à ⚖️🏭 (CO₂ atm. en kg)
+    if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        var profile = EPOCH['🏭📊'];
+        var currentYear = (EPOCH['▶'] || 0) + deltaYearsFromTics;
+        var cumulGt = 0;
+        for (var i = 0; i < profile.tranches.length; i++) {
+            var tr = profile.tranches[i];
+            if (currentYear <= tr.from) break;
+            var yearsInTranche = tr.to - tr.from;
+            var rateGtPerYear = yearsInTranche > 0 ? tr.Gt / yearsInTranche : 0;
+            var yearsElapsed = Math.min(currentYear, tr.to) - tr.from;
+            cumulGt += rateGtPerYear * yearsElapsed;
+        }
+        var airborne = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
+        var delta_co2_kg = cumulGt * 1e12 * airborne;
+        DATA['⚖️']['⚖️🏭'] += delta_co2_kg;
+        DATA['⚖️']['⚖️🫧'] = (DATA['⚖️']['⚖️🏭'] || 0) + (DATA['⚖️']['⚖️🐄'] || 0)
+            + (DATA['⚖️']['⚖️🫁'] || 0) + (DATA['⚖️']['⚖️💨'] || 0);
+    }
+
     // Retourner true car DATA a été modifié
     return true;
 }

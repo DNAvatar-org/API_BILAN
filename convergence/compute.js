@@ -235,11 +235,31 @@ function getEpochDateConfig() {
 
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`💫🛠 [getEpochDateConfig@compute.js]`);
-    // console.log(`dateConfig=${JSON.stringify(DATA['📜'])}`);
-    
+
+    // 🏭📊 Fraction aéroportée : si l'époque a un profil d'émissions anthropiques,
+    // ajouter les émissions cumulées × airborne (45%) à ⚖️🏭 (CO₂ atm. en kg)
+    // Architecture inchangée : on corrige DATA['⚖️'] APRÈS getMasses(), avant le solveur.
+    if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        const profile = EPOCH['🏭📊'];
+        const currentYear = (EPOCH['▶'] || 0) + deltaYearsFromTics;
+        let cumulGt = 0;
+        for (let i = 0; i < profile.tranches.length; i++) {
+            const tr = profile.tranches[i];
+            if (currentYear <= tr.from) break;                          // pas encore dans cette tranche
+            const yearsInTranche = tr.to - tr.from;
+            const rateGtPerYear = yearsInTranche > 0 ? tr.Gt / yearsInTranche : 0;
+            const yearsElapsed = Math.min(currentYear, tr.to) - tr.from;
+            cumulGt += rateGtPerYear * yearsElapsed;
+        }
+        // Gt → kg : × 1e12.  Fraction aéroportée (45%) : seule la part restant dans l'atmosphère
+        const airborne = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
+        const delta_co2_kg = cumulGt * 1e12 * airborne;
+        DATA['⚖️']['⚖️🏭'] += delta_co2_kg;
+        // Recalculer ⚖️🫧 (masse totale atm.) pour que la conversion kg→ppm reste cohérente
+        DATA['⚖️']['⚖️🫧'] = (DATA['⚖️']['⚖️🏭'] || 0) + (DATA['⚖️']['⚖️🐄'] || 0)
+            + (DATA['⚖️']['⚖️🫁'] || 0) + (DATA['⚖️']['⚖️💨'] || 0);
+    }
+
     // Retourner true car DATA a été modifié
     return true;
 }
