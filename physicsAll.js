@@ -4565,26 +4565,47 @@ function getMasses() {
     DATA['⚖️']['⚖️🐄'] = isFinite(EPOCH['⚖️🐄']) ? EPOCH['⚖️🐄'] : 0;
     DATA['⚖️']['⚖️💧'] = h2o_kg;
     DATA['⚖️']['⚖️🫁'] = isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0;
-    DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;  // N2 depuis EPOCH
-    DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;  // Sulfate (proxy CCN), séparé de l'air sec
-    
-    // ⚖️🫧 = masse atmosphérique totale (air sec, sans vapeur d'eau)
-    // Si EPOCH définit ⚖️🫧, l'utiliser, sinon calculer comme somme des gaz
+    DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;
+    DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;
+
+    // 🏭📊 Fraction aéroportée — source unique ici pour survivre aux rappels dans la boucle de convergence
+    var epochEndM = (typeof EPOCH['◀'] === 'number' && isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    var isForwardM = (EPOCH['▶'] != null && epochEndM != null && EPOCH['▶'] < epochEndM);
+    if (isForwardM && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        var deltaTicsM = 0;
+        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+            for (var tkM in EPOCH['🕰']) {
+                if (tkM === '🔀' || tkM === '◀') continue;
+                var cfgM = EPOCH['🕰'][tkM];
+                if (cfgM && typeof cfgM['🔺⏳'] === 'number' && isFinite(cfgM['🔺⏳'])) {
+                    var cntM = (DATA['📜']['📿' + tkM] != null && isFinite(DATA['📜']['📿' + tkM])) ? DATA['📜']['📿' + tkM] : 0;
+                    deltaTicsM += cntM * cfgM['🔺⏳'] * 1e6;
+                }
+            }
+        }
+        var curYearM = (EPOCH['▶'] || 0) + deltaTicsM;
+        var profileM = EPOCH['🏭📊'];
+        var cumulGtM = 0;
+        for (var iM = 0; iM < profileM.tranches.length; iM++) {
+            var trM = profileM.tranches[iM];
+            if (curYearM <= trM.from) break;
+            var spanM = trM.to - trM.from;
+            cumulGtM += (spanM > 0 ? trM.Gt / spanM : 0) * (Math.min(curYearM, trM.to) - trM.from);
+        }
+        var airborneM = (typeof profileM.airborne === 'number') ? profileM.airborne : 0.45;
+        DATA['⚖️']['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
+    }
+
+    // ⚖️🫧 = masse atmosphérique totale (air sec)
     if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
         DATA['⚖️']['⚖️🫧'] = EPOCH['⚖️🫧'];
-        // Si ⚖️💨 non défini, N₂ implicite = reste pour atteindre ⚖️🫧 (évite M_dry faux → vapeur/albédo erronés)
         if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
             DATA['⚖️']['⚖️💨'] = Math.max(0, DATA['⚖️']['⚖️🫧'] - (DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁']));
         }
     } else {
-        // ⚖️🫧 = somme de tous les gaz atmosphériques (CO2, CH4, O2, N2)
         DATA['⚖️']['⚖️🫧'] = DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁'] + DATA['⚖️']['⚖️💨'];
     }
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`📋 [getMasses@compute.js]`);
-    // console.log(`masses=${JSON.stringify(DATA['⚖️'])}`);
-    
+
     // Retourner true car DATA a été modifié
     return true;
 }
@@ -4645,25 +4666,17 @@ function getEpochDateConfig() {
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
 
-    // 🏭📊 Fraction aéroportée : si l'époque a un profil d'émissions anthropiques,
-    // ajouter les émissions cumulées × airborne (45%) à ⚖️🏭 (CO₂ atm. en kg)
+    // 🏭📊 : le calcul est dans getMasses() (source unique, survit aux rappels de la boucle de convergence)
+    // Ici on génère seulement le log si l'époque a un profil d'émissions
     if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
-        var profile = EPOCH['🏭📊'];
-        var currentYear = (EPOCH['▶'] || 0) + deltaYearsFromTics;
-        var cumulGt = 0;
-        for (var i = 0; i < profile.tranches.length; i++) {
-            var tr = profile.tranches[i];
-            if (currentYear <= tr.from) break;
-            var yearsInTranche = tr.to - tr.from;
-            var rateGtPerYear = yearsInTranche > 0 ? tr.Gt / yearsInTranche : 0;
-            var yearsElapsed = Math.min(currentYear, tr.to) - tr.from;
-            cumulGt += rateGtPerYear * yearsElapsed;
-        }
-        var airborne = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
-        var delta_co2_kg = cumulGt * 1e12 * airborne;
-        DATA['⚖️']['⚖️🏭'] += delta_co2_kg;
-        DATA['⚖️']['⚖️🫧'] = (DATA['⚖️']['⚖️🏭'] || 0) + (DATA['⚖️']['⚖️🐄'] || 0)
-            + (DATA['⚖️']['⚖️🫁'] || 0) + (DATA['⚖️']['⚖️💨'] || 0);
+        var ppm_approx = Math.round(
+            (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
+        );
+        window._co2ProfileLog = '[🏭📊] ' + Math.round((EPOCH['▶'] || 0) + deltaYearsFromTics)
+            + ' → ⚖️🏭=' + DATA['⚖️']['⚖️🏭'].toExponential(3)
+            + ' kg (~' + ppm_approx + ' ppm)';
+        window._co2ProfileLogInjected = false;
+        console.log(window._co2ProfileLog);
     }
 
     // Retourner true car DATA a été modifié

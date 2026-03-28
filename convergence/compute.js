@@ -89,6 +89,35 @@ function getMasses() {
     h2o_kg += (DATA['📜']['🔺⚖️💧☄️'] || 0) * (DATA['📜']['📿☄️'] || 0);
     base['⚖️💧'] = h2o_kg;
 
+    // 🏭📊 Fraction aéroportée — appliquée ICI (source unique) pour survivre aux rappels getMasses() dans la boucle de convergence
+    const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    const isForwardMasses = (EPOCH['▶'] != null && epochEnd != null && EPOCH['▶'] < epochEnd);
+    if (!useInterpolated && isForwardMasses && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        let deltaMassesTics = 0;
+        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+            for (const tk of Object.keys(EPOCH['🕰'])) {
+                if (tk === '🔀' || tk === '◀') continue;
+                const cfg = EPOCH['🕰'][tk];
+                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                    const cnt = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
+                    deltaMassesTics += cnt * cfg['🔺⏳'] * 1e6;
+                }
+            }
+        }
+        const currentYearM = (EPOCH['▶'] || 0) + deltaMassesTics;
+        const profile = EPOCH['🏭📊'];
+        let cumulGtM = 0;
+        for (let i = 0; i < profile.tranches.length; i++) {
+            const tr = profile.tranches[i];
+            if (currentYearM <= tr.from) break;
+            const span = tr.to - tr.from;
+            const rate = span > 0 ? tr.Gt / span : 0;
+            cumulGtM += rate * (Math.min(currentYearM, tr.to) - tr.from);
+        }
+        const airborneM = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
+        base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
+    }
+
     if (!useInterpolated) {
         if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
             base['⚖️🫧'] = EPOCH['⚖️🫧'];
@@ -100,11 +129,7 @@ function getMasses() {
         }
     }
     DATA['⚖️'] = base;
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`📋 [getMasses@compute.js]`);
-    // console.log(`masses=${JSON.stringify(DATA['⚖️'])}`);
-    
+
     // Retourner true car DATA a été modifié
     return true;
 }
@@ -236,28 +261,17 @@ function getEpochDateConfig() {
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
 
-    // 🏭📊 Fraction aéroportée : si l'époque a un profil d'émissions anthropiques,
-    // ajouter les émissions cumulées × airborne (45%) à ⚖️🏭 (CO₂ atm. en kg)
-    // Architecture inchangée : on corrige DATA['⚖️'] APRÈS getMasses(), avant le solveur.
+    // 🏭📊 : le calcul est maintenant dans getMasses() (source unique, survit aux rappels de la boucle de convergence)
+    // Ici on génère seulement le log si l'époque a un profil d'émissions
     if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
-        const profile = EPOCH['🏭📊'];
-        const currentYear = (EPOCH['▶'] || 0) + deltaYearsFromTics;
-        let cumulGt = 0;
-        for (let i = 0; i < profile.tranches.length; i++) {
-            const tr = profile.tranches[i];
-            if (currentYear <= tr.from) break;                          // pas encore dans cette tranche
-            const yearsInTranche = tr.to - tr.from;
-            const rateGtPerYear = yearsInTranche > 0 ? tr.Gt / yearsInTranche : 0;
-            const yearsElapsed = Math.min(currentYear, tr.to) - tr.from;
-            cumulGt += rateGtPerYear * yearsElapsed;
-        }
-        // Gt → kg : × 1e12.  Fraction aéroportée (45%) : seule la part restant dans l'atmosphère
-        const airborne = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
-        const delta_co2_kg = cumulGt * 1e12 * airborne;
-        DATA['⚖️']['⚖️🏭'] += delta_co2_kg;
-        // Recalculer ⚖️🫧 (masse totale atm.) pour que la conversion kg→ppm reste cohérente
-        DATA['⚖️']['⚖️🫧'] = (DATA['⚖️']['⚖️🏭'] || 0) + (DATA['⚖️']['⚖️🐄'] || 0)
-            + (DATA['⚖️']['⚖️🫁'] || 0) + (DATA['⚖️']['⚖️💨'] || 0);
+        const ppm_approx = Math.round(
+            (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
+        );
+        window._co2ProfileLog = '[🏭📊] ' + Math.round((EPOCH['▶'] || 0) + deltaYearsFromTics)
+            + ' → ⚖️🏭=' + DATA['⚖️']['⚖️🏭'].toExponential(3)
+            + ' kg (~' + ppm_approx + ' ppm)';
+        window._co2ProfileLogInjected = false;
+        console.log(window._co2ProfileLog);
     }
 
     // Retourner true car DATA a été modifié

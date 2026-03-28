@@ -391,7 +391,7 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         // Échelle récente (plus de Ma) : 🔺⏳ en Ma → 0.00001 Ma = 10 ans par pas (calibration 100 ans)
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.00001},
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001},
         },
         '🌱': 0.31
     },
@@ -428,9 +428,12 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas (calibration 25 ans)
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000025},
+            '🛢': { '🔺🌡️💫': 0, '🔺⏳': 0.000025}, // 🛢 remplace 💫 pour 📱 (scénario émissions, forward)
             '◀': {
-                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.19e18, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
+                // ⚖️🏭 volontairement absent : le bary ne pilote PAS le CO₂ pour 📱
+                // Le CO₂ est exclusivement géré par getMasses() via 🏭📊 (airborne fraction par période)
+                // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
