@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.73
+// Version 1.2.75
 // Date: [March 2026]
 // Logs:
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
@@ -12,6 +12,7 @@
 // - v1.2.72: supprime VISUALWAIT.isDrawn (boucle while morte) ; remplace par await RAF direct après displayDichotomyStep (seul async indispensable)
 // - v1.2.73: bridge anim+visu_ via IO_LISTENER: compute:progress(payload spectral) -> plot:drawn -> await RAF
 // - v1.2.74: initForConfig ne re-clamp plus le verrou albédo glace sur 🍰🗻🏔 ; conserve la glace de surface déjà calculée
+// - v1.2.75: initForConfig — snapshot 📿☄️ avant getEpochDateConfig ; restaure si même 🗿 mais 📿☄️ remis à 0 (bug setEpoch / transition)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -265,7 +266,14 @@ function initForConfig() {
     }
     // getEpochDateConfig AVANT getSoleil/getNoyau : l'interpolation barycentrique
     // écrit DATA['☀️']['🔋☀️'] et DATA['🌕'], puis getSoleil/getNoyau en dérivent les flux.
+    const _epochIdBeforeGedc = DATA['📜'] && DATA['📜']['🗿'];
+    const _meteorTicsBefore = (DATA['📜'] && DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0;
     COMPUTE.getEpochDateConfig();
+    const _epochIdAfterGedc = DATA['📜'] && DATA['📜']['🗿'];
+    if (_epochIdBeforeGedc === _epochIdAfterGedc && _meteorTicsBefore > 0 && (DATA['📜']['📿☄️'] === 0 || DATA['📜']['📿☄️'] == null)) {
+        DATA['📜']['📿☄️'] = _meteorTicsBefore;
+        COMPUTE.getEpochDateConfig();
+    }
     if (!COMPUTE.getSoleil() || !COMPUTE.getNoyau()) {
         console.error('[initForConfig] getSoleil ou getNoyau invalide');
         return false;
