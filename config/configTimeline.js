@@ -1,7 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.2.6
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.3.0
+// Date: [Mar 29, 2026] [12:00 UTC+1]
 // logs :
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -15,11 +15,15 @@
 // - v1.2.4: 🌿 = Paléozoïque (500–250 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
 // - v1.2.5: baryByGroupDefault (CLOUD_SW/SCIENCE/SOLVER %) pour init DATA['🎚️'].baryByGroup dans initDATA.js
 // - v1.2.6: dates simplifiées Protérozoïque ◀ 500 Ma, Paléozoïque 500–250 Ma ; 🏔 ▶ 33 Ma déjà en place
+// - v1.2.7: Cénozoïque découpé : 🦣 66–50 Ma, 🐊 PETM / Terre étouffe 50–35 Ma, ⛰ prélude glaciaire 35–33 Ma, 🏔 Grande Coupure 33–23 Ma
+// - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
+// - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
+// - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
 //
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
 // ============================================================================
-// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🌿' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
+// Structure : array d'objets { '📅': emoji époque, '▶': number, '◀': number, ... }
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
 // ============================================================================
@@ -221,7 +225,7 @@ const timeline = [
         '⚖️🏭': 4.7e16,  // co2_kg (~6000 ppm, milieu de fourchette lit. 5–9k ppm)
         '⚖️🐄': 2.85e14,  // ch4_kg (~100 ppm, lit. 100–300 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
-        '⚖️🫁': 0,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
+        '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -254,7 +258,7 @@ const timeline = [
         '⚖️🏭': 1.2e16,  // co2_kg (~2300 ppm)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
-        '⚖️🫁': 0,
+        '⚖️🫁': 1.5e17,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 250 },
         },
@@ -296,42 +300,90 @@ const timeline = [
         '🌱': 0.31
     },
     {
-        '📅': '🦣', // Cénozoïque
+        '📅': '🦣', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
         '▶': 66e6,
-        '◀': 33e6, // Grande coupure Éocène-Oligocène (~33.9 Ma) → transition vers 🏔 après 1 tic (🔺⏳=33Ma)
-        // 🦣 Éocène chaud : pas de calotte polaire (CO2 ~1000 ppm, T > T_NO_POLAR_ICE)
+        '◀': 50e6,
         '⛄': 0,
-        // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016). — 18 °C
-        '🌡️🧮': 291,
-        // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).
+        '🌡️🧮': 290,
         '🧲🔬': 0.1,
-        '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) = 99.4% — NE PAS MODIFIER
-        '🔋🌕': 5.0e13, // core_power_watts (Puissance géothermique totale ~50 TW)
-        '📐': 6371, // Rayon de la planète en km
-        '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Cénozoïque)
-        '🐚': 1.0, // Facteur relief sous-marin
-        // Surfaces géologiques (Couche A - géologie/relief)
+        '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
+        '🔋🌕': 5.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
         '🗻': {
-            '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
-            '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
-            '🍰🗻🌍': 0.20  // Terres basses (20% - continents modernes)
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
         },
-        // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
-        // Simulation parameters - Quantités en kg. Lit. EECO ~1000-1400 ppm ; Paléocène ~600-800 ppm.
-        '⚖️🏭': 5.15e15, // co2_kg (~1000 ppm, Paléocène/Eocène — baisse CO2 explique refroidissement → 1800)
-        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm)
-        '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
-        '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
-        // Note: Les % seront calculés via calculations_atm.js
-        // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 5.0e15, // co2_kg (~650 ppm)
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 33 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
         },
         '🌱': 0.31
     },
-    // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
+    {
+        '📅': '🐊', // Terre étouffe (PETM, 50–35 Ma) — CO₂ très élevé (pic ~1500–2000 ppm) ; puis lente décroissance (altération silicates, Himalaya)
+        '▶': 50e6,
+        '◀': 35e6,
+        '⛄': 0,
+        '🌡️🧮': 297,
+        '🧲🔬': 0.1,
+        '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
+        '🔋🌕': 5.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': {
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
+        },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 9.01e15, // co2_kg (~1750 ppm, ordre PETM / Éocène chaud)
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
+        },
+        '🌱': 0.31
+    },
+    {
+        '📅': '⛰', // Prélude glaciaire (35–33 Ma) — encore ~1000 ppm puis chute rapide vers ~600–750 ppm sur ~1 Ma
+        '▶': 35e6,
+        '◀': 33e6,
+        '⛄': 0.02,
+        '🌡️🧮': 289,
+        '🧲🔬': 0.08,
+        '🔋☀️': 3.816e26, // 🔒 Gough @ 0.035 Ga
+        '🔋🌕': 4.85e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': {
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
+        },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 5.15e15, // co2_kg (~1000 ppm, avant chute Oi-1)
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 2 },
+        },
+        '🌱': 0.31
+    },
+    // Grande Coupure (EO–Oi, ~33 Ma) : calotte Antarctique, refroidissement majeur
     {
         '📅': '🏔',
         // 🏔 Grande Coupure : calotte Antarctique (~8.5% surface) — première glaciation polaire moderne
@@ -348,7 +400,7 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
         '⚖️🫧': 5.15e18,
-        '⚖️🏭': 6.06e15,
+        '⚖️🏭': 4.0e15,
         '⚖️🐄': 3.6e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
@@ -359,39 +411,30 @@ const timeline = [
         },
         '🌱': 0.31
     },
+    // Quaternaire (depuis ~2 Ma) : extension glaciaire hémisphère nord, cycles glaciaires-interglaciaires
     {
-        '📅': '🚂', // 1800
-        '▶': 1800,
-        '◀': 2025,
-        // 🌡️🧮 : ~287 K (pré-industriel) — 14 °C
+        '📅': '❄️',
+        '⛄': 0.11,
+        '▶': 2e6,
+        '◀': 400,
         '🌡️🧮': 287,
-        '🧲🔬': 0.01,
-        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉ = 100% (IAU 2015) — NE PAS MODIFIER
-        '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
-        '📐': 6371, // Rayon de la planète en km
-        '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Terre moderne)
-        '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
-        // Surfaces géologiques (Couche A - géologie/relief)
-        '🗻': {
-            '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
-            '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
-            '🍰🗻🌍': 0.20  // Terres basses (20% - continents modernes)
-        },
-        // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
-        // Simulation parameters - Quantités en kg
-        '⚖️🏭': 2.191e15, // co2_kg (~280 ppm, niveau pré-industriel) — recalibré M_CO2/M_air×⚖️🫧
-        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
-        '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
-        '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
-        '⚖️✈': 1.5e12, // sulfate_kg (CCN naturels uniquement : sel marin, aérosols volcaniques ; pas de pollution industrielle en 1800)
-        '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
-        // Note: Les % seront calculés via calculations_atm.js
-        // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
-        // Échelle récente (plus de Ma) : 🔺⏳ en Ma → 0.00001 Ma = 10 ans par pas (calibration 100 ans)
+        '🧲🔬': 0.04,
+        '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
+        '🔋🌕': 4.6e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.191e15,
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.2e12,
+        '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001},
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.25 },
         },
         '🌱': 0.31
     },
@@ -445,6 +488,33 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
+
+// Hors frise TIMELINE (v1.3.0) : époque 🚂 pré-industriel — même schéma qu’une entrée timeline (fusion manuelle, tests, doc)
+window.TIMELINE_EPOCH_PREINDUSTRIAL_1800 = {
+    '📅': '🚂',
+    '▶': 1800,
+    '◀': 2025,
+    '🌡️🧮': 287,
+    '🧲🔬': 0.01,
+    '🔋☀️': 3.828e26,
+    '🔋🌕': 4.6e13,
+    '📐': 6371,
+    '🍎': 9.81,
+    '📏🌊': 3.7,
+    '🐚': 1.0,
+    '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+    '⚖️🫧': 5.15e18,
+    '⚖️🏭': 2.191e15,
+    '⚖️🐄': 3.605e12,
+    '⚖️💧': 1.4e21,
+    '⚖️🫁': 1.0815e18,
+    '⚖️✈': 1.5e12,
+    '⚖️💨': 3.97e18,
+    '🕰': {
+        '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 },
+    },
+    '🌱': 0.31
+};
 
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :
