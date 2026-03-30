@@ -83,7 +83,7 @@ const CHARS = {
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
     PALEOZOIC: '🌿', // Paléozoïque (500–250 Ma en timeline) : os/fossile
     CENOZOIC: '🦣', // Cénozoïque : mammouth
-    PETM_HOUSE: '🐊', // PETM / Terre étouffe (50–35 Ma)
+    PETM_HOUSE: '🐊', // Hyperthermie éocène (50–35 Ma)
     PRELUDE_ICE: '⛰', // Prélude glaciaire (35–33 Ma)
     EOT: '🏔',      // Grande Coupure (~33 Ma)
     QUATERNARY: '❄️', // Quaternaire (~2 Ma)
@@ -185,7 +185,7 @@ const CHARS_DESC = {
     '🦕': 'Mésozoïque',
     '🌿': 'Paléozoïque',
     '🦣': 'Cénozoïque',
-    '🐊': 'Terre étouffe (PETM)',
+    '🐊': 'Hyperthermie éocène',
     '⛰': 'Prélude glaciaire',
     '🏔': 'Grande Coupure',
     '❄️': 'Quaternaire',
@@ -1393,7 +1393,7 @@ const timeline = [
         }
     },
     {
-        '📅': '🐊', // Terre étouffe (PETM, 50–35 Ma)
+        '📅': '🐊', // Hyperthermie éocène (50–35 Ma)
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,

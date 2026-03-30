@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.75
+// Version 1.2.76
 // Date: [March 2026]
 // Logs:
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
@@ -13,6 +13,7 @@
 // - v1.2.73: bridge anim+visu_ via IO_LISTENER: compute:progress(payload spectral) -> plot:drawn -> await RAF
 // - v1.2.74: initForConfig ne re-clamp plus le verrou albédo glace sur 🍰🗻🏔 ; conserve la glace de surface déjà calculée
 // - v1.2.75: initForConfig — snapshot 📿☄️ avant getEpochDateConfig ; restaure si même 🗿 mais 📿☄️ remis à 0 (bug setEpoch / transition)
+// - v1.2.76: await calculateFluxForT0() partout (async + workers) avant calculateRadiativeCapacities / getSpectralResultFromDATA
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -106,12 +107,7 @@ window.appendConvergenceStep = function () {};
 
 /** bins = 1980000/(19*|delta|+800), minoré 100, plafonné maxSpectralBinsConvergence. */
 function getBinsFromDelta(delta) {
-    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
-    // _REGLE_JS_CRASH : si delta est NaN, crash visible ici plutôt que deep dans buildAdaptiveLambdaGrid
-    if (!Number.isFinite(delta)) {
-        console.error('[getBinsFromDelta] delta invalide (' + delta + ') — NaN dans DATA[🧲][🔺🧲]. Vérifier getEpochDateConfig/interpolation.');
-    }
-    return Math.min(Math.max(100, Math.floor(1980000 / (19 * Math.abs(Number(delta)) + 800))), CONFIG_COMPUTE.maxSpectralBinsConvergence);
+    return Math.min(Math.max(100, Math.floor(1980000 / (19 * Math.abs(delta) + 800))), window.CONFIG_COMPUTE.maxSpectralBinsConvergence);
 }
 
 // 🔒 VARIABLES GLOBALES : window.enabledStates (créé par getEnabledStates()) remplace isH2O_eds, isCO2_eds, etc.
@@ -573,11 +569,12 @@ async function computeRadiativeTransfer(callback, options) {
     }
 
     const T_input_K = DATA['🧮']['🧮🌡️'];
-    const albedo_init = (DATA['🪩'] && DATA['🪩']['🍰🪩📿'] != null) ? DATA['🪩']['🍰🪩📿'] : NaN;
+    const albedo_init = (DATA['🪩'] && Number.isFinite(DATA['🪩']['🍰🪩📿'])) ? DATA['🪩']['🍰🪩📿'] : 0;
     const flux_solaire_absorbe_init = DATA['☀️']['🧲☀️🎱'] * (1 - albedo_init);
     const flux_entrant_init = flux_solaire_absorbe_init + DATA['🌕']['🧲🌕'];
 
-    if (!window.calculateFluxForT0()) return Promise.reject(new Error('calculateFluxForT0() a échoué'));
+    const calcFluxInitOk = await window.calculateFluxForT0();
+    if (calcFluxInitOk !== true) return Promise.reject(new Error('calculateFluxForT0() a échoué'));
     const spectral_result_init = window.getSpectralResultFromDATA();
     if (spectral_result_init.lambda_range && spectral_result_init.z_range) {
         const bins = spectral_result_init.lambda_range.length;
@@ -728,7 +725,7 @@ async function computeRadiativeTransfer(callback, options) {
                 if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             }
         }
-        window.calculateFluxForT0();
+        await window.calculateFluxForT0();
         window.calculateRadiativeCapacities();
         const spectral_result = window.getSpectralResultFromDATA();
         DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();
@@ -827,7 +824,7 @@ async function computeRadiativeTransfer(callback, options) {
             const currentBins = DATA['🧮']['🔬🌈'];
             const actualBins = (DATA['📊'] && DATA['📊'].lambda_range) ? DATA['📊'].lambda_range.length : 0;
             if (actualBins !== currentBins) {
-                window.calculateFluxForT0();
+                await window.calculateFluxForT0();
                 window.calculateRadiativeCapacities();
                 const spectral_sync = window.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_sync.total_flux;
@@ -844,7 +841,7 @@ async function computeRadiativeTransfer(callback, options) {
             if (DATA['🧮']['🔬🌈'] < maxBins && !skipFinalPassRAM) {
                 // Passe finale à résolution max pour courbe spectrale et EDS précis
                 DATA['🧮']['🔬🌈'] = maxBins;
-                window.calculateFluxForT0();
+                await window.calculateFluxForT0();
                 window.calculateRadiativeCapacities();
                 const spectral_final = window.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_final.total_flux;
@@ -933,7 +930,7 @@ async function computeRadiativeTransfer(callback, options) {
             window.H2O.calculateH2OParameters();
             window.COMPUTE.getEnabledStates();
             window.ALBEDO.calculateAlbedo();
-            window.calculateFluxForT0();
+            await window.calculateFluxForT0();
             window.calculateRadiativeCapacities();
             DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();
             DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
@@ -1062,7 +1059,7 @@ async function computeRadiativeTransfer(callback, options) {
                 if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             }
         }
-        window.calculateFluxForT0();
+        await window.calculateFluxForT0();
         window.calculateRadiativeCapacities();
         const spectral_after = window.getSpectralResultFromDATA();
         DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();

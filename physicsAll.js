@@ -3791,7 +3791,10 @@ function calculateAlbedo() {
     
     // Surface océanique réelle (peut être < bassin si pas assez d'eau)
     const ocean_volume_actual_m3 = ocean_mass_actual_kg / CONST.RHO_WATER;
-    const ocean_surface_actual_m2 = (ocean_volume_actual_m3 / EPOCH['📏🌊'] / 1000) * EPOCH['🐚'];
+    const ocean_depth_m = EPOCH['📏🌊'] * 1000;
+    const ocean_surface_actual_m2 = ocean_depth_m > 0
+        ? (ocean_volume_actual_m3 / ocean_depth_m) * EPOCH['🐚']
+        : 0;
     const ocean_coverage_base = Math.min(DATA['🗻']['🍰🗻🌊'], Math.max(0.0, ocean_surface_actual_m2 / planet_surface_m2));
     
     // Réduire ocean_coverage proportionnellement à volcano_coverage
@@ -4082,8 +4085,8 @@ function calculateAlbedo() {
     
     // Appliquer au final_albedo
     const final_albedo_with_water = final_albedo * blackbody_factor;
-    if (final_albedo_with_water === 0 || !Number.isFinite(final_albedo_with_water)) {
-        /* diagnostic désactivé en prod */
+    if (!Number.isFinite(final_albedo_with_water)) {
+        throw new Error('[calculateAlbedo] 🍰🪩📿 non fini (NaN/Inf) — contrôler 🧮🌡️, surfaces, cloud_fraction. T_K=' + DATA['🧮']['🧮🌡️'] + ' albedo=' + albedo + ' cloud_fraction=' + cloud_fraction + ' final_albedo=' + final_albedo + ' blackbody_factor=' + blackbody_factor);
     }
     // 🔒 Les surfaces sont déjà stockées plus haut (lignes 249-254)
     // ice_fraction_base est la surface de glace, ice_fraction_stock est la fraction du stock d'eau

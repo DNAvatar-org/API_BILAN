@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.3.2
-// Date: [Mar 29, 2026] [16:00 UTC+1]
+// Version 1.3.4
+// Date: [Mar 29, 2026] [18:30 UTC+1]
 // logs :
+// - v1.3.4: repères Ma affichage éditeur plaques alignés ▶ (⚫ 5000 Ma, 🔥 4500, 🦠 4000, 🌿 500, 🦕 250)
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -21,6 +22,7 @@
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
 // - v1.3.1: 📱 🕰 — une seule action ⛽ par tranche (retrait 🛢 des buckets 2025/2050/2075)
 // - v1.3.2: doc convention 📱 — tranche 2000 : 850e9 ↔ +850Gt en UI (pas SI Gt=1e12 kg ; cycle CO₂ / puits en attente TODO)
+// - v1.3.3: libellé UI 🐊 « Hyperthermie éocène » (remplace Terre étouffe (PETM))
 //
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
@@ -56,7 +58,7 @@ const timeline = [
         '🍰🧲🌕': 0.0, // geothermal_diffusion_factor (Facteur de diffusion du noyau vers la surface 0-1)
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
         '🍎': 8.3, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (valeur par défaut, pas d'eau pour cette époque)
+        '📏🌊': 0.0, // Profondeur moyenne océans en km (valeur par défaut, pas d'eau pour cette époque)
         '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
         '⚖️🫧': 0, // Masse atmosphère (Pas d'atmosphère)
         // Surfaces géologiques (Couche A - géologie/relief)
@@ -104,7 +106,7 @@ const timeline = [
         '🧲🌕': 2000000, // geothermal_flux (W/m²) - hardcodé pour cette époque
         '📐': 7008.1, // Rayon de la planète en km
         '🍎': 9.8, // Gravité en m/s²
-        '📏🌊': 100.0, // Profondeur moyenne océan de magma en km (Hadéen)
+        '📏🌊': 0.0, // Profondeur moyenne océan de magma en km (Hadéen)
         '🐚': 1.0, // Facteur relief sous-marin
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
@@ -330,7 +332,7 @@ const timeline = [
         '🌱': 0.31
     },
     {
-        '📅': '🐊', // Terre étouffe (PETM, 50–35 Ma) — CO₂ très élevé (pic ~1500–2000 ppm) ; puis lente décroissance (altération silicates, Himalaya)
+        '📅': '🐊', // Hyperthermie éocène (50–35 Ma) — CO₂ très élevé (pic ~1500–2000 ppm) ; puis lente décroissance (altération silicates, Himalaya)
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,

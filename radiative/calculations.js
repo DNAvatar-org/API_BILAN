@@ -1,10 +1,12 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.2.0
+// Version 1.2.2
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // - v1.1.9: plafond couches (maxLayersConvergence 800) + sous-échantillonnage stockage (max 400×600 en DATA) pour limiter RAM
 // - v1.2.0: format 3-flottants-par-λ (flux_init, ychange, flux_final) — supprime 4 matrices nZ×nL (×800 moins RAM) ; reconstruction 100 lignes dans getSpectralResultFromDATA
+// - v1.2.1: 🔬🌈 absent/NaN → fallback bins (CONFIG maxSpectralBinsConvergence) ; calculateRadiativeCapacities sans lambda_range → no-op (capacités 0)
+// - v1.2.2: getSpectralResultFromDATA — effective_temperature : si total_flux≤0 ou absent, même repli T_surface que sync_panels (évite null après Object.assign → plot)
 // Logs: v1.0.2 - kappa_H2O × H2O_VAPOR_EDS_SCALE (évite masquage CO2, doc/API/VAPEUR_VS_NUAGES.md)
 // Logs: v1.0.3 - Attribution EDS Schmidt 2010 : transfert overlap/2 de H2O vers CO2 à chaque (couche,λ), total 100%
 // Logs: v1.0.4 - Nuages EDS : τ_cloud (corps gris) ∝ 🍰🪩⛅ (albédo), réparti troposphère ; eds_breakdown.Clouds
@@ -151,7 +153,12 @@ async function calculateFluxForT0() {
 
     {
         const maxAllowedBins = (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxSpectralBinsConvergence) || 2000;
-        let expected_points = Math.max(2, Math.min(DATA['🧮']['🔬🌈'], 10000));
+        const rawBins = DATA['🧮'] != null ? DATA['🧮']['🔬🌈'] : undefined;
+        const nBinsFromData = Number(rawBins);
+        const fallbackBins = Math.max(24, Math.min(maxAllowedBins, 500));
+        let expected_points = (Number.isFinite(nBinsFromData) && nBinsFromData >= 1)
+            ? Math.max(2, Math.min(nBinsFromData, 10000))
+            : fallbackBins;
         const nMinHITRAN = window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN != null && Number.isFinite(window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN) ? window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN : 0;
         if (nMinHITRAN > 0) expected_points = Math.max(expected_points, Math.min(nMinHITRAN, 10000));
         expected_points = Math.max(24, Math.min(expected_points, maxAllowedBins)); // plafond = CONFIG
@@ -695,7 +702,10 @@ function getSpectralResultFromDATA() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const total_flux = DATA['📊'].total_flux;
-    const effective_temperature = (total_flux > 0 && CONST.STEFAN_BOLTZMANN) ? Math.pow(total_flux / CONST.STEFAN_BOLTZMANN, 0.25) : null;
+    const T_surf = (DATA['🧮'] && Number.isFinite(DATA['🧮']['🧮🌡️'])) ? DATA['🧮']['🧮🌡️'] : null;
+    const effective_temperature = (Number.isFinite(total_flux) && total_flux > 0 && CONST.STEFAN_BOLTZMANN)
+        ? Math.pow(total_flux / CONST.STEFAN_BOLTZMANN, 0.25)
+        : T_surf;
     const { lambda_range, lambda_weights, z_range, flux_init, flux_final, ychange, earth_flux } = DATA['📊'];
     if (!lambda_range || !flux_init || !flux_final || !ychange) {
         // Données compressées pas encore disponibles (premier appel avant tout calcul)
@@ -768,30 +778,35 @@ function calculateRadiativeCapacities() {
     DATA['🫧']['🍰🫧🐄🌈'] = 0;
     DATA['🫧']['🍰🫧📿🌈'] = 0;
     
-    // 🔒 CRASH si données manquantes (pas de fallback) - utiliser DATA directement
+    const lr = DATA['📊'] && DATA['📊'].lambda_range;
+    const zr = DATA['📊'] && DATA['📊'].z_range;
+    if (!lr || !Array.isArray(lr) || lr.length === 0 || !zr || !Array.isArray(zr) || zr.length < 2) {
+        console.warn('[calculateRadiativeCapacities] skip: DATA[📊].lambda_range ou z_range incomplet (attendre la fin de calculateFluxForT0)');
+        return;
+    }
     // 🔒 FILTRER sur l'IR uniquement (λ > 0.7 μm = 0.7e-6 m)
     // L'IR commence à ~0.7-1 μm, on prend 0.7 μm comme limite
     const lambda_IR_min = 0.7e-6; // 0.7 μm en mètres
     const lambda_IR_indices = [];
-    for (let j = 0; j < DATA['📊'].lambda_range.length; j++) {
-        if (DATA['📊'].lambda_range[j] >= lambda_IR_min) {
+    for (let j = 0; j < lr.length; j++) {
+        if (lr[j] >= lambda_IR_min) {
             lambda_IR_indices.push(j);
         }
     }
     
     // Calculer le poids radiatif (Planck à T_surface) pour chaque longueur d'onde IR
     const lambda_weights_IR = lambda_IR_indices.map(idx => {
-        return planckFunction(DATA['📊'].lambda_range[idx], DATA['🧮']['🧮🌡️']);
+        return planckFunction(lr[idx], DATA['🧮']['🧮🌡️']);
     });
     
     // Intégrale du poids radiatif sur IR (pour normalisation)
-    const delta_lambda = DATA['📊'].lambda_range.length > 1 ? (DATA['📊'].lambda_range[DATA['📊'].lambda_range.length - 1] - DATA['📊'].lambda_range[0]) / (DATA['📊'].lambda_range.length - 1) : 1e-6;
+    const delta_lambda = lr.length > 1 ? (lr[lr.length - 1] - lr[0]) / (lr.length - 1) : 1e-6;
     const weight_integral = lambda_weights_IR.reduce((sum, w) => sum + w, 0) * delta_lambda;
     
     // Précalculer les sections efficaces pour toutes les longueurs d'onde (calcul répétitif → garder const)
-    const cross_section_CO2 = DATA['📊'].lambda_range.map(lambda => crossSectionCO2(lambda));
-    const cross_section_H2O = DATA['📊'].lambda_range.map(lambda => crossSectionH2O(lambda));
-    const cross_section_CH4 = DATA['📊'].lambda_range.map(lambda => crossSectionCH4(lambda));
+    const cross_section_CO2 = lr.map(lambda => crossSectionCO2(lambda));
+    const cross_section_H2O = lr.map(lambda => crossSectionH2O(lambda));
+    const cross_section_CH4 = lr.map(lambda => crossSectionCH4(lambda));
     const h2o_eds_scale_cap = EARTH.H2O_EDS_SCALE;
     
     // Initialiser les intégrales pondérées
@@ -818,9 +833,9 @@ function calculateRadiativeCapacities() {
         let tau_CH4_lambda = 0;
         
         // Intégrer sur toutes les couches pour cette longueur d'onde
-        for (let i = 0; i < DATA['📊'].z_range.length - 1; i++) {
-            const z = DATA['📊'].z_range[i];
-            const delta_z = DATA['📊'].z_range[i + 1] - DATA['📊'].z_range[i];
+        for (let i = 0; i < zr.length - 1; i++) {
+            const z = zr[i];
+            const delta_z = zr[i + 1] - zr[i];
             
             // Densités numériques à cette altitude
             const n_air = window.airNumberDensityAtZ(z);
