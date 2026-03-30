@@ -1527,13 +1527,13 @@ const timeline = [
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
-        // 🕰 indexé par année : chaque bouton ajoute 🔺⚖️🏭 kg de CO₂ directement (sans airborne)
-        // ⚠️ valeurs 🔺⚖️🏭 en kg — calibration TODO
+        // 🕰 indexé par année : clic injecte 🔺⚖️🏭 ; cycle CO₂ / puits → TODO
+        // Convention UI +NGt : N·1e9 (tranche 2000 → 850e9 = +850Gt CO2)
         '🕰': {
-            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e9 } },
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e11 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e11 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e11 } },
+            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e9 } }, // +850 Gt (2000)
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e9 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e9 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e9 } },
             '◀': {
                 '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
