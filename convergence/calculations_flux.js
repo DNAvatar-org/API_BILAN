@@ -299,9 +299,14 @@ function initForConfig() {
     ALBEDO.calculateAlbedo();
     // Verrou glaciaire pour tout le solver de cette époque
     const hasAtmWaterSupport = (DATA['⚖️'] && DATA['⚖️']['⚖️🫧'] > 0 && DATA['⚖️']['⚖️💧'] > 0);
-    const ice_data_continuity = hasAtmWaterSupport ? Math.min(DATA['🗻']['🍰🗻🏔'], DATA['💧']['🍰💧🧊']) : 0;
+    // Surface max couvrable par la glace : hautes terres OU surface hydrosphère (océan gelé)
+    const _lockPlanetSurface = 4 * Math.PI * Math.pow((EPOCH['📐'] || 6371) * 1000, 2);
+    const _lockWaterLayer = (DATA['⚖️']['⚖️💧'] > 0 && _lockPlanetSurface > 0) ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _lockPlanetSurface : 0;
+    const _lockHydroSupport = Math.max(0, Math.min(0.9, _lockWaterLayer / 10));
+    const ice_surface_cap = Math.max(DATA['🗻']['🍰🗻🏔'], _lockHydroSupport);
+    const ice_data_continuity = hasAtmWaterSupport ? Math.min(ice_surface_cap, DATA['💧']['🍰💧🧊']) : 0;
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - EPOCH['🌡️🧮']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-    const ice_formula_epoch = Math.min(DATA['🗻']['🍰🗻🏔'], EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+    const ice_formula_epoch = Math.min(ice_surface_cap, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
     // Priorité : EPOCH['⛄'] (per-epoch) > OVERRIDES['⛄'] (global) > continuité DATA
     const epochIceOverride = (EPOCH != null && EPOCH['⛄'] != null && Number.isFinite(Number(EPOCH['⛄']))) ? Number(EPOCH['⛄']) : null;
     const globalIceOverride = (OVERRIDES.useEpochIceFixed === true && OVERRIDES['⛄'] != null && Number.isFinite(Number(OVERRIDES['⛄']))) ? Number(OVERRIDES['⛄']) : null;
@@ -312,7 +317,7 @@ function initForConfig() {
     const albedo_ice_effective = Math.max(0, albedo_ice_raw);
     STATE.iceEpochFixedWaterState = {
         epochId: DATA['📜']['🗿'],
-        value: Math.max(0, Math.min(Math.max(0, DATA['🗻']['🍰🗻🏔']), ice_fixed_value))
+        value: Math.max(0, Math.min(ice_surface_cap, ice_fixed_value))
     };
     STATE.iceEpochFixedAlbedoState = {
         epochId: DATA['📜']['🗿'],

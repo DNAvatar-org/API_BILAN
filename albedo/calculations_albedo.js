@@ -168,8 +168,15 @@ function calculateAlbedo() {
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
     function calcGlaceEquilibre(T_K) {
-        const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-        return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
+            // Régime calottes polaires : max ~10% de surface (highlands)
+            const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+            return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        }
+        // Régime gel océan : sous T_freeze (~271 K), la mer gèle en surface
+        // Rampe linéaire : 0% → 90% sur 20 K sous T_freeze (100% à ~251 K)
+        const ocean_freeze_fraction = Math.min(1, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20);
+        return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
     // Ne pas écraser le verrou glace posé par initForConfig en phase Search/Dicho (reproductibilité visu vs scie)
     const inSolverPhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
@@ -214,7 +221,14 @@ function calculateAlbedo() {
     const ocean_coverage_base = Math.min(DATA['🗻']['🍰🗻🌊'], Math.max(0.0, ocean_surface_actual_m2 / planet_surface_m2));
     
     // Réduire ocean_coverage proportionnellement à volcano_coverage
-    const ocean_coverage = ocean_coverage_base * (1.0 - volcano_coverage);
+    let ocean_coverage = ocean_coverage_base * (1.0 - volcano_coverage);
+
+    // 🔒 Boule de neige / gel océan : quand T < T_freeze_seawater, la surface océanique n'est plus "eau libre"
+    // (elle devient glace de mer). Pour l'albédo/visu, on bascule la surface en glace.
+    const isSeaIce = (DATA['🧮']['🧮🌡️'] < EARTH.T_FREEZE_SEAWATER_K);
+    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
+        ocean_coverage = 0;
+    }
     
     // 🔒 Stocker ocean_coverage dans DATA AVANT calculateCloudFormationIndex()
     // calculateCloudFormationIndex() a besoin de DATA['🪩']['🍰🪩🌊'] pour calculer ☁️
@@ -229,9 +243,16 @@ function calculateAlbedo() {
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
     const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
     const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
-    const hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
-    const ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
-    const ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+    let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
+    let ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
+    let ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+
+    // Gel océan : permettre une couverture de glace quasi-globale (y compris continents) pour l'albédo.
+    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
+        hydrosphere_surface_support = 1.0;
+        ice_cap_surface = 1.0;
+        ice_fraction_target = 1.0;
+    }
     if (!STATE.iceCoverageRampState || STATE.iceCoverageRampState.epochId !== DATA['📜']['🗿']) {
         STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
     }
@@ -332,6 +353,15 @@ function calculateAlbedo() {
     let ice_surface = DATA['🪩']['🍰🪩🧊'];
     let land_surface = total_land_coverage;
     let desert_surface = desert_coverage;
+
+    // Si mer gelée : la surface au sol est dominée par la glace (pas d'océan libre, biomes ignorés sous la glace)
+    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
+        ocean_surface = 0;
+        forest_surface = 0;
+        land_surface = 0;
+        desert_surface = 0;
+        ice_surface = Math.max(0, Math.min(1, 1.0 - volcano_surface));
+    }
     const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
     if (Math.abs(surface_sum - 1.0) > 0.03) {
         console.warn(`⚠️ [calculateAlbedo] Somme surfaces=${surface_sum.toFixed(4)} -> normalisation`);

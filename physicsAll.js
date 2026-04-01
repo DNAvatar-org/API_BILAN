@@ -3155,13 +3155,32 @@ function calculateWaterPartition() {
     DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
 
     // 🔒 ÉTAPE 2 : Déterminer la glace selon la température ET les surfaces disponibles
-    // La glace est limitée par les hautes terres disponibles (géologie)
+    // Deux régimes :
+    //   T >= T_freeze_seawater : glace polaire sur hautes terres (calottes classiques)
+    //   T <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
     const has_polar_ice = DATA['🧮']['🧮🌡️'] < EARTH.T_NO_POLAR_ICE_K;
     const polar_ice_fraction_climate = has_polar_ice ? Math.max(0, Math.min(0.10, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K * 0.10)) : 0;
-    
-    // 🔒 CONTRAINTE GÉOLOGIQUE : La glace ne peut pas dépasser les hautes terres disponibles
-    // polar_ice_fraction est une fraction de surface, limitée par highlands_fraction
-    const polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
+
+    // Support hydrosphère : couche d'eau globale → fraction de surface couvrable par la glace
+    const _planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
+    const _water_layer_m = DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _planet_surface_m2 : 0;
+    const _hydro_support = Math.max(0, Math.min(0.9, _water_layer_m / 10));
+
+    // T_freeze_seawater (~271 K) : en-dessous, l'océan gèle en surface
+    const _T_freeze_sea = EARTH.T_FREEZE_SEAWATER_K;
+    const _T = DATA['🧮']['🧮🌡️'];
+
+    let polar_ice_fraction;
+    if (_T >= _T_freeze_sea) {
+        // Régime classique : calottes polaires limitées aux hautes terres
+        polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
+    } else {
+        // Régime gel océan : proportion de l'océan gelée croît quand T descend sous T_freeze
+        // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
+        const ocean_freeze_fraction = Math.max(0, Math.min(1, (_T_freeze_sea - _T) / 20));
+        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], _hydro_support);
+        polar_ice_fraction = Math.min(max_ice_surface, ocean_freeze_fraction * max_ice_surface);
+    }
     
     // 🔒 CALCUL DE 🍰🫧💧 (fraction massique de vapeur d'eau dans l'atmosphère)
     // Formule : 🍰🫧💧 = max_vapor_fraction × (M_H2O / M_air)
@@ -3753,8 +3772,15 @@ function calculateAlbedo() {
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
     function calcGlaceEquilibre(T_K) {
-        const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-        return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
+            // Régime calottes polaires : max ~10% de surface (highlands)
+            const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+            return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        }
+        // Régime gel océan : sous T_freeze (~271 K), la mer gèle en surface
+        // Rampe linéaire : 0% → 90% sur 20 K sous T_freeze (100% à ~251 K)
+        const ocean_freeze_fraction = Math.min(1, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20);
+        return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
     // Ne pas écraser le verrou glace posé par initForConfig en phase Search/Dicho (reproductibilité visu vs scie)
     const inSolverPhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');

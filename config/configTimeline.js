@@ -207,7 +207,7 @@ const timeline = [
     {
         '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
-        '◀': 500e6,
+        '◀': 750e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque) — 12 °C
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
@@ -233,24 +233,83 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 500 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    // 🌿 = Paléozoïque (500–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
-    // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
+    // hystérésis = Pré–Boule de neige (750–720 Ma) : même CO₂ que ⛄ mais en partant chaud
+    // Objectif : trouver le point de déséquilibre au passage vers ⛄ (début réel à -720 Ma).
     {
-        '📅': '🌿', // Paléozoïque (500–250 Ma)
-        '▶': 500e6,
+        '📅': 'hystérésis', // Pré–Boule de neige (warm start)
+        hidden: true, // interne (non cliquable / non affiché dans la frise)
+        '▶': 750e6,
+        '◀': 720e6,
+        // Départ chaud pour converger depuis un état non-snowball
+        '🌡️🧮': 285,
+        '🧲🔬': 0.001,
+        '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
+        '🔋🌕': 8.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '⚖️🫧': 5.15e18,
+        // CO₂ réglable ici, en partant chaud. Par défaut: même valeur que ⛄.
+        '⚖️🏭': 2.0e16,
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
+        '🌱': 0.0
+    },
+    // ⛄ = Boule de neige (720–600 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma, Marinoen ~650 Ma)
+    // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
+    {
+        '📅': '⛄', // Boule de neige (720–600 Ma) — Snowball Earth
+        // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
+        '▶': 720e6,
+        '◀': 600e6,
+        // 🌡️🧮 : ~240 K (-33°C) — lit. Pierrehumbert 2011 : 220–250 K surface moyenne snowball
+        '🌡️🧮': 273,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
+        '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6, // Profondeur océans (Néoprotérozoïque)
+        '🐚': 1.0,
+        '🗻': {
+            '🍰🗻🌊': 0.75,
+            '🍰🗻🏔': 0.08,
+            '🍰🗻🌍': 0.17
+        },
+        '⚖️🫧': 5.15e18,
+        // CO₂ bas au début (cause du snowball), puis accumulation volcanique pendant la glaciation
+        // Lit. : CO₂ ~100–1000 ppm pré-snowball ; ~350× PAL (~100 000 ppm) pour en sortir (Hoffman 1998)
+        '⚖️🏭': 2.0e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
+        '⚖️🐄': 1.0e14,  // ch4_kg (faible, méthanogènes sous glace)
+        '⚖️💧': 1.2e21,  // h2o_kg (~86% actuel, océans sous glace)
+        '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 150 },
+        },
+        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+    },
+    // 🌿 = Paléozoïque (600–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
+    // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
+    {
+        '📅': '🌿', // Paléozoïque (600–250 Ma)
+        '▶': 600e6,
         '◀': 250e6,
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations) — 17 °C
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.668e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.5/4.57) = 95.8% — NE PAS MODIFIER
+        '🔋☀️': 3.638e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.6/4.57) = 95.0% — NE PAS MODIFIER
         '🔋🌕': 6.5e13, // core_power_watts
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6, // Profondeur océans (Paléozoïque)
+        '📏🌊': 3.6, // Profondeur océans (Paléozoïque, 600–250 Ma)
         '🐚': 1.0,
         '🗻': {
             '🍰🗻🌊': 0.78,
@@ -577,9 +636,11 @@ window.CONFIG_COMPUTE.iceCoverageRampMaxStepEarly = 0.001;         // [EQ/NUM]
 
 // Catégorie à part : overrides debug/patch (pas dans CONFIG_COMPUTE).
 window.OVERRIDES = window.OVERRIDES || {};
-// true = utiliser OVERRIDES['⛄'] (valeur override glace). Valeur ex. Cénozoïque : 0.085.
-window.OVERRIDES.useEpochIceFixed = true;
-window.OVERRIDES['⛄'] = 0.085;
+// Désactivé par défaut :
+// Le verrou glace doit venir de la physique (partition eau + gel océan) ou des valeurs per-epoch (EPOCH['⛄']),
+// sinon ça casse ⛄ "Boule de neige" (750–600 Ma) en limitant la glace à ~8.5%.
+window.OVERRIDES.useEpochIceFixed = false;
+window.OVERRIDES['⛄'] = null;
 
 const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
     ? window.TUNING.SOLVER

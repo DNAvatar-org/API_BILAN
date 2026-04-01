@@ -80,8 +80,9 @@ const CHARS = {
     HADEEN: '🔥',   // Hadéen : feu/lave
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
     PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
+    SNOWBALL: '⛄',  // Boule de neige (720–600 Ma) : Snowball Earth
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
-    PALEOZOIC: '🌿', // Paléozoïque (500–250 Ma en timeline) : os/fossile
+    PALEOZOIC: '🌿', // Paléozoïque (600–250 Ma en timeline) : os/fossile
     CENOZOIC: '🦣', // Cénozoïque : mammouth
     PETM_HOUSE: '🐊', // Hyperthermie éocène (50–35 Ma)
     PRELUDE_ICE: '⛰', // Prélude glaciaire (35–33 Ma)
@@ -182,6 +183,7 @@ const CHARS_DESC = {
     '🔥': 'Hadéen',
     '🦠': 'Archéen',
     '🥟': 'Protérozoïque',
+    '⛄': 'Boule de neige',
     '🦕': 'Mésozoïque',
     '🌿': 'Paléozoïque',
     '🦣': 'Cénozoïque',
@@ -1274,7 +1276,7 @@ const timeline = [
     {
         '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
-        '◀': 541e6,
+        '◀': 750e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
@@ -1303,16 +1305,62 @@ const timeline = [
             '💫': { '🔺⏳': 100 },
         }
     },
-    // 🌿 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
-    // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
+    // hystérésis = Pré–Boule de neige (750–720 Ma) : même CO₂ que ⛄ mais en partant chaud
+    // Objectif : trouver le point de déséquilibre au passage vers ⛄ (début réel à -720 Ma).
     {
-        '📅': '🌿', // Paléozoïque (541–252 Ma)
-        '▶': 541e6,
+        '📅': 'hystérésis', // Pré–Boule de neige (warm start)
+        hidden: true, // interne (non cliquable / non affiché dans la frise)
+        '▶': 750e6,
+        '◀': 720e6,
+        '🌡️🧮': 285,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.592e26,
+        '🔋🌕': 8.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.0e16,
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': { '💫': { '🔺⏳': 30 } }
+    },
+    // ⛄ = Boule de neige (720–600 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma, Marinoen ~650 Ma)
+    {
+        '📅': '⛄', // Boule de neige (720–600 Ma)
+        '▶': 720e6,
+        '◀': 600e6,
+        '🌡️🧮': 0,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.592e26, // 🔒 Gough (1981) @0.75Ga = 93.8%
+        '🔋🌕': 8.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.0e16,
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': {
+            '💫': { '🔺⏳': 150 },
+        }
+    },
+    // 🌿 = Paléozoïque (600–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
+    // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
+    {
+        '📅': '🌿', // Paléozoïque (600–252 Ma)
+        '▶': 600e6,
         '◀': 252e6,
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations)
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.668e26, // 🔒 Gough (1981) @0.5Ga = 95.8%
+        '🔋☀️': 3.638e26, // 🔒 Gough (1981) @0.6Ga = 95.0%
         '🔋🌕': 6.5e13, // core_power_watts
         '📐': 6371,
         '🍎': 9.81,
@@ -1628,9 +1676,9 @@ window.CONFIG_COMPUTE.iceCoverageRampMaxStepEarly = 0.001;         // [EQ/NUM]
 
 // Catégorie à part : overrides debug/patch (pas dans CONFIG_COMPUTE).
 window.OVERRIDES = window.OVERRIDES || {};
-// true = utiliser OVERRIDES['⛄'] (valeur override glace). Valeur ex. Cénozoïque : 0.085.
-window.OVERRIDES.useEpochIceFixed = true;
-window.OVERRIDES['⛄'] = 0.085;
+// Désactivé par défaut (voir configTimeline.js) : laisser la physique gérer ⛄ Boule de neige.
+window.OVERRIDES.useEpochIceFixed = false;
+window.OVERRIDES['⛄'] = null;
 
 const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
     ? window.TUNING.SOLVER
