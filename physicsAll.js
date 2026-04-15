@@ -15,7 +15,7 @@
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Sections efficaces : hitran.js + lignes HITRAN. ΔF = convention affichage → climate.js, pas ici.
@@ -189,7 +189,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Initial: Q(T), S(T), γ_air/γ_self, γ_L total, γ_D, Voigt (réf. doc/HITRAN.txt).
@@ -565,7 +565,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // ============================================================================
@@ -2977,7 +2977,7 @@ window.simulateRadiativeTransfer = simulateRadiativeTransfer;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1 : M_dry depuis masses (air sec) au lieu de M_air (dépendance circulaire) ; clamp 🍰🫧💧≤1
@@ -3613,7 +3613,7 @@ window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - epochId Archéen : 🦠 (🌋 réservé actions). Archéen utilise clouds modernes pour ~15°C.
@@ -4243,7 +4243,7 @@ window.updateLevelsConfig = updateLevelsConfig;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Fix: use DATA['🧮']['🧮🌡️'] in calculateAtmosphereProperties (was typo 🌡️)
@@ -4536,7 +4536,7 @@ window.ch4KgToFraction = ch4KgToFraction;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)

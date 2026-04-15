@@ -1,8 +1,12 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.3.15
-// Date: [April 03, 2026] [23:05 UTC+1]
+// Version 1.3.19
+// Date: [April 15, 2026] [12:00 UTC+1]
 // logs :
+// - v1.3.19: spectralBandLogoImgPx / EmojiPx défaut 18 px (bandes spectre, taille historique)
+// - v1.3.18: spectralBandLogoImgPx / EmojiPx / ImgPxByEmoji (plot.js bandes [ ] : PNG vs UTF‑8)
+// - v1.3.17: spectralEdsSunLambdaUm défaut 10 μm (repères EDS/Soleil sur le graphe)
+// - v1.3.16: CONFIG_COMPUTE spectralBandIndicatorLiftPx, spectralEdsSunLambdaUm, spectralEdsSunStackLiftPx (plot.js marqueurs spectraux)
 // - v1.3.15: commentaire 🐊 libellé UI « Éocène »
 // - v1.3.14: CONFIG_COMPUTE.logCo2RadiativeDiagnostic (🔎 CO₂ atmosphère + 🧲📛🏭 pas hyst ; aligné configsAll)
 // - v1.3.13: baryByGroupDefault.HYSTERESIS 100 (aligné initDATA 🎚️)
@@ -18,7 +22,7 @@
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.2.1: add sulfate proxy mass ⚖️✈ for 🚂/📱 and disable verbose debug flags
@@ -690,6 +694,14 @@ window.CONFIG_COMPUTE.logEdsDiagnostic = false;
 // Lissage visuel du spectre (affichage uniquement, pas la physique/OLR)
 window.CONFIG_COMPUTE.plotSmoothEnable = true;
 window.CONFIG_COMPUTE.plotSmoothSigmaBins = 8.0;//5.6;
+// Repères spectre (visu plot.js) : monter les [ ] molécules ; pile EDS + Soleil (image ☀️) centrée en λ
+window.CONFIG_COMPUTE.spectralBandIndicatorLiftPx = 14;
+window.CONFIG_COMPUTE.spectralEdsSunLambdaUm = 10;
+window.CONFIG_COMPUTE.spectralEdsSunStackLiftPx = 26;
+// Bandes [ ] spectre : PNG (charsImages) vs emoji ; ImgPxByEmoji = map clef emoji -> px (ex. une seule entree pour CH4)
+window.CONFIG_COMPUTE.spectralBandLogoImgPx = 18;
+window.CONFIG_COMPUTE.spectralBandLogoEmojiPx = 18;
+window.CONFIG_COMPUTE.spectralBandLogoImgPxByEmoji = {};
 // Logs diagnostics
 window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
 // true : une ligne par calculateAlbedo (T, mer gelée, facteur polaire, cibles, verrous hyst, 🍰🪩🧊 après normalisation surfaces)

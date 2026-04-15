@@ -31,7 +31,7 @@
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 
@@ -396,7 +396,7 @@ window.initCharsForDisplay = function () {
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: KEYS/DESC 📛 + 🍰📛⛅ (EDS nuages), DESC 🧲📛/🍰📛❀
@@ -810,7 +810,7 @@ window.createDicoHtml = createDicoHtml;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: extraction init DATA depuis dico.js (KEYS → DATA, puis 🎚️)
@@ -876,7 +876,7 @@ window.createDicoHtml = createDicoHtml;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: extraction des coefficients calibres cloud SW + solveur numerique depuis calculations_albedo.js/configTimeline.js
@@ -970,7 +970,7 @@ window.TUNING.HYSTERESIS = {
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: catalogue des parametres CLOUD_SW/SOLVER avec references et effet +/- sur le rechauffement
@@ -1067,7 +1067,7 @@ window.TUNING_BIBLIO = {
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: cible CLOUD_SW.CLOUD_FRACTION_BASE avec 3 points d'essai (min/moy/max)
@@ -1271,7 +1271,7 @@ window.FINE_TUNING_BOUNDS = {
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.2.1: add sulfate proxy mass ⚖️✈ for 🚂/📱 and disable verbose debug flags
