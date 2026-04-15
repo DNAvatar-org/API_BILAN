@@ -1,8 +1,9 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.2
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.3.3
+// Date: [April 02, 2026] [18:00 UTC+1]
 // logs :
+// - v1.3.3: groupe HYSTERESIS (mer gelée / CO₂ mer / impact glace) — bornes type littérature + preset scie_compute
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -151,6 +152,54 @@ window.FINE_TUNING_BOUNDS = {
             source: 'Seuil de bascule vers cap large du pas Search',
             effect: 'neutral_on_physics',
             biblio_ref: 'LARGE_DELTA_FACTOR'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'seaIceTransitionRangeK',
+            min: 1,
+            max: 6,
+            default: 2.2,
+            unit: 'K',
+            note: 'largeur T sous T_gel : fraction mer gelée 0→1 (moteur calculations_albedo)',
+            source: 'EBM cryosphère Budyko–Sellers ; transitions résolues typ. ~quelques K en paramétrisation agrégée ; plage UI scie ×1000',
+            effect: 'mixed',
+            biblio_ref: 'HYST_SEA_ICE_RANGE_K'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'seaIceStrength01',
+            min: 0,
+            max: 1,
+            default: 1,
+            unit: 'fraction',
+            note: 'intensité mer gelée sur couverture océan',
+            source: 'Borne physique [0,1] ; 1 = rétroaction albédo maximale (jeux de paramètres type snowball)',
+            effect: 'negative',
+            biblio_ref: 'HYST_SEA_ICE_STRENGTH'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'iceImpactFactor01',
+            min: 0,
+            max: 1,
+            default: 0.7,
+            unit: 'fraction',
+            note: 'impact glace sur albédo (GREY)',
+            source: 'AR6 WGI plages albédo glace/neige vs surface sombre ; preset lit. 0,7 entre nominal ~0,53 et max 1',
+            effect: 'negative',
+            biblio_ref: 'HYST_ICE_IMPACT'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'co2OceanEffPump01',
+            min: 0,
+            max: 1,
+            default: 0.1,
+            unit: 'fraction',
+            note: 'vitesse relaxation Henry atmos↔océan (Σ carbone conservé)',
+            source: 'Zeebe & Wolf-Gladrow (2001) solubilité ; efficacité numérique 0–1 ; NO-OP si hystérésis active',
+            effect: 'mixed',
+            biblio_ref: 'HYST_CO2_OCEAN_EFF'
         }
     ]
 };

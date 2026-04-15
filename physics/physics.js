@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: En français, dans l'architecture, je suis le module de physique fondamentale
-// Version 2.0.7
-// Date: [January 2025]
+// Version 2.0.9
+// Date: [April 02, 2026] [14:30 UTC+1]
 // logs :
+// - v2.0.9: EARTH['🪩🍰']['🪩🍰🎾'] albédo lave (ex-🪩🍰🌋)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -18,6 +19,7 @@
 // - v2.0.5 : règle simple h2o_eds_scale = 0.92 si T>290K, sinon 1.0
 // - v2.0.6 : essai calibration 2025 (EDS H2O) : h2o_eds_scale = 0.92 en base, sans branchement epoch
 // - v2.0.7 : CONV (convention) et EARTH (terrestre) extraits de CONST ; albédos 🪩🍰 dans EARTH, override par EPOCH['🪩🍰']
+// - v2.0.9 : clé albédo lave 🪩🍰🎾 (remplace 🪩🍰🌋 pour cohérence avec 🍰🪩🎾)
 // ============================================================================
 
 // Initialiser CONST (pointeur vers window.CONST)
@@ -120,7 +122,7 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib 
 // Facteur κ_H2O dans EDS. Défaut 0.92 ; recalculé dans calculateFluxForT0 (calculations.js) : 0.92×sqrt(P_ratio)×CO2_factor.
 EARTH.H2O_EDS_SCALE = 0.92;
 EARTH['🪩🍰'] = {
-    '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
+    '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
 };
 

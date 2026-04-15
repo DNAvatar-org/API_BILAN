@@ -2,8 +2,10 @@
 // Desc: Logique autonome d'interpolation [0-100 %] entre bornes min/max pour chaque paramètre
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER.
 //       Aucune dépendance DOM — utilisable API seule.
-// Version 1.0.0
-// Date: 2026-03-26
+// Version 1.0.1
+// Date: 2026-04-03
+// Logs:
+// - v1.0.1: sous-objets DATA['🎚️'][group] créés si absents ; bary % manquant → 100 (sync scie/parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -65,6 +67,7 @@
         var targets = targetsByGroup(groupKey);
         for (var i = 0; i < targets.length; i++) {
             var target = targets[i];
+            if (!T[target.group]) T[target.group] = {};
             T[target.group][target.key] = interpolate(target, pct);
         }
     }
@@ -81,7 +84,10 @@
         for (var i = 0; i < bounds.targets.length; i++) {
             var target = bounds.targets[i];
             var baryKey = target.baryGroup || target.group;
-            T[target.group][target.key] = interpolate(target, bg[baryKey]);
+            if (!T[target.group]) T[target.group] = {};
+            var pctRaw = bg[baryKey];
+            var pct = Number.isFinite(Number(pctRaw)) ? Number(pctRaw) : 100;
+            T[target.group][target.key] = interpolate(target, pct);
         }
         syncSolverConfig();
     }
@@ -108,11 +114,15 @@
             if (payload.baryByGroup.CLOUD_SW !== undefined) T.baryByGroup.CLOUD_SW = payload.baryByGroup.CLOUD_SW;
             if (payload.baryByGroup.SCIENCE !== undefined) T.baryByGroup.SCIENCE = payload.baryByGroup.SCIENCE;
             if (payload.baryByGroup.SOLVER !== undefined)  T.baryByGroup.SOLVER  = payload.baryByGroup.SOLVER;
+            if (payload.baryByGroup.HYSTERESIS !== undefined) T.baryByGroup.HYSTERESIS = payload.baryByGroup.HYSTERESIS;
             // Si valeurs directes fournies, les appliquer
             if (payload.CLOUD_SW) T.CLOUD_SW = Object.assign({}, T.CLOUD_SW, payload.CLOUD_SW);
             if (payload.SOLVER)   T.SOLVER   = Object.assign({}, T.SOLVER, payload.SOLVER);
             if (payload.updates && Array.isArray(payload.updates)) {
-                payload.updates.forEach(function (u) { T[u.group][u.key] = u.value; });
+                payload.updates.forEach(function (u) {
+                    if (!T[u.group]) T[u.group] = {};
+                    T[u.group][u.key] = u.value;
+                });
             }
             // Re-interpoler depuis les baryByGroup (les valeurs directes sont écrasées par l'interpolation)
             fillDataTuningFromBary();

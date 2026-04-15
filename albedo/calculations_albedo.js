@@ -1,8 +1,14 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.31
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.2.43
+// Date: [April 03, 2026] [22:30 UTC+1]
 // logs :
+// - v1.2.43: updateLevelsConfig — lecture directe DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] (pas de const stale)
+// - v1.2.42: diagnostics glace / albédo → pdTrace au lieu de pd
+// - v1.2.41: CONFIG_COMPUTE.logIceFractionDiagnostic — journal chaîne complète vers 🍰🪩🧊 (polaire, mer gelée, verrous, surface finale)
+// - v1.2.40: recherche HYSTERESIS.active — pas de verrou glace époque / gel polaire / rampe (🍰🪩🧊 suit T et CO₂ pour chute brutale)
+// - v1.2.39: 🍰🪩📿 albédo effectif (voile inclus) ; 🧲☀️🔽 = S×(1−🍰🪩📿)
+// - v1.2.36: clés lave 🍰🪩🎾 / 🪩🍰🎾 (ex-🍰🪩🌋 / 🪩🍰🌋) ; événement TIMELINE 🌋 inchangé
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -42,19 +48,65 @@
 // - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
 // - v1.2.30 : si 🍰🪩📿 final non fini (NaN/Inf) → throw explicite (pas de stockage silencieux dans DATA)
 // - v1.2.31 : surface océanique réelle : si 📏🌊=0 (pas de colonne d’eau géométrique), éviter 0/0 → surface océanique 0 (ex. ⚫)
+// - v1.2.32 : gel océan lissé (fonction de T), plus de bascule brutale ocean→glace (sans if d'époque)
+// - v1.2.33 : conserve somme des surfaces (=1) après SEA_ICE_BLEND (fraction manquante → glace)
+// - v1.2.34 : ice_impact_factor paramétrable via CONFIG_COMPUTE.iceImpactFactor01 (tests)
+// - v1.2.35 : 🍰⚽ atténuation solaire absorbée en surface (événements 🌋 + jauge hyst) ; indép. τ LW nuages
+// - v1.2.36 : clés DATA lave 🍰🪩🎾 / 🪩🍰🎾 (remplace 🌋 pour la fraction surface magmatique)
+// - v1.2.37 : 🍰🪩⚽ dans DATA['🪩'] (puis aligné v1.2.38 : transmission = 1−🍰⚽) ; purge 🍰🪩🌋
+// - v1.2.38 : 🍰⚽ obstruction, 🍰🪩⚽ = 1−🍰⚽ ; flux × transmission (priorité lecture 🍰⚽)
+// - v1.2.39 : 🍰🪩📿 inclut voile (A_eff) ; calculateSolarFluxAbsorbed = S×(1−A_eff) sans double ×🍰🪩⚽
 //
 // FORMULES ALBEDO :
-// 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🌋,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
+// A_geo = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
 //   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅
-// 🍰🪩🌋 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
+// 🍰🪩📿 (DATA) = 1 − (1−A_geo)(1−🍰⚽) après blackbody_factor sur A_geo
+// 🍰🪩🎾 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
 //   où ocean_volume_m3 = (⚖️💧 × 🍰💧🌊) / 1000
 // 🍰🪩🌳 = forest_coverage = f(T, ocean_coverage) : si T<30°C et ocean>0.1 alors min(0.5, ocean × (1-T/30))
 // 🍰🪩🌍 = land_coverage = max(0, 1.0 - ocean - ice - forest) (continents, prairies, sols humides, albedo ~0.18)
-// 🍰🪩🏜️ = desert_coverage = 1.0 - (🌋 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
+// 🍰🪩🏜️ = desert_coverage = 1.0 - (🎾 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
 // 🍰🪩🧊 = ice_coverage = min(0.9, 🍰💧🧊 × 0.9)
 // 🍰🪩⛅ = cloud_coverage = C_max × ☁️ où C_max ≈ 0.7 et ☁️ = CloudFormationIndex
+// 🍰⚽ ∈ [0,0.95] : obstruction voile SW sur le faisceau déjà modulé par A_geo (EPOCH+📜+CONFIG)
+// 🍰🪩⚽ = 1 − 🍰⚽ : transmission de ce faisceau ; 🍰🪩📿 (DATA) = 1 − (1−A_geo)(1−🍰⚽) = albédo planétaire effectif
+
+// ============================================================================
+// Albédo effectif (surfaces + nuages + voile SW) : cohérence 🍰🪩📿 / 🧲☀️🔽 / 🧲🪩🔼
+// ============================================================================
+function applyVeilToPlanetaryAlbedo01(A_geom) {
+    const A = Number(A_geom);
+    if (!Number.isFinite(A)) return NaN;
+    const a = Math.max(0, Math.min(1, A));
+    const DATA = window.DATA;
+    const w = DATA && DATA['🪩'];
+    let obs = 0;
+    if (w && Number.isFinite(w['🍰⚽'])) {
+        obs = Math.max(0, Math.min(0.95, w['🍰⚽']));
+    }
+    return 1 - (1 - a) * (1 - obs);
+}
+
+// ============================================================================
+// VOILE SW STRATOSPHÉRIQUE : 🍰⚽ (obstruction, source métier) ; 🍰🪩⚽ = 1−🍰⚽ (transmission)
+// ============================================================================
+function syncStratosphericVeil01(DATA) {
+    if (!DATA || !DATA['📜']) return 0;
+    if (!DATA['🪩']) DATA['🪩'] = {};
+    const epochId = DATA['📜']['🗿'];
+    const tl = window.TIMELINE;
+    const idx = tl ? tl.findIndex(function (item) { return item['📅'] === epochId; }) : -1;
+    const EPOCHv = idx >= 0 ? tl[idx] : null;
+    const base = (EPOCHv && typeof EPOCHv['🍰⚽'] === 'number' && Number.isFinite(EPOCHv['🍰⚽'])) ? EPOCHv['🍰⚽'] : 0;
+    const cum = (DATA['📜']['🔺🍰⚽'] != null && Number.isFinite(DATA['📜']['🔺🍰⚽'])) ? DATA['📜']['🔺🍰⚽'] : 0;
+    const extra = (window.CONFIG_COMPUTE && Number.isFinite(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01)) ? window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 : 0;
+    const obs = Math.min(0.95, Math.max(0, base + cum + extra));
+    DATA['🪩']['🍰⚽'] = obs;
+    DATA['🪩']['🍰🪩⚽'] = 1 - obs;
+    return obs;
+}
 
 // ============================================================================
 // COEFFICIENTS D'ALBÉDO PAR TYPE DE SURFACE
@@ -165,6 +217,8 @@ function calculateAlbedo() {
     const STATE = window.STATE;
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
+    syncStratosphericVeil01(DATA);
+
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
     function calcGlaceEquilibre(T_K) {
@@ -173,9 +227,9 @@ function calculateAlbedo() {
             const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
             return Math.max(0, Math.min(1, 0.1 * stock_factor));
         }
-        // Régime gel océan : sous T_freeze (~271 K), la mer gèle en surface
-        // Rampe linéaire : 0% → 90% sur 20 K sous T_freeze (100% à ~251 K)
-        const ocean_freeze_fraction = Math.min(1, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20);
+        // Régime gel océan (équilibre) : sous T_freeze (~271 K), une part croissante de surface devient glace de mer.
+        // Rampe linéaire : 0 → 90% sur ~20 K sous T_freeze. (Toujours bornée par 0.9 par design du modèle.)
+        const ocean_freeze_fraction = Math.min(1, Math.max(0, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20));
         return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
     // Ne pas écraser le verrou glace posé par initForConfig en phase Search/Dicho (reproductibilité visu vs scie)
@@ -223,11 +277,23 @@ function calculateAlbedo() {
     // Réduire ocean_coverage proportionnellement à volcano_coverage
     let ocean_coverage = ocean_coverage_base * (1.0 - volcano_coverage);
 
-    // 🔒 Boule de neige / gel océan : quand T < T_freeze_seawater, la surface océanique n'est plus "eau libre"
-    // (elle devient glace de mer). Pour l'albédo/visu, on bascule la surface en glace.
-    const isSeaIce = (DATA['🧮']['🧮🌡️'] < EARTH.T_FREEZE_SEAWATER_K);
-    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
-        ocean_coverage = 0;
+    // Gel océan lissé (pas de bascule brutale) :
+    // Quand T passe sous T_freeze, une fraction croissante de l'océan devient "mer gelée" (glace de mer).
+    // On ne supprime pas instantanément l'océan, on le convertit progressivement en glace optique.
+    const T_K = DATA['🧮']['🧮🌡️'];
+    const hasOcean = (DATA['⚖️']['⚖️💧'] > 0);
+    const T_freeze = EARTH.T_FREEZE_SEAWATER_K;
+    const seaIceRangeK = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.seaIceTransitionRangeK)))
+        ? Number(window.CONFIG_COMPUTE.seaIceTransitionRangeK)
+        : 20;
+    const seaIceStrength01 = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.seaIceStrength01)))
+        ? Math.max(0, Math.min(1, Number(window.CONFIG_COMPUTE.seaIceStrength01)))
+        : 1.0;
+    const seaIceFracRaw = seaIceRangeK > 0 ? Math.max(0, Math.min(1, (T_freeze - T_K) / seaIceRangeK)) : (T_K < T_freeze ? 1 : 0);
+    const seaIceFrac = seaIceStrength01 * seaIceFracRaw;
+    // Part d'océan encore libre:
+    if (hasOcean && seaIceFrac > 0) {
+        ocean_coverage = ocean_coverage * (1.0 - seaIceFrac);
     }
     
     // 🔒 Stocker ocean_coverage dans DATA AVANT calculateCloudFormationIndex()
@@ -246,30 +312,36 @@ function calculateAlbedo() {
     let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
     let ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
     let ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+    const icePolarFormulaTarget = ice_fraction_target;
 
-    // Gel océan : permettre une couverture de glace quasi-globale (y compris continents) pour l'albédo.
-    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
-        hydrosphere_surface_support = 1.0;
-        ice_cap_surface = 1.0;
-        ice_fraction_target = 1.0;
+    // Mer gelée (lissé) : augmente le support/target de glace de manière progressive en fonction de seaIceFrac.
+    // L'idée: quand l'océan gèle, la glace "optique" peut couvrir une large fraction sans tout convertir instantanément.
+    if (hasOcean && seaIceFrac > 0) {
+        hydrosphere_surface_support = Math.max(hydrosphere_surface_support, seaIceFrac);
+        ice_cap_surface = Math.max(ice_cap_surface, seaIceFrac);
+        ice_fraction_target = Math.max(ice_fraction_target, seaIceFrac);
     }
+    const iceAfterSeaIceMerge = ice_fraction_target;
+
     if (!STATE.iceCoverageRampState || STATE.iceCoverageRampState.epochId !== DATA['📜']['🗿']) {
         STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
     }
     const isConvergencePhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
     const albedoFixedState = STATE.iceEpochFixedAlbedoState;
     const hasEpochIceLock = isConvergencePhase && albedoFixedState && albedoFixedState.epochId === DATA['📜']['🗿'];
+    // Scan CO₂ hystérésis : la glace doit suivre T (rétroaction albédo), sinon T ne peut pas chuter de ΔT_brut en un pas.
+    const hystUnlockIce = typeof window !== 'undefined' && window.HYSTERESIS && window.HYSTERESIS.active;
     DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    if (hasEpochIceLock) {
+    if (hasEpochIceLock && !hystUnlockIce) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, albedoFixedState.value));
     }
     const freezeIceDuringSearch = CONFIG_COMPUTE.freezePolarIceDuringSearch !== false;
     const waterPass = (DATA['🧮'] && DATA['🧮']['🧮🔄🌊'] != null) ? DATA['🧮']['🧮🔄🌊'] : 0;
     const lock = STATE.iceCoverageLock;
-    if (!hasEpochIceLock && freezeIceDuringSearch && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
+    if (!hasEpochIceLock && freezeIceDuringSearch && !hystUnlockIce && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, lock.value));
     }
-    if (isConvergencePhase && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
+    if (isConvergencePhase && !hystUnlockIce && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
         const prevIce = STATE.iceCoverageRampState.value;
         const deltaIce = ice_fraction_target - prevIce;
         const rampStepActive = DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampEarlyIters) ? Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStepEarly) : Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStep);
@@ -277,6 +349,7 @@ function calculateAlbedo() {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, prevIce + deltaIceClamped));
     }
     STATE.iceCoverageRampState.value = DATA['🪩']['🍰🪩🧊'];
+    const iceAfterLocksRamp = DATA['🪩']['🍰🪩🧊'];
     
     // 🔒 volcano_coverage déjà calculé plus haut (ligne ~200)
     
@@ -354,13 +427,42 @@ function calculateAlbedo() {
     let land_surface = total_land_coverage;
     let desert_surface = desert_coverage;
 
-    // Si mer gelée : la surface au sol est dominée par la glace (pas d'océan libre, biomes ignorés sous la glace)
-    if (isSeaIce && DATA['⚖️']['⚖️💧'] > 0) {
-        ocean_surface = 0;
-        forest_surface = 0;
-        land_surface = 0;
-        desert_surface = 0;
-        ice_surface = Math.max(0, Math.min(1, 1.0 - volcano_surface));
+    // Mer gelée (lissé) : réduire progressivement les biomes au profit de la glace,
+    // sans écraser brutalement toutes les surfaces.
+    if (hasOcean && seaIceFrac > 0) {
+        const keep = Math.max(0, 1.0 - seaIceFrac);
+        forest_surface = forest_surface * keep;
+        land_surface = land_surface * keep;
+        desert_surface = desert_surface * keep;
+        // La part "gelée" s'ajoute en glace optique (bornée par surface hors volcan).
+        const seaIceSurface = Math.max(0, Math.min(1.0 - volcano_surface, seaIceFrac * (1.0 - volcano_surface)));
+        ice_surface = Math.max(ice_surface, seaIceSurface);
+        // IMPORTANT: le blend ci-dessus peut réduire la somme des surfaces (on retire de l'océan et des biomes),
+        // sans pour autant réassigner toute la fraction à une surface. Physiquement, cette fraction devient de la glace de mer.
+        // On la réinjecte ici pour garder une somme = 1 sans normalisation artificielle.
+        const sumAfterBlend = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
+        if (sumAfterBlend < 1.0) {
+            const missing = Math.min(1.0 - volcano_surface, 1.0 - sumAfterBlend);
+            if (missing > 0) {
+                ice_surface = Math.max(0, Math.min(1.0 - volcano_surface, ice_surface + missing));
+            }
+        }
+        if (typeof window.pdTrace === 'function') {
+            const STATE = window.STATE;
+            const lock = (STATE && STATE.iceEpochFixedAlbedoState && STATE.iceEpochFixedAlbedoState.epochId === DATA['📜']['🗿'])
+                ? STATE.iceEpochFixedAlbedoState.value
+                : null;
+            window.pdTrace(
+                'alb',
+                'calculations_albedo.js',
+                'SEA_ICE_BLEND f=' + seaIceFrac.toFixed(3)
+                    + ' rangeK=' + seaIceRangeK
+                    + ' ep=' + DATA['📜']['🗿']
+                    + ' phase=' + DATA['🧮']['🧮⚧']
+                    + ' T_K=' + T_K.toFixed(2)
+                    + ' lockA=' + (lock == null ? 'null' : Number(lock).toExponential(3))
+            );
+        }
     }
     const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
     if (Math.abs(surface_sum - 1.0) > 0.03) {
@@ -377,20 +479,43 @@ function calculateAlbedo() {
     }
     
     // Stocker toutes les surfaces dans DATA['🪩'] (SURFACES SECHES, sans H2O)
-    DATA['🪩']['🍰🪩🌋'] = volcano_surface;
+    DATA['🪩']['🍰🪩🎾'] = volcano_surface;
     DATA['🪩']['🍰🪩🌊'] = ocean_surface;
     DATA['🪩']['🍰🪩🌳'] = forest_surface;
     DATA['🪩']['🍰🪩🧊'] = ice_surface;
     DATA['🪩']['🍰🪩🌍'] = land_surface;
     DATA['🪩']['🍰🪩🏜️'] = desert_surface;
-    
+    if (Object.prototype.hasOwnProperty.call(DATA['🪩'], '🍰🪩🌋')) {
+        delete DATA['🪩']['🍰🪩🌋'];
+    }
+
+    if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
+        const solI = DATA['🧮']['🧮🔄☀️'];
+        const iceProdBare = EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor;
+        const msg = '[calculateAlbedo][calculations_albedo.js] 🧊 ep=' + DATA['📜']['🗿']
+            + ' phase=' + DATA['🧮']['🧮⚧']
+            + ' T=' + T_K.toFixed(2) + 'K (' + (T_K - CONST.KELVIN_TO_CELSIUS).toFixed(2) + '°C)'
+            + ' | T_freeze=' + T_freeze.toFixed(2) + ' seaRangeK=' + seaIceRangeK.toFixed(3)
+            + ' seaRaw=' + seaIceFracRaw.toFixed(4) + ' seaF=' + seaIceFrac.toFixed(4)
+            + ' | ice_temp_factor=' + ice_temp_factor.toFixed(4)
+            + ' TnoIce=' + EARTH.T_NO_POLAR_ICE_K + ' dTRange=' + EARTH.T_NO_POLAR_ICE_RANGE_K
+            + ' ICEmax*factor=' + iceProdBare.toFixed(4)
+            + ' | cap=' + ice_cap_surface.toFixed(4) + ' hydro=' + hydrosphere_surface_support.toFixed(4) + ' highland=' + DATA['🗻']['🍰🗻🏔'].toFixed(4)
+            + ' | polarTarget=' + icePolarFormulaTarget.toFixed(4) + ' mergeSea=' + iceAfterSeaIceMerge.toFixed(4)
+            + ' | afterLocks=' + iceAfterLocksRamp.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
+            + ' | hystUnlock=' + (hystUnlockIce ? '1' : '0') + ' epochIceLock=' + (hasEpochIceLock ? '1' : '0')
+            + ' wPass=' + waterPass + ' solI=' + solI;
+        if (typeof window.pdTrace === 'function') window.pdTrace('calculateAlbedo', 'calculations_albedo.js', msg);
+        else console.log(msg);
+    }
+
     // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
     // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
     const albedo_coeff = { ...EARTH['🪩🍰'], ...(EPOCH['🪩🍰'] || {}) };
     let weighted_albedo = 0;
     
     if (albedo_coeff) {
-        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🌋'];
+        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🎾'];
         weighted_albedo += ocean_surface * albedo_coeff['🪩🍰🌊'];
         weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
         weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
@@ -407,7 +532,9 @@ function calculateAlbedo() {
     // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
     const ice_albedo = albedo_coeff['🪩🍰🧊'];
     const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
-    const ice_impact_factor = 0.5;
+    const ice_impact_factor = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.iceImpactFactor01)))
+        ? Math.max(0, Math.min(1, Number(window.CONFIG_COMPUTE.iceImpactFactor01)))
+        : 0.5;
     const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
     const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction * ice_impact_factor;
     albedo = albedo_base + ice_albedo_contribution;
@@ -511,7 +638,7 @@ function calculateAlbedo() {
     }
 
     // 🔒 FORMULE ALBEDO CORRIGÉE :
-    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🌋,🌊,🌳,🏜️,🧊 }
+    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🎾,🌊,🌳,🏜️,🧊 }
     albedo = albedo * (1 - cloud_fraction) + albedo_coeff['🪩🍰⛅'] * cloud_fraction;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
@@ -540,9 +667,13 @@ function calculateAlbedo() {
     }
     // 🔒 Les surfaces sont déjà stockées plus haut (lignes 249-254)
     // ice_fraction_base est la surface de glace, ice_fraction_stock est la fraction du stock d'eau
-    DATA['🪩']['🍰🪩📿'] = final_albedo_with_water;
+    const A_eff = applyVeilToPlanetaryAlbedo01(final_albedo_with_water);
+    if (!Number.isFinite(A_eff)) {
+        throw new Error('[calculateAlbedo] albédo effectif (voile) non fini — A_geo=' + final_albedo_with_water);
+    }
+    DATA['🪩']['🍰🪩📿'] = A_eff;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
-    return final_albedo_with_water;
+    return A_eff;
 }
 
 function calculateCloudCoverage() {
@@ -584,15 +715,15 @@ function calculateCloudCoverage() {
 
 function calculateSolarFluxAbsorbed() {
     const DATA = window.DATA;
-    // 🔒 CRASH si calculateAlbedo() échoue (pas de fallback)
+    // 🔒 calculateAlbedo() renvoie 🍰🪩📿 = albédo effectif (A_geo + voile 🍰⚽) ; pas de second facteur 🍰🪩⚽
     const albedo = calculateAlbedo();
     const solar_flux_average_wm = DATA['☀️']['🧲☀️🎱'];
-    const solar_flux_reflected_wm = solar_flux_average_wm * albedo;
-    const solar_flux_absorbed_wm = solar_flux_average_wm - solar_flux_reflected_wm;
-    return solar_flux_absorbed_wm;
+    return solar_flux_average_wm * (1 - albedo);
 }
 
 var ALBEDO = window.ALBEDO = window.ALBEDO || {};
+ALBEDO.syncStratosphericVeil01 = syncStratosphericVeil01;
+ALBEDO.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 ALBEDO.calculateAlbedo = calculateAlbedo;
 ALBEDO.calculateCloudCoverage = calculateCloudCoverage; // DEPRECATED: utiliser calculateCloudFormationIndex() + 🍰🪩⛅
 ALBEDO.calculateCloudFormationIndex = calculateCloudFormationIndex;
@@ -603,26 +734,25 @@ window.calculateCloudCoverage = calculateCloudCoverage;
 window.calculateCloudFormationIndex = calculateCloudFormationIndex;
 window.calculateSolarFluxAbsorbed = calculateSolarFluxAbsorbed;
 window.calculateGeologySurfaces = calculateGeologySurfaces;
+window.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 
 function updateLevelsConfig() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const EPOCH = DATA['📅'];
-    const total_atmosphere_mass_kg = DATA['⚖️']['⚖️🫧'];
-    const molar_mass_air = DATA['🫧']['🧪'];
     const isCorpsNoir = DATA['📜']['🗿'] === '⚫';
     
     // Initialiser CO2 depuis EPOCH
     let co2_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🏭'] > 0) {
-        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], total_atmosphere_mass_kg, molar_mass_air);
+        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         co2_ppm = co2_fraction * 1e6;
     }
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], total_atmosphere_mass_kg, molar_mass_air);
+        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -653,7 +783,9 @@ function updateLevelsConfig() {
     window.h2oTotalFromMeteorites = 0;
     
     const h2o_total_kg = DATA['⚖️']['⚖️💧'];
-    console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% 🐄=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
+    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logLevelsConfig) {
+        console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% 🐄=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
+    }
 }
 
 // Exposer globalement pour utilisation dans main.js

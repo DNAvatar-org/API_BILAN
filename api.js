@@ -1,10 +1,16 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Pas de DOM/rendu.
-// Version 1.0.1
+// Version 1.0.6
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: 2025-02-25
-// Logs: v1.0.1 FUNC_API_BILAN, const MAJ en tête ; dossier renommé API_BILAN
+// Logs:
+// - v1.0.6: snapshot PRE_INIT/POST_INIT via pdTrace (pas pd)
+// - v1.0.1 FUNC_API_BILAN, const MAJ en tête ; dossier renommé API_BILAN
+// - v1.0.2 add pd() snapshots PRE_INIT/POST_INIT for API inputs
+// - v1.0.3 crash-first on ⛄ after POST_INIT to trace call chain
+// - v1.0.4 remove crash-trace; keep optional pd() snapshots
+// - v1.0.5 singleton: new BilanRadiatifAPI / getBilanRadiatifAPI réutilisent la même instance
 
 'use strict';
 
@@ -16,7 +22,13 @@
  * @param {function(string, object)} callback - Récepteur: callback(event, payload). Events: 'convergenceStep' | 'cycleCalcul' | 'ProcessFinished'
  */
 function BilanRadiatifAPI(callback) {
+    var existing = window.__BILAN_RADIATIF_API_SINGLETON__;
+    if (existing) {
+        if (typeof callback === 'function') existing.callback = callback;
+        return existing;
+    }
     this.callback = typeof callback === 'function' ? callback : function () {};
+    window.__BILAN_RADIATIF_API_SINGLETON__ = this;
 }
 
 /** Identifiant d'époque par défaut de l'API (si aucun config ni epochId passé). */
@@ -64,16 +76,50 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
         DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];
     }
 
+    function fmt3(n) { return n.toExponential(3); }
+    function snap(tag) {
+        const D = window.DATA;
+        const S = window.STATE;
+        const ep = D['📜']['🗿'];
+        const i = D['📜']['👉'];
+        const phase = D['🧮']['🧮⚧'];
+        const T = D['🧮']['🧮🌡️'];
+        const alb = D['🪩'] ? D['🪩']['🍰🪩📿'] : 0;
+        const ice = D['🪩'] ? D['🪩']['🍰🪩🧊'] : 0;
+        const oce = D['🪩'] ? D['🪩']['🍰🪩🌊'] : 0;
+        const P = D['🫧'] ? D['🫧']['🎈'] : 0;
+        const co2 = D['⚖️']['⚖️🏭'];
+        const ch4 = D['⚖️']['⚖️🐄'];
+        const h2o = D['⚖️']['⚖️💧'];
+        const o2 = D['⚖️']['⚖️🫁'];
+        const atm = D['⚖️']['⚖️🫧'];
+        const lockW = (S && S.iceEpochFixedWaterState && S.iceEpochFixedWaterState.epochId === ep) ? S.iceEpochFixedWaterState.value : null;
+        const lockA = (S && S.iceEpochFixedAlbedoState && S.iceEpochFixedAlbedoState.epochId === ep) ? S.iceEpochFixedAlbedoState.value : null;
+        if (typeof window.pdTrace === 'function') window.pdTrace('api.run', 'api.js',
+            tag
+            + ' ep=' + ep + ' idx=' + i + ' phase=' + phase
+            + ' T_C=' + (T - 273.15).toFixed(2) + ' T_K=' + fmt3(T)
+            + ' P_atm=' + fmt3(P)
+            + ' CO2=' + fmt3(co2) + ' CH4=' + fmt3(ch4) + ' H2O=' + fmt3(h2o) + ' O2=' + fmt3(o2) + ' atm=' + fmt3(atm)
+            + ' ALB=' + fmt3(alb) + ' ICE=' + fmt3(ice) + ' OCE=' + fmt3(oce)
+            + ' iceLockW=' + (lockW == null ? 'null' : fmt3(lockW))
+            + ' iceLockA=' + (lockA == null ? 'null' : fmt3(lockA))
+        );
+    }
+
     DATA['🧮']['previous'] = [];
     DATA['🧮']['🧮🔄🌊'] = 0;
     DATA['🧮']['🧮🔄🪩'] = 0;
     window.h2oTotalFromMeteorites = 0;
     if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
 
+    snap('PRE_INIT');
     if (!initForConfig()) {
         if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         return Promise.resolve(null);
     }
+    snap('POST_INIT');
+    // NOTE: crash-trace retiré (debug uniquement)
 
     var callbackStack = window.FUNC_API_BILAN && window.FUNC_API_BILAN.callbackStack;
     var dispatcher = self.callback;
@@ -103,3 +149,7 @@ if (!window.FUNC_API_BILAN) window.FUNC_API_BILAN = {};
 window.FUNC_API_BILAN.BilanRadiatifAPI = BilanRadiatifAPI;
 window.FUNC_API_BILAN.defaultEpochId = DEFAULT_EPOCH_ID;
 window.BilanRadiatifAPI = BilanRadiatifAPI;
+/** @returns {BilanRadiatifAPI} même instance que tout `new BilanRadiatifAPI(...)` */
+window.getBilanRadiatifAPI = function (callback) {
+    return new BilanRadiatifAPI(callback);
+};

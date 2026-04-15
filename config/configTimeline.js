@@ -1,9 +1,20 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.3.4
-// Date: [Mar 29, 2026] [18:30 UTC+1]
+// Version 1.3.15
+// Date: [April 03, 2026] [23:05 UTC+1]
 // logs :
+// - v1.3.15: commentaire 🐊 libellé UI « Éocène »
+// - v1.3.14: CONFIG_COMPUTE.logCo2RadiativeDiagnostic (🔎 CO₂ atmosphère + 🧲📛🏭 pas hyst ; aligné configsAll)
+// - v1.3.13: baryByGroupDefault.HYSTERESIS 100 (aligné initDATA 🎚️)
+// - v1.3.12: CONFIG_COMPUTE.logIceFractionDiagnostic — trace chaîne 🍰🪩🧊 (polar + mer gelée + verrous + surface finale)
+// - v1.3.11: 🥟 🕰 — action 🌋 (🔺🍰⚽ +2 % / clic) voile SW stratosphérique ; CONFIG_COMPUTE.hystStratosphericVeilExtra01
+// - v1.3.10: hysteresis 1 🌡️🧮 290 K — graine « branche chaude » avant scan CO₂↓ (le seuil hystérésis reste trouvé par l’algo)
+// - v1.3.9: co2OceanPartitionInRadiativeConvergence=false par défaut (pompe mer hors convergence naturelle ; anthropique plus tard)
 // - v1.3.4: repères Ma affichage éditeur plaques alignés ▶ (⚫ 5000 Ma, 🔥 4500, 🦠 4000, 🌿 500, 🦕 250)
+// - v1.3.5: (obsolète) 🌊🏭🧲 par époque — retiré en v1.3.8 ; pompe CO₂ mer = CONFIG_COMPUTE + jauges
+// - v1.3.6: 📅 hystérésis → hysteresis 1 ; 📅 ⛰ (époque) → hysteresis 2 (⛄ 🏔 inchangés)
+// - v1.3.7: hysteresis 2 → hidden:true (même classe epoch-text que hysteresis 1 sur frise verticale)
+// - v1.3.8: retrait 🌊🏭🧲 de tous les blocs TIMELINE (pompe océan hors époque)
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -16,13 +27,13 @@
 // - v1.2.4: 🌿 = Paléozoïque (500–250 Ma), ordre chrono Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque
 // - v1.2.5: baryByGroupDefault (CLOUD_SW/SCIENCE/SOLVER %) pour init DATA['🎚️'].baryByGroup dans initDATA.js
 // - v1.2.6: dates simplifiées Protérozoïque ◀ 500 Ma, Paléozoïque 500–250 Ma ; 🏔 ▶ 33 Ma déjà en place
-// - v1.2.7: Cénozoïque découpé : 🦣 66–50 Ma, 🐊 PETM / Terre étouffe 50–35 Ma, ⛰ prélude glaciaire 35–33 Ma, 🏔 Grande Coupure 33–23 Ma
+// - v1.2.7: Cénozoïque découpé : 🦣 66–50 Ma, 🐊 PETM 50–35 Ma, hysteresis 2 (ex-⛰) 35–33 Ma, 🏔 33–23 Ma
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
 // - v1.3.1: 📱 🕰 — une seule action ⛽ par tranche (retrait 🛢 des buckets 2025/2050/2075)
 // - v1.3.2: doc convention 📱 — tranche 2000 : 850e9 ↔ +850Gt en UI (pas SI Gt=1e12 kg ; cycle CO₂ / puits en attente TODO)
-// - v1.3.3: libellé UI 🐊 « Hyperthermie éocène » (remplace Terre étouffe (PETM))
+// - v1.3.3: libellé UI 🐊 « Éocène » (ex Hyperthermie éocène ; ex Terre étouffe PETM)
 //
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
@@ -46,7 +57,7 @@
 // Clouds/Faint Young Sun Copernicus 2011 ; Astrobiology 2014. Valeurs au DÉBUT de chaque époque (parcours temporel à venir).
 // Réfs masses gaz (⚖️🏭, ⚖️🐄) : doc/VALIDATION_CONFIG_GAZ.md
 const timeline = [
-    {
+    {// Corps noir
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
         '◀': 4.5e9, // Fin
@@ -92,7 +103,7 @@ const timeline = [
             }
         }
     },
-    {
+    {// Hadéen
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
         '▶': 4.5e9,
         '◀': 4.0e9,
@@ -145,7 +156,7 @@ const timeline = [
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    {
+    {// Archéen
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
         '▶': 4.0e9,
         '◀': 2.5e9,
@@ -204,7 +215,7 @@ const timeline = [
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    {
+    {// Protérozoïque
         '📅': '🥟', // Protérozoïque
         '▶': 2.5e9,
         '◀': 750e6,
@@ -233,20 +244,21 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
+            '🌋': { '🔺🍰⚽': 0.02 },
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    // hystérésis = Pré–Boule de neige (750–720 Ma) : même CO₂ que ⛄ mais en partant chaud
-    // Objectif : trouver le point de déséquilibre au passage vers ⛄ (début réel à -720 Ma).
-    {
-        '📅': 'hystérésis', // Pré–Boule de neige (warm start)
+    // hysteresis 1 = Pré–Boule de neige (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
+    // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
+    // Ici 🌡️🧮 = amorce solveur sur branche encore tiède (≈290 K), pas le seuil ni la T finale après chute.
+    {//hysteresis 1
+        '📅': 'hysteresis 1', // id stable (ex hystérésis)
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 750e6,
         '◀': 720e6,
-        // Départ chaud pour converger depuis un état non-snowball
-        '🌡️🧮': 285,
-        '🧲🔬': 0.001,
+        '🌡️🧮': 290,
+        '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '🔋🌕': 8.0e13,
         '📐': 6371,
@@ -256,22 +268,23 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
         '⚖️🫧': 5.15e18,
         // CO₂ réglable ici, en partant chaud. Par défaut: même valeur que ⛄.
-        '⚖️🏭': 2.0e16,
+        '⚖️🏭': 1.0e16,
         '⚖️🐄': 1.0e14,
         '⚖️💧': 1.2e21,
         '⚖️🫁': 1.5e16,
+        //'⚖️✈': 8.0e15,
         '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
         '🌱': 0.0
     },
     // ⛄ = Boule de neige (720–600 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma, Marinoen ~650 Ma)
     // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
-    {
+    {// Boule de neige
         '📅': '⛄', // Boule de neige (720–600 Ma) — Snowball Earth
         // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
         '▶': 720e6,
         '◀': 600e6,
         // 🌡️🧮 : ~240 K (-33°C) — lit. Pierrehumbert 2011 : 220–250 K surface moyenne snowball
-        '🌡️🧮': 273,
+        '🌡️🧮': 281,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
         '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
@@ -280,15 +293,15 @@ const timeline = [
         '📏🌊': 3.6, // Profondeur océans (Néoprotérozoïque)
         '🐚': 1.0,
         '🗻': {
-            '🍰🗻🌊': 0.75,
-            '🍰🗻🏔': 0.08,
-            '🍰🗻🌍': 0.17
+            '🍰🗻🌊': 0.73,
+            '🍰🗻🏔': 0.15,
+            '🍰🗻🌍': 0.12
         },
         '⚖️🫧': 5.15e18,
         // CO₂ bas au début (cause du snowball), puis accumulation volcanique pendant la glaciation
         // Lit. : CO₂ ~100–1000 ppm pré-snowball ; ~350× PAL (~100 000 ppm) pour en sortir (Hoffman 1998)
-        '⚖️🏭': 2.0e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
-        '⚖️🐄': 1.0e14,  // ch4_kg (faible, méthanogènes sous glace)
+        '⚖️🏭': 0.99e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
+        '⚖️🐄': 1.0e12,  // ch4_kg (faible, méthanogènes sous glace)
         '⚖️💧': 1.2e21,  // h2o_kg (~86% actuel, océans sous glace)
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
         '🕰': {
@@ -298,7 +311,7 @@ const timeline = [
     },
     // 🌿 = Paléozoïque (600–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
     // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
-    {
+    {// Paléozoïque
         '📅': '🌿', // Paléozoïque (600–250 Ma)
         '▶': 600e6,
         '◀': 250e6,
@@ -323,7 +336,7 @@ const timeline = [
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e17,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 250 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 175 },
         },
         '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres (FAO 2020)
     },
@@ -391,7 +404,7 @@ const timeline = [
         '🌱': 0.31
     },
     {
-        '📅': '🐊', // Hyperthermie éocène (50–35 Ma) — CO₂ très élevé (pic ~1500–2000 ppm) ; puis lente décroissance (altération silicates, Himalaya)
+        '📅': '🐊', // Éocène (50–35 Ma), pic thermique / CO₂ élevé (ordre PETM) ; puis décroissance (altération silicates, Himalaya)
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,
@@ -419,7 +432,8 @@ const timeline = [
         '🌱': 0.31
     },
     {
-        '📅': '⛰', // Prélude glaciaire (35–33 Ma) — encore ~1000 ppm puis chute rapide vers ~600–750 ppm sur ~1 Ma
+        '📅': 'hysteresis 2', // id stable (ex ⛰ prélude glaciaire 35–33 Ma)
+        hidden: true, // même rendu frise que hysteresis 1 (epoch-text, pas epoch-btn)
         '▶': 35e6,
         '◀': 33e6,
         '⛄': 0.02,
@@ -585,8 +599,17 @@ window.TIMELINE_EPOCH_PREINDUSTRIAL_1800 = {
 // - [EQ/NUM]    : valeur de schéma numérique, solveur ou stratégie de convergence
 window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
 
+// Partition CO₂ atmosphère ↔ océan (Henry) dans calculateCO2Partition : désactivée par défaut dans la boucle radiative.
+// Réservée à un usage ultérieur (ex. ajout anthropique en fin de chaîne). Pas les calculs naturels ni l’hystérésis.
+// Activer explicitement : CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = true
+window.CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = false;
+// Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH['🍰⚽'] + 📜['🔺🍰⚽'] → DATA['🪩']['🍰⚽'] obstruction, DATA['🪩']['🍰🪩⚽']=1−🍰⚽
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))) {
+    window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
+}
+
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100 };
+window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].
@@ -669,6 +692,9 @@ window.CONFIG_COMPUTE.plotSmoothEnable = true;
 window.CONFIG_COMPUTE.plotSmoothSigmaBins = 8.0;//5.6;
 // Logs diagnostics
 window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
+// true : une ligne par calculateAlbedo (T, mer gelée, facteur polaire, cibles, verrous hyst, 🍰🪩🧊 après normalisation surfaces)
+window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
+window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
 window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
 window.CONFIG_COMPUTE.logIrisDiagnostic = false;
 

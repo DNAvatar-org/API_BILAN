@@ -1,8 +1,9 @@
 // File: API_BILAN/data/initDATA.js - Initialisation de l'objet DATA
 // Desc: Crée DATA depuis KEYS (dico.js) et 🎚️ ; chargé après dico.js. Source unique d'init.
-// Version 1.0.0
-// Date: [February 2025]
+// Version 1.0.3
+// Date: [April 03, 2026] [23:00 UTC+1]
 // logs :
+// - v1.0.3: DATA['🎚️'].HYSTERESIS + baryByGroup.HYSTERESIS (fillDataTuningFromBary / sync scie → parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -10,6 +11,8 @@
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: extraction init DATA depuis dico.js (KEYS → DATA, puis 🎚️)
+// - v1.0.1: init DATA['🌊'] pour cycle CO2 océan
+// - v1.0.2: init DATA['🌊']['⚖️🌊🏭']=0 (debug/affichage)
 
 (function () {
     'use strict';
@@ -34,7 +37,7 @@
             }
         }
     }
-    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100 };
+    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
     // 100% = fine-tuning nominal (cohérence visu sans scie => 16.4°C 2025). Valeurs = max fine_tuning_bounds SOLVER.
     var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10 };  // 10 j (litt. 8–10 j)
     // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
@@ -50,10 +53,21 @@
         OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
         CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
     };
-    DATA['🎚️'] = {
-        baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER },
-        CLOUD_SW: _cloudSwDefault,
-        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS }
+    // Aligné FINE_TUNING_BOUNDS groupe HYSTERESIS (defaults = 100 % bary)
+    var _hystDefault = {
+        seaIceTransitionRangeK: 2.2,
+        seaIceStrength01: 1,
+        iceImpactFactor01: 0.7,
+        co2OceanEffPump01: 0.1
     };
+    DATA['🎚️'] = {
+        baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },
+        CLOUD_SW: _cloudSwDefault,
+        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS },
+        HYSTERESIS: _hystDefault
+    };
+    // Réservoir océan (cycle CO2) : non présent dans KEYS, on l'initialise ici.
+    if (!DATA['🌊']) DATA['🌊'] = {};
+    DATA['🌊']['⚖️🌊🏭'] = 0;
     window.DATA = DATA;
 })();

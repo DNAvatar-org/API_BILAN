@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.76
+// Version 1.2.77
 // Date: [March 2026]
 // Logs:
+// - v1.2.77: log partition CO2 océan → pdTrace
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
 // - v1.2.68: mode anim: yield 1 frame par cycle (await requestAnimationFrame) pour affichage inter progressif, éviter flush final
 // - v1.2.69: computeRadiativeTransfer(callback, options): renderMode visu_/scie_ + attente bridge draw par cycle (visu_+anim)
@@ -198,9 +199,16 @@ function calculateT0() {
         const adjustment = DATA['📜']['🔺🌡️💫'] * DATA['📜']['📿💫'];
         DATA['🧮']['🧮🌡️🚩'] = DATA['📅']['🌡️🧮'] + adjustment; // sans anim : T0 = config époque
     }
-    
+
     if (DATA['🧮']['🧮🌡️🚩'] <= 0) {
-        console.error(`📛 [calculateT0@calculations_flux.js] ❌ T0 invalide: ${DATA['🧮']['🧮🌡️🚩']}`);
+        console.error(`📛 [calculateT0] ❌ T0=${DATA['🧮']['🧮🌡️🚩']}`
+            + ` | 🔘🎞=${DATA['🔘']['🔘🎞']}`
+            + ` | 📅🌡️🧮=${DATA['📅'] && DATA['📅']['🌡️🧮']}`
+            + ` | 📅=${JSON.stringify(DATA['📅'] && Object.keys(DATA['📅']).slice(0,5))}`
+            + ` | 📜🔺🌡️💫=${DATA['📜']['🔺🌡️💫']} 📜📿💫=${DATA['📜']['📿💫']}`
+            + ` | 📜🗿=${DATA['📜']['🗿']} 📜👉=${DATA['📜']['👉']}`
+            + ` | TIMELINE[idx]🌡️🧮=${window.TIMELINE && window.TIMELINE[DATA['📜']['👉']] && window.TIMELINE[DATA['📜']['👉']]['🌡️🧮']}`
+            + ` | TIMELINE[idx]📅=${window.TIMELINE && window.TIMELINE[DATA['📜']['👉']] && window.TIMELINE[DATA['📜']['👉']]['📅']}`);
         return false;
     }
     
@@ -300,10 +308,8 @@ function initForConfig() {
     // Verrou glaciaire pour tout le solver de cette époque
     const hasAtmWaterSupport = (DATA['⚖️'] && DATA['⚖️']['⚖️🫧'] > 0 && DATA['⚖️']['⚖️💧'] > 0);
     // Surface max couvrable par la glace : hautes terres OU surface hydrosphère (océan gelé)
-    const _lockPlanetSurface = 4 * Math.PI * Math.pow((EPOCH['📐'] || 6371) * 1000, 2);
-    const _lockWaterLayer = (DATA['⚖️']['⚖️💧'] > 0 && _lockPlanetSurface > 0) ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _lockPlanetSurface : 0;
-    const _lockHydroSupport = Math.max(0, Math.min(0.9, _lockWaterLayer / 10));
-    const ice_surface_cap = Math.max(DATA['🗻']['🍰🗻🏔'], _lockHydroSupport);
+    const ice_surface_cap = Math.max(DATA['🗻']['🍰🗻🏔'], Math.max(0, Math.min(0.9,
+        (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / (4 * Math.PI * Math.pow((EPOCH['📐'] || 6371) * 1000, 2)) : 0) / 10)));
     const ice_data_continuity = hasAtmWaterSupport ? Math.min(ice_surface_cap, DATA['💧']['🍰💧🧊']) : 0;
     const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - EPOCH['🌡️🧮']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
     const ice_formula_epoch = Math.min(ice_surface_cap, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
@@ -426,6 +432,21 @@ async function cycleDeLeau(isFirst) {
     if (isFirst && phasePrev === 'Init') {
         DATA['🧮']['🧮⚧'] = phasePrev;
     }
+    
+    // ---> INJECTION CYCLE DU CARBONE (Pompe Océanique) <---
+    if (window.CO2 && window.CO2.calculateCO2Partition) {
+        var _co2Changed = window.CO2.calculateCO2Partition();
+        if (typeof window !== 'undefined' && window.DEBUG_CO2_OCEAN && typeof window.pd === 'function') {
+            try {
+                var _m = (DATA && DATA['⚖️']) ? DATA['⚖️']['⚖️🏭'] : null;
+                var _o = (DATA && DATA['🌊']) ? DATA['🌊']['⚖️🌊🏭'] : null;
+                if (typeof window.pdTrace === 'function') window.pdTrace('cycleDeLeau', 'calculations_flux.js', 'CO2 ocean partition changed=' + (_co2Changed ? '1' : '0') + ' ⚖️🏭=' + (_m != null ? Number(_m).toExponential(3) : 'n/a') + ' 🌊⚖️🌊🏭=' + (_o != null ? Number(_o).toExponential(3) : 'n/a'));
+            } catch (e) {}
+        }
+        window.ATM.calculateAtmosphereComposition();
+        window.ATM.calculatePressureAtm();
+    }
+    
     if (window.ABORT_COMPUTE) return { changed: false };
     COMPUTE.getEnabledStates();
     // Premier cycle : pas de calculatePrecipitationFeedback (comme la 1re itération Search)
@@ -445,7 +466,9 @@ async function cycleDeLeau(isFirst) {
             data_snapshot: {
                 '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                 '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
             }
         };
         window.appendConvergenceStep(firstCyclePayload);
@@ -518,7 +541,9 @@ async function computeRadiativeTransfer(callback, options) {
                         '🧮': { '🧮🌡️': DATA['🧮']['🧮🌡️'] },
                         '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                         '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                        '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                        '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                        '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                        '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
                 window.appendConvergenceStep(spinupPayload);
@@ -542,7 +567,9 @@ async function computeRadiativeTransfer(callback, options) {
                         '🧮': { '🧮🌡️': DATA['🧮']['🧮🌡️'] },
                         '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                         '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                        '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                        '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                        '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                        '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
                 window.appendConvergenceStep(initCyclePayload);
@@ -564,7 +591,9 @@ async function computeRadiativeTransfer(callback, options) {
                 '🧮': { '🧮🌡️': DATA['🧮']['🧮🌡️'] },
                 '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                 '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
             }
         };
         window.appendConvergenceStep(cycleAfterCrossPayload);
@@ -687,7 +716,8 @@ async function computeRadiativeTransfer(callback, options) {
             const T_C_oneStep = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
             const albedoOneStep = (DATA['🪩']['🍰🪩📿'] != null) ? (DATA['🪩']['🍰🪩📿'] * 100).toFixed(2) : '-';
             const h2oOneStep = (DATA['💧']['🍰🫧💧'] != null) ? (DATA['💧']['🍰🫧💧'] * 100).toFixed(2) : '-';
-            if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[cycle] radiatif @' + T_C_oneStep.toFixed(1) + '°C');
+            const co2MassStep = (DATA['⚖️'] && DATA['⚖️']['⚖️🏭'] != null) ? DATA['⚖️']['⚖️🏭'].toExponential(2) : '-';
+            if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[cycle] radiatif @' + T_C_oneStep.toFixed(1) + '°C CO₂=' + co2MassStep + 'kg');
             const cyclePayload = {
                 innerIter: null,
                 albedoIter: DATA['🧮']['🧮🔄🪩'],
@@ -697,7 +727,9 @@ async function computeRadiativeTransfer(callback, options) {
                     '🧮': { '🧮🌡️': DATA['🧮']['🧮🌡️'] },
                     '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                     '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                    '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                    '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                    '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                    '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                 }
             };
             window.appendConvergenceStep(cyclePayload);
@@ -710,7 +742,8 @@ async function computeRadiativeTransfer(callback, options) {
                 const T_C_step = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
                 const albedoPctStep = (DATA['🪩']['🍰🪩📿'] != null) ? (DATA['🪩']['🍰🪩📿'] * 100).toFixed(2) : '-';
                 const h2oPctStep = (DATA['💧']['🍰🫧💧'] != null) ? (DATA['💧']['🍰🫧💧'] * 100).toFixed(2) : '-';
-                if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[cycle] radiatif w=' + w + ' @' + T_C_step.toFixed(1) + '°C');
+                const co2MassStep2 = (DATA['⚖️'] && DATA['⚖️']['⚖️🏭'] != null) ? DATA['⚖️']['⚖️🏭'].toExponential(2) : '-';
+                if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[cycle] radiatif w=' + w + ' @' + T_C_step.toFixed(1) + '°C CO₂=' + co2MassStep2 + 'kg');
                 const cyclePayloadW = {
                     innerIter: null,
                     albedoIter: baseAlbedoIter + w,
@@ -720,7 +753,9 @@ async function computeRadiativeTransfer(callback, options) {
                         '🧮': { '🧮🌡️': DATA['🧮']['🧮🌡️'] },
                         '🫧': JSON.parse(JSON.stringify(DATA['🫧'])),
                         '💧': JSON.parse(JSON.stringify(DATA['💧'])),
-                        '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
+                        '🪩': JSON.parse(JSON.stringify(DATA['🪩'])),
+                        '⚖️': JSON.parse(JSON.stringify(DATA['⚖️'])),
+                        '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
                 window.appendConvergenceStep(cyclePayloadW);

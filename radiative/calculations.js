@@ -445,7 +445,9 @@ async function calculateFluxForT0() {
     const P_ratio = DATA['⚖️']['⚖️🫧'] / M_ATM_REF_KG;
     const CO2_factor = Math.max(0.7, 1.0 - (DATA['🫧']['🍰🫧🏭'] * 2.0));
     EARTH.H2O_EDS_SCALE = Math.min(1.0, 0.92 * Math.sqrt(Math.max(0, P_ratio)) * CO2_factor);
-    console.log('***[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
+    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+        console.log('***[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
+    }
 
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
 
@@ -982,7 +984,11 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     DATA['📊'] = DATA['📊'] || {};
     DATA['📊'].total_flux = result.total_flux;
     if (DATA['🪩']) {
-        if (albedo != null) DATA['🪩']['🍰🪩📿'] = albedo;
+        if (albedo != null && typeof window.applyVeilToPlanetaryAlbedo01 === 'function') {
+            DATA['🪩']['🍰🪩📿'] = window.applyVeilToPlanetaryAlbedo01(albedo);
+        } else if (albedo != null) {
+            DATA['🪩']['🍰🪩📿'] = albedo;
+        }
         if (cloud_coverage != null) DATA['🪩']['☁️'] = cloud_coverage;
     }
     if (window.IO_LISTENER) window.IO_LISTENER.emit('cycleCalcul');

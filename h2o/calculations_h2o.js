@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.14
+// Version 1.0.15
 // Date: [November 2025]
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -22,6 +22,7 @@
 // - v1.0.10 : cap vapeur final observé (AIRS/ERA5, ~7%/K) en fin d'itération Init
 // - v1.0.11 : propagation sulfate proxy 🍰🫧✈ depuis ⚖️✈ dans la composition atmosphérique avec vapeur
 // - v1.0.13 : en Search/Dicho pas de cache H2O (recalcul vapeur à T courante) pour reproductibilité albedo_nuages (35.9% vs 35.3%)
+// - v1.0.15 : cap vapeur log → pdTrace
 // - v1.0.14 : logs cap vapeur C-C simplifiés en "[cycle] H2O cap @...°C"
 // - v1.0.12 : sans atmosphère (⚖️🫧=0) avec ⚖️💧>0 (Corps noir météorites) : 🍰💧🧊=1 si T<0°C, sinon 🍰💧🌊=1 (didactique)
 // ============================================================================
@@ -198,25 +199,20 @@ function calculateWaterPartition() {
     const has_polar_ice = DATA['🧮']['🧮🌡️'] < EARTH.T_NO_POLAR_ICE_K;
     const polar_ice_fraction_climate = has_polar_ice ? Math.max(0, Math.min(0.10, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K * 0.10)) : 0;
 
-    // Support hydrosphère : couche d'eau globale → fraction de surface couvrable par la glace
-    const _planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
-    const _water_layer_m = DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _planet_surface_m2 : 0;
-    const _hydro_support = Math.max(0, Math.min(0.9, _water_layer_m / 10));
-
-    // T_freeze_seawater (~271 K) : en-dessous, l'océan gèle en surface
-    const _T_freeze_sea = EARTH.T_FREEZE_SEAWATER_K;
-    const _T = DATA['🧮']['🧮🌡️'];
-
     let polar_ice_fraction;
-    if (_T >= _T_freeze_sea) {
+    if (DATA['🧮']['🧮🌡️'] >= EARTH.T_FREEZE_SEAWATER_K) {
         // Régime classique : calottes polaires limitées aux hautes terres
         polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
     } else {
-        // Régime gel océan : proportion de l'océan gelée croît quand T descend sous T_freeze
+        // Régime gel océan : proportion gelée croît linéairement sous T_freeze (~271 K)
         // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
-        const ocean_freeze_fraction = Math.max(0, Math.min(1, (_T_freeze_sea - _T) / 20));
-        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], _hydro_support);
-        polar_ice_fraction = Math.min(max_ice_surface, ocean_freeze_fraction * max_ice_surface);
+        // Surface supportable = max(highlands, hydrosphère) — hydrosphère = couche eau globale / 10m, cap 0.9
+        const planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
+        const hydro_support = Math.max(0, Math.min(0.9,
+            (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_m2 : 0) / 10));
+        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydro_support);
+        polar_ice_fraction = max_ice_surface * Math.max(0, Math.min(1,
+            (EARTH.T_FREEZE_SEAWATER_K - DATA['🧮']['🧮🌡️']) / 20));
     }
     
     // 🔒 CALCUL DE 🍰🫧💧 (fraction massique de vapeur d'eau dans l'atmosphère)
@@ -618,9 +614,11 @@ H2O.calculateH2OParameters = function () {
             + 'C iris_factor=' + iris_factor.toFixed(3)
             + ' vapor=' + vapor_result.toFixed(5));
     }
-    if (vapor_raw > c_c_max && typeof console !== 'undefined') {
+    // Log cap vapeur (bruyant) : ne log que si logEdsDiagnostic est activé.
+    if (vapor_raw > c_c_max && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
         const T_C = T - CONST.KELVIN_TO_CELSIUS;
-        console.log('[cycle] H2O cap @' + T_C.toFixed(1) + '°C');
+        if (typeof window !== 'undefined' && typeof window.pdTrace === 'function') window.pdTrace('calculateH2OParameters', 'calculations_h2o.js', 'H2O cap @' + T_C.toFixed(1) + '°C');
+        else console.log('[cycle] H2O cap @' + T_C.toFixed(1) + '°C');
     }
     DATA['💧']['🍰🫧💧'] = vapor_result;
 

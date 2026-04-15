@@ -1,6 +1,6 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.1.5
+// Version 1.1.6
 // Date: [June 08, 2025] [HH:MM UTC+1]
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -14,6 +14,7 @@
 // - co2KgToFraction, ch4KgToFraction (masse kg → fraction molaire pour updateLevelsConfig)
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
+// - v1.1.6 : CONFIG_COMPUTE.logCo2RadiativeDiagnostic → console 🔎 DIAG CO2 (⚖️🏭, 🍰🫧🏭, ppm)
 // - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
 //
 // ============================================================================
@@ -199,7 +200,17 @@ function calculateAtmosphereComposition() {
     // Mettre à jour DATA directement
     DATA['🫧']['📏🫧🧿'] = altitude / 1000;  // Altitude max en km
     DATA['🫧']['📏🫧🛩'] = tropopause / 1000;  // Tropopause en km
-    
+
+    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic === true) {
+        const P = DATA['⚖️'] || {};
+        const mCo2 = isFinite(P['⚖️🏭']) ? P['⚖️🏭'] : 0;
+        const frac = Number(DATA['🫧']['🍰🫧🏭']);
+        console.log('🔎 DIAG CO2:',
+            '⚖️🏭=', mCo2.toExponential(3),
+            '🍰🫧🏭=', (Number.isFinite(frac) ? frac.toExponential(6) : String(frac)),
+            'ppm=', (Number.isFinite(frac) ? (frac * 1e6).toFixed(1) : 'n/a'));
+    }
+
     return true;
 }
 

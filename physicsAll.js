@@ -1,15 +1,17 @@
 // File: API_BILAN/physicsAll.js - Physics combinées (physics, hitran, climate, calculations, compute)
 // Desc: Concatenation automatique de : physics/physics.js + data/hitran_lines_*.js + spectroscopy/hitran.js + physics/climate.js + radiative/calculations.js + workers/worker_pool.js + h2o/calculations_h2o.js + albedo/calculations_albedo.js + atmosphere/calculations_atm.js + convergence/compute.js
-// Version 1.0.0
+// Version 1.0.1
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: Mar 08, 2026
+// Logs bundle: v1.0.1 updateLevelsConfig (albedo) — DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] lecture directe
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: En français, dans l'architecture, je suis le module de physique fondamentale
-// Version 2.0.7
-// Date: [January 2025]
+// Version 2.0.9
+// Date: [April 02, 2026] [14:30 UTC+1]
 // logs :
+// - v2.0.9: EARTH['🪩🍰']['🪩🍰🎾'] albédo lave (ex-🪩🍰🌋)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -25,6 +27,7 @@
 // - v2.0.6 : essai calibration 2025 (EDS H2O) : h2o_eds_scale = 0.92 en base, sans branchement epoch
 // - v2.0.7 : CONV (convention) et EARTH (terrestre) extraits de CONST ; albédos 🪩🍰 dans EARTH, override par EPOCH['🪩🍰']
 // - v2.0.8 : H2O_EDS_SCALE calculé depuis DATA : 0.92 × sqrt(P_ratio) × CO2_factor (P_ratio=⚖️🫧/5.148e18, CO2_factor=max(0.7,1−2×🍰🫧🏭)). TODO quand validé : formules + doc/API.
+// - v2.0.9 : clé albédo lave 🪩🍰🎾 (remplace 🪩🍰🌋 pour cohérence avec 🍰🪩🎾)
 // ============================================================================
 
 // Initialiser CONST (pointeur vers window.CONST)
@@ -127,7 +130,7 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib 
 // Facteur κ_H2O dans EDS (calculations.js). Valeur par défaut 0.92 ; recalculé depuis DATA quand disponible (formule P_ratio × CO2).
 EARTH.H2O_EDS_SCALE = 0.92;
 EARTH['🪩🍰'] = {
-    '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
+    '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.20
 };
 
@@ -1698,7 +1701,11 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     DATA['📊'] = DATA['📊'] || {};
     DATA['📊'].total_flux = result.total_flux;
     if (DATA['🪩']) {
-        if (albedo != null) DATA['🪩']['🍰🪩📿'] = albedo;
+        if (albedo != null && typeof window.applyVeilToPlanetaryAlbedo01 === 'function') {
+            DATA['🪩']['🍰🪩📿'] = window.applyVeilToPlanetaryAlbedo01(albedo);
+        } else if (albedo != null) {
+            DATA['🪩']['🍰🪩📿'] = albedo;
+        }
         if (cloud_coverage != null) DATA['🪩']['☁️'] = cloud_coverage;
     }
     if (window.IO_LISTENER) window.IO_LISTENER.emit('cycleCalcul');
@@ -3161,25 +3168,19 @@ function calculateWaterPartition() {
     const has_polar_ice = DATA['🧮']['🧮🌡️'] < EARTH.T_NO_POLAR_ICE_K;
     const polar_ice_fraction_climate = has_polar_ice ? Math.max(0, Math.min(0.10, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K * 0.10)) : 0;
 
-    // Support hydrosphère : couche d'eau globale → fraction de surface couvrable par la glace
-    const _planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
-    const _water_layer_m = DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _planet_surface_m2 : 0;
-    const _hydro_support = Math.max(0, Math.min(0.9, _water_layer_m / 10));
-
-    // T_freeze_seawater (~271 K) : en-dessous, l'océan gèle en surface
-    const _T_freeze_sea = EARTH.T_FREEZE_SEAWATER_K;
-    const _T = DATA['🧮']['🧮🌡️'];
-
     let polar_ice_fraction;
-    if (_T >= _T_freeze_sea) {
+    if (DATA['🧮']['🧮🌡️'] >= EARTH.T_FREEZE_SEAWATER_K) {
         // Régime classique : calottes polaires limitées aux hautes terres
         polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
     } else {
-        // Régime gel océan : proportion de l'océan gelée croît quand T descend sous T_freeze
+        // Régime gel océan : proportion gelée croît linéairement sous T_freeze (~271 K)
         // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
-        const ocean_freeze_fraction = Math.max(0, Math.min(1, (_T_freeze_sea - _T) / 20));
-        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], _hydro_support);
-        polar_ice_fraction = Math.min(max_ice_surface, ocean_freeze_fraction * max_ice_surface);
+        const planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
+        const hydro_support = Math.max(0, Math.min(0.9,
+            (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_m2 : 0) / 10));
+        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydro_support);
+        polar_ice_fraction = max_ice_surface * Math.max(0, Math.min(1,
+            (EARTH.T_FREEZE_SEAWATER_K - DATA['🧮']['🧮🌡️']) / 20));
     }
     
     // 🔒 CALCUL DE 🍰🫧💧 (fraction massique de vapeur d'eau dans l'atmosphère)
@@ -3648,15 +3649,15 @@ window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
 // - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
 //
 // FORMULES ALBEDO :
-// 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🌋,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
+// 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
 //   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅
-// 🍰🪩🌋 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
+// 🍰🪩🎾 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
 //   où ocean_volume_m3 = (⚖️💧 × 🍰💧🌊) / 1000
 // 🍰🪩🌳 = forest_coverage = f(T, ocean_coverage) : si T<30°C et ocean>0.1 alors min(0.5, ocean × (1-T/30))
 // 🍰🪩🌍 = land_coverage = max(0, 1.0 - ocean - ice - forest) (continents, prairies, sols humides, albedo ~0.18)
-// 🍰🪩🏜️ = desert_coverage = 1.0 - (🌋 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
+// 🍰🪩🏜️ = desert_coverage = 1.0 - (🎾 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
 // 🍰🪩🧊 = ice_coverage = min(0.9, 🍰💧🧊 × 0.9)
 // 🍰🪩⛅ = cloud_coverage = C_max × ☁️ où C_max ≈ 0.7 et ☁️ = CloudFormationIndex
 
@@ -3848,17 +3849,18 @@ function calculateAlbedo() {
     const isConvergencePhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
     const albedoFixedState = STATE.iceEpochFixedAlbedoState;
     const hasEpochIceLock = isConvergencePhase && albedoFixedState && albedoFixedState.epochId === DATA['📜']['🗿'];
+    const hystUnlockIce = typeof window !== 'undefined' && window.HYSTERESIS && window.HYSTERESIS.active;
     DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    if (hasEpochIceLock) {
+    if (hasEpochIceLock && !hystUnlockIce) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, albedoFixedState.value));
     }
     const freezeIceDuringSearch = CONFIG_COMPUTE.freezePolarIceDuringSearch !== false;
     const waterPass = (DATA['🧮'] && DATA['🧮']['🧮🔄🌊'] != null) ? DATA['🧮']['🧮🔄🌊'] : 0;
     const lock = STATE.iceCoverageLock;
-    if (!hasEpochIceLock && freezeIceDuringSearch && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
+    if (!hasEpochIceLock && freezeIceDuringSearch && !hystUnlockIce && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, lock.value));
     }
-    if (isConvergencePhase && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
+    if (isConvergencePhase && !hystUnlockIce && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
         const prevIce = STATE.iceCoverageRampState.value;
         const deltaIce = ice_fraction_target - prevIce;
         const rampStepActive = DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampEarlyIters) ? Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStepEarly) : Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStep);
@@ -3953,7 +3955,7 @@ function calculateAlbedo() {
     }
     
     // Stocker toutes les surfaces dans DATA['🪩'] (SURFACES SECHES, sans H2O)
-    DATA['🪩']['🍰🪩🌋'] = volcano_surface;
+    DATA['🪩']['🍰🪩🎾'] = volcano_surface;
     DATA['🪩']['🍰🪩🌊'] = ocean_surface;
     DATA['🪩']['🍰🪩🌳'] = forest_surface;
     DATA['🪩']['🍰🪩🧊'] = ice_surface;
@@ -3966,7 +3968,7 @@ function calculateAlbedo() {
     let weighted_albedo = 0;
     
     if (albedo_coeff) {
-        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🌋'];
+        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🎾'];
         weighted_albedo += ocean_surface * albedo_coeff['🪩🍰🌊'];
         weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
         weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
@@ -4087,7 +4089,7 @@ function calculateAlbedo() {
     }
 
     // 🔒 FORMULE ALBEDO CORRIGÉE :
-    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🌋,🌊,🌳,🏜️,🧊 }
+    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🎾,🌊,🌳,🏜️,🧊 }
     albedo = albedo * (1 - cloud_fraction) + albedo_coeff['🪩🍰⛅'] * cloud_fraction;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
@@ -4182,23 +4184,21 @@ window.calculateGeologySurfaces = calculateGeologySurfaces;
 
 function updateLevelsConfig() {
     const DATA = window.DATA;
-    const CONST = window.CONST;
+    //const CONST = window.CONST;
     const EPOCH = DATA['📅'];
-    const total_atmosphere_mass_kg = DATA['⚖️']['⚖️🫧'];
-    const molar_mass_air = DATA['🫧']['🧪'];
     const isCorpsNoir = DATA['📜']['🗿'] === '⚫';
     
     // Initialiser CO2 depuis EPOCH
     let co2_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🏭'] > 0) {
-        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], total_atmosphere_mass_kg, molar_mass_air);
+        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         co2_ppm = co2_fraction * 1e6;
     }
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], total_atmosphere_mass_kg, molar_mass_air);
+        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -4237,7 +4237,7 @@ window.updateLevelsConfig = updateLevelsConfig;
 
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.1.5
+// Version 1.1.6
 // Date: [June 08, 2025] [HH:MM UTC+1]
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -4252,6 +4252,7 @@ window.updateLevelsConfig = updateLevelsConfig;
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
 // - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
+// - v1.1.6 : CONFIG_COMPUTE.logCo2RadiativeDiagnostic → console 🔎 DIAG CO2 (⚖️🏭, 🍰🫧🏭, ppm)
 //
 // ============================================================================
 // CALCUL DE PRESSION ET STRUCTURE ATMOSPHÉRIQUE
@@ -4436,7 +4437,17 @@ function calculateAtmosphereComposition() {
     // Mettre à jour DATA directement
     DATA['🫧']['📏🫧🧿'] = altitude / 1000;  // Altitude max en km
     DATA['🫧']['📏🫧🛩'] = tropopause / 1000;  // Tropopause en km
-    
+
+    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic === true) {
+        const P = DATA['⚖️'] || {};
+        const mCo2 = isFinite(P['⚖️🏭']) ? P['⚖️🏭'] : 0;
+        const frac = Number(DATA['🫧']['🍰🫧🏭']);
+        console.log('🔎 DIAG CO2:',
+            '⚖️🏭=', mCo2.toExponential(3),
+            '🍰🫧🏭=', (Number.isFinite(frac) ? frac.toExponential(6) : String(frac)),
+            'ppm=', (Number.isFinite(frac) ? (frac * 1e6).toFixed(1) : 'n/a'));
+    }
+
     return true;
 }
 
