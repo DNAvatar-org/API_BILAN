@@ -315,7 +315,7 @@ const timeline = [
     },
     // 🌿 = Paléozoïque (600–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
     // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
-    {// Paléozoïque
+    {// Paléozoïque 🌿
         '📅': '🌿', // Paléozoïque (600–250 Ma)
         '▶': 600e6,
         '◀': 250e6,
@@ -344,7 +344,7 @@ const timeline = [
         },
         '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres (FAO 2020)
     },
-    {
+    {// Mésozoïque 🦕
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
         // 🦕 Mésozoïque : serre chaude, pas de calottes polaires
         '⛄': 0,
@@ -379,7 +379,7 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    {
+    {// Cénozoïque 🦣
         '📅': '🦣', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
         '▶': 66e6,
         '◀': 50e6,
@@ -407,7 +407,7 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    {
+    {// Éocène 🐊
         '📅': '🐊', // Éocène (50–35 Ma), pic thermique / CO₂ élevé (ordre PETM) ; puis décroissance (altération silicates, Himalaya)
         '▶': 50e6,
         '◀': 35e6,
@@ -435,7 +435,7 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    {
+    {// hysteresis 2
         '📅': 'hysteresis 2', // id stable (ex ⛰ prélude glaciaire 35–33 Ma)
         hidden: true, // même rendu frise que hysteresis 1 (epoch-text, pas epoch-btn)
         '▶': 35e6,
@@ -465,7 +465,7 @@ const timeline = [
         '🌱': 0.31
     },
     // Grande Coupure (EO–Oi, ~33 Ma) : calotte Antarctique, refroidissement majeur
-    {
+    {// 🏔 Grande Coupure
         '📅': '🏔',
         // 🏔 Grande Coupure : calotte Antarctique (~8.5% surface) — première glaciation polaire moderne
         '⛄': 0.085,
@@ -493,7 +493,7 @@ const timeline = [
         '🌱': 0.31
     },
     // Quaternaire (depuis ~2 Ma) : extension glaciaire hémisphère nord, cycles glaciaires-interglaciaires
-    {
+    {//Quaternaire
         '📅': '❄️',
         '⛄': 0.11,
         '▶': 2e6,
@@ -519,7 +519,7 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    {
+    {// Aujourd'hui 📱
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
