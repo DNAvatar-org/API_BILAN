@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<!--
+  File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.1 — 2026-04-18 : jauge 🧩 Fine-tuning 🪩 (CLOUD_SW header + panneau dépliable, alignée scie_compute.html)
+-->
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -164,6 +168,49 @@ details[open] summary::before { content: '\25be '; }
 .detail-block span { color: #aaa; }
 
 footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid #1e1e1e; margin-top: 8px; }
+
+/* Fine-tuning (miroir CO2/html/scie_compute.html, thème sombre) */
+.bench-ft-wrap {
+  flex: 1 1 280px;
+  min-width: 200px;
+  max-width: 100%;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #121212;
+}
+#bench-ft-title-slot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  color: #ccc;
+}
+#bench-ft-title-slot .bench-ft-btn {
+  background: #1e3a1e;
+  color: #9fdf9f;
+  border: 1px solid #2a8e3e;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#bench-ft-title-slot .bench-ft-btn:hover { background: #255525; }
+#bench-ft-title-slot .bench-ft-toggle { margin-left: auto; }
+#bench-ft-title-slot input[type="range"] { width: 100px; vertical-align: middle; }
+#bench-ft-content {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a2a;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #aaa;
+}
+#bench-ft-content .bench-ft-sec { margin-bottom: 10px; }
+#bench-ft-content .bench-ft-line { margin: 2px 0; padding-left: 2px; }
+#bench-ft-content strong { color: #c9c9c9; }
 </style>
 </head>
 <body>
@@ -186,6 +233,10 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
 
 <header>
   <h1>🌍 Bench Époques — Bilan Radiatif</h1>
+  <div id="bench-fine-tuning-wrap" class="bench-ft-wrap" aria-label="Fine-tuning">
+    <div id="bench-ft-title-slot"></div>
+    <div id="bench-ft-content" style="display:none;"></div>
+  </div>
   <span id="progress-label">—</span>
   <button id="btn-run" type="button" disabled>▶ Lancer</button>
 </header>
@@ -538,6 +589,142 @@ function copyBenchRow(tr) {
         document.body.removeChild(ta);
     }
 }
+
+/** Fine-tuning : même jauge que scie_compute (🔺 CLOUD_SW % ▶️ 🔻 + panneau dépliable). Source tuning.js : fillDataTuningFromBary. */
+function benchFormatTuningValue(value) {
+    if (value == null) return 'null';
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) return String(value);
+        if (Number.isInteger(value)) return String(value);
+        if (Math.abs(value) >= 1000 || (Math.abs(value) > 0 && Math.abs(value) < 0.001)) return value.toExponential(3);
+        return parseFloat(value.toFixed(6)).toString();
+    }
+    if (typeof value === 'string') return value;
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return String(value);
+}
+function benchGetFineTuningTargets() {
+    return window.FINE_TUNING_BOUNDS.targets.filter(function (target) {
+        return target && target.group && target.key && window.DATA['🎚️'][target.group];
+    });
+}
+function benchGetFineTuningTargetsByGroup(groupKey) {
+    var targets = benchGetFineTuningTargets();
+    if (groupKey === 'SCIENCE') {
+        return targets.filter(function (t) { return t.baryGroup === 'SCIENCE'; });
+    }
+    if (groupKey === 'CLOUD_SW') {
+        return targets.filter(function (t) { return t.group === 'CLOUD_SW' && (t.baryGroup == null || t.baryGroup === 'CLOUD_SW'); });
+    }
+    return targets.filter(function (t) { return t.group === groupKey; });
+}
+function benchGetFineTuningBaryPercent(groupKey) {
+    return Number(window.DATA['🎚️'].baryByGroup[groupKey]);
+}
+function benchSetFineTuningBaryPercent(groupKey, percentRaw) {
+    var p = Number(percentRaw);
+    var bounded = Math.max(0, Math.min(100, Number.isFinite(p) ? p : 0));
+    window.DATA['🎚️'].baryByGroup[groupKey] = bounded;
+    return bounded;
+}
+function benchGetFineTuningBaryValue(target, baryPercent) {
+    var min = Number(target.min);
+    var max = Number(target.max);
+    var pct = Number(baryPercent);
+    var alpha = pct / 100;
+    if (alpha < 0) alpha = 0;
+    if (alpha > 1) alpha = 1;
+    return min + (max - min) * alpha;
+}
+function benchGetTuningLineLogo(groupKey, key) {
+    if (groupKey === 'SOLVER') {
+        if (key === 'TOL_MIN_WM2') return '🔬';
+        if (key === 'LARGE_DELTA_FACTOR') return '🔺🧲';
+        if (key === 'MAX_SEARCH_STEP_K' || key === 'MAX_SEARCH_STEP_LARGE_K') return '🌡️';
+        return '🧮';
+    }
+    if (groupKey === 'SCIENCE') {
+        if (key === 'CLOUD_FRACTION_INDEX_GAIN') return '☁️';
+        if (key === 'OPTICAL_EFF_CCN_GAIN') return '🧪';
+        return '🔬';
+    }
+    if (groupKey === 'CLOUD_SW') {
+        if (key.indexOf('SULFATE') === 0) return '✈';
+        if (key.indexOf('CLOUD_') === 0) return '☁️';
+        if (key.indexOf('OPTICAL_') === 0) return '🧪';
+        if (key.indexOf('TEMP_') === 0) return '🌡️';
+        return '⛅';
+    }
+    if (groupKey === 'RADIATIVE') return '🌈';
+    return '•';
+}
+function benchRenderMergedCategory(groupKey, titleLabel, titleIcon, showHeader) {
+    var groupTargets = benchGetFineTuningTargetsByGroup(groupKey);
+    if (!groupTargets.length) return '';
+    var bary = benchGetFineTuningBaryPercent(groupKey);
+    if (!Number.isFinite(bary)) bary = 100;
+    bary = Math.round(Math.max(0, Math.min(100, bary)));
+    var controlsHtml = '';
+    if (groupKey === 'SOLVER') {
+        controlsHtml = '<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:8px;">'
+            + '<input id="bench-ft-bary-slider-' + groupKey + '" type="range" min="0" max="100" step="1" value="' + bary
+            + '" oninput="window.__BENCH_FT__.onInput(\'' + groupKey + '\', this.value)">'
+            + '<span id="bench-ft-bary-value-' + groupKey + '">' + bary + '%</span>'
+            + '<button type="button" class="bench-ft-btn" onclick="window.__BENCH_FT__.applyAndRun(\'' + groupKey + '\', document.getElementById(\'bench-ft-bary-slider-' + groupKey + '\').value); return false;">▶️</button>'
+            + '</span>';
+    }
+    var html = '<div class="bench-ft-sec">';
+    if (showHeader !== false) {
+        html += '<div class="bench-ft-line" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            + '<strong style="white-space:nowrap;">' + titleIcon + ' ' + titleLabel + ' 🎚️</strong>' + controlsHtml + '</div>';
+    }
+    for (var i = 0; i < groupTargets.length; i++) {
+        var target = groupTargets[i];
+        var logo = benchGetTuningLineLogo(target.group, target.key);
+        var activeVal = benchGetFineTuningBaryValue(target, bary);
+        html += '<div class="bench-ft-line">' + logo + ' ' + target.key + ' 🔻 ' + benchFormatTuningValue(activeVal)
+            + ' [' + benchFormatTuningValue(target.min) + ' , ' + benchFormatTuningValue(target.max) + ']'
+            + (target.note ? ' — ' + target.note : '')
+            + (target.source ? ' #' + target.source : '') + '</div>';
+    }
+    html += '</div>';
+    return html;
+}
+function benchDisplayFineTuning() {
+    var titleSlot = document.getElementById('bench-ft-title-slot');
+    var content = document.getElementById('bench-ft-content');
+    if (!titleSlot || !content || !window.DATA || !window.DATA['🎚️']) return;
+    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    var cloudBary = Number(window.DATA['🎚️'].baryByGroup.CLOUD_SW);
+    if (!Number.isFinite(cloudBary)) cloudBary = 100;
+    cloudBary = Math.round(Math.max(0, Math.min(100, cloudBary)));
+    var isOpen = content.style.display !== 'none';
+    titleSlot.innerHTML = '🧩 Fine-tuning 🪩 <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:4px;">🔺'
+        + '<input id="bench-ft-slider-CLOUD_SW-header" type="range" min="0" max="100" step="1" value="' + cloudBary
+        + '" oninput="window.__BENCH_FT__.onInput(\'CLOUD_SW\', this.value)">'
+        + '<span id="bench-ft-value-CLOUD_SW-header">' + cloudBary + '%</span>'
+        + '<button type="button" class="bench-ft-btn" onclick="window.__BENCH_FT__.applyAndRun(\'CLOUD_SW\', document.getElementById(\'bench-ft-slider-CLOUD_SW-header\').value); return false;">▶️</button>🔻</span>'
+        + '<button type="button" class="bench-ft-btn bench-ft-toggle" id="bench-ft-panel-toggle" onclick="window.__BENCH_FT__.togglePanel(); return false;">' + (isOpen ? '−' : '+') + '</button>';
+    content.innerHTML = benchRenderMergedCategory('CLOUD_SW', 'CLOUD_SW', '☁️', false)
+        + benchRenderMergedCategory('SCIENCE', 'Science', '🔬', true)
+        + benchRenderMergedCategory('SOLVER', 'Solveur', '🧮', true);
+    content.style.display = isOpen ? 'block' : 'none';
+}
+function benchApplyFineTuningBaryGroup(groupKey, percentRaw, refreshPanel) {
+    benchSetFineTuningBaryPercent(groupKey, percentRaw);
+    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (refreshPanel !== false) benchDisplayFineTuning();
+}
+function benchOnFineTuningBaryInput(groupKey, percentRaw) {
+    benchSetFineTuningBaryPercent(groupKey, percentRaw);
+    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    var pct = Math.round(Number(percentRaw));
+    var valueEl = document.getElementById('bench-ft-bary-value-' + groupKey);
+    if (valueEl) valueEl.textContent = pct + '%';
+    var valueHeaderEl = document.getElementById('bench-ft-value-CLOUD_SW-header');
+    if (groupKey === 'CLOUD_SW' && valueHeaderEl) valueHeaderEl.textContent = pct + '%';
+}
+
 function fmtAge(years) {
     if (years == null) return '?';
     var Ma = years / 1e6;
@@ -807,9 +994,44 @@ async function runAllEpochs() {
         + ' \u2014 ' + timeline.length + ' \u00e9poques en ' + elapsed + 's';
 }
 
+window.__BENCH_FT__ = {
+    onInput: function (groupKey, v) {
+        benchOnFineTuningBaryInput(groupKey, v);
+    },
+    applyAndRun: function (groupKey, v) {
+        benchApplyFineTuningBaryGroup(groupKey, v, true);
+        runAllEpochs();
+    },
+    togglePanel: function () {
+        var content = document.getElementById('bench-ft-content');
+        var btn = document.getElementById('bench-ft-panel-toggle');
+        if (!content) return;
+        var hidden = content.style.display === 'none' || !content.style.display;
+        content.style.display = hidden ? 'block' : 'none';
+        if (btn) btn.textContent = hidden ? '\u2212' : '+';
+    },
+    refresh: benchDisplayFineTuning
+};
+
+document.addEventListener('mousedown', function (e) {
+    var el = e.target;
+    if (!el || el.type !== 'range' || !el.id) return;
+    var id = el.id;
+    if (id.indexOf('bench-ft-bary-slider') !== 0 && id !== 'bench-ft-slider-CLOUD_SW-header') return;
+    var r = el.getBoundingClientRect();
+    var min = parseFloat(el.min) || 0;
+    var max = parseFloat(el.max) || 100;
+    var val = parseFloat(el.value) || min;
+    var pct = (max > min) ? (val - min) / (max - min) : 0;
+    var thumbX = r.left + pct * r.width;
+    if (Math.abs(e.clientX - thumbX) > 15) e.preventDefault();
+}, true);
+
 var ok = window.DATA && window.TIMELINE && window.CONST && window.CONV;
 var footer = document.getElementById('footer-info');
 if (ok) {
+    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    benchDisplayFineTuning();
     var dbgHint = window.debugAPI
         ? ' \u2014 debugAPI : groupes [API_BILAN] calcul'
         : ' \u2014 ?debugAPI=true pour logs calcul group\u00e9s';
