@@ -1,5 +1,7 @@
 # API_BILAN — Bilan radiatif
 
+**Conventions de code** (liaisons `window.MAJUSCULE` en tête de fonction, limiter `if` abusifs, pas de `window.minuscule` sauf exception) : voir le [README à la racine du dépôt](../README.md#conventions-code).
+
 API JavaScript de calcul du bilan radiatif terrestre.
 Entrée : une époque (ou une configuration). Sortie : températures, flux, spectres — via Promise et callbacks synchrones.
 

@@ -1,12 +1,12 @@
 // File: API_BILAN/spectroscopy/hitran.js - Formules HITRAN (Q(T), S(T), γ(T,P), Voigt)
 // Desc: En français, module de calcul LBL selon doc/HITRAN.txt (sections efficaces à partir des lignes).
-// Version 1.1.1
+// Version 1.3.2
 // Date: 2025-02-06
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Initial: Q(T), S(T), γ_air/γ_self, γ_L total, γ_D, Voigt (réf. doc/HITRAN.txt).
@@ -14,6 +14,8 @@
 // - v1.2: getSpectralBinBoundsFromHITRAN(λ_min,λ_max,T,P) → { stepMax_m, nMin } pour bornes bins.
 // - v1.1.1: partitionFunctionQ(T,molecule) approx par molécule (CO2/H2O/CH4), crossSectionFromLines passe molecule
 // - v1.3: getSpectralRegionBoundsFromHITRAN(λ_min,λ_max) → { bounds_m, weights } pour grille adaptative (bornes = plages réelles des lignes).
+// - v1.3.1: crossSectionFromLines — troncature propre ailes lointaines |δν|>VOIGT_N_WIDTHS·(γ_L+γ_D) (=100). Corrige σ<0 numérique (Faddeeva eps machine) qui provoquait κ<0→τ<0→exp(-τ)=+∞→integral=-∞→capacités 🌈 à 0.
+// - v1.3.2: voigtNormalized — Math.max(0, Re(w)) : Voigt est une pdf (≥0) ; HALF_WINDOW_CM=5 peut égaler 100×(γ_L+γ_D) donc la troncature v1.3.1 ne coupait pas la ligne fautive (σ_CH4 négatif bit-identique aux ailes).
 
 (function (global) {
     'use strict';
@@ -146,7 +148,10 @@
         var x = delta_nu_cm / gamma_D_cm;
         var y = gamma_L_cm / gamma_D_cm;
         var reW = faddeevaRe(x, y);
-        return reW / (gamma_D_cm * SQRT_PI);
+        // Contrainte mathématique : Voigt = convolution Lorentz ⊗ Doppler (deux pdf ≥0) → f ≥ 0.
+        // L'approximation Faddeeva (Humlíček) peut rendre un Re(w) légèrement négatif (~eps machine)
+        // dans les ailes sous le bruit numérique : on restaure la définition, pas de masquage de bug.
+        return Math.max(0, reW) / (gamma_D_cm * SQRT_PI);
     }
 
     /**
@@ -168,6 +173,9 @@
 
     // --- Sections efficaces à partir des lignes (données window.HITRAN_LINES_CO2 / H2O / CH4) ---
     var HALF_WINDOW_CM = 5;
+    // Nombre de largeurs (γ_L+γ_D) au-delà desquelles Faddeeva décroche sous l'eps machine → σ peut
+    // sortir légèrement négatif (artefact numérique). 100× = standard LBL, préserve les premières ailes.
+    var VOIGT_N_WIDTHS = 100;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
     function getSortedLines(key) {
@@ -219,12 +227,15 @@
         var sum_cm2 = 0;
         for (var k = i0; k < i1; k++) {
             var line = lines[k];
-            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             var g_air_T = gammaLorentzAir(T_K, line.gamma_air, line.n_air, HITRAN_T_REF_K);
             var g_self_T = gammaLorentzSelf(T_K, line.gamma_self, line.n_air, HITRAN_T_REF_K);
             var gamma_L = gammaLorentzTotal(P_atm, g_air_T, g_self_T, X_self, X_air);
             var gamma_D = gammaDoppler(line.nu, T_K, M_kg_mol);
             var delta_nu = nu_cm - line.nu;
+            // Troncature ailes lointaines : au-delà de VOIGT_N_WIDTHS × (γ_L+γ_D), Faddeeva décroche
+            // sous l'eps machine (σ peut sortir légèrement négatif, cf. doc/HITRAN.txt). Standard LBL.
+            if (Math.abs(delta_nu) > VOIGT_N_WIDTHS * (gamma_L + gamma_D)) continue;
+            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             sum_cm2 += lineCrossSectionCm2(S_T, delta_nu, gamma_L, gamma_D);
         }
         return sigmaCm2ToM2(sum_cm2);

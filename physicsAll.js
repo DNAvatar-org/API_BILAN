@@ -1,19 +1,25 @@
 // File: API_BILAN/physicsAll.js - Physics combinées (physics, hitran, climate, calculations, compute)
 // Desc: Concatenation automatique de : physics/physics.js + data/hitran_lines_*.js + spectroscopy/hitran.js + physics/climate.js + radiative/calculations.js + workers/worker_pool.js + h2o/calculations_h2o.js + albedo/calculations_albedo.js + atmosphere/calculations_atm.js + convergence/compute.js
-// Version 1.0.0
+// Version 1.0.5
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: Mar 08, 2026
+// Date: Apr 17, 2026
+// Logs bundle: v1.0.1 updateLevelsConfig (albedo) — DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] lecture directe
+// Logs bundle: v1.0.2 calculateRadiativeCapacities crash-first : suppression gardes isFinite dans kappa_CO2/H2O/CH4 (sync radiative/calculations.js v1.2.3)
+// Logs bundle: v1.0.3 retrait recalcul dynamique EARTH.H2O_EDS_SCALE (sync radiative/calculations.js v1.2.5) — piloté par fine-tuning RADIATIVE.H2O_EDS_SCALE ; défaut init 0.60 (sync physics.js v2.0.10)
+// Logs bundle: v1.0.4 EARTH.H2O_SCALE_HEIGHT_M = 2200 + waterVaporMixingRatio/waterVaporFractionAtZ utilisent cette constante (Clausius-Clapeyron effectif ; sync physics.js v2.0.11, radiative/calculations.js v1.2.6)
+// Logs bundle: v1.0.5 H_vap = fonction computeH2OScaleHeight() = R·T²/(L·Γ) (Clausius-Clapeyron + adiabatique). Dépend T, g_epoch. EARTH.CP_AIR_MOIST_J_KG_K=1005. EARTH.H2O_SCALE_HEIGHT_M retiré. (sync physics.js v2.0.12, radiative/calculations.js v1.2.7)
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: En français, dans l'architecture, je suis le module de physique fondamentale
-// Version 2.0.7
-// Date: [January 2025]
+// Version 2.0.9
+// Date: [April 02, 2026] [14:30 UTC+1]
 // logs :
+// - v2.0.9: EARTH['🪩🍰']['🪩🍰🎾'] albédo lave (ex-🪩🍰🌋)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Sections efficaces : hitran.js + lignes HITRAN. ΔF = convention affichage → climate.js, pas ici.
@@ -25,6 +31,7 @@
 // - v2.0.6 : essai calibration 2025 (EDS H2O) : h2o_eds_scale = 0.92 en base, sans branchement epoch
 // - v2.0.7 : CONV (convention) et EARTH (terrestre) extraits de CONST ; albédos 🪩🍰 dans EARTH, override par EPOCH['🪩🍰']
 // - v2.0.8 : H2O_EDS_SCALE calculé depuis DATA : 0.92 × sqrt(P_ratio) × CO2_factor (P_ratio=⚖️🫧/5.148e18, CO2_factor=max(0.7,1−2×🍰🫧🏭)). TODO quand validé : formules + doc/API.
+// - v2.0.9 : clé albédo lave 🪩🍰🎾 (remplace 🪩🍰🌋 pour cohérence avec 🍰🪩🎾)
 // ============================================================================
 
 // Initialiser CONST (pointeur vers window.CONST)
@@ -124,11 +131,14 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
-// Facteur κ_H2O dans EDS (calculations.js). Valeur par défaut 0.92 ; recalculé depuis DATA quand disponible (formule P_ratio × CO2).
-EARTH.H2O_EDS_SCALE = 0.92;
+// Facteur κ_H2O global dans EDS (calculations.js). Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
+// Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré (double-comptait pressure broadening HITRAN).
+EARTH.H2O_EDS_SCALE = 0.60;
+// Cp air humide (J/(kg·K)), pour Γ = g/Cp dans computeH2OScaleHeight().
+EARTH.CP_AIR_MOIST_J_KG_K = 1005;
 EARTH['🪩🍰'] = {
-    '🪩🍰🌋': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
-    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
+    '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
+    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.20
 };
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========
@@ -158,6 +168,20 @@ function planckFunction(lambda, T) {
 
 PHYS.planckFunction = planckFunction;
 
+// H_vap effectif (m) : r(z) = r₀·exp(-z/H_vap), avec H_vap = R·T²/(L·Γ) (Clausius-Clapeyron + adiabatique).
+// L(T) Bolton 1980 ; Γ = g/Cp. Terre moderne ≈ 2.4 km, Hadéen chaud (500 K) ≈ 15 km. Validité T < 600 K.
+// Voir physics/physics.js v2.0.12 pour détails et références.
+function computeH2OScaleHeight() {
+    const T = window.DATA['🧮']['🧮🌡️'];
+    const g = window.TIMELINE[window.DATA['📜']['👉']]['🍎'];
+    const L_spec = 2.5e6 - 2400 * (T - 273.15);
+    const L_molar = L_spec * CONST.M_H2O;
+    const Gamma = g / EARTH.CP_AIR_MOIST_J_KG_K;
+    return CONST.R_GAS * T * T / (L_molar * Gamma);
+}
+
+PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
+
 // Borne basse/haute (K) pour "cycle eau actif", fonction de la pression (atm).
 // Plage max -10°C à 150°C ; la pression resserre la fourchette (gel et évaporation).
 function getWaterCycleTempBoundsFromPressure(P_atm) {
@@ -186,7 +210,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Initial: Q(T), S(T), γ_air/γ_self, γ_L total, γ_D, Voigt (réf. doc/HITRAN.txt).
@@ -326,7 +350,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
         var x = delta_nu_cm / gamma_D_cm;
         var y = gamma_L_cm / gamma_D_cm;
         var reW = faddeevaRe(x, y);
-        return reW / (gamma_D_cm * SQRT_PI);
+        return Math.max(0, reW) / (gamma_D_cm * SQRT_PI);
     }
 
     /**
@@ -348,6 +372,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 
     // --- Sections efficaces à partir des lignes (données window.HITRAN_LINES_CO2 / H2O / CH4) ---
     var HALF_WINDOW_CM = 5;
+    var VOIGT_N_WIDTHS = 100;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
     function getSortedLines(key) {
@@ -399,12 +424,13 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
         var sum_cm2 = 0;
         for (var k = i0; k < i1; k++) {
             var line = lines[k];
-            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             var g_air_T = gammaLorentzAir(T_K, line.gamma_air, line.n_air, HITRAN_T_REF_K);
             var g_self_T = gammaLorentzSelf(T_K, line.gamma_self, line.n_air, HITRAN_T_REF_K);
             var gamma_L = gammaLorentzTotal(P_atm, g_air_T, g_self_T, X_self, X_air);
             var gamma_D = gammaDoppler(line.nu, T_K, M_kg_mol);
             var delta_nu = nu_cm - line.nu;
+            if (Math.abs(delta_nu) > VOIGT_N_WIDTHS * (gamma_L + gamma_D)) continue;
+            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             sum_cm2 += lineCrossSectionCm2(S_T, delta_nu, gamma_L, gamma_D);
         }
         return sigmaCm2ToM2(sum_cm2);
@@ -562,7 +588,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // ============================================================================
@@ -786,11 +812,9 @@ function crossSectionCO2(wavelength) {
 
 function waterVaporMixingRatio(z, r0_override = null) {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const r0 = r0_override !== null ? r0_override : DATA['💧']['🍰🫧💧'];
-    const H_H2O = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (CONST.M_H2O * EPOCH['🍎']);
-
+    // H_vap = R·T²/(L·Γ) : dépend de T courant + g de l'époque. Voir physics.js v2.0.12.
+    const H_H2O = window.PHYS.computeH2OScaleHeight();
     return r0 * Math.exp(-z / H_H2O);
 }
 
@@ -803,12 +827,11 @@ function crossSectionH2O(wavelength) {
 
 function waterVaporFractionAtZ(z) {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (!DATA['🔘']['🔘💧📛']) return 0;
 
     // 🔒 Ne pas appeler calculateWaterPartition ici : appelé une fois par le caller (calculateH2OParameters avant calculateFluxForT0)
-    const H_H2O = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (CONST.M_H2O * EPOCH['🍎']);
+    // H_vap = R·T²/(L·Γ) — voir physics.js v2.0.12.
+    const H_H2O = window.PHYS.computeH2OScaleHeight();
     return DATA['💧']['🍰🫧💧'] * Math.exp(-z / H_H2O);
 }
 
@@ -1164,13 +1187,8 @@ async function calculateFluxForT0() {
         console.log('[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)');
     }
 
-    // H2O_EDS_SCALE : modulation physique (P, CO2) — cible 0.92 en 2025, plafonné à 1.0. TODO quand validé : formules + doc/API.
-    const M_ATM_REF_KG = 5.148e18;
-    const P_ratio = DATA['⚖️']['⚖️🫧'] / M_ATM_REF_KG;
-    const CO2_factor = Math.max(0.7, 1.0 - (DATA['🫧']['🍰🫧🏭'] * 2.0));
-    EARTH.H2O_EDS_SCALE = Math.min(1.0, 0.92 * Math.sqrt(Math.max(0, P_ratio)) * CO2_factor);
-    console.log('[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
-
+    // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
+    // Propagé par tuning.js → syncRadiativeConfig(). Ex-recalcul dynamique 0.92·√P_ratio·CO2_factor retiré (double-comptait le pressure broadening déjà dans HITRAN).
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
 
     // h2o_enabled et ch4_enabled sont déjà lus depuis DATA au début de la fonction
@@ -1538,39 +1556,56 @@ function calculateRadiativeCapacities() {
         return P / (CONST.BOLTZMANN_KB * T);
     };
     
-    // Pour chaque longueur d'onde IR uniquement
+    let __firstBad = null;
+    function __noteBad(label, idx, j, i, values) {
+        if (!__firstBad) __firstBad = Object.assign({ label: label, idx: idx, j: j, i: i }, values);
+    }
     for (let idx = 0; idx < lambda_IR_indices.length; idx++) {
         const j = lambda_IR_indices[idx];
         const w_lambda = lambda_weights_IR[idx];
         
-        // Initialiser les épaisseurs optiques intégrées pour cette longueur d'onde
         let tau_H2O_lambda = 0;
         let tau_CO2_lambda = 0;
         let tau_CH4_lambda = 0;
         
-        // Intégrer sur toutes les couches pour cette longueur d'onde
         for (let i = 0; i < DATA['📊'].z_range.length - 1; i++) {
             const z = DATA['📊'].z_range[i];
             const delta_z = DATA['📊'].z_range[i + 1] - DATA['📊'].z_range[i];
             
-            // Densités numériques à cette altitude
             const n_air = window.airNumberDensityAtZ(z);
             const n_CO2 = n_air * DATA['🫧']['🍰🫧🏭'];
             const n_H2O = n_air * waterVaporFractionAtZ(z);
             const n_CH4 = n_air * methaneFractionAtZ(z);
             
-            // Coefficients d'absorption pour cette longueur d'onde et cette altitude
-            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * n_CO2 : 0;
-            const kappa_H2O_raw_cap = isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * n_H2O : 0;
-            const kappa_H2O = kappa_H2O_raw_cap * h2o_eds_scale_cap;
-            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * n_CH4 : 0;
+            const kappa_CO2 = cross_section_CO2[j] * n_CO2;
+            const kappa_H2O = cross_section_H2O[j] * n_H2O * h2o_eds_scale_cap;
+            const kappa_CH4 = cross_section_CH4[j] * n_CH4;
 
-            // Épaisseur optique pour cette couche
             const delta_tau_CO2 = kappa_CO2 * delta_z;
             const delta_tau_H2O = kappa_H2O * delta_z;
             const delta_tau_CH4 = kappa_CH4 * delta_z;
             
-            // Accumuler les épaisseurs optiques intégrées
+            if (!isFinite(delta_tau_CO2) || delta_tau_CO2 < 0) {
+                __noteBad('CO2', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_CO2: n_CO2,
+                    cross_CO2: cross_section_CO2[j], kappa_CO2: kappa_CO2, delta_tau_CO2: delta_tau_CO2
+                });
+            }
+            if (!isFinite(delta_tau_H2O) || delta_tau_H2O < 0) {
+                __noteBad('H2O', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_H2O: n_H2O,
+                    waterVaporFrac_z: waterVaporFractionAtZ(z),
+                    cross_H2O: cross_section_H2O[j], h2o_eds_scale_cap: h2o_eds_scale_cap,
+                    kappa_H2O: kappa_H2O, delta_tau_H2O: delta_tau_H2O
+                });
+            }
+            if (!isFinite(delta_tau_CH4) || delta_tau_CH4 < 0) {
+                __noteBad('CH4', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_CH4: n_CH4,
+                    methaneFrac_z: methaneFractionAtZ(z),
+                    cross_CH4: cross_section_CH4[j], kappa_CH4: kappa_CH4, delta_tau_CH4: delta_tau_CH4
+                });
+            }
             tau_CO2_lambda += delta_tau_CO2;
             tau_H2O_lambda += delta_tau_H2O;
             tau_CH4_lambda += delta_tau_CH4;
@@ -1698,7 +1733,11 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     DATA['📊'] = DATA['📊'] || {};
     DATA['📊'].total_flux = result.total_flux;
     if (DATA['🪩']) {
-        if (albedo != null) DATA['🪩']['🍰🪩📿'] = albedo;
+        if (albedo != null && typeof window.applyVeilToPlanetaryAlbedo01 === 'function') {
+            DATA['🪩']['🍰🪩📿'] = window.applyVeilToPlanetaryAlbedo01(albedo);
+        } else if (albedo != null) {
+            DATA['🪩']['🍰🪩📿'] = albedo;
+        }
         if (cloud_coverage != null) DATA['🪩']['☁️'] = cloud_coverage;
     }
     if (window.IO_LISTENER) window.IO_LISTENER.emit('cycleCalcul');
@@ -1800,7 +1839,7 @@ async function simulateRadiativeTransfer() {
     // En mode normal : partir de la T0 de référence de l'époque
     const baseTemp = animEnabled ? DATA['🧮']['🧮🌡️'] : t0_config;
     
-    const meteoriteCount = DATA['📜']['📿☄️'];
+    // (📿☄️ retiré — l'eau s'accumule directement dans 🔺⚖️💧, 📿💫 gère le temps)
     const ticTime = DATA['📜']['📿💫'];
     const deltaTicTime_per_tic = DATA['📜']['🔺🌡️💫'];
     
@@ -2970,7 +3009,7 @@ window.simulateRadiativeTransfer = simulateRadiativeTransfer;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1 : M_dry depuis masses (air sec) au lieu de M_air (dépendance circulaire) ; clamp 🍰🫧💧≤1
@@ -3155,13 +3194,26 @@ function calculateWaterPartition() {
     DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
 
     // 🔒 ÉTAPE 2 : Déterminer la glace selon la température ET les surfaces disponibles
-    // La glace est limitée par les hautes terres disponibles (géologie)
+    // Deux régimes :
+    //   T >= T_freeze_seawater : glace polaire sur hautes terres (calottes classiques)
+    //   T <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
     const has_polar_ice = DATA['🧮']['🧮🌡️'] < EARTH.T_NO_POLAR_ICE_K;
     const polar_ice_fraction_climate = has_polar_ice ? Math.max(0, Math.min(0.10, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K * 0.10)) : 0;
-    
-    // 🔒 CONTRAINTE GÉOLOGIQUE : La glace ne peut pas dépasser les hautes terres disponibles
-    // polar_ice_fraction est une fraction de surface, limitée par highlands_fraction
-    const polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
+
+    let polar_ice_fraction;
+    if (DATA['🧮']['🧮🌡️'] >= EARTH.T_FREEZE_SEAWATER_K) {
+        // Régime classique : calottes polaires limitées aux hautes terres
+        polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
+    } else {
+        // Régime gel océan : proportion gelée croît linéairement sous T_freeze (~271 K)
+        // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
+        const planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
+        const hydro_support = Math.max(0, Math.min(0.9,
+            (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_m2 : 0) / 10));
+        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydro_support);
+        polar_ice_fraction = max_ice_surface * Math.max(0, Math.min(1,
+            (EARTH.T_FREEZE_SEAWATER_K - DATA['🧮']['🧮🌡️']) / 20));
+    }
     
     // 🔒 CALCUL DE 🍰🫧💧 (fraction massique de vapeur d'eau dans l'atmosphère)
     // Formule : 🍰🫧💧 = max_vapor_fraction × (M_H2O / M_air)
@@ -3593,7 +3645,7 @@ window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - epochId Archéen : 🦠 (🌋 réservé actions). Archéen utilise clouds modernes pour ~15°C.
@@ -3629,15 +3681,15 @@ window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
 // - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
 //
 // FORMULES ALBEDO :
-// 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🌋,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
+// 🍰🪩📿 = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
 //   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅
-// 🍰🪩🌋 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
+// 🍰🪩🎾 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
 //   où ocean_volume_m3 = (⚖️💧 × 🍰💧🌊) / 1000
 // 🍰🪩🌳 = forest_coverage = f(T, ocean_coverage) : si T<30°C et ocean>0.1 alors min(0.5, ocean × (1-T/30))
 // 🍰🪩🌍 = land_coverage = max(0, 1.0 - ocean - ice - forest) (continents, prairies, sols humides, albedo ~0.18)
-// 🍰🪩🏜️ = desert_coverage = 1.0 - (🌋 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
+// 🍰🪩🏜️ = desert_coverage = 1.0 - (🎾 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
 // 🍰🪩🧊 = ice_coverage = min(0.9, 🍰💧🧊 × 0.9)
 // 🍰🪩⛅ = cloud_coverage = C_max × ☁️ où C_max ≈ 0.7 et ☁️ = CloudFormationIndex
 
@@ -3753,8 +3805,15 @@ function calculateAlbedo() {
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
     function calcGlaceEquilibre(T_K) {
-        const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
-        return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
+            // Régime calottes polaires : max ~10% de surface (highlands)
+            const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+            return Math.max(0, Math.min(1, 0.1 * stock_factor));
+        }
+        // Régime gel océan : sous T_freeze (~271 K), la mer gèle en surface
+        // Rampe linéaire : 0% → 90% sur 20 K sous T_freeze (100% à ~251 K)
+        const ocean_freeze_fraction = Math.min(1, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20);
+        return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
     // Ne pas écraser le verrou glace posé par initForConfig en phase Search/Dicho (reproductibilité visu vs scie)
     const inSolverPhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
@@ -3791,7 +3850,10 @@ function calculateAlbedo() {
     
     // Surface océanique réelle (peut être < bassin si pas assez d'eau)
     const ocean_volume_actual_m3 = ocean_mass_actual_kg / CONST.RHO_WATER;
-    const ocean_surface_actual_m2 = (ocean_volume_actual_m3 / EPOCH['📏🌊'] / 1000) * EPOCH['🐚'];
+    const ocean_depth_m = EPOCH['📏🌊'] * 1000;
+    const ocean_surface_actual_m2 = ocean_depth_m > 0
+        ? (ocean_volume_actual_m3 / ocean_depth_m) * EPOCH['🐚']
+        : 0;
     const ocean_coverage_base = Math.min(DATA['🗻']['🍰🗻🌊'], Math.max(0.0, ocean_surface_actual_m2 / planet_surface_m2));
     
     // Réduire ocean_coverage proportionnellement à volcano_coverage
@@ -3819,17 +3881,18 @@ function calculateAlbedo() {
     const isConvergencePhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
     const albedoFixedState = STATE.iceEpochFixedAlbedoState;
     const hasEpochIceLock = isConvergencePhase && albedoFixedState && albedoFixedState.epochId === DATA['📜']['🗿'];
+    const hystUnlockIce = typeof window !== 'undefined' && window.HYSTERESIS && window.HYSTERESIS.active;
     DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    if (hasEpochIceLock) {
+    if (hasEpochIceLock && !hystUnlockIce) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, albedoFixedState.value));
     }
     const freezeIceDuringSearch = CONFIG_COMPUTE.freezePolarIceDuringSearch !== false;
     const waterPass = (DATA['🧮'] && DATA['🧮']['🧮🔄🌊'] != null) ? DATA['🧮']['🧮🔄🌊'] : 0;
     const lock = STATE.iceCoverageLock;
-    if (!hasEpochIceLock && freezeIceDuringSearch && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
+    if (!hasEpochIceLock && freezeIceDuringSearch && !hystUnlockIce && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
         DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, lock.value));
     }
-    if (isConvergencePhase && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
+    if (isConvergencePhase && !hystUnlockIce && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
         const prevIce = STATE.iceCoverageRampState.value;
         const deltaIce = ice_fraction_target - prevIce;
         const rampStepActive = DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampEarlyIters) ? Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStepEarly) : Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStep);
@@ -3924,7 +3987,7 @@ function calculateAlbedo() {
     }
     
     // Stocker toutes les surfaces dans DATA['🪩'] (SURFACES SECHES, sans H2O)
-    DATA['🪩']['🍰🪩🌋'] = volcano_surface;
+    DATA['🪩']['🍰🪩🎾'] = volcano_surface;
     DATA['🪩']['🍰🪩🌊'] = ocean_surface;
     DATA['🪩']['🍰🪩🌳'] = forest_surface;
     DATA['🪩']['🍰🪩🧊'] = ice_surface;
@@ -3937,7 +4000,7 @@ function calculateAlbedo() {
     let weighted_albedo = 0;
     
     if (albedo_coeff) {
-        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🌋'];
+        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🎾'];
         weighted_albedo += ocean_surface * albedo_coeff['🪩🍰🌊'];
         weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
         weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
@@ -4058,7 +4121,7 @@ function calculateAlbedo() {
     }
 
     // 🔒 FORMULE ALBEDO CORRIGÉE :
-    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🌋,🌊,🌳,🏜️,🧊 }
+    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🎾,🌊,🌳,🏜️,🧊 }
     albedo = albedo * (1 - cloud_fraction) + albedo_coeff['🪩🍰⛅'] * cloud_fraction;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
@@ -4082,8 +4145,8 @@ function calculateAlbedo() {
     
     // Appliquer au final_albedo
     const final_albedo_with_water = final_albedo * blackbody_factor;
-    if (final_albedo_with_water === 0 || !Number.isFinite(final_albedo_with_water)) {
-        /* diagnostic désactivé en prod */
+    if (!Number.isFinite(final_albedo_with_water)) {
+        throw new Error('[calculateAlbedo] 🍰🪩📿 non fini (NaN/Inf) — contrôler 🧮🌡️, surfaces, cloud_fraction. T_K=' + DATA['🧮']['🧮🌡️'] + ' albedo=' + albedo + ' cloud_fraction=' + cloud_fraction + ' final_albedo=' + final_albedo + ' blackbody_factor=' + blackbody_factor);
     }
     // 🔒 Les surfaces sont déjà stockées plus haut (lignes 249-254)
     // ice_fraction_base est la surface de glace, ice_fraction_stock est la fraction du stock d'eau
@@ -4153,23 +4216,21 @@ window.calculateGeologySurfaces = calculateGeologySurfaces;
 
 function updateLevelsConfig() {
     const DATA = window.DATA;
-    const CONST = window.CONST;
+    //const CONST = window.CONST;
     const EPOCH = DATA['📅'];
-    const total_atmosphere_mass_kg = DATA['⚖️']['⚖️🫧'];
-    const molar_mass_air = DATA['🫧']['🧪'];
     const isCorpsNoir = DATA['📜']['🗿'] === '⚫';
     
     // Initialiser CO2 depuis EPOCH
     let co2_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🏭'] > 0) {
-        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], total_atmosphere_mass_kg, molar_mass_air);
+        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         co2_ppm = co2_fraction * 1e6;
     }
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], total_atmosphere_mass_kg, molar_mass_air);
+        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -4208,13 +4269,13 @@ window.updateLevelsConfig = updateLevelsConfig;
 
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.1.5
+// Version 1.1.6
 // Date: [June 08, 2025] [HH:MM UTC+1]
 // logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Fix: use DATA['🧮']['🧮🌡️'] in calculateAtmosphereProperties (was typo 🌡️)
@@ -4223,6 +4284,7 @@ window.updateLevelsConfig = updateLevelsConfig;
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
 // - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
+// - v1.1.6 : CONFIG_COMPUTE.logCo2RadiativeDiagnostic → console 🔎 DIAG CO2 (⚖️🏭, 🍰🫧🏭, ppm)
 //
 // ============================================================================
 // CALCUL DE PRESSION ET STRUCTURE ATMOSPHÉRIQUE
@@ -4407,7 +4469,17 @@ function calculateAtmosphereComposition() {
     // Mettre à jour DATA directement
     DATA['🫧']['📏🫧🧿'] = altitude / 1000;  // Altitude max en km
     DATA['🫧']['📏🫧🛩'] = tropopause / 1000;  // Tropopause en km
-    
+
+    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic === true) {
+        const P = DATA['⚖️'] || {};
+        const mCo2 = isFinite(P['⚖️🏭']) ? P['⚖️🏭'] : 0;
+        const frac = Number(DATA['🫧']['🍰🫧🏭']);
+        console.log('🔎 DIAG CO2:',
+            '⚖️🏭=', mCo2.toExponential(3),
+            '🍰🫧🏭=', (Number.isFinite(frac) ? frac.toExponential(6) : String(frac)),
+            'ppm=', (Number.isFinite(frac) ? (frac * 1e6).toFixed(1) : 'n/a'));
+    }
+
     return true;
 }
 
@@ -4496,7 +4568,7 @@ window.ch4KgToFraction = ch4KgToFraction;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
@@ -4555,36 +4627,40 @@ function getMasses() {
     const epochId = DATA['📜']['🗿'];
     const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
     const EPOCH = window.TIMELINE[epochIndex];
-    // ⚖️💧 = ⚖️💧_init (EPOCH) + 📿☄️ * 🔺⚖️💧☄️ — 📿☄️ incrémenté directement par le bouton ☄️
+    // ⚖️💧 = valeur initiale + delta pending (météorites), consommé à chaque appel
     let h2o_kg = EPOCH['⚖️💧'] || 0;
-    h2o_kg += DATA['📜']['🔺⚖️💧☄️'] * DATA['📜']['📿☄️'];
-    
+    h2o_kg += (DATA['📜']['🔺⚖️💧'] || 0);
+
     // Mettre à jour DATA directement
-    // 🔒 Protection contre undefined : traiter comme 0
-    DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+    var isYearIndexedM = EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(function(k) { return !isNaN(Number(k)); });
+    if (isYearIndexedM) {
+        // 📱 year-indexed : ⚖️🏭 est la variable de référence unique
+        // Initialiser depuis EPOCH au chargement (📿💫=0), sinon consommer le delta pending
+        var ticCountM = (DATA['📜']['📿💫'] || 0);
+        if (ticCountM === 0) {
+            DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+        }
+        DATA['⚖️']['⚖️🏭'] += (DATA['📜']['🔺⚖️🏭'] || 0);
+        DATA['📜']['🔺⚖️🏭'] = 0; // consommé
+    } else {
+        DATA['⚖️']['⚖️🏭'] = isFinite(EPOCH['⚖️🏭']) ? EPOCH['⚖️🏭'] : 0;
+    }
     DATA['⚖️']['⚖️🐄'] = isFinite(EPOCH['⚖️🐄']) ? EPOCH['⚖️🐄'] : 0;
     DATA['⚖️']['⚖️💧'] = h2o_kg;
     DATA['⚖️']['⚖️🫁'] = isFinite(EPOCH['⚖️🫁']) ? EPOCH['⚖️🫁'] : 0;
-    DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;  // N2 depuis EPOCH
-    DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;  // Sulfate (proxy CCN), séparé de l'air sec
-    
-    // ⚖️🫧 = masse atmosphérique totale (air sec, sans vapeur d'eau)
-    // Si EPOCH définit ⚖️🫧, l'utiliser, sinon calculer comme somme des gaz
+    DATA['⚖️']['⚖️💨'] = isFinite(EPOCH['⚖️💨']) ? EPOCH['⚖️💨'] : 0;
+    DATA['⚖️']['⚖️✈'] = isFinite(EPOCH['⚖️✈']) ? EPOCH['⚖️✈'] : 0;
+
+    // ⚖️🫧 = masse atmosphérique totale (air sec)
     if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
         DATA['⚖️']['⚖️🫧'] = EPOCH['⚖️🫧'];
-        // Si ⚖️💨 non défini, N₂ implicite = reste pour atteindre ⚖️🫧 (évite M_dry faux → vapeur/albédo erronés)
         if (!isFinite(EPOCH['⚖️💨']) || EPOCH['⚖️💨'] === undefined) {
             DATA['⚖️']['⚖️💨'] = Math.max(0, DATA['⚖️']['⚖️🫧'] - (DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁']));
         }
     } else {
-        // ⚖️🫧 = somme de tous les gaz atmosphériques (CO2, CH4, O2, N2)
         DATA['⚖️']['⚖️🫧'] = DATA['⚖️']['⚖️🏭'] + DATA['⚖️']['⚖️🐄'] + DATA['⚖️']['⚖️🫁'] + DATA['⚖️']['⚖️💨'];
     }
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`📋 [getMasses@compute.js]`);
-    // console.log(`masses=${JSON.stringify(DATA['⚖️'])}`);
-    
+
     // Retourner true car DATA a été modifié
     return true;
 }
@@ -4599,7 +4675,7 @@ function getEpochDateConfig() {
     const EPOCH = window.TIMELINE[epochIndex];
     
     // Masse d'eau par météorite — depuis config ☄️ (Corps noir, Hadéen)
-    // ⚠️ Ne pas écraser 📿☄️ ni 📿💫 — compteurs exclusifs des boutons (events.js)
+    // ⚠️ Ne pas écraser 📿💫 — compteur de temps exclusif des boutons
     if (EPOCH['🕰'] && EPOCH['🕰']['☄️']) {
         DATA['📜']['🔺⚖️💧☄️'] = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
     }
@@ -4622,28 +4698,56 @@ function getEpochDateConfig() {
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;
 
-    // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
-    // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])
+    // 🔒 Date courante en années (pour Gough dans getSoleil)
+    // 📿💫 = compteur de temps universel (géologique ET 📱)
     var deltaYearsFromTics = 0;
+    var ticCount = (DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
-        for (var tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀') continue;
-            var cfg = EPOCH['🕰'][tk];
-            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                var count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
-                deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
+        // Détecter format year-indexed (📱) vs géologique (💫/☄️)
+        var isYearIndexedE = Object.keys(EPOCH['🕰']).some(function(k) { return !isNaN(Number(k)); });
+        if (isYearIndexedE) {
+            // 📱 : extraire 🔺⏳ du premier bouton du premier bucket année
+            var firstYrKey = Object.keys(EPOCH['🕰']).filter(function(k) { return !isNaN(Number(k)); }).sort(function(a,b){return a-b;})[0];
+            var firstActions = EPOCH['🕰'][firstYrKey];
+            var dtMa = 0.000025; // fallback
+            if (firstActions) {
+                var fak = Object.keys(firstActions)[0];
+                if (firstActions[fak] && typeof firstActions[fak]['🔺⏳'] === 'number') dtMa = firstActions[fak]['🔺⏳'];
+            }
+            deltaYearsFromTics = ticCount * dtMa * 1e6;
+        } else {
+            // Géologique : itérer les clés tic string (💫, ☄️…) — 📿💫 porte tout
+            for (var tk of Object.keys(EPOCH['🕰'])) {
+                if (tk === '🔀' || tk === '◀') continue;
+                var cfg = EPOCH['🕰'][tk];
+                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                    deltaYearsFromTics += ticCount * cfg['🔺⏳'] * 1e6;
+                    break; // 📿💫 est le seul compteur
+                }
             }
         }
     }
-    DATA['📜']['📅'] = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
+    // Detect time direction: geological = backward (▶ > ◀), modern = forward (▶ < ◀)
+    var epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    var isForwardTime = (EPOCH['▶'] != null && epochEnd != null && EPOCH['▶'] < epochEnd);
+    DATA['📜']['📅'] = (EPOCH['▶'] != null)
+        ? (isForwardTime ? (EPOCH['▶'] || 0) + deltaYearsFromTics : (EPOCH['▶'] || 0) - deltaYearsFromTics)
+        : 0;
 
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`💫🛠 [getEpochDateConfig@compute.js]`);
-    // console.log(`dateConfig=${JSON.stringify(DATA['📜'])}`);
-    
+
+    // Log CO₂ courant pour époques forward (📱 year-indexed ou autre)
+    if (isForwardTime && DATA['⚖️'] && DATA['⚖️']['⚖️🫧'] > 0) {
+        var ppm_approx = Math.round(
+            (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
+        );
+        window._co2ProfileLog = '[⚖️🏭] ' + Math.round(DATA['📜']['📅'] || 0)
+            + ' CE → ' + DATA['⚖️']['⚖️🏭'].toExponential(3)
+            + ' kg (~' + ppm_approx + ' ppm)';
+        window._co2ProfileLogInjected = false;
+    }
+
     // Retourner true car DATA a été modifié
     return true;
 }

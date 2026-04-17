@@ -3,11 +3,13 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.1.2
+// Version 1.1.4
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: March 08, 2026
 // Logs:
+// - v1.1.4 URL worker : window.__SPECTRAL_WORKER_SCRIPT__ (epoch_bench doc/) sinon ../API_BILAN/workers/ (CO2)
+// - v1.1.3 __API_BILAN_WORKER_POOL__ + silence console si __EPOCH_BENCH_PAGE__ (résumé dans epoch_bench)
 // - v1.0.0 Initial: N-1 workers, SAB Float32 pour upward_flux, sums EDS via postMessage
 // - v1.1.0 Transferable au lieu de SharedArrayBuffer (pas de headers COOP/COEP requis, compatible prod)
 // - v1.1.1 Retrait typeof navigator guard (regle-js-crash)
@@ -23,15 +25,25 @@
         ? Math.max(1, window.CONFIG_COMPUTE.maxWorkers) : rawWorkers;
     var nWorkers = Math.min(rawWorkers, maxCap);
 
-    // Chemin relatif au document HTML qui charge ce script (depuis html/)
-    var workerPath = '../API_BILAN/workers/spectral_slice_worker.js';
+    // CO2/index : document sous CO2/ → ../API_BILAN/workers/ OK. API_BILAN/doc/epoch_bench : définir window.__SPECTRAL_WORKER_SCRIPT__.
+    var workerPath = (typeof window.__SPECTRAL_WORKER_SCRIPT__ === 'string' && window.__SPECTRAL_WORKER_SCRIPT__)
+        ? window.__SPECTRAL_WORKER_SCRIPT__
+        : '../API_BILAN/workers/spectral_slice_worker.js';
 
     var workers = [];
     for (var k = 0; k < nWorkers; k++) {
         workers.push(new Worker(workerPath));
     }
 
-    console.log('[worker_pool.js] ' + nWorkers + ' workers spectraux créés (' + nCPU + ' CPUs, 1 réservé rendu) — mode Transferable');
+    window.__API_BILAN_WORKER_POOL__ = {
+        nWorkers: nWorkers,
+        nCPU: nCPU,
+        transferable: true
+    };
+
+    if (!window.__EPOCH_BENCH_PAGE__) {
+        console.log('[worker_pool.js] ' + nWorkers + ' workers spectraux créés (' + nCPU + ' CPUs, 1 réservé rendu) — mode Transferable');
+    }
 
     // dispatch: répartit les nL lambdas sur nWorkers tranches équitables.
     // Chaque worker calcule sa tranche et transfère son Float32Array[nZ * sliceSize] au main thread.
@@ -114,5 +126,7 @@
         dispatch: dispatch
     };
 
-    console.log('[worker_pool.js] spectralWorkerPool prêt. Mode Transferable (compatible prod, sans headers COOP/COEP).');
+    if (!window.__EPOCH_BENCH_PAGE__) {
+        console.log('[worker_pool.js] spectralWorkerPool prêt. Mode Transferable (compatible prod, sans headers COOP/COEP).');
+    }
 }());

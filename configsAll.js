@@ -1,9 +1,30 @@
 // File: API_BILAN/configsAll.js - Configs combinées (alphabet, dico, initDATA, model_tuning, configTimeline)
 // Desc: Concatenation automatique de : data/alphabet.js + data/dico.js + data/initDATA.js + config/model_tuning.js + config/model_tuning_biblio.js + config/fine_tuning_bounds.js + config/configTimeline.js
-// Version 1.0.0
+// Version 1.0.17
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: Mar 08, 2026
+// See LICENSE_HEADER.txt for full terms.
+// Date: [April 03, 2026] [23:05 UTC+1]
+// Logs:
+// - v1.0.17: FIRST_SEARCH_STEP_CAP_K défaut 0 (désactivé) — plafond 8 K changeait le bassin de convergence (📱 ~21 °C vs ~15,6 °C hérité)
+// - v1.0.16: SOLVER.FIRST_SEARCH_STEP_CAP_K (déf. 8 K) dans _solverDefault + TUNING.SOLVER (1er pas Search après Init)
+// - v1.0.15: KEYS 🐊 libellé « Éocène » (titre court)
+// - initDATA embarqué : DATA['🎚️'].HYSTERESIS (sync fillDataTuningFromBary / scie)
+// - CONFIG_COMPUTE.logCo2RadiativeDiagnostic (CO₂ atmosphère + 🧲📛🏭 après pas hyst ; aligné configTimeline)
+// - CONFIG_COMPUTE.logIceFractionDiagnostic (aligné configTimeline v1.3.12)
+// - 🍰🪩📿 albédo effectif (voile) ; 🧲☀️🔽 = 🧲☀️🎱×(1−🍰🪩📿)
+// - KEYS/DESC/FORM 🪩 : 🍰🪩🌋→🍰🪩🎾, 🪩🍰🌋→🪩🍰🎾 (lave / surface magmatique)
+// - hysteresis 1 🌡️🧮 290 K (aligné configTimeline v1.3.10 ; graine branche chaude)
+// - FINE_TUNING_BOUNDS + TUNING_BIBLIO : groupe HYSTERESIS (preset mer gelée / CO₂ mer, UI sea ice 1–6 K)
+// - commentaire HYSTERESIS.searchSign (UI scie_ négatif|positif)
+// - hysteresis 1 TIMELINE : ⚖️🏭 1.0e16 (aligné configTimeline.js ; corrigé doublon 2e16 dans ce fichier)
+// - TUNING.HYSTERESIS : brutalDeltaT_C, scanCo2MassFactor, maxDichoSteps (scie_hysteresis_search.js v2 scan+dicho)
+// - TUNING.HYSTERESIS : convergencePpmMass, warmBranchHint_C, coldBranchHint_C (seuil CO₂ scie_hysteresis_search.js)
+// - hysteresis 2: hidden:true (aligné configTimeline / frise verticale epoch-text)
+// - co2OceanPartitionInRadiativeConvergence=false (configTimeline) : pompe mer NO-OP sauf activation explicite (anthropique plus tard)
+// - Retrait 🌊🏭🧲 des époques TIMELINE ; co2OceanPumpOverride01 défaut TUNING=1 ; eff pompe = jauge co2OceanEffPump01
+// - HYSTERESIS CO₂ océan : doc — réglage via jauges page search (HYST SPEED / THRESHOLD, GREY) ; défauts numériques provisoires jusqu’aux tests de convergence
+// - TUNING.HYSTERESIS.epsilonT_C / epsilonPpm : arrêt recherche CO₂ (scie_hysteresis_search.js)
 // File: API_BILAN/data/alphabet.js - Alphabet des caractères (logos)
 // Desc: Définit les caractères (logos) de base et leurs descriptions
 // Version 1.0.2
@@ -12,7 +33,7 @@
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 
@@ -46,7 +67,8 @@ const CHARS = {
     T0: '🚩',        // T0 : drapeau (température initiale)
     DIRECTION: '☯', // Direction : yin-yang (direction du delta)
     BIG_IMPACT: '🎇', // Big impact : feu d'artifice (événement d'impact majeur)
-    TIC_TIME: '💫', // TicTime : étoile (événement d'avancement temporel)
+    TIC_TIME: '💫',      // TicTime : étoile (événement d'avancement temporel)
+    EMISSIONS: '🛢',     // Scénario émissions CO₂ (époque moderne, remplace 💫 pour 📱)
     SATELLITE: '🛰', // Satellite : satellite (événement)
     FLUX_CN: '🌑', // Flux sortant : lune noire (rayonnement corps noir sortant)
     TOLERANCE: '🔬', // Tolérance : précision pour le test d'arrêt
@@ -78,13 +100,25 @@ const CHARS = {
     CORPS_NOIR: '⚫', // Corps noir
     HADEEN: '🔥',   // Hadéen : feu/lave
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
-    PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
+    PROTEROZOIC: '🪸', // Protérozoïque (2500–750 Ma) : corail
+    HYSTERESIS_1A: 'hysteresis 1a', // Sturtienne (750–720 Ma) — bascule albédo↓
+    SNOWBALL_ENTRY: '☃', // Entrée Sturtienne (alias affichage hyst 1a)
+    SNOWBALL: '⛄',  // Plein Snowball (720–690 Ma)
+    HYSTERESIS_1B: 'hysteresis 1b', // Sortie Marinoen (690–600 Ma) — hyst 1b
+    SNOWBALL_EXIT: '⛈', // Sortie Marinoen (alias affichage hyst 1b)
+    PALEOZOIC_MARINE: '🪼', // Paléozoïque marin (600–420 Ma)
+    PALEOZOIC_LAND: '🍄', // Paléozoïque terrestre (420–280 Ma)
+    PERMIAN_TRIASSIC: '💀', // Limite P/T (280–250 Ma)
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
-    CRETACEOUS: '🌿', // Paléozoïque (541–252 Ma) : os/fossile
-    CENOZOIC: '🦣', // Cénozoïque : mammouth
-    EOT: '🏔',      // EOT (33,9 Ma) : montagnes (Transition Éocène-Oligocène)
-    TODAY: '🚂',    // 1800 : train (1800)
-    MODERN: '📱',   // Moderne : smartphone (2025)
+    CENOZOIC: '🦤', // Cénozoïque (66–50 Ma) : dodo
+    PETM_HOUSE: '🐊', // Éocène (50–35 Ma), pic thermique type PETM
+    HYSTERESIS_2: 'hysteresis 2', // Eocène-Oligocène (35–33 Ma) — hyst 2
+    EOCENE_OLIGOCENE: '🐧', // Eocène-Oligocène (alias affichage hyst 2)
+    EOT: '🏔',      // Grande Coupure (33–2 Ma)
+    QUATERNARY: '🦣', // Quaternaire (2 Ma–10 ka)
+    HOLOCENE: '🛖', // Holocène (10 ka–1800)
+    TODAY: '🚂',    // Industriel (1800–2000) : train
+    MODERN: '📱',   // Aujourd'hui (2000–2100) : smartphone
     EVENTS: '🕰',   // Événements : horloge
     TRANSITION: '⏩', // Transition : flèche rapide
     DATE: '📅',     // Date : calendrier
@@ -138,7 +172,9 @@ const CHARS_DESC = {
     '🧊': 'Glace',
     '⛅': 'Nuages',
     '🌊': 'Océan',
-    '🌋': 'Volcan',
+    '🌋': 'Volcan (événement)',
+    '🎾': 'Lave',
+    '⚽': 'Voile SW stratosphérique',
     '🏜️': 'Désert',
     '🌳': 'Forêt',
     '🌍': 'Continents',
@@ -159,6 +195,7 @@ const CHARS_DESC = {
     '☁️': 'Index formation nuageuse [0,1]',
     // Événements
     '💫': 'TicTime',
+    '🛢': 'Scénario émissions',
     '☄️': 'Météorite de glace',
     '🛰': 'Satellite',
     '🌧': 'Saturation H₂O',
@@ -176,13 +213,25 @@ const CHARS_DESC = {
     '⚫': 'Corps noir',
     '🔥': 'Hadéen',
     '🦠': 'Archéen',
-    '🥟': 'Protérozoïque',
+    '🪸': 'Protérozoïque',
+    '☃': 'Sturtienne',
+    '⛄': 'Plein Snowball',
+    '⛈': 'Sortie Marinoen',
+    '🪼': 'Paléozoïque marin',
+    '🍄': 'Paléozoïque terrestre',
+    '💀': 'Limite P/T',
     '🦕': 'Mésozoïque',
-    '🌿': 'Paléozoïque',
-    '🦣': 'Cénozoïque',
-    '🏔': 'La Grande Coupure',
-    '🚂': '1800',
-    '📱': '2025',
+    '🦤': 'Cénozoïque',
+    '🐊': 'Éocène',
+    '🐧': 'Eocène-Oligocène',
+    'hysteresis 1a': 'Sturtienne',
+    'hysteresis 1b': 'Sortie Marinoen',
+    'hysteresis 2': 'Eocène-Oligocène',
+    '🏔': 'Grande Coupure',
+    '🦣': 'Quaternaire',
+    '🛖': 'Holocène',
+    '🚂': 'Industriel',
+    '📱': 'Aujourd\'hui',
     '🕰': 'Événements',
     '⏩': 'Transition',
     '📅': 'Date (Ma)',
@@ -219,7 +268,7 @@ function createAlphabetHtml() {
     
     // Colonne 5 : Époques et autres logos
     const charsCol5 = [
-        'EPOCH', 'INDEX_EPOCH', 'LOGO_EPOCH', 'CORPS_NOIR', 'HADEEN', 'ARCHEEN', 'PROTEROZOIC', 'MESOZOIC', 'CRETACEOUS', 'CENOZOIC', 'EOT', 'TODAY', 'MODERN'
+        'EPOCH', 'INDEX_EPOCH', 'LOGO_EPOCH', 'CORPS_NOIR', 'HADEEN', 'ARCHEEN', 'PROTEROZOIC', 'MESOZOIC', 'PALEOZOIC', 'CENOZOIC', 'PETM_HOUSE', 'HYSTERESIS_1', 'PRELUDE_ICE', 'EOT', 'QUATERNARY', 'TODAY', 'MODERN'
     ];
     
     // Descriptions personnalisées pour certains caractères
@@ -362,7 +411,7 @@ window.initCharsForDisplay = function () {
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: KEYS/DESC 📛 + 🍰📛⛅ (EDS nuages), DESC 🧲📛/🍰📛❀
@@ -379,7 +428,7 @@ const KEYS = {
     // États activés
     '🔘': ['🔘💧📛', '🔘🐄📛', '🔘🏭📛', '🔘🪩', '🔘🎞'],
     // Configuration de date / Événements
-    '📜': ['🌡️🧮', '📿☄️', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔘🕰', '🧲🔬'],
+    '📜': ['🌡️🧮', '📿☄️', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔺🍰⚽', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮','📿💫', '🔺⏳'],
     // Masses
@@ -389,7 +438,7 @@ const KEYS = {
     // Cycle de l'eau
     '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧮🌧', '🍰🫧💧', '🍰🫧☔', '🍰⚖️💦', '💭☔', '⏳☔'],
     // Albédo
-    '🪩': ['🍰🪩📿', '🍰🪩🌋', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '☁️'],
+    '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '☁️'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
     '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
     // Convergence
@@ -425,6 +474,7 @@ const DESC = {
         '🔺🌡️💫': 'Delta t° / ticTime',
         '🔺🧲🌕💫': 'Delta Geoth / ticTime',
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
+        '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction 0–1, événements 🌋)',
         '🧲🔬': 'Précision Flux',
     },
     '📅': {
@@ -438,14 +488,16 @@ const DESC = {
         '🔋☀️': 'Puissance totale du soleil',
     },
     '🪩': {
-        '🍰🪩📿': 'Albedo total',
-        '🍰🪩🌋': 'Volcan',
+        '🍰🪩📿': 'Albédo planétaire effectif (surfaces + nuages + voile SW 🍰⚽)',
+        '🍰🪩🎾': 'Lave (surface magmatique)',
         '🍰🪩🏜️': 'Désert',
         '🍰🪩🌳': 'Forêt',
         '🍰🪩🌊': 'Océan',
         '🍰🪩🧊': 'Glace',
         '🍰🪩⛅': 'Nuages',
         '🍰🪩🌍': 'Continents',
+        '🍰⚽': 'Voile SW : fraction d’obstruction (0–1) du flux absorbé en surface après albédo (EPOCH+📜+CONFIG)',
+        '🍰🪩⚽': 'Transmission après A_geo seul = 1 − 🍰⚽ (voile fusionné dans 🍰🪩📿)',
     },
     '🫧': {
         '🎈': 'Pression atmosphérique',
@@ -536,11 +588,11 @@ const DESC = {
 // ============================================================================
 const FORM = {
     '🧲': {
-        '🧲☀️🔽': '🧲☀️🎱 × (1 - 🍰🪩📿) = Flux solaire absorbé',
+        '🧲☀️🔽': '🧲☀️🎱 × (1 - 🍰🪩📿) — 🍰🪩📿 inclut voile (1−(1−A_geo)(1−🍰⚽))',
         '🧲🌕🔽': 'Flux géothermique (constant)',
         '🧲🌑🔼': 'σ × T⁴ = Flux émis par la surface (corps noir théorique à température T). Formule: 🧲🌑🔼 = σT⁴ où σ = 5.670374419e-8 W/(m²·K⁴). Pour T=303.5K: ≈501 W/m². ⚠️ Ce n\'est PAS le flux qui sort au sommet (c\'est 🧲🌈🔼). ⚠️ Ne pas comparer directement à 🧲☀️🔽+🧲🌕🔽 car l\'effet de serre fait que la surface émet plus que ce qui sort.',
         '🧲🌈🔼': 'Σ[λ=0.1→100μm] I_λ(z_max) × Δλ = Aire sous courbe spectrale réelle (émission au sommet atmosphère). Δλ = (λ_max−λ_min)/(N−1) = pas réel de la grille (effective_delta_lambda), pas 0.1 μm fixe. Transfert radiatif: τ_λ(z), transmission exp(-τ), émission (1-exp(-τ))×π×B_λ(T). Intégration: 🧲🌈🔼 = Σ[λ] upward_flux[z_max][λ]. En équilibre: 🧲🌈🔼 ≈ 🧲☀️🔽+🧲🌕🔽',
-        '🧲🪩🔼': '🧲☀️🎱 - 🧲☀️🔽 = 🧲☀️🎱 × 🍰🪩📿 = Flux réfléchi par albedo',
+        '🧲🪩🔼': '🧲☀️🎱 - 🧲☀️🔽 = 🧲☀️🎱 × 🍰🪩📿 (non absorbé en surface, dont voile SW)',
         '🔺🧲': '🧲☀️🔽 + 🧲🌕🔽 - 🧲🌈🔼 = déséquilibre flux (entrant - sortant). Δ>0→réchauffer, Δ<0→refroidir. En équilibre: 🔺🧲 ≈ 0',
         '_explication_equilibre': 'Corps noir (70% soleil): 🧲☀️🔽 devrait être ~238 W/m² (pas 341.50) → équilibre à T≈255K',
         '_temperature_equilibre_corps_noir': 'T_équilibre = (S/4σ)^(1/4) = (952/4σ)^(1/4) ≈ 255K (-18°C) pour corps noir pur (S=70% actuel)',
@@ -601,8 +653,8 @@ const FORM = {
         '🔺⏳': '86400 s (1 jour) - Durée équilibre précipitation'
     },
     '🪩': {
-        '🍰🪩📿': '🍰🪩🌋 × CONST.🪩🍰.🪩🍰🌋 + 🍰🪩🌊 × CONST.🪩🍰.🪩🍰🌊 + 🍰🪩🌳 × CONST.🪩🍰.🪩🍰🌳 + 🍰🪩🏜️ × CONST.🪩🍰.🪩🍰🏜️ + 🍰🪩🧊 × CONST.🪩🍰.🪩🍰🧊 + 🍰🪩⛅ × CONST.🪩🍰.🪩🍰⛅ + 🍰🪩🌍 × CONST.🪩🍰.🪩🍰🌍',
-        '🍰🪩🌋': 'volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)',
+        '🍰🪩📿': '1 − (1−A_geo)(1−🍰⚽) ; A_geo = pondération surfaces + contributions glace/nuages (runtime)',
+        '🍰🪩🎾': 'volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)',
         '🍰🪩🌊': '(🍰💧🌊 × ⚖️💧 / CONST.RHO_WATER) / (📏🌊 × 1000) / (4 × π × (📐 × 1000)²)',
         '🍰🪩🌳': 'min(🍰🪩🌍_, 🗻.🍰🗻🌍 × clamp((🧮🌡️_C - 0)/30, 0, 1) × clamp((🍰🫧☔ - 0.5)/0.3, 0, 1) × clamp((1 - ☁️), 0, 1) × 0.6) où 🍰🪩🌍_ = 1 - 🍰🗻🌊 - 🍰🪩🧊 - Forêts dépendent de température (optimum 0-30°C), humidité relative (RH > 0.5-0.8) et nuages (moins de forêts si trop de nuages)',
         '🍰🪩🏜️': '🍰🪩🌍_ × (base_aridité + variabilité_régionale) où base_aridité = max(0, 1 - min(1, P_ann/1000)) × max(0, 1 - min(1, 🍰🫧☔/0.6)) et variabilité_régionale = 0.6 × max(0.5, min(1, (🧮🌡️_C-5)/10)) × max(0.5, 1-🍰🫧☔×0.6) - Déserts basés sur précipitations (P_ann < 1000 mm/an) et humidité relative (RH < 0.6) avec variabilité régionale',
@@ -610,7 +662,9 @@ const FORM = {
         '🍰🪩🧊': 'min(🗻.🍰🗻🏔, EARTH.ICE_FORMULA_MAX_FRACTION × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K) - Glace polaire (0% si T > T_NO_POLAR_ICE_K)',
         '🍰🪩⛅': 'cloud_fraction = clamp((0.19 + 0.11×☁️) × cloud_optical_efficiency, 0, 0.75), avec cloud_optical_efficiency = (1.10 + 0.45×(ccn_ratio-1)) × pressure_factor × oxidation_soft_factor × temp_factor',
         '_contribution_glace': 'contribution_glace = (🪩🍰🧊 - albedo_base) × 🍰💧🧊 × 0.5',
-        '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅'
+        '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + 🪩🍰⛅ × 🍰🪩⛅',
+        '🍰⚽': 'syncStratosphericVeil01 : clamp(0, EPOCH[🍰⚽]+📜[🔺🍰⚽]+CONFIG.hystStratosphericVeilExtra01, 0.95) — obstruction ; 🌋 → 📜[🔺🍰⚽]',
+        '🍰🪩⚽': '1 − 🍰⚽ (transmission SW après voile)'
     },
     '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',
@@ -771,7 +825,7 @@ window.createDicoHtml = createDicoHtml;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: extraction init DATA depuis dico.js (KEYS → DATA, puis 🎚️)
@@ -799,9 +853,9 @@ window.createDicoHtml = createDicoHtml;
             }
         }
     }
-    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100 };
+    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
     // 100% = fine-tuning nominal (cohérence visu sans scie => 16.4°C 2025). Valeurs = max fine_tuning_bounds SOLVER.
-    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10 };  // 10 j (litt. 8–10 j)
+    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 0 };  // 10 j (litt. 8–10 j)
     // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
     var _cloudSwDefault = {
         CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
@@ -815,10 +869,22 @@ window.createDicoHtml = createDicoHtml;
         OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
         CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
     };
+    var _hystDefaultInit = {
+        seaIceTransitionRangeK: 2.2,
+        seaIceStrength01: 1,
+        iceImpactFactor01: 0.7,
+        co2OceanEffPump01: 0.1
+    };
+    // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (default = bary SCIENCE 100 % = valeur max côté min>max)
+    var _radiativeDefaultInit = {
+        H2O_EDS_SCALE: 0.60  // bary SCIENCE 100 % → κ_H₂O min → EDS H₂O ~75 W/m² (Schmidt 2010)
+    };
     DATA['🎚️'] = {
-        baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER },
+        baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },
         CLOUD_SW: _cloudSwDefault,
-        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS }
+        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS, FIRST_SEARCH_STEP_CAP_K: _solverDefault.FIRST_SEARCH_STEP_CAP_K },
+        HYSTERESIS: _hystDefaultInit,
+        RADIATIVE: _radiativeDefaultInit
     };
     window.DATA = DATA;
 })();
@@ -830,7 +896,7 @@ window.createDicoHtml = createDicoHtml;
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: extraction des coefficients calibres cloud SW + solveur numerique depuis calculations_albedo.js/configTimeline.js
@@ -872,17 +938,60 @@ window.TUNING.SOLVER = {
     TOL_MIN_WM2: 0.05,
     MAX_SEARCH_STEP_K: 100,
     MAX_SEARCH_STEP_LARGE_K: 150,
-    LARGE_DELTA_FACTOR: 10
+    LARGE_DELTA_FACTOR: 10,
+    FIRST_SEARCH_STEP_CAP_K: 0
+};
+
+// ============================================================================
+// HYSTERESIS — paramètres globaux pour tests de falaise chaud↔froid (sans if d'époque)
+//
+// Ces bornes servent de "garde-fous" pour des expériences paramétriques (search.html / outils),
+// pas comme vérité physique stricte.
+// CO₂ océan (co2OceanScale01, co2OceanPumpOverride01, co2OceanEffPump01 jauge, ratio via THRESHOLD) :
+// surface de contrôle = panneau hystérésis search* / scie* ; defaults provisoires.
+// Références (ordre d’idée) :
+// - Budyko (1969), Sellers (1969) : rétroaction glace–albédo (bistabilité)
+// - Hoffman & Schrag (2002), Pierrehumbert (2004) : Snowball Earth / transition océan gelé
+// ============================================================================
+window.TUNING.HYSTERESIS = {
+    // Mer gelée (optique) : transition en K et intensité [0..1]
+    seaIceTransitionRangeK: { min: 1, max: 80, default: 20, sens_threshold: "➘" },
+    seaIceStrength01: { min: 0.0, max: 1.0, default: 1.0, sens_threshold: "➚" },
+
+    // CO₂ océan : facteur de relaxation, override pompe [0..1], eff effectif (jauge dédiée)
+    co2OceanScale01: { min: 0.0, max: 1.0, default: 0.1, sens_threshold: "➚" },
+    co2OceanPumpOverride01: { min: 0.0, max: 1.0, default: 1.0, sens_threshold: "➚" },
+    co2OceanEffPump01: { min: 0.0, max: 1.0, default: 0.1, sens_threshold: "➚" },
+
+    // Glace (albédo) : coefficient optique de la glace (EARTH['🪩🍰']['🪩🍰🧊'])
+    iceAlbedoCoeff: { min: 0.50, max: 0.90, default: 0.70, sens_threshold: "➚" },
+
+    // Recherche seuil CO₂ (window.HYSTERESIS) : |ΔT| et |Δppm| entre équilibres (pousse dicho / nudge)
+    epsilonT_C: 1,
+    epsilonPpm: 1,
+    // Arrêt : |⚖️🏭_nouveau − ⚖️🏭_avant pas| < convergencePpmMass × Δkg(1 ppm) en phase dicho
+    convergencePpmMass: 1,
+    // Chute « brutale » de T (°C) vs référence scan / côté chaud dicho
+    brutalDeltaT_C: 3,
+    // Facteur masse CO₂ à chaque pas du scan avant dicho (×0.9)
+    scanCo2MassFactor: 0.9,
+    // Max pas de dichotomie ; au-delà → arrêt partiel avec bornes
+    maxDichoSteps: 30,
+    // Signe recherche CO₂ : UI window.HYSTERESIS.searchSign 'negative'|'positive' (défaut négatif) — pas ici
+    // Indices pour logs « proche hystérésis ? » (objectif physique discuté : T > marge chaud, +1 ppm → T < palier froid)
+    warmBranchHint_C: -5,
+    coldBranchHint_C: -20
 };
 // File: API_BILAN/config/model_tuning_biblio.js - Bibliographie et impact des reglages
 // Desc: En francais, dans l'architecture, je documente les coefficients de tuning, leurs sources et leur effet thermique signe.
-// Version 1.0.0
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.0.1
+// Date: [April 02, 2026] [18:00 UTC+1]
 // logs :
+// - v1.0.1: groupe HYSTERESIS (cryosphère / CO₂ mer)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: catalogue des parametres CLOUD_SW/SOLVER avec references et effet +/- sur le rechauffement
@@ -946,17 +1055,40 @@ window.TUNING_BIBLIO = {
             source: "Seuil de bascule vers cap large du pas Search",
             effect_on_warming_when_increased: "neutral_on_physics"
         }
+    },
+    HYSTERESIS: {
+        HYST_SEA_ICE_RANGE_K: {
+            value: 2.2,
+            source: "Largeur transition mer gelée (K) : Budyko (1969), Sellers (1969) ; EBM snowball — Pierrehumbert (2010) ; UI scie 1000–6000 → 1–6 K",
+            effect_on_warming_when_increased: "mixed"
+        },
+        HYST_SEA_ICE_STRENGTH: {
+            value: 1,
+            source: "Amplitude rétroaction glace de mer sur fraction océanique [0,1]",
+            effect_on_warming_when_increased: "negative"
+        },
+        HYST_ICE_IMPACT: {
+            value: 0.7,
+            source: "Couplage glace → albédo (iceImpactFactor01) ; albédo glace/neige vs océan AR6 WGI",
+            effect_on_warming_when_increased: "negative"
+        },
+        HYST_CO2_OCEAN_EFF: {
+            value: 0.1,
+            source: "Relaxation Henry CO₂ atmosphère–océan (masse totale conservée) ; Zeebe & Wolf-Gladrow (2001)",
+            effect_on_warming_when_increased: "mixed"
+        }
     }
 };
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.2
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.3.3
+// Date: [April 02, 2026] [18:00 UTC+1]
 // logs :
+// - v1.3.3: groupe HYSTERESIS (mer gelée, CO₂ mer, impact glace)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: cible CLOUD_SW.CLOUD_FRACTION_BASE avec 3 points d'essai (min/moy/max)
@@ -1101,6 +1233,67 @@ window.FINE_TUNING_BOUNDS = {
             source: 'Seuil de bascule vers cap large du pas Search',
             effect: 'neutral_on_physics',
             biblio_ref: 'LARGE_DELTA_FACTOR'
+        },
+        {
+            group: 'RADIATIVE',
+            key: 'H2O_EDS_SCALE',
+            baryGroup: 'SCIENCE',
+            min: 1.00,       // bary 0 %  → κ_H₂O max (T haute)
+            max: 0.60,       // bary 100 % → κ_H₂O min (T basse, cible Schmidt 2010 ~75 W/m²). min>max volontaire (convention projet : bary 100 % = T basse).
+            default: 0.80,
+            unit: 'ratio',
+            note: 'multiplicateur global de κ_H₂O (EARTH.H2O_EDS_SCALE). Capture continuum MT_CKD non implémenté + overlap CO₂/H₂O + approximations HR(z). Scalaire global (feedback T via Clausius-Clapeyron déjà dans waterVaporMixingRatio).',
+            source: 'Schmidt 2010 (attribution EDS H₂O ≈ 50 % de 155 W/m² ≈ 75 W/m²) ; Held & Soden 2006 (CC feedback 6–8 %/K).',
+            effect: 'positive',
+            biblio_ref: 'H2O_EDS_SCALE'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'seaIceTransitionRangeK',
+            min: 1,
+            max: 6,
+            default: 2.2,
+            unit: 'K',
+            note: 'largeur T sous T_gel : fraction mer gelée 0→1 (moteur calculations_albedo)',
+            source: 'EBM cryosphère Budyko–Sellers ; transitions résolues typ. ~quelques K ; UI scie ×1000',
+            effect: 'mixed',
+            biblio_ref: 'HYST_SEA_ICE_RANGE_K'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'seaIceStrength01',
+            min: 0,
+            max: 1,
+            default: 1,
+            unit: 'fraction',
+            note: 'intensité mer gelée sur couverture océan',
+            source: 'Borne [0,1] ; 1 = rétroaction albédo max (jeux snowball)',
+            effect: 'negative',
+            biblio_ref: 'HYST_SEA_ICE_STRENGTH'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'iceImpactFactor01',
+            min: 0,
+            max: 1,
+            default: 0.7,
+            unit: 'fraction',
+            note: 'impact glace sur albédo (GREY)',
+            source: 'AR6 WGI albédo glace/neige ; preset lit. 0,7 entre nominal ~0,53 et max 1',
+            effect: 'negative',
+            biblio_ref: 'HYST_ICE_IMPACT'
+        },
+        {
+            group: 'HYSTERESIS',
+            key: 'co2OceanEffPump01',
+            min: 0,
+            max: 1,
+            default: 0.1,
+            unit: 'fraction',
+            note: 'relaxation Henry atmos↔océan (Σ carbone conservé)',
+            source: 'Zeebe & Wolf-Gladrow (2001) ; NO-OP si hystérésis active',
+            effect: 'mixed',
+            biblio_ref: 'HYST_CO2_OCEAN_EFF'
         }
     ]
 };
@@ -1112,7 +1305,7 @@ window.FINE_TUNING_BOUNDS = {
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.2.1: add sulfate proxy mass ⚖️✈ for 🚂/📱 and disable verbose debug flags
@@ -1124,7 +1317,7 @@ window.FINE_TUNING_BOUNDS = {
 // ============================================================================
 // DÉFINITION DE LA CHRONOLOGIE (TIMELINE)
 // ============================================================================
-// Structure : array d'objets { '📅': '⚫' | '🔥' | '🦠' | '🦕' | '🌿' | '🦣' | '🚂' | '📱', '▶': number, '◀': number, ... }
+// Structure : array d'objets { '📅': emoji, '▶': number, '◀': number, ... } — 🚂 (1800) hors TIMELINE depuis alignement configTimeline v1.3.0
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
@@ -1264,9 +1457,9 @@ const timeline = [
         }
     },
     {
-        '📅': '🥟', // Protérozoïque
+        '📅': '🪸', // Protérozoïque
         '▶': 2.5e9,
-        '◀': 541e6,
+        '◀': 750e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
         '🌡️🧮': 285,
         '🧲🔬': 0.01,
@@ -1292,19 +1485,66 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
+            '🌋': { '🔺🍰⚽': 0.02 },
             '💫': { '🔺⏳': 100 },
         }
     },
-    // 🌿 = Paléozoïque (541–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
-    // Ordre chronologique : … Protérozoïque → Paléozoïque → Mésozoïque → Cénozoïque …
+    // hysteresis 1a — aligné configTimeline.js v1.4.0 (🌡️🧮 graine branche chaude avant scan CO₂↓)
     {
-        '📅': '🌿', // Paléozoïque (541–252 Ma)
-        '▶': 541e6,
+        '📅': 'hysteresis 1a',
+        hidden: true, // interne (non cliquable / non affiché dans la frise)
+        '▶': 750e6,
+        '◀': 720e6,
+        '🌡️🧮': 290,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.592e26,
+        '🔋🌕': 8.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 1.0e16,
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
+        '🌱': 0.0
+    },
+    // ⛄ = Boule de neige (750–600 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma, Marinoen ~650 Ma)
+    {
+        '📅': '⛄', // Boule de neige (750–600 Ma)
+        '▶': 750e6,
+        '◀': 600e6,
+        '🌡️🧮': 240,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.592e26, // 🔒 Gough (1981) @0.75Ga = 93.8%
+        '🔋🌕': 8.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.0e16,
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': {
+            '💫': { '🔺⏳': 150 },
+        }
+    },
+    // 🌿 = Paléozoïque (600–252 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
+    // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
+    {
+        '📅': '🌿', // Paléozoïque (600–252 Ma)
+        '▶': 600e6,
         '◀': 252e6,
         // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations)
         '🌡️🧮': 290,
         '🧲🔬': 0.01,
-        '🔋☀️': 3.668e26, // 🔒 Gough (1981) @0.5Ga = 95.8%
+        '🔋☀️': 3.638e26, // 🔒 Gough (1981) @0.6Ga = 95.0%
         '🔋🌕': 6.5e13, // core_power_watts
         '📐': 6371,
         '🍎': 9.81,
@@ -1354,50 +1594,99 @@ const timeline = [
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
                 '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
             }, // Événement 50 Ma
-            '🎇': { '⏩': '🦣' } // Big impact (K-Pg) → Cénozoïque
+            '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         }
     },
     {
-        '📅': '🦣', // Cénozoïque
+        '📅': '🦤', // Cénozoïque (66–50 Ma)
         '▶': 66e6,
-        '◀': 0,
-        // 🌡️🧮 : ~288–295 K (lit. Cénozoïque). Refroidissement → 1800 via baisse CO2 (lit. Anagnostou Nature 2016).
-        '🌡️🧮': 291,
-        // Override glace (patch debug) : flag OVERRIDES.useEpochIceFixed (boolean) + valeur OVERRIDES['⛄'] (ex. 0.085).
+        '◀': 50e6,
+        '⛄': 0,
+        '🌡️🧮': 290,
         '🧲🔬': 0.1,
-        '🔋☀️': 3.806e26, // 🔒 Gough (1981) @0.066Ga = 99.4%
-        '🔋🌕': 5.0e13, // core_power_watts (Puissance géothermique totale ~50 TW)
-        '📐': 6371, // Rayon de la planète en km
-        '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Cénozoïque)
-        '🐚': 1.0, // Facteur relief sous-marin
-        // Surfaces géologiques (Couche A - géologie/relief)
+        '🔋☀️': 3.806e26,
+        '🔋🌕': 5.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
         '🗻': {
-            '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
-            '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
-            '🍰🗻🌍': 0.20  // Terres basses (20% - continents modernes)
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
         },
-        // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
-        // Simulation parameters - Quantités en kg. Lit. EECO ~1000-1400 ppm ; Paléocène ~600-800 ppm.
-        '⚖️🏭': 5.15e15, // co2_kg (~1000 ppm, Paléocène/Eocène — baisse CO2 explique refroidissement → 1800)
-        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm)
-        '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
-        '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
-        // Note: Les % seront calculés via calculations_atm.js
-        // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 3.35e15,
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
         }
     },
-    // Transition Éocène-Oligocène (EOT) — 33,9 Ma : passage Serre → Glacière (avant 1800). Logo 🏔 (alphabet).
+    {
+        '📅': '🐊', // Éocène (50–35 Ma)
+        '▶': 50e6,
+        '◀': 35e6,
+        '⛄': 0,
+        '🌡️🧮': 297,
+        '🧲🔬': 0.1,
+        '🔋☀️': 3.811e26,
+        '🔋🌕': 5.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': {
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
+        },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 9.01e15,
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
+        }
+    },
+    {
+        '📅': 'hysteresis 2',
+        hidden: true,
+        '▶': 35e6,
+        '◀': 33e6,
+        '⛄': 0.02,
+        '🌡️🧮': 289,
+        '🧲🔬': 0.08,
+        '🔋☀️': 3.816e26,
+        '🔋🌕': 4.85e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': {
+            '🍰🗻🌊': 0.71,
+            '🍰🗻🏔': 0.09,
+            '🍰🗻🌍': 0.20
+        },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 5.15e15,
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 2 },
+        }
+    },
     {
         '📅': '🏔',
-        '▶': 33.9e6,
-        '◀': 23e6,
+        '⛄': 0.085,
+        '▶': 33e6,
+        '◀': 2e6,
         '🌡️🧮': 285,
         '🧲🔬': 0.05,
-        '🔋☀️': 3.817e26, // 🔒 Gough (1981) @0.033Ga = 99.7%
+        '🔋☀️': 3.817e26,
         '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
@@ -1405,7 +1694,7 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
         '⚖️🫧': 5.15e18,
-        '⚖️🏭': 2.06e15,
+        '⚖️🏭': 6.06e15,
         '⚖️🐄': 3.6e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
@@ -1416,45 +1705,36 @@ const timeline = [
         }
     },
     {
-        '📅': '🚂', // 1800
-        '▶': 1800,
-        '◀': 2025,
-        // 🌡️🧮 : ~287 K (14°C, pré-industriel)
+        '📅': '🦣',
+        '⛄': 0.11,
+        '▶': 2e6,
+        '◀': 10e3,
         '🌡️🧮': 287,
-        '🧲🔬': 0.01,
-        '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
-        '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
-        '📐': 6371, // Rayon de la planète en km
-        '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Terre moderne)
-        '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
-        // Surfaces géologiques (Couche A - géologie/relief)
-        '🗻': {
-            '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
-            '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
-            '🍰🗻🌍': 0.20  // Terres basses (20% - continents modernes)
-        },
-        // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.15e18, // Masse atmosphère (Atmosphère standard ~1 bar)
-        // Simulation parameters - Quantités en kg
-        '⚖️🏭': 1.443e15, // co2_kg (~280 ppm, niveau pré-industriel)
-        '⚖️🐄': 3.605e12, // ch4_kg (~0.7 ppm, niveau pré-industriel)
-        '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
-        '⚖️🫁': 1.0815e18, // o2_kg (~21% de l'atmosphère moderne)
-        '⚖️✈': 1.5e12, // sulfate_kg (CCN naturels uniquement : sel marin, aérosols volcaniques ; pas de pollution industrielle en 1800)
-        '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
-        // Note: Les % seront calculés via calculations_atm.js
-        // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        '🧲🔬': 0.04,
+        '🔋☀️': 3.827e26,
+        '🔋🌕': 4.6e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.191e15,
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.2e12,
+        '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.25 },
         }
     },
     {
-        '📅': '📱', // 2025
-        '▶': 2025,
-        '◀': -1,
-        // 🌡️🧮 : ~288.8 K (15.6–16°C, record chaud 2025)
-        '🌡️🧮': 288.8,
+        '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100)
+        '▶': 2000,
+        '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
+        // 🌡️🧮 : ~288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
+        '🌡️🧮': 288.3,
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // Puissance totale du soleil (W) - 100% (valeur actuelle)
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -1472,27 +1752,42 @@ const timeline = [
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
         '⚖️🫧': 5.15e18, // Masse atmosphère (air sec ~1 bar, comme Industriel)
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 3.3e15,   // ~420-450 ppm CO2 2025
-        '⚖️🐄': 5.5e12,
+        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA
+        '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
         '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
+        // 🕰 indexé par année : clic injecte 🔺⚖️🏭 ; cycle CO₂ / puits → TODO
+        // Convention UI +NGt : N·1e9 (tranche 2000 → 850e9 = +850Gt CO2)
         '🕰': {
-            '💫': { '🔺⏳': 100 },
-        }
+            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e9 } }, // +850 Gt (2000)
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e9 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e9 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e9 } },
+            '◀': {
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
+                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
+            }
+        },
+        '🌱': 0.31
     }
 ];
 
 window.TIMELINE = timeline;
+// ⚠️ v1.4.0 : TIMELINE_EPOCH_PREINDUSTRIAL_1800 supprimé — 🚂 Industriel intégré dans TIMELINE.
+// Ce bundle doit être régénéré pour inclure : 🍄 Paléozoïque terrestre, 💀 P/T, ⛈ Sortie Marinoen, 🛖 Holocène, 🚂 Industriel.
 
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :
 // - [OBS/CALIB] : valeur issue d'observations/littérature ou calibration sur observations
 // - [EQ/NUM]    : valeur de schéma numérique, solveur ou stratégie de convergence
 window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))) {
+    window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
+}
 
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
 window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100 };
@@ -1545,9 +1840,9 @@ window.CONFIG_COMPUTE.iceCoverageRampMaxStepEarly = 0.001;         // [EQ/NUM]
 
 // Catégorie à part : overrides debug/patch (pas dans CONFIG_COMPUTE).
 window.OVERRIDES = window.OVERRIDES || {};
-// true = utiliser OVERRIDES['⛄'] (valeur override glace). Valeur ex. Cénozoïque : 0.085.
-window.OVERRIDES.useEpochIceFixed = true;
-window.OVERRIDES['⛄'] = 0.085;
+// Désactivé par défaut (voir configTimeline.js) : laisser la physique gérer ⛄ Boule de neige.
+window.OVERRIDES.useEpochIceFixed = false;
+window.OVERRIDES['⛄'] = null;
 
 const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
     ? window.TUNING.SOLVER
@@ -1576,6 +1871,9 @@ window.CONFIG_COMPUTE.plotSmoothEnable = true;
 window.CONFIG_COMPUTE.plotSmoothSigmaBins = 8.0;//5.6;
 // Logs diagnostics
 window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
+window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
+// true : console 🔎 DIAG CO2 (calculateAtmosphereComposition) + 🔎 DIAG HYST (🧲📛🏭 W/m² après chaque pas convergence hyst)
+window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
 window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
 window.CONFIG_COMPUTE.logIrisDiagnostic = false;
 

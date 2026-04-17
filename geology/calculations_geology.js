@@ -65,13 +65,15 @@ function getGeologicalPeriodByName(periodName) {
             core_power_watts: (typeof epoch.core_power_watts === 'number') ? epoch.core_power_watts : epoch['🔋🌕'],
             planet_radius: (typeof epoch.planet_radius === 'number') ? epoch.planet_radius : (epoch['📐'] != null ? epoch['📐'] * 1000 : undefined),
             total_atmosphere_mass_kg: (typeof epoch.total_atmosphere_mass_kg === 'number') ? epoch.total_atmosphere_mass_kg : epoch['⚖️🫧'],
-            gravity: (typeof epoch.gravity === 'number') ? epoch.gravity : epoch['🍎']
+            gravity: (typeof epoch.gravity === 'number') ? epoch.gravity : epoch['🍎'],
+            // FluxManager: solar_intensity est un facteur (1.0 = aujourd'hui)
+            solar_intensity: epoch['🔋☀️'] / 3.828e26
         };
         const flux = computeFluxFromEpoch(epochWithMappings);
         return {
             ...epochWithMappings,
             core_temperature_k: epoch.core_temperature, // Legacy compat
-            geothermal_flux: (typeof flux === 'number' && flux > 0) ? flux : epochWithMappings.geothermal_flux
+            geothermal_flux: flux
         };
     }
     return null;

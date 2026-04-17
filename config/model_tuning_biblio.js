@@ -1,12 +1,13 @@
 // File: API_BILAN/config/model_tuning_biblio.js - Bibliographie et impact des reglages
 // Desc: En francais, dans l'architecture, je documente les coefficients de tuning, leurs sources et leur effet thermique signe.
-// Version 1.0.0
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.0.1
+// Date: [April 02, 2026] [18:00 UTC+1]
 // logs :
+// - v1.0.1: groupe HYSTERESIS (recherche seuil / cryosphère / CO₂ mer)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.0: catalogue des parametres CLOUD_SW/SOLVER avec references et effet +/- sur le rechauffement
@@ -69,6 +70,28 @@ window.TUNING_BIBLIO = {
             value: 10,
             source: "Seuil de bascule vers cap large du pas Search",
             effect_on_warming_when_increased: "neutral_on_physics"
+        }
+    },
+    HYSTERESIS: {
+        HYST_SEA_ICE_RANGE_K: {
+            value: 2.2,
+            source: "Largeur de transition mer gelée (K) : Budyko (1969), Sellers (1969) ; snowball / hysteresis EBM — Pierrehumbert (2010) ; UI scie 1000–6000 → 1–6 K",
+            effect_on_warming_when_increased: "mixed"
+        },
+        HYST_SEA_ICE_STRENGTH: {
+            value: 1,
+            source: "Amplitude rétroaction glace de mer sur fraction océanique [0,1]",
+            effect_on_warming_when_increased: "negative"
+        },
+        HYST_ICE_IMPACT: {
+            value: 0.7,
+            source: "Couplage glace → albédo (CONFIG iceImpactFactor01) ; littérature albédo glace/neige vs océan AR6 WGI",
+            effect_on_warming_when_increased: "negative"
+        },
+        HYST_CO2_OCEAN_EFF: {
+            value: 0.1,
+            source: "Relaxation Henry CO₂ atmosphère–océan (masse totale conservée) ; Zeebe & Wolf-Gladrow (2001)",
+            effect_on_warming_when_increased: "mixed"
         }
     }
 };

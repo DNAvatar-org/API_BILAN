@@ -1,9 +1,15 @@
 // File: API_BILAN/tuning.js - Interpolation barycentre fine-tuning
 // Desc: Logique autonome d'interpolation [0-100 %] entre bornes min/max pour chaque paramètre
-//       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER.
+//       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
-// Version 1.0.0
-// Date: 2026-03-26
+// Version 1.0.6
+// Date: 2026-04-17
+// Logs:
+// - v1.0.6: syncRadiativeConfig — DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE → EARTH.H2O_EDS_SCALE. Remplace le recalcul dynamique 0.92·√P_ratio·CO2_factor (physics.js v2.0.8) par un paramètre fine-tuning dédié.
+// - v1.0.4: syncSolverConfig — firstSearchStepCapK = valeur SOLVER si >0 sinon undefined (une affectation, pas if/else delete)
+// - v1.0.3: syncSolverConfig — firstSearchStepCapK seulement si >0 ; sinon delete (défaut 0 = pas de plafond)
+// - v1.0.2: syncSolverConfig → CONFIG_COMPUTE.firstSearchStepCapK si SOLVER.FIRST_SEARCH_STEP_CAP_K défini
+// - v1.0.1: sous-objets DATA['🎚️'][group] créés si absents ; bary % manquant → 100 (sync scie/parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -52,6 +58,18 @@
         window.CONFIG_COMPUTE.maxSearchStepK = S.MAX_SEARCH_STEP_K;
         window.CONFIG_COMPUTE.maxSearchStepLargeK = S.MAX_SEARCH_STEP_LARGE_K;
         window.CONFIG_COMPUTE.largeDeltaFactor = S.LARGE_DELTA_FACTOR;
+        var cap = S.FIRST_SEARCH_STEP_CAP_K;
+        window.CONFIG_COMPUTE.firstSearchStepCapK = (Number.isFinite(cap) && cap > 0) ? cap : undefined;
+    }
+
+    /**
+     * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
+     * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
+     */
+    function syncRadiativeConfig() {
+        var R = window.DATA['🎚️'].RADIATIVE;
+        if (!R || !window.EARTH) return;
+        window.EARTH.H2O_EDS_SCALE = R.H2O_EDS_SCALE;
     }
 
     /**
@@ -65,6 +83,7 @@
         var targets = targetsByGroup(groupKey);
         for (var i = 0; i < targets.length; i++) {
             var target = targets[i];
+            if (!T[target.group]) T[target.group] = {};
             T[target.group][target.key] = interpolate(target, pct);
         }
     }
@@ -81,9 +100,13 @@
         for (var i = 0; i < bounds.targets.length; i++) {
             var target = bounds.targets[i];
             var baryKey = target.baryGroup || target.group;
-            T[target.group][target.key] = interpolate(target, bg[baryKey]);
+            if (!T[target.group]) T[target.group] = {};
+            var pctRaw = bg[baryKey];
+            var pct = Number.isFinite(Number(pctRaw)) ? Number(pctRaw) : 100;
+            T[target.group][target.key] = interpolate(target, pct);
         }
         syncSolverConfig();
+        syncRadiativeConfig();
     }
 
     // --- Fonction publique ---
@@ -108,11 +131,15 @@
             if (payload.baryByGroup.CLOUD_SW !== undefined) T.baryByGroup.CLOUD_SW = payload.baryByGroup.CLOUD_SW;
             if (payload.baryByGroup.SCIENCE !== undefined) T.baryByGroup.SCIENCE = payload.baryByGroup.SCIENCE;
             if (payload.baryByGroup.SOLVER !== undefined)  T.baryByGroup.SOLVER  = payload.baryByGroup.SOLVER;
+            if (payload.baryByGroup.HYSTERESIS !== undefined) T.baryByGroup.HYSTERESIS = payload.baryByGroup.HYSTERESIS;
             // Si valeurs directes fournies, les appliquer
             if (payload.CLOUD_SW) T.CLOUD_SW = Object.assign({}, T.CLOUD_SW, payload.CLOUD_SW);
             if (payload.SOLVER)   T.SOLVER   = Object.assign({}, T.SOLVER, payload.SOLVER);
             if (payload.updates && Array.isArray(payload.updates)) {
-                payload.updates.forEach(function (u) { T[u.group][u.key] = u.value; });
+                payload.updates.forEach(function (u) {
+                    if (!T[u.group]) T[u.group] = {};
+                    T[u.group][u.key] = u.value;
+                });
             }
             // Re-interpoler depuis les baryByGroup (les valeurs directes sont écrasées par l'interpolation)
             fillDataTuningFromBary();
@@ -124,6 +151,7 @@
         if (payload.SCIENCE !== undefined)  applyBaryGroup('SCIENCE', payload.SCIENCE);
         if (payload.SOLVER !== undefined)   applyBaryGroup('SOLVER', payload.SOLVER);
         syncSolverConfig();
+        syncRadiativeConfig();
     }
 
     // --- Exports window ---

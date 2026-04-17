@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>🌍 Bench Époques — Bilan Radiatif</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #d0d0d0; font-size: 13px; }
+
+/* Loader (aligné CO2/index + index-shell) */
+.app-loader {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 2147483647;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: auto;
+}
+.app-loader.hidden { display: none; }
+.app-loader-title {
+    color: #2a8e3e;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+.app-loader-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 720px;
+    width: 100%;
+    font-family: monospace;
+    font-size: 11px;
+    color: #888;
+    column-count: 2;
+    column-gap: 24px;
+}
+.app-loader-list li {
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    break-inside: avoid;
+}
+.app-loader-list li.loaded {
+    background: rgba(0, 160, 0, 0.35);
+    color: #8fdf8f;
+}
+
+header { padding: 16px 20px 12px; border-bottom: 2px solid #333; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+header h1 { font-size: 18px; color: #eee; flex: 1 0 auto; }
+#btn-run {
+  background: #1a6e2e; color: #b0ffb0; border: 1px solid #2a8e3e; border-radius: 4px;
+  padding: 8px 20px; font-size: 14px; cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+}
+#btn-run:hover { background: #1f8535; }
+#btn-run:disabled { background: #222; color: #555; cursor: not-allowed; border-color: #333; }
+#progress-label { color: #888; font-size: 12px; }
+
+#progress-bar { height: 3px; background: #222; }
+#progress-fill { height: 100%; background: #2a8e3e; width: 0; transition: width 0.3s ease; }
+
+#report { overflow-x: visible; padding: 0; }
+
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+thead tr { background: #1a1a1a; position: sticky; top: 0; z-index: 10; }
+thead th {
+  padding: 8px 10px; text-align: left; color: #888; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #333;
+  white-space: nowrap;
+}
+thead th.num { text-align: right; }
+thead th.fit, td.fit {
+  width: fit-content;
+  max-width: max-content;
+  white-space: nowrap;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+thead th.cell-icon {
+  width: 36px;
+  min-width: 36px;
+  max-width: 40px;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 6px 4px;
+}
+
+tbody tr { border-bottom: 1px solid #1e1e1e; transition: background 0.1s; }
+tbody tr:hover { background: #161616; }
+tbody tr.running { background: #0a1a2a; }
+tbody tr.done-converged { background: #0a150a; }
+tbody tr.done-maxiter { background: #1a130a; }
+tbody tr.done-crash { background: #1a0a0a; }
+
+td { padding: 6px 10px; vertical-align: top; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono { font-family: 'Courier New', monospace; }
+
+.epoch-cell { display: flex; align-items: center; gap: 6px; }
+.epoch-logo { font-size: 18px; line-height: 1; }
+.epoch-name { color: #ccc; }
+.epoch-age { color: #666; font-size: 11px; }
+
+.status-ok   { color: #5dca5d; }
+.status-warn { color: #d4a520; }
+.status-err  { color: #ca5d5d; }
+.status-run  { color: #5da8ca; animation: pulse 1s infinite; }
+
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.delta-pos { color: #e07070; }
+.delta-neg { color: #70b0e0; }
+.delta-zero { color: #5dca5d; }
+
+.val-na { color: #444; }
+
+td.json-config, td.json-rad-path, td.json-conv-atm {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #9ab59a;
+  min-width: 200px;
+  max-width: 42vw;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  line-height: 1.45;
+}
+td.json-config .bench-key, td.json-rad-path .bench-key, td.json-conv-atm .bench-key { color: #7a9a7a; }
+td.json-rad-path .bench-tpath { color: #b0c4e8; }
+td.json-rad-path .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.json-conv-atm .bench-ircap { color: #c2b07a; }
+
+td.cell-icon {
+  width: 36px;
+  min-width: 36px;
+  max-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+.btn-copy-row {
+  background: transparent;
+  color: #8ab4c7;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 16px;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-copy-row:hover { color: #c5e8ff; background: rgba(80, 120, 160, 0.2); }
+
+details { margin: 0; }
+details summary { cursor: pointer; color: #555; font-size: 11px; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: '\25b8 '; }
+details[open] summary::before { content: '\25be '; }
+.detail-block { margin-top: 4px; background: #111; border: 1px solid #2a2a2a; border-radius: 3px; padding: 6px 8px; font-size: 11px; color: #888; line-height: 1.7; }
+.detail-block span { color: #aaa; }
+
+footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid #1e1e1e; margin-top: 8px; }
+</style>
+</head>
+<body>
+<script>
+(function syncDebugAPIFromURL() {
+    try {
+        var q = new URLSearchParams(window.location.search);
+        if (q.get('debugAPI') === 'true' || q.get('debugAPI') === '1') window.debugAPI = true;
+    } catch (e) { }
+})();
+window.__EPOCH_BENCH_PAGE__ = true;
+/* Worker spectral : chemin document (doc/) ≠ CO2/ ; sans ceci, ../API_BILAN/workers/ pointe hors API_BILAN. */
+window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js', window.location.href).href;
+</script>
+
+<div id="app-loader" class="app-loader" aria-live="polite">
+  <div class="app-loader-title">Chargement des modules API…</div>
+  <ul id="app-loader-list" class="app-loader-list"></ul>
+</div>
+
+<header>
+  <h1>🌍 Bench Époques — Bilan Radiatif</h1>
+  <span id="progress-label">—</span>
+  <button id="btn-run" type="button" disabled>▶ Lancer</button>
+</header>
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<div id="report">
+<table>
+  <thead>
+    <tr>
+      <th class="cell-icon" title="Copier la ligne">📋</th>
+      <th>Époque</th>
+      <th class="num fit">T init</th>
+      <th class="num fit">T FIN</th>
+      <th class="num fit">Δ T°</th>
+      <th>CONFIG (gaz)</th>
+      <th title="D\u00e9s\u00e9quilibre \u0394 = entrant \u2212 OLR au d\u00e9part (Init), puis \u0394 apr\u00e8s convergence ; la cha\u00eene T\u00b0C = pas de solveur.">RADIATIF (\u0394 + T\u00b0)</th>
+      <th>CONV ATM</th>
+    </tr>
+  </thead>
+  <tbody id="results-body"></tbody>
+</table>
+</div>
+
+<footer id="footer-info">Chargement des scripts en cours…</footer>
+
+<script>
+(function loadEpochBenchModules() {
+    'use strict';
+    var BASE = '../';
+    var LOADER_TIMEOUT_MS = 120000;
+    var loaderListEl = document.getElementById('app-loader-list');
+    var loaderOverlay = document.getElementById('app-loader');
+    var loadLog = [];
+    var tPage0 = performance.now();
+
+    var STEPS = [
+        { kind: 'script', src: BASE + 'configsAll.js', label: 'configsAll.js' },
+        { kind: 'timeline', src: BASE + 'config/configTimeline.js', label: 'configTimeline.js (fetch)' },
+        { kind: 'script', src: BASE + 'physics/physics.js', label: 'physics.js' },
+        { kind: 'script', src: BASE + 'data/hitran_lines_CO2.js', label: 'hitran_lines_CO2.js' },
+        { kind: 'script', src: BASE + 'data/hitran_lines_H2O.js', label: 'hitran_lines_H2O.js' },
+        { kind: 'script', src: BASE + 'data/hitran_lines_CH4.js', label: 'hitran_lines_CH4.js' },
+        { kind: 'script', src: BASE + 'spectroscopy/hitran.js', label: 'hitran.js' },
+        { kind: 'script', src: BASE + 'physics/climate.js', label: 'climate.js' },
+        { kind: 'script', src: BASE + 'radiative/calculations.js', label: 'calculations.js (radiatif)' },
+        { kind: 'script', src: BASE + 'workers/worker_pool.js', label: 'worker_pool.js' },
+        { kind: 'script', src: BASE + 'h2o/calculations_h2o.js', label: 'calculations_h2o.js' },
+        { kind: 'script', src: BASE + 'albedo/calculations_albedo.js', label: 'calculations_albedo.js' },
+        { kind: 'script', src: BASE + 'atmosphere/calculations_atm.js', label: 'calculations_atm.js' },
+        { kind: 'script', src: BASE + 'co2/calculations_co2.js', label: 'calculations_co2.js' },
+        { kind: 'script', src: BASE + 'convergence/compute.js', label: 'compute.js' },
+        { kind: 'script', src: BASE + 'convergence/calculations_flux.js', label: 'calculations_flux.js' },
+        { kind: 'script', src: BASE + 'tuning.js', label: 'tuning.js' },
+        { kind: 'script', src: BASE + 'api.js', label: 'api.js' }
+    ];
+
+    function initLoaderUI() {
+        if (!loaderListEl) return;
+        STEPS.forEach(function (step, i) {
+            var li = document.createElement('li');
+            li.setAttribute('data-idx', String(i));
+            li.textContent = step.label;
+            loaderListEl.appendChild(li);
+        });
+    }
+
+    function setLoaded(index) {
+        if (!loaderListEl) return;
+        var li = loaderListEl.querySelector('[data-idx="' + index + '"]');
+        if (li) li.classList.add('loaded');
+    }
+
+    function record(label, ms) {
+        loadLog.push({ label: label, ms: ms });
+    }
+
+    function loadScript(step, index) {
+        return new Promise(function (resolve, reject) {
+            var t0 = performance.now();
+            var s = document.createElement('script');
+            s.src = step.src;
+            s.onload = function () {
+                record(step.label, performance.now() - t0);
+                setLoaded(index);
+                resolve();
+            };
+            s.onerror = function () {
+                reject(new Error('\u00c9chec chargement ' + step.src));
+            };
+            document.body.appendChild(s);
+        });
+    }
+
+    function loadTimeline(step, index) {
+        var t0 = performance.now();
+        return fetch(step.src).then(function (r) {
+            if (!r.ok) throw new Error('configTimeline HTTP ' + r.status);
+            return r.text();
+        }).then(function (text) {
+            (new Function(text))();
+            record(step.label, performance.now() - t0);
+            setLoaded(index);
+        });
+    }
+
+    function runStep(step, index) {
+        if (step.kind === 'timeline') return loadTimeline(step, index);
+        return loadScript(step, index);
+    }
+
+    function loadAllSequential(i) {
+        if (i >= STEPS.length) return Promise.resolve();
+        return runStep(STEPS[i], i).then(function () {
+            return loadAllSequential(i + 1);
+        });
+    }
+
+    function hideLoader() {
+        if (loaderOverlay) loaderOverlay.classList.add('hidden');
+    }
+
+    function logLoadSummary() {
+        var total = performance.now() - tPage0;
+        console.groupCollapsed('[epoch_bench \u00b7 API_BILAN] chargement page', Math.round(total) + ' ms');
+        loadLog.forEach(function (e) {
+            console.log(e.label, '(' + Math.round(e.ms) + ' ms)');
+        });
+        var wp = window.__API_BILAN_WORKER_POOL__;
+        if (wp) {
+            console.log('spectralWorkerPool', wp.nWorkers + ' workers, ' + wp.nCPU + ' CPUs \u2014 Transferable');
+        }
+        console.groupEnd();
+    }
+
+    initLoaderUI();
+
+    var loaderDone = false;
+    var timeoutId = setTimeout(function () {
+        if (loaderDone) return;
+        loaderDone = true;
+        hideLoader();
+        var f = document.getElementById('footer-info');
+        if (f) f.textContent = '\u274c D\u00e9lai chargement d\u00e9pass\u00e9 \u2014 voir la console.';
+    }, LOADER_TIMEOUT_MS);
+
+    loadAllSequential(0).then(function () {
+        loaderDone = true;
+        clearTimeout(timeoutId);
+        hideLoader();
+        logLoadSummary();
+        if (typeof initEpochBenchPage === 'function') initEpochBenchPage();
+    }).catch(function (err) {
+        loaderDone = true;
+        clearTimeout(timeoutId);
+        console.error('[epoch_bench]', err);
+        hideLoader();
+        var f = document.getElementById('footer-info');
+        if (f) f.textContent = '\u274c Erreur chargement \u2014 ' + (err && err.message ? err.message : String(err));
+    });
+})();
+</script>
+
+<script>
+
+'use strict';
+
+function initEpochBenchPage() {
+
+window.SYNC_STATE = window.SYNC_STATE || {
+    epochId: '\u26ab', animEnabled: false, ticTime: 0, calculationInProgress: false
+};
+window.ABORT_COMPUTE = false;
+if (!window.displayConvergence) window.displayConvergence = function () {};
+if (!window.epochName) {
+    window.epochName = function (id) {
+        return (window.CHARS_DESC && window.CHARS_DESC[id] !== undefined) ? window.CHARS_DESC[id] : id;
+    };
+}
+
+function fmtC(v) {
+    if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
+    return v.toFixed(2);
+}
+function fmtDelta(v) {
+    if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
+    var cls = Math.abs(v) < 0.5 ? 'delta-zero' : (v > 0 ? 'delta-pos' : 'delta-neg');
+    var sign = v > 0 ? '+' : '';
+    return '<span class="' + cls + '">' + sign + v.toFixed(3) + '</span>';
+}
+/** Masse air sec moyenne (kg/mol) pour ppm/ppb molaires approx. depuis les masses d’époque. */
+var BENCH_M_AIR_KG_PER_MOL = 0.02897;
+/** Inventaire océan « PAL » moderne (kg) — repère % hydrosphère config. */
+var BENCH_PAL_OCEAN_KG = 1.4e21;
+
+/**
+ * CONFIG TIMELINE : CO₂ / CH₄ en ppm/ppb (approx. molaire), H₂O hydrosphère vs PAL (%),
+ * CCN proxy 0.3–1 (même forme que calculateCloudFormationIndex, masses config).
+ */
+function fmtEpochConfigGases(ep) {
+    if (!ep || typeof ep !== 'object') return '<span class="val-na">\u2014</span>';
+    var CONST = window.CONST;
+    var CONV = window.CONV;
+    if (!CONST || !CONV) return '<span class="val-na">\u2014</span>';
+    var atm = ep['⚖️🫧'];
+    var mCO2 = ep['⚖️🏭'];
+    var mCH4 = ep['⚖️🐄'];
+    var mH2O = ep['⚖️💧'];
+    var mO2 = ep['⚖️🫁'];
+    var mSO4 = ep['⚖️✈'];
+    var parts = [];
+    if (typeof atm === 'number' && atm > 0 && CONST.M_CO2 && typeof mCO2 === 'number' && isFinite(mCO2)) {
+        var nRatioCO2 = (mCO2 / CONST.M_CO2) / (atm / BENCH_M_AIR_KG_PER_MOL);
+        var ppmCO2 = nRatioCO2 * 1e6;
+        if (ppmCO2 < 1e5) {
+            parts.push('<span class="bench-key">CO\u2082</span>\u2248' + ppmCO2.toFixed(0) + ' ppm');
+        } else {
+            parts.push('<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 / 1e3).toFixed(0) + 'k ppm');
+        }
+    }
+    if (typeof atm === 'number' && atm > 0 && CONST.M_CH4 && typeof mCH4 === 'number' && isFinite(mCH4)) {
+        var nRatioCH4 = (mCH4 / CONST.M_CH4) / (atm / BENCH_M_AIR_KG_PER_MOL);
+        var ppmCH4 = nRatioCH4 * 1e6;
+        if (ppmCH4 < 1e5) {
+            parts.push('<span class="bench-key">CH\u2084</span>\u2248' + ppmCH4.toFixed(2) + ' ppm');
+        } else {
+            parts.push('<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 / 1e3).toFixed(0) + 'k ppm');
+        }
+    }
+    if (typeof mH2O === 'number' && isFinite(mH2O) && BENCH_PAL_OCEAN_KG > 0) {
+        var pctPal = 100 * mH2O / BENCH_PAL_OCEAN_KG;
+        parts.push('<span class="bench-key">H\u2082O</span> hydr. \u2248' + pctPal.toFixed(1) + '% vs PAL oc\u00e9an');
+    }
+    var ccnRaw = 0.4 + 0.5 * (((typeof mO2 === 'number' && isFinite(mO2)) ? mO2 : 0) / CONV.CCN_O2_REF_KG
+        + ((typeof mCH4 === 'number' && isFinite(mCH4)) ? mCH4 : 0) / CONV.CCN_CH4_REF_KG)
+        + 0.1 * (((typeof mSO4 === 'number' && isFinite(mSO4)) ? mSO4 : 0) / CONV.CCN_SULFATE_REF_KG);
+    var ccn = Math.max(0.3, Math.min(1.0, ccnRaw));
+    parts.push('<span class="bench-key">CCN</span>\u2248' + ccn.toFixed(3) + ' (0.3\u20131)');
+    if (!parts.length) return '<span class="val-na">\u2014</span>';
+    return parts.join(' \u00b7 ');
+}
+
+/**
+ * Snapshot atmosph\u00e9rique post-convergence (MOLAIRE, comme CONFIG et litt\u00e9rature) :
+ * CO\u2082 ppm, CH\u2084 ppb, H\u2082O % (vapeur), alb\u00e9do%,
+ * + capacit\u00e9s IR \u{1F370}\u{1FAE7}\u{1F3ED}\u{1F308} (CO\u2082), \u{1F370}\u{1FAE7}\u{1F4A7}\u{1F308} (H\u2082O), \u{1F370}\u{1FAE7}\u{1F4FF}\u{1F308} (\u03a3).
+ * Conversion massique \u2192 molaire : mol_frac = mass_frac \u00d7 (M_air / M_gas), M_air = DATA['\ud83e\udee7']['\ud83e\uddea'].
+ */
+function fmtConvAtmSnapshot(snap) {
+    if (!snap) return '<span class="val-na">\u2014</span>';
+    var CONST = window.CONST;
+    var M_air = snap.Mair;
+    var parts = [];
+    if (typeof snap.co2Frac === 'number' && isFinite(snap.co2Frac) && CONST && M_air) {
+        var ppmCO2 = snap.co2Frac * (M_air / CONST.M_CO2) * 1e6;
+        parts.push('<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm'));
+    }
+    if (typeof snap.ch4Frac === 'number' && isFinite(snap.ch4Frac) && CONST && M_air) {
+        var ppmCH4 = snap.ch4Frac * (M_air / CONST.M_CH4) * 1e6;
+        parts.push('<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm'));
+    }
+    if (typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST && M_air) {
+        var molH2O = snap.h2oFrac * (M_air / CONST.M_H2O);
+        parts.push('<span class="bench-key">H\u2082O</span>\u2248' + (molH2O * 100).toFixed(2) + '% vap. mol.');
+    }
+    if (typeof snap.albedo === 'number' && isFinite(snap.albedo)) {
+        parts.push('<span class="bench-key">\u{1FAA9}</span>\u2248' + (snap.albedo * 100).toFixed(1) + '%');
+    }
+    var line1 = parts.length ? parts.join(' \u00b7 ') : '<span class="val-na">\u2014</span>';
+    function fmtCap(v) {
+        if (typeof v !== 'number' || !isFinite(v)) return null;
+        if (v === 0) return '0';
+        if (v >= 1e-4) return (v * 100).toFixed(2) + '%';
+        return v.toExponential(2);
+    }
+    var ir = [];
+    var capCO2f = fmtCap(snap.capCO2IR);
+    var capH2Of = fmtCap(snap.capH2OIR);
+    var capSumf = fmtCap(snap.capSumIR);
+    if (capCO2f) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F3ED}\u{1F308}</span>=' + capCO2f);
+    if (capH2Of) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F4A7}\u{1F308}</span>=' + capH2Of);
+    if (capSumf) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F4FF}\u{1F308}</span>=' + capSumf);
+    var line2 = ir.length ? ('<span class="bench-ircap">' + ir.join(' \u00b7 ') + '</span>') : '';
+    return line2 ? (line1 + '<br>' + line2) : line1;
+}
+
+/** RADIATIF : \u0394 au d\u00e9part (Init) et \u0394 apr\u00e8s convergence (fin) ; cha\u00eene T\u00b0C (Init + Search/Dicho). Le \u0394 d\u00e9part \u2260 0 est normal (T \u00e9poque pas \u00e9quilibre radiatif). */
+function fmtRadInitAndPath(initStep, radTPath, lastStepForDelta) {
+    var lines = [];
+    var dInit = (initStep && typeof initStep.delta_equilibre === 'number' && isFinite(initStep.delta_equilibre))
+        ? initStep.delta_equilibre : null;
+    var dFin = null;
+    if (lastStepForDelta && typeof lastStepForDelta.delta_equilibre === 'number' && isFinite(lastStepForDelta.delta_equilibre)) {
+        dFin = lastStepForDelta.delta_equilibre;
+    } else if (typeof window !== 'undefined' && window.DATA && window.DATA['🧲'] != null
+        && typeof window.DATA['🧲']['🔺🧲'] === 'number' && isFinite(window.DATA['🧲']['🔺🧲'])) {
+        dFin = window.DATA['🧲']['🔺🧲'];
+    }
+    if (dInit != null) {
+        if (dFin != null) {
+            lines.push('<span class="bench-key">🔺🧲</span> <span class="bench-sub">d\u00e9part</span> ' + dInit.toFixed(3)
+                + ' <span class="bench-sub">\u2192 conv.</span> ' + dFin.toFixed(3) + ' W/m\u00b2');
+        } else {
+            lines.push('<span class="bench-key">🔺🧲</span> <span class="bench-sub">d\u00e9part</span> ' + dInit.toFixed(3) + ' W/m\u00b2');
+        }
+    } else {
+        lines.push('<span class="bench-key">🔺🧲</span>:\u2014');
+    }
+    if (radTPath && radTPath.length) {
+        var seg = [];
+        for (var i = 0; i < radTPath.length; i++) {
+            var t = radTPath[i];
+            seg.push((typeof t === 'number' && isFinite(t)) ? t.toFixed(2) : '?');
+        }
+        lines.push('<span class="bench-tpath">' + seg.join(' \u2192 ') + '</span> \u00b0C');
+    } else {
+        lines.push('<span class="val-na">\u2014</span>');
+    }
+    return lines.join('<br>');
+}
+function copyBenchRow(tr) {
+    if (!tr) return;
+    var line = tr.dataset.benchCopyLine;
+    if (!line) {
+        var tds = tr.querySelectorAll('td:not(.cell-icon)');
+        var chunks = [];
+        for (var i = 0; i < tds.length; i++) {
+            chunks.push((tds[i].innerText || '').replace(/\r/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+        }
+        line = chunks.join('\t');
+    }
+    function ok() { }
+    function fail(e) {
+        console.error('[epoch_bench] copie presse-papiers', e);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(line).then(ok).catch(fail);
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = line;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            ok();
+        } catch (e2) {
+            fail(e2);
+        }
+        document.body.removeChild(ta);
+    }
+}
+function fmtAge(years) {
+    if (years == null) return '?';
+    var Ma = years / 1e6;
+    if (Math.abs(Ma) >= 999.5) return (Ma / 1000).toFixed(1) + ' Ga';
+    if (Math.abs(Ma) >= 0.999) return Math.round(Ma) + ' Ma';
+    var ka = years / 1e3;
+    if (Math.abs(ka) >= 0.999) return ka.toFixed(1) + ' ka';
+    return Math.round(years) + ' a';
+}
+function statusHtml(s) {
+    if (!s) return '<span class="status-run">\u23f3 calcul\u2026</span>';
+    if (s === 'converged') return '<span class="status-ok">\u2705 converged</span>';
+    if (s === 'max_iter')  return '<span class="status-warn">\u26a0\ufe0f max_iter</span>';
+    if (s === 'crash' || (typeof s === 'string' && s.indexOf('crash:') === 0)) {
+        return '<span class="status-err">\u274c ' + String(s) + '</span>';
+    }
+    if (s === 'abort')     return '<span class="status-err">\u{1F6D1} abort</span>';
+    return '<span class="status-warn">\u26a0\ufe0f ' + s + '</span>';
+}
+
+function createRow(epoch) {
+    var id = epoch['\u{1F4C5}'];
+    var name = window.epochName(id);
+    var HYST_LOGOS = { 'hysteresis 1a': '\u2603', 'hysteresis 1b': '\u26c8', 'hysteresis 2': '\u{1F427}' };
+    var displayLogo = HYST_LOGOS[id] || ((id.length <= 3) ? id : '\u2699');
+    var ageStart = fmtAge(epoch['\u25b6']);
+    var tInitC = (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
+
+    var safeId = id.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, function(c) {
+        return '_x' + c.codePointAt(0).toString(16) + '_';
+    });
+    var tr = document.createElement('tr');
+    tr.id = 'row-' + safeId;
+    tr.className = 'running';
+    tr.innerHTML =
+      '<td class="cell-icon"><button type="button" class="btn-copy-row" data-copy-row="' + safeId + '" title="Copier la ligne" aria-label="Copier la ligne">\u{1F4CB}</button></td>' +
+      '<td>' +
+        '<div class="epoch-cell">' +
+          '<span class="epoch-logo">' + displayLogo + '</span>' +
+          '<div>' +
+            '<div class="epoch-name">' + name + '</div>' +
+            '<div class="epoch-age">' + ageStart + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
+      '<td class="num fit">' + tInitC + '</td>' +
+      '<td class="num fit" id="tconv-' + safeId + '"><span class="status-run">\u2026</span></td>' +
+      '<td class="num fit" id="dfin-'  + safeId + '"><span class="status-run">\u2026</span></td>' +
+      '<td class="json-config mono" id="config-' + safeId + '"><span class="status-run">\u2026</span></td>' +
+      '<td class="json-rad-path mono" id="radpath-' + safeId + '"><span class="status-run">\u2026</span></td>' +
+      '<td class="json-conv-atm mono" id="convatm-' + safeId + '"><span class="status-run">\u2026</span></td>';
+    tr.dataset.safeId = safeId;
+
+    document.getElementById('results-body').appendChild(tr);
+    return tr;
+}
+
+function safeIdOf(id) {
+    return id.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, function(c) {
+        return '_x' + c.codePointAt(0).toString(16) + '_';
+    });
+}
+function updateRow(id, initStep, lastStep, status, tEpochInitC, epoch, radTPath, convAtmSnap) {
+    var safeId = safeIdOf(id);
+    var tr = document.getElementById('row-' + safeId);
+    if (!tr) return;
+    tr.className = status === 'converged' ? 'done-converged'
+                 : status === 'max_iter'  ? 'done-maxiter'
+                 : (status === 'crash' || status === 'abort' || (typeof status === 'string' && status.indexOf('crash:') === 0)) ? 'done-crash'
+                 : 'done-maxiter';
+
+    var tConv = document.getElementById('tconv-' + safeId);
+    var dFin  = document.getElementById('dfin-'  + safeId);
+    var configEl = document.getElementById('config-' + safeId);
+    var radPathEl = document.getElementById('radpath-' + safeId);
+    var convAtmEl = document.getElementById('convatm-' + safeId);
+
+    if (configEl) configEl.innerHTML = fmtEpochConfigGases(epoch);
+    if (radPathEl) radPathEl.innerHTML = fmtRadInitAndPath(initStep, radTPath, lastStep);
+    if (convAtmEl) convAtmEl.innerHTML = fmtConvAtmSnapshot(convAtmSnap);
+    /* Pr\u00e9fixe statut dans la cellule T FIN : rien si converged, pictogramme + statut sinon (crash/max_iter/abort).
+       Le message complet reste disponible dans les logs (console + log de run). */
+    var statusPrefix = '';
+    if (status === 'max_iter') statusPrefix = '<span class="status-warn" title="max_iter">\u26a0\ufe0f</span> ';
+    else if (status === 'abort') statusPrefix = '<span class="status-err" title="abort">\u{1F6D1}</span> ';
+    else if (status === 'crash' || (typeof status === 'string' && status.indexOf('crash:') === 0)) {
+        statusPrefix = '<span class="status-err" title="' + String(status) + '">\u274c</span> ';
+    } else if (status !== 'converged') {
+        statusPrefix = '<span class="status-warn" title="' + String(status) + '">\u26a0\ufe0f</span> ';
+    }
+    if (tConv && lastStep) tConv.innerHTML = statusPrefix + fmtC(lastStep.temperature_C);
+    if (dFin && lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C)
+        && typeof tEpochInitC === 'number' && isFinite(tEpochInitC)) {
+        dFin.innerHTML = fmtDelta(lastStep.temperature_C - tEpochInitC);
+    } else if (dFin) {
+        dFin.innerHTML = '<span class="val-na">\u2014</span>';
+    }
+
+    var copyParts = [];
+    var tdsAll = tr.querySelectorAll('td:not(.cell-icon)');
+    for (var ci = 0; ci < tdsAll.length; ci++) {
+        copyParts.push((tdsAll[ci].innerText || '').replace(/\r/g, '').replace(/\n/g, ' ').replace(/\s+/g, ' ').trim());
+    }
+    tr.dataset.benchCopyLine = copyParts.join('\t');
+}
+
+async function runAllEpochs() {
+    var btn = document.getElementById('btn-run');
+    var progressFill = document.getElementById('progress-fill');
+    var progressLabel = document.getElementById('progress-label');
+    btn.disabled = true;
+    document.getElementById('results-body').innerHTML = '';
+
+    var timeline = window.TIMELINE;
+    if (!timeline || !timeline.length) {
+        progressLabel.textContent = '\u274c TIMELINE non charg\u00e9';
+        btn.disabled = false;
+        return;
+    }
+
+    progressLabel.textContent = '0 / ' + timeline.length + ' epochs';
+
+    var currentStep = null;
+    var lastStep = null;
+    var initStep = null;
+    var finalStatus = null;
+    var benchRadPathRef = { path: [] };
+
+    function onEvent(event, payload) {
+        if (event === 'convergenceStep') {
+            if (payload.phase === 'Init' && payload.innerIter === -1 && !initStep) {
+                initStep = payload;
+                if (typeof payload.temperature_C === 'number' && isFinite(payload.temperature_C)) {
+                    benchRadPathRef.path.push(payload.temperature_C);
+                }
+                console.log('[bench] Init  \u0394Flux=' + (payload.delta_equilibre != null ? payload.delta_equilibre.toFixed(3) : '?')
+                    + '  T=' + (payload.temperature_C != null ? payload.temperature_C.toFixed(2) : '?') + '\u00b0C');
+            }
+            if ((payload.phase === 'Search' || payload.phase === 'Dicho')
+                && typeof payload.temperature_C === 'number') {
+                lastStep = payload;
+                if (isFinite(payload.temperature_C)) {
+                    var prevT = benchRadPathRef.path[benchRadPathRef.path.length - 1];
+                    if (prevT === undefined || Math.abs(prevT - payload.temperature_C) > 1e-5) {
+                        benchRadPathRef.path.push(payload.temperature_C);
+                    }
+                }
+            }
+            if (typeof payload.temperature_C === 'number') currentStep = payload;
+        } else if (event === 'ProcessFinished') {
+            var snap = payload && payload.DATA && payload.DATA['\u{1F9EE}'];
+            finalStatus = (snap && snap['\u{1F9EE}\u{1F6D1}']) || 'finished';
+            if (!lastStep && currentStep) lastStep = currentStep;
+            console.log('[bench] ProcessFinished  status=' + finalStatus
+                + '  T=' + (lastStep && lastStep.temperature_C != null ? lastStep.temperature_C.toFixed(2) : '?') + '\u00b0C');
+        }
+    }
+
+    var api = window.getBilanRadiatifAPI
+        ? window.getBilanRadiatifAPI(onEvent)
+        : new BilanRadiatifAPI(onEvent);
+
+    var t0 = Date.now();
+
+    for (var i = 0; i < timeline.length; i++) {
+        var epoch = timeline[i];
+        var epochId = epoch['\u{1F4C5}'];
+
+        initStep = null; lastStep = null; currentStep = null; finalStatus = null;
+        benchRadPathRef.path = [];
+        window.ABORT_COMPUTE = false;
+
+        createRow(epoch);
+
+        progressLabel.textContent = (i + 1) + ' / ' + timeline.length + ' \u2014 ' + window.epochName(epochId);
+        progressFill.style.width = ((i / timeline.length) * 100) + '%';
+
+        console.log('[bench] \u2014\u2014 \u00c9poque ' + (i+1) + '/' + timeline.length + ' : ' + epochId + ' \u2014\u2014');
+
+        if (window.DATA) {
+            window.DATA['\u{1F4DC}'] = window.DATA['\u{1F4DC}'] || {};
+            window.DATA['\u{1F4DC}']['\u{1F53A}\u{1F321}\ufe0f\u{1F4AB}'] = 0;
+            window.DATA['\u{1F4DC}']['\u{1F4FF}\u{1F4AB}']   = 0;
+        }
+
+        var tEp = Date.now();
+        console.log('[bench] api.run d\u00e9marrage', String(epochId));
+        try {
+            await api.run({ epochId: epochId, animEnabled: false });
+        } catch (e) {
+            finalStatus = 'crash: ' + e.message;
+            console.error('[bench] ' + epochId, e);
+        }
+
+        if (!finalStatus) {
+            var snapStatus = window.DATA && window.DATA['\u{1F9EE}'] && window.DATA['\u{1F9EE}']['\u{1F9EE}\u{1F6D1}'];
+            finalStatus = snapStatus || 'finished';
+        }
+        console.log('[bench] api.run termin\u00e9', String(epochId), String(finalStatus),
+            (Date.now() - tEp) + ' ms');
+        if (!lastStep && currentStep) lastStep = currentStep;
+
+        var tEpochInitC = (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15);
+        var radPathCopy = benchRadPathRef.path.slice();
+        if (lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C)) {
+            var lastP = radPathCopy[radPathCopy.length - 1];
+            if (lastP === undefined || Math.abs(lastP - lastStep.temperature_C) > 1e-5) {
+                radPathCopy.push(lastStep.temperature_C);
+            }
+        }
+        window.__RAD_CAP_LAST_DBG__ = null;
+        if (window.calculateRadiativeCapacities) {
+            try { window.calculateRadiativeCapacities(); }
+            catch (e) { console.error('[bench][' + epochId + '] calculateRadiativeCapacities threw', e); }
+        } else {
+            console.error('[bench][' + epochId + '] window.calculateRadiativeCapacities is NOT defined');
+        }
+        var __dbg = window.__RAD_CAP_LAST_DBG__;
+        console.log('[bench][' + epochId + '] RAD_CAP dbg =', __dbg);
+        if (__dbg && __dbg.firstBad) {
+            try {
+                console.log('[bench][' + epochId + '] RAD_CAP firstBad = ' + JSON.stringify(__dbg.firstBad));
+            } catch (e) {
+                console.log('[bench][' + epochId + '] RAD_CAP firstBad (obj) =', __dbg.firstBad);
+            }
+        } else if (__dbg) {
+            console.log('[bench][' + epochId + '] RAD_CAP firstBad = null (aucune \u03b4\u03c4 non-finie ou n\u00e9gative d\u00e9tect\u00e9e)');
+        }
+        var D = window.DATA || {};
+        var D_ATM = D['🫧'] || {};
+        var D_H2O = D['💧'] || {};
+        var D_ALB = D['🪩'] || {};
+        var convAtmSnap = {
+            co2Frac:  D_ATM['🍰🫧🏭'],
+            ch4Frac:  D_ATM['🍰🫧🐄'],
+            h2oFrac:  D_H2O['🍰🫧💧'],
+            albedo:   D_ALB['🍰🪩📿'],
+            Mair:     D_ATM['🧪'],
+            capCO2IR: D_ATM['🍰🫧🏭🌈'],
+            capH2OIR: D_ATM['🍰🫧💧🌈'],
+            capSumIR: D_ATM['🍰🫧📿🌈']
+        };
+        var D_STAT = D['📊'] || {};
+        var lrLen = (D_STAT.lambda_range) ? D_STAT.lambda_range.length : 0;
+        var zrLen = (D_STAT.z_range) ? D_STAT.z_range.length : 0;
+        console.log('[bench][' + epochId + '] CONV ATM raw'
+            + ' CO2Frac(mass)=' + convAtmSnap.co2Frac
+            + ' CH4Frac(mass)=' + convAtmSnap.ch4Frac
+            + ' H2OFrac(mass)=' + convAtmSnap.h2oFrac
+            + ' albedo=' + convAtmSnap.albedo
+            + ' Mair=' + convAtmSnap.Mair
+            + ' \u{1F308}CO2=' + convAtmSnap.capCO2IR
+            + ' \u{1F308}H2O=' + convAtmSnap.capH2OIR
+            + ' \u{1F308}\u03a3=' + convAtmSnap.capSumIR
+            + ' lambda_range.len=' + lrLen
+            + ' z_range.len=' + zrLen);
+        updateRow(epochId, initStep, lastStep, finalStatus, tEpochInitC, epoch, radPathCopy, convAtmSnap);
+    }
+
+    var elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    progressFill.style.width = '100%';
+    progressLabel.textContent = '\u2705 ' + timeline.length + ' \u00e9poques \u2014 ' + elapsed + ' s';
+    btn.disabled = false;
+    btn.textContent = '\u21ba Relancer';
+    document.getElementById('footer-info').textContent =
+        'Rapport g\u00e9n\u00e9r\u00e9 le ' + new Date().toLocaleString('fr-FR')
+        + ' \u2014 ' + timeline.length + ' \u00e9poques en ' + elapsed + 's';
+}
+
+var ok = window.DATA && window.TIMELINE && window.CONST && window.CONV;
+var footer = document.getElementById('footer-info');
+if (ok) {
+    var dbgHint = window.debugAPI
+        ? ' \u2014 debugAPI : groupes [API_BILAN] calcul'
+        : ' \u2014 ?debugAPI=true pour logs calcul group\u00e9s';
+    footer.textContent = 'Pr\u00eat \u2014 ' + window.TIMELINE.length + ' \u00e9poques charg\u00e9es' + dbgHint;
+    document.getElementById('btn-run').disabled = false;
+} else {
+    footer.textContent = '\u274c Ressources manquantes (DATA=' + !!window.DATA
+        + ', TIMELINE=' + !!window.TIMELINE + ', CONST=' + !!window.CONST
+        + ', CONV=' + !!window.CONV + ')';
+}
+document.getElementById('btn-run').addEventListener('click', function () { runAllEpochs(); });
+
+document.getElementById('results-body').addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var btn = t.closest('.btn-copy-row');
+    if (!btn) return;
+    var sid = btn.getAttribute('data-copy-row');
+    var tr = sid ? document.getElementById('row-' + sid) : null;
+    if (tr) copyBenchRow(tr);
+});
+
+}
+
+</script>
+</body>
+</html>

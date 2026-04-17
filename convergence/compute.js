@@ -1,22 +1,19 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.10
+// Version 1.0.8
 // Date: [January 2025]
 // logs :
 // - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
 // - v1.0.3: bary (📿💫+📿☄️)/maxTics; interpolation via 🕰['🔀'] and 🕰['◀']; getMasses/getSoleil/getNoyau use interpolated DATA when 🔀
 // - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
 // - v1.0.5: debug log getEpochDateConfig (transition époque + état tics)
-// - v1.0.6: transition auto seulement si ▶ > ◀ (échelle géologique) — évite saut 🚂→📱 car 1800 <= 2025 était toujours vrai
-// - v1.0.7: log debug getEpochDateConfig inclut 📿☄️ (météorites) en plus de 📿💫
-// - v1.0.8: getEpochDateConfig — window.infoTimeMa = somme Ma des tics (📿×🔺⏳) pour aligner timeline.js (#info-time) sur DATA['📜']['📅']
-// - v1.0.9: log [DBG compute] sync infoTimeMa (avant/après + deltaMa) pour diagnostic UI +0 Ma
-// - v1.0.10: retrait log sync infoTimeMa (correctif dans sync_panels + main setEpoch #info-time)
+// - v1.0.6: transition époque : support direction forward (▶ < ◀, ex. 🚂 1800→2025) — dateYears additionne deltaTics, condition >=
+// - v1.0.7: logs détaillés deltaYearsFromTics (tic par tic) + état TIMELINE[epochIndex+1] pour débug grande coupure 🦣→🏔
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
-// Ā unit : non Aristotelicisme via UTF8.
+// ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
@@ -92,6 +89,35 @@ function getMasses() {
     h2o_kg += (DATA['📜']['🔺⚖️💧☄️'] || 0) * (DATA['📜']['📿☄️'] || 0);
     base['⚖️💧'] = h2o_kg;
 
+    // 🏭📊 Fraction aéroportée — appliquée ICI (source unique) pour survivre aux rappels getMasses() dans la boucle de convergence
+    const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
+    const isForwardMasses = (EPOCH['▶'] != null && epochEnd != null && EPOCH['▶'] < epochEnd);
+    if (!useInterpolated && isForwardMasses && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        let deltaMassesTics = 0;
+        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
+            for (const tk of Object.keys(EPOCH['🕰'])) {
+                if (tk === '🔀' || tk === '◀') continue;
+                const cfg = EPOCH['🕰'][tk];
+                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
+                    const cnt = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
+                    deltaMassesTics += cnt * cfg['🔺⏳'] * 1e6;
+                }
+            }
+        }
+        const currentYearM = (EPOCH['▶'] || 0) + deltaMassesTics;
+        const profile = EPOCH['🏭📊'];
+        let cumulGtM = 0;
+        for (let i = 0; i < profile.tranches.length; i++) {
+            const tr = profile.tranches[i];
+            if (currentYearM <= tr.from) break;
+            const span = tr.to - tr.from;
+            const rate = span > 0 ? tr.Gt / span : 0;
+            cumulGtM += rate * (Math.min(currentYearM, tr.to) - tr.from);
+        }
+        const airborneM = (typeof profile.airborne === 'number') ? profile.airborne : 0.45;
+        base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
+    }
+
     if (!useInterpolated) {
         if (EPOCH['⚖️🫧'] !== undefined && isFinite(EPOCH['⚖️🫧'])) {
             base['⚖️🫧'] = EPOCH['⚖️🫧'];
@@ -103,11 +129,7 @@ function getMasses() {
         }
     }
     DATA['⚖️'] = base;
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`📋 [getMasses@compute.js]`);
-    // console.log(`masses=${JSON.stringify(DATA['⚖️'])}`);
-    
+
     // Retourner true car DATA a été modifié
     return true;
 }
@@ -136,15 +158,15 @@ function getEpochDateConfig() {
         }
     }
     const epochEnd = (typeof EPOCH['◀'] === 'number' && Number.isFinite(EPOCH['◀'])) ? EPOCH['◀'] : null;
-    const dateYears = (EPOCH['▶'] != null) ? (EPOCH['▶'] || 0) - deltaYearsFromTics : 0;
-    const totalTics = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
-    console.log('[DBG compute] getEpochDateConfig epoch=' + epochId + ' 📿☄️=' + DATA['📜']['📿☄️'] + ' 📿💫=' + DATA['📜']['📿💫'] + ' totalTics=' + totalTics + ' dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma epochEnd=' + (epochEnd != null ? (epochEnd/1e6).toFixed(0) + 'Ma' : 'null'));
-    // Échelle géologique : ▶ > ◀ (temps avant présent décroît vers le présent). Échelle calendaire (🚂 1800–2025) : ▶ < ◀ → ne pas appliquer ce saut
-    const startA = EPOCH['▶'];
-    const geologicEpochOrder = (typeof startA === 'number' && typeof epochEnd === 'number' && startA > epochEnd);
-    if (epochEnd != null && geologicEpochOrder && dateYears <= epochEnd && epochIndex + 1 < window.TIMELINE.length) {
+    // Detect time direction: geological = backward (▶ > ◀), modern = forward (▶ < ◀)
+    const isForwardTime = (EPOCH['▶'] != null && epochEnd != null && EPOCH['▶'] < epochEnd);
+    const dateYears = (EPOCH['▶'] != null)
+        ? (isForwardTime ? (EPOCH['▶'] || 0) + deltaYearsFromTics : (EPOCH['▶'] || 0) - deltaYearsFromTics)
+        : 0;
+    const shouldTransition = (epochEnd != null && epochIndex + 1 < window.TIMELINE.length)
+        && (isForwardTime ? dateYears >= epochEnd : dateYears <= epochEnd);
+    if (shouldTransition) {
         const nextEpoch = window.TIMELINE[epochIndex + 1];
-        console.log('[DBG compute] ⚡TRANSITION ' + epochId + ' → ' + nextEpoch['📅'] + ' (dateYears=' + (dateYears/1e6).toFixed(0) + 'Ma <= epochEnd=' + (epochEnd/1e6).toFixed(0) + 'Ma)');
         DATA['📜']['🗿'] = nextEpoch['📅'];
         DATA['📜']['👉'] = epochIndex + 1;
         DATA['📜']['📿💫'] = 0;
@@ -239,27 +261,19 @@ function getEpochDateConfig() {
     // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
 
-    // Horloge visuelle (organigramme/timeline.js #info-time « +X Ma ») : même agrégat que deltaYearsFromTics / 1e6,
-    // recalculé sur l’époque finale EPOCH — évite +0 Ma quand un reset async efface window.infoTimeMa alors que 📿☄️/📅 sont cohérents.
-    if (typeof window !== 'undefined') {
-        let deltaMaFromTicsUi = 0;
-        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
-            for (const tk of Object.keys(EPOCH['🕰'])) {
-                if (tk === '🔀' || tk === '◀') continue;
-                const cfg = EPOCH['🕰'][tk];
-                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                    const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
-                    deltaMaFromTicsUi += count * cfg['🔺⏳'];
-                }
-            }
-        }
-        window.infoTimeMa = deltaMaFromTicsUi;
+    // 🏭📊 : le calcul est maintenant dans getMasses() (source unique, survit aux rappels de la boucle de convergence)
+    // Ici on génère seulement le log si l'époque a un profil d'émissions
+    if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
+        const ppm_approx = Math.round(
+            (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
+        );
+        window._co2ProfileLog = '[🏭📊] ' + Math.round((EPOCH['▶'] || 0) + deltaYearsFromTics)
+            + ' → ⚖️🏭=' + DATA['⚖️']['⚖️🏭'].toExponential(3)
+            + ' kg (~' + ppm_approx + ' ppm)';
+        window._co2ProfileLogInjected = false;
+        console.log(window._co2ProfileLog);
     }
-    
-    // Logs désactivés pour réduire la taille
-    // console.log(`💫🛠 [getEpochDateConfig@compute.js]`);
-    // console.log(`dateConfig=${JSON.stringify(DATA['📜'])}`);
-    
+
     // Retourner true car DATA a été modifié
     return true;
 }
