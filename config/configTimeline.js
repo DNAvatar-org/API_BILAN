@@ -1,8 +1,15 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.3.19
-// Date: [April 15, 2026] [12:00 UTC+1]
+// Version 1.4.3
+// Date: [April 16, 2026] [14:30 UTC+1]
 // logs :
+// - v1.4.3: fallback FIRST_SEARCH_STEP_CAP_K: 0 (désactivé ; évite changement bassin convergence 📱)
+// - v1.4.2: fallback SOLVER_TUNING — FIRST_SEARCH_STEP_CAP_K: 8 (aligné TUNING / calculations_flux 1er pas Init)
+// - v1.4.1: 🦠 Archéen — 🧲🌕 au début époque (W/m²) pour bary 🕰.🔀 ['⚖️','🌕'] ; sans clé, getEpochDateConfig → NaN → T NaN / calculateAlbedo
+// - v1.4.0: timeline étendue 19 époques. Renames : 🥟→🪸 Protérozoïque, ❄️→🦣 Quaternaire, 🦣→🦤 Cénozoïque.
+//           hysteresis 1→1a (Sturtienne ☃) ; ⛄ resserré 720→690 ; insertion hysteresis 1b ⛈ (Sortie Marinoen 690→600).
+//           🌿 Paléozoïque scindé en 🪼 marin (600→420), 🍄 terrestre (420→280), 💀 P/T (280→250).
+//           hysteresis 2 (logo 🐧). 🏔 étendu jusqu'à 2e6. 🛖 Holocène (10 ka→1800). 🚂 Industriel (1800→2000) intégré dans TIMELINE.
 // - v1.3.19: spectralBandLogoImgPx / EmojiPx défaut 18 px (bandes spectre, taille historique)
 // - v1.3.18: spectralBandLogoImgPx / EmojiPx / ImgPxByEmoji (plot.js bandes [ ] : PNG vs UTF‑8)
 // - v1.3.17: spectralEdsSunLambdaUm défaut 10 μm (repères EDS/Soleil sur le graphe)
@@ -171,6 +178,8 @@ const timeline = [
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
+        // Flux surfacique au début ▶ : requis si 🕰.🔀 inclut '🌕' (compute.js interp startVal = EPOCH[subkey])
+        '🧲🌕': 1.5e14 / (4 * Math.PI * Math.pow(6371e3, 2)), // ≈ 0,294 W/m² = 🔋🌕/(4πR²), R=📐 km ; fin 🕰.◀.🌕 → 0,127
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '📏🌊': 4.7, // Profondeur moyenne océans en km (Archéen, moins d'eau)
@@ -220,7 +229,7 @@ const timeline = [
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
     {// Protérozoïque
-        '📅': '🥟', // Protérozoïque
+        '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
         '▶': 2.5e9,
         '◀': 750e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque) — 12 °C
@@ -253,11 +262,11 @@ const timeline = [
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    // hysteresis 1 = Pré–Boule de neige (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
+    // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
     // Ici 🌡️🧮 = amorce solveur sur branche encore tiède (≈290 K), pas le seuil ni la T finale après chute.
-    {//hysteresis 1
-        '📅': 'hysteresis 1', // id stable (ex hystérésis)
+    {//hysteresis 1a (entrée Sturtienne — bascule albédo↓)
+        '📅': 'hysteresis 1a', // id stable (renommé v1.4.0 ; logo affichage ☃)
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 750e6,
         '◀': 720e6,
@@ -280,13 +289,13 @@ const timeline = [
         '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
         '🌱': 0.0
     },
-    // ⛄ = Boule de neige (720–600 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma, Marinoen ~650 Ma)
+    // ⛄ = Plein Snowball (720–690 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma)
     // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
-    {// Boule de neige
-        '📅': '⛄', // Boule de neige (720–600 Ma) — Snowball Earth
+    {// Plein Snowball
+        '📅': '⛄', // Plein Snowball (720–690 Ma) — Snowball Earth, plateau froid
         // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
         '▶': 720e6,
-        '◀': 600e6,
+        '◀': 690e6,
         // 🌡️🧮 : ~240 K (-33°C) — lit. Pierrehumbert 2011 : 220–250 K surface moyenne snowball
         '🌡️🧮': 281,
         '🧲🔬': 0.01,
@@ -309,40 +318,110 @@ const timeline = [
         '⚖️💧': 1.2e21,  // h2o_kg (~86% actuel, océans sous glace)
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 150 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
         },
         '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
     },
-    // 🌿 = Paléozoïque (600–250 Ma) : même niveau que Mésozoïque/Cénozoïque (ères), zéro chevauchement.
-    // Ordre chronologique : … Protérozoïque → ⛄ Boule de neige → Paléozoïque → Mésozoïque → Cénozoïque …
-    {// Paléozoïque 🌿
-        '📅': '🌿', // Paléozoïque (600–250 Ma)
-        '▶': 600e6,
-        '◀': 250e6,
-        // 🌡️🧮 : ~285–295 K (lit. Paléozoïque : Ordovicien–Dévonien chaud, Carbonifère–Permien glaciations) — 17 °C
-        '🌡️🧮': 290,
+    // hysteresis 1b = Sortie Marinoen (690–600 Ma) : déglaciation brutale, hyper-greenhouse, pluies acides.
+    // Branche chaude post-Snowball, le scan hystérésis cherche le seuil de sortie (CO₂↑ → saut T).
+    {//hysteresis 1b (sortie Marinoen — hyst ↑)
+        '📅': 'hysteresis 1b', // id stable (logo affichage ⛈)
+        hidden: true,
+        '▶': 690e6,
+        '◀': 600e6,
+        '🌡️🧮': 295, // ~22 °C — amorce branche chaude post-déglaciation
         '🧲🔬': 0.01,
-        '🔋☀️': 3.638e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.6/4.57) = 95.0% — NE PAS MODIFIER
-        '🔋🌕': 6.5e13, // core_power_watts
+        '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
+        '🔋🌕': 7.5e13,
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6, // Profondeur océans (Paléozoïque, 600–250 Ma)
+        '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': {
-            '🍰🗻🌊': 0.78,
-            '🍰🗻🏔': 0.06,
-            '🍰🗻🌍': 0.16
-        },
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
         '⚖️🫧': 5.15e18,
-        // CO2 Paléozoïque : élevé début (Ordovicien–Dévonien), plus bas Carbonifère–Permien ; valeur représentative
-        '⚖️🏭': 1.2e16,  // co2_kg (~2300 ppm)
+        // Hyper-greenhouse post-Marinoen : CO₂ très élevé cause de la déglaciation
+        '⚖️🏭': 2.5e16, // co2_kg (~4800 ppm, ordre hyper-greenhouse)
+        '⚖️🐄': 4.0e13,
+        '⚖️💧': 1.3e21,
+        '⚖️🫁': 1.5e16,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 90 },
+        },
+        '🌱': 0.0
+    },
+    // Paléozoïque scindé (v1.4.0) : 🪼 marin 600→420 + 🍄 terrestre 420→280 + 💀 P/T 280→250.
+    // Ordre chronologique : … Protérozoïque → ☃/⛄/⛈ Snowball → 🪼 → 🍄 → 💀 → Mésozoïque …
+    {// Paléozoïque marin 🪼
+        '📅': '🪼', // Paléozoïque marin (600–420 Ma) — explosion cambrienne, Hirnantienne
+        '▶': 600e6,
+        '◀': 420e6,
+        // 🌡️🧮 : ~285–295 K (Ordovicien chaud, Hirnantienne froide ponctuelle) — 17 °C moyen
+        '🌡️🧮': 290,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
+        '🔋🌕': 6.5e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 1.5e16, // co2_kg (~2900 ppm, moyenne Cambrien–Silurien)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e17,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 175 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 180 },
         },
-        '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres (FAO 2020)
+        '🌱': 0.0  // Avant -420 Ma : végétation terrestre absente/marginale
+    },
+    {// Paléozoïque terrestre 🍄
+        '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
+        '▶': 420e6,
+        '◀': 280e6,
+        // 🌡️🧮 : Dévonien greenhouse puis Karoo (Carbonifère–Permien glacial) — ~289 K moyen
+        '🌡️🧮': 291,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
+        '🔋🌕': 6.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 0.8e16, // co2_kg (~1540 ppm, moyenne Dévonien chaud → Karoo bas)
+        '⚖️🐄': 3e13,
+        '⚖️💧': 1.3e21,
+        '⚖️🫁': 2.0e17,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 140 },
+        },
+        '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres
+    },
+    {// Limite P/T 💀 (extinction massive, pas hystérésis)
+        '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
+        '▶': 280e6,
+        '◀': 250e6,
+        // 🌡️🧮 : pic d'extinction ~301 K (28°C), anoxie + trapps sibériens
+        '🌡️🧮': 298,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
+        '🔋🌕': 6.0e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 1.5e16, // co2_kg (~2900 ppm, pic PT)
+        '⚖️🐄': 8e13,   // CH4 élevé (anoxie, clathrates)
+        '⚖️💧': 1.35e21,
+        '⚖️🫁': 1.5e17, // O2 en chute (anoxie)
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
+        },
+        '🌱': 0.25
     },
     {// Mésozoïque 🦕
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
@@ -375,12 +454,12 @@ const timeline = [
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
                 '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
             }, // Événement 50 Ma
-            '🎇': { '⏩': '🦣' } // Big impact (K-Pg) → Cénozoïque
+            '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         },
         '🌱': 0.31
     },
-    {// Cénozoïque 🦣
-        '📅': '🦣', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
+    {// Cénozoïque 🦤
+        '📅': '🦤', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
         '▶': 66e6,
         '◀': 50e6,
         '⛄': 0,
@@ -435,8 +514,8 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    {// hysteresis 2
-        '📅': 'hysteresis 2', // id stable (ex ⛰ prélude glaciaire 35–33 Ma)
+    {// hysteresis 2 (Eocène–Oligocène ~35–33 Ma — bascule calotte Antarctique, Oi-1)
+        '📅': 'hysteresis 2', // id stable (logo affichage 🐧 ; ex ⛰ prélude glaciaire)
         hidden: true, // même rendu frise que hysteresis 1 (epoch-text, pas epoch-btn)
         '▶': 35e6,
         '◀': 33e6,
@@ -464,13 +543,13 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    // Grande Coupure (EO–Oi, ~33 Ma) : calotte Antarctique, refroidissement majeur
-    {// 🏔 Grande Coupure
+    // Grande Coupure → Miocène/Pliocène (33–2 Ma) : calotte Antarctique stable, puis glace Nord vers 3 Ma
+    {// 🏔 Grande Coupure / Miocène–Pliocène
         '📅': '🏔',
         // 🏔 Grande Coupure : calotte Antarctique (~8.5% surface) — première glaciation polaire moderne
         '⛄': 0.085,
         '▶': 33e6,
-        '◀': 23e6,
+        '◀': 2e6,
         '🌡️🧮': 285, // 12 °C
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
@@ -492,12 +571,12 @@ const timeline = [
         },
         '🌱': 0.31
     },
-    // Quaternaire (depuis ~2 Ma) : extension glaciaire hémisphère nord, cycles glaciaires-interglaciaires
-    {//Quaternaire
-        '📅': '❄️',
+    // Quaternaire (2 Ma → 10 ka) : cycles glaciaires/interglaciaires, LGM (~20 ka), Milankovitch
+    {// Quaternaire 🦣
+        '📅': '🦣',
         '⛄': 0.11,
         '▶': 2e6,
-        '◀': 400,
+        '◀': 10e3,
         '🌡️🧮': 287,
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
@@ -516,6 +595,60 @@ const timeline = [
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.25 },
+        },
+        '🌱': 0.31
+    },
+    // Holocène (10 ka → 1800) : interglaciaire, agriculture, stabilité climatique pré-industrielle
+    {// Holocène 🛖
+        '📅': '🛖',
+        '⛄': 0.105,
+        '▶': 10e3,
+        '◀': 1800,
+        // 🌡️🧮 : ~287 K (~14 °C) — optimum Holocène, cible pré-industrielle
+        '🌡️🧮': 287,
+        '🧲🔬': 0.03,
+        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
+        '🔋🌕': 4.6e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.191e15, // ~280 ppm CO2 pré-industriel (Marcott 2013)
+        '⚖️🐄': 2.28e12,  // ~800 ppb CH4 pré-industriel
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.18e18,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 3.97e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.002 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
+        },
+        '🌱': 0.31
+    },
+    // Industriel (1800 → 2000) : révolution industrielle, CO₂ 280 → 370 ppm, début signal anthropique
+    {// Industriel 🚂
+        '📅': '🚂',
+        '▶': 1800,
+        '◀': 2000,
+        '🌡️🧮': 287,
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.828e26,
+        '🔋🌕': 4.6e13,
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.7,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        '⚖️🫧': 5.15e18,
+        '⚖️🏭': 2.191e15, // ~280 ppm 1800 (IPCC2021)
+        '⚖️🐄': 3.605e12,
+        '⚖️💧': 1.4e21,
+        '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.5e12,
+        '⚖️💨': 3.97e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000
         },
         '🌱': 0.31
     },
@@ -569,33 +702,6 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
-
-// Hors frise TIMELINE (v1.3.0) : époque 🚂 pré-industriel — même schéma qu’une entrée timeline (fusion manuelle, tests, doc)
-window.TIMELINE_EPOCH_PREINDUSTRIAL_1800 = {
-    '📅': '🚂',
-    '▶': 1800,
-    '◀': 2025,
-    '🌡️🧮': 287,
-    '🧲🔬': 0.01,
-    '🔋☀️': 3.828e26,
-    '🔋🌕': 4.6e13,
-    '📐': 6371,
-    '🍎': 9.81,
-    '📏🌊': 3.7,
-    '🐚': 1.0,
-    '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-    '⚖️🫧': 5.15e18,
-    '⚖️🏭': 2.191e15,
-    '⚖️🐄': 3.605e12,
-    '⚖️💧': 1.4e21,
-    '⚖️🫁': 1.0815e18,
-    '⚖️✈': 1.5e12,
-    '⚖️💨': 3.97e18,
-    '🕰': {
-        '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 },
-    },
-    '🌱': 0.31
-};
 
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :
@@ -675,7 +781,8 @@ const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
         TOL_MIN_WM2: 0.05,
         MAX_SEARCH_STEP_K: 100,
         MAX_SEARCH_STEP_LARGE_K: 150,
-        LARGE_DELTA_FACTOR: 10
+        LARGE_DELTA_FACTOR: 10,
+        FIRST_SEARCH_STEP_CAP_K: 0
     };
 // Borne min tolérance flux (W/m²) : évite convergence impossible sous bruit numérique.
 window.CONFIG_COMPUTE.tolMinWm2 = SOLVER_TUNING.TOL_MIN_WM2; // [EQ/NUM]

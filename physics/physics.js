@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: En français, dans l'architecture, je suis le module de physique fondamentale
-// Version 2.0.9
-// Date: [April 02, 2026] [14:30 UTC+1]
+// Version 2.0.12
+// Date: [April 17, 2026] [15:00 UTC+1]
 // logs :
+// - v2.0.12: H_vap passe de constante (2200 m) à fonction computeH2OScaleHeight() = R·T²/(L·Γ) (Clausius-Clapeyron + gradient adiabatique). Dépend de T courant et g de l'époque. EARTH.CP_AIR_MOIST_J_KG_K = 1005 ajouté. EARTH.H2O_SCALE_HEIGHT_M retiré.
+// - v2.0.11: EARTH.H2O_SCALE_HEIGHT_M = 2200 (hauteur d'échelle H₂O effective, Clausius-Clapeyron ; ex-calcul hydrostatique R·T/(M·g) ≈ 13,6 km, irréaliste, surestimait PWV ×2,6).
+// - v2.0.10: EARTH.H2O_EDS_SCALE défaut 0.60 (ex-0.92). Piloté par FINE_TUNING_BOUNDS.RADIATIVE via tuning.js. Recalcul dynamique sqrt(P_ratio)·CO2_factor retiré (radiative/calculations.js v1.2.5).
 // - v2.0.9: EARTH['🪩🍰']['🪩🍰🎾'] albédo lave (ex-🪩🍰🌋)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
@@ -119,8 +122,12 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
-// Facteur κ_H2O dans EDS. Défaut 0.92 ; recalculé dans calculateFluxForT0 (calculations.js) : 0.92×sqrt(P_ratio)×CO2_factor.
-EARTH.H2O_EDS_SCALE = 0.92;
+// Facteur κ_H2O global dans EDS. Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
+// Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré v2.0.10 (double-comptait pressure broadening HITRAN).
+EARTH.H2O_EDS_SCALE = 0.60;
+// Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
+// Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
+EARTH.CP_AIR_MOIST_J_KG_K = 1005;
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
@@ -152,6 +159,27 @@ function planckFunction(lambda, T) {
 }
 
 PHYS.planckFunction = planckFunction;
+
+// ✅ SCIENTIFIQUEMENT CERTAIN (Clausius-Clapeyron + gradient adiabatique) :
+// - H_vap effectif (m) de la colonne de vapeur d'eau : r(z) = r₀·exp(-z/H_vap).
+// - Dérivation : r_sat(T) ∝ p_sat(T)/p_air ; dp_sat/dT = L·p_sat/(R·T²) (Clausius-Clapeyron) ;
+//   T(z) = T_0 − Γ·z (tropo adiabatique humide) ⇒ d(ln r_sat)/dz = −L·Γ/(R·T²) ⇒ H_vap = R·T²/(L·Γ).
+// - L(T) ≈ 2.5e6 − 2400·(T−273.15) J/kg (Bolton 1980, valide ~200–400 K).
+// - Γ = g / Cp_air (K/m). Cp_air humide ≈ 1005 J/(kg·K) (EARTH.CP_AIR_MOIST_J_KG_K).
+// - Réf. : Manabe & Wetherald 1967 ; Held & Soden 2006 ; IPCC AR6 WG1 ch.7.
+// - Terre moderne (T=288, g=9.81) → H_vap ≈ 2.4 km ; LGM (280) ≈ 2.2 km ; Hadéen chaud (500) ≈ 15 km.
+// - NE PAS confondre avec la scale-height hydrostatique R·T/(M_H2O·g) ≈ 13.6 km (gaz pur H₂O) : juste en mécanique pure mais irréaliste car H₂O condense en altitude.
+// - Domaine validité : T < 600 K (sous point critique H₂O à 647 K). Au-delà : régime supercritique non modélisé ici.
+function computeH2OScaleHeight() {
+    const T = window.DATA['🧮']['🧮🌡️'];
+    const g = window.TIMELINE[window.DATA['📜']['👉']]['🍎'];
+    const L_spec = 2.5e6 - 2400 * (T - 273.15);          // J/kg (Bolton 1980)
+    const L_molar = L_spec * CONST.M_H2O;                 // J/mol
+    const Gamma = g / EARTH.CP_AIR_MOIST_J_KG_K;          // K/m
+    return CONST.R_GAS * T * T / (L_molar * Gamma);       // m
+}
+
+PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
 
 // Borne basse/haute (K) pour "cycle eau actif", fonction de la pression (atm).
 // Plage max -10°C à 150°C ; la pression resserre la fourchette (gel et évaporation).

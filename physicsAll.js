@@ -1,10 +1,14 @@
 // File: API_BILAN/physicsAll.js - Physics combinées (physics, hitran, climate, calculations, compute)
 // Desc: Concatenation automatique de : physics/physics.js + data/hitran_lines_*.js + spectroscopy/hitran.js + physics/climate.js + radiative/calculations.js + workers/worker_pool.js + h2o/calculations_h2o.js + albedo/calculations_albedo.js + atmosphere/calculations_atm.js + convergence/compute.js
-// Version 1.0.1
+// Version 1.0.5
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: Mar 08, 2026
+// Date: Apr 17, 2026
 // Logs bundle: v1.0.1 updateLevelsConfig (albedo) — DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] lecture directe
+// Logs bundle: v1.0.2 calculateRadiativeCapacities crash-first : suppression gardes isFinite dans kappa_CO2/H2O/CH4 (sync radiative/calculations.js v1.2.3)
+// Logs bundle: v1.0.3 retrait recalcul dynamique EARTH.H2O_EDS_SCALE (sync radiative/calculations.js v1.2.5) — piloté par fine-tuning RADIATIVE.H2O_EDS_SCALE ; défaut init 0.60 (sync physics.js v2.0.10)
+// Logs bundle: v1.0.4 EARTH.H2O_SCALE_HEIGHT_M = 2200 + waterVaporMixingRatio/waterVaporFractionAtZ utilisent cette constante (Clausius-Clapeyron effectif ; sync physics.js v2.0.11, radiative/calculations.js v1.2.6)
+// Logs bundle: v1.0.5 H_vap = fonction computeH2OScaleHeight() = R·T²/(L·Γ) (Clausius-Clapeyron + adiabatique). Dépend T, g_epoch. EARTH.CP_AIR_MOIST_J_KG_K=1005. EARTH.H2O_SCALE_HEIGHT_M retiré. (sync physics.js v2.0.12, radiative/calculations.js v1.2.7)
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: En français, dans l'architecture, je suis le module de physique fondamentale
@@ -127,8 +131,11 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
-// Facteur κ_H2O dans EDS (calculations.js). Valeur par défaut 0.92 ; recalculé depuis DATA quand disponible (formule P_ratio × CO2).
-EARTH.H2O_EDS_SCALE = 0.92;
+// Facteur κ_H2O global dans EDS (calculations.js). Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
+// Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré (double-comptait pressure broadening HITRAN).
+EARTH.H2O_EDS_SCALE = 0.60;
+// Cp air humide (J/(kg·K)), pour Γ = g/Cp dans computeH2OScaleHeight().
+EARTH.CP_AIR_MOIST_J_KG_K = 1005;
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.20
@@ -160,6 +167,20 @@ function planckFunction(lambda, T) {
 }
 
 PHYS.planckFunction = planckFunction;
+
+// H_vap effectif (m) : r(z) = r₀·exp(-z/H_vap), avec H_vap = R·T²/(L·Γ) (Clausius-Clapeyron + adiabatique).
+// L(T) Bolton 1980 ; Γ = g/Cp. Terre moderne ≈ 2.4 km, Hadéen chaud (500 K) ≈ 15 km. Validité T < 600 K.
+// Voir physics/physics.js v2.0.12 pour détails et références.
+function computeH2OScaleHeight() {
+    const T = window.DATA['🧮']['🧮🌡️'];
+    const g = window.TIMELINE[window.DATA['📜']['👉']]['🍎'];
+    const L_spec = 2.5e6 - 2400 * (T - 273.15);
+    const L_molar = L_spec * CONST.M_H2O;
+    const Gamma = g / EARTH.CP_AIR_MOIST_J_KG_K;
+    return CONST.R_GAS * T * T / (L_molar * Gamma);
+}
+
+PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
 
 // Borne basse/haute (K) pour "cycle eau actif", fonction de la pression (atm).
 // Plage max -10°C à 150°C ; la pression resserre la fourchette (gel et évaporation).
@@ -329,7 +350,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
         var x = delta_nu_cm / gamma_D_cm;
         var y = gamma_L_cm / gamma_D_cm;
         var reW = faddeevaRe(x, y);
-        return reW / (gamma_D_cm * SQRT_PI);
+        return Math.max(0, reW) / (gamma_D_cm * SQRT_PI);
     }
 
     /**
@@ -351,6 +372,7 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
 
     // --- Sections efficaces à partir des lignes (données window.HITRAN_LINES_CO2 / H2O / CH4) ---
     var HALF_WINDOW_CM = 5;
+    var VOIGT_N_WIDTHS = 100;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
     function getSortedLines(key) {
@@ -402,12 +424,13 @@ PHYS.getWaterCycleTempBoundsFromPressure = getWaterCycleTempBoundsFromPressure;
         var sum_cm2 = 0;
         for (var k = i0; k < i1; k++) {
             var line = lines[k];
-            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             var g_air_T = gammaLorentzAir(T_K, line.gamma_air, line.n_air, HITRAN_T_REF_K);
             var g_self_T = gammaLorentzSelf(T_K, line.gamma_self, line.n_air, HITRAN_T_REF_K);
             var gamma_L = gammaLorentzTotal(P_atm, g_air_T, g_self_T, X_self, X_air);
             var gamma_D = gammaDoppler(line.nu, T_K, M_kg_mol);
             var delta_nu = nu_cm - line.nu;
+            if (Math.abs(delta_nu) > VOIGT_N_WIDTHS * (gamma_L + gamma_D)) continue;
+            var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             sum_cm2 += lineCrossSectionCm2(S_T, delta_nu, gamma_L, gamma_D);
         }
         return sigmaCm2ToM2(sum_cm2);
@@ -789,11 +812,9 @@ function crossSectionCO2(wavelength) {
 
 function waterVaporMixingRatio(z, r0_override = null) {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const r0 = r0_override !== null ? r0_override : DATA['💧']['🍰🫧💧'];
-    const H_H2O = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (CONST.M_H2O * EPOCH['🍎']);
-
+    // H_vap = R·T²/(L·Γ) : dépend de T courant + g de l'époque. Voir physics.js v2.0.12.
+    const H_H2O = window.PHYS.computeH2OScaleHeight();
     return r0 * Math.exp(-z / H_H2O);
 }
 
@@ -806,12 +827,11 @@ function crossSectionH2O(wavelength) {
 
 function waterVaporFractionAtZ(z) {
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (!DATA['🔘']['🔘💧📛']) return 0;
 
     // 🔒 Ne pas appeler calculateWaterPartition ici : appelé une fois par le caller (calculateH2OParameters avant calculateFluxForT0)
-    const H_H2O = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (CONST.M_H2O * EPOCH['🍎']);
+    // H_vap = R·T²/(L·Γ) — voir physics.js v2.0.12.
+    const H_H2O = window.PHYS.computeH2OScaleHeight();
     return DATA['💧']['🍰🫧💧'] * Math.exp(-z / H_H2O);
 }
 
@@ -1167,13 +1187,8 @@ async function calculateFluxForT0() {
         console.log('[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)');
     }
 
-    // H2O_EDS_SCALE : modulation physique (P, CO2) — cible 0.92 en 2025, plafonné à 1.0. TODO quand validé : formules + doc/API.
-    const M_ATM_REF_KG = 5.148e18;
-    const P_ratio = DATA['⚖️']['⚖️🫧'] / M_ATM_REF_KG;
-    const CO2_factor = Math.max(0.7, 1.0 - (DATA['🫧']['🍰🫧🏭'] * 2.0));
-    EARTH.H2O_EDS_SCALE = Math.min(1.0, 0.92 * Math.sqrt(Math.max(0, P_ratio)) * CO2_factor);
-    console.log('[H2O_EDS_SCALE][calculateFluxForT0] P_ratio=' + P_ratio.toFixed(4) + ' CO2_factor=' + CO2_factor.toFixed(4) + ' H2O_EDS_SCALE=' + EARTH.H2O_EDS_SCALE.toFixed(4));
-
+    // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
+    // Propagé par tuning.js → syncRadiativeConfig(). Ex-recalcul dynamique 0.92·√P_ratio·CO2_factor retiré (double-comptait le pressure broadening déjà dans HITRAN).
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
 
     // h2o_enabled et ch4_enabled sont déjà lus depuis DATA au début de la fonction
@@ -1541,39 +1556,56 @@ function calculateRadiativeCapacities() {
         return P / (CONST.BOLTZMANN_KB * T);
     };
     
-    // Pour chaque longueur d'onde IR uniquement
+    let __firstBad = null;
+    function __noteBad(label, idx, j, i, values) {
+        if (!__firstBad) __firstBad = Object.assign({ label: label, idx: idx, j: j, i: i }, values);
+    }
     for (let idx = 0; idx < lambda_IR_indices.length; idx++) {
         const j = lambda_IR_indices[idx];
         const w_lambda = lambda_weights_IR[idx];
         
-        // Initialiser les épaisseurs optiques intégrées pour cette longueur d'onde
         let tau_H2O_lambda = 0;
         let tau_CO2_lambda = 0;
         let tau_CH4_lambda = 0;
         
-        // Intégrer sur toutes les couches pour cette longueur d'onde
         for (let i = 0; i < DATA['📊'].z_range.length - 1; i++) {
             const z = DATA['📊'].z_range[i];
             const delta_z = DATA['📊'].z_range[i + 1] - DATA['📊'].z_range[i];
             
-            // Densités numériques à cette altitude
             const n_air = window.airNumberDensityAtZ(z);
             const n_CO2 = n_air * DATA['🫧']['🍰🫧🏭'];
             const n_H2O = n_air * waterVaporFractionAtZ(z);
             const n_CH4 = n_air * methaneFractionAtZ(z);
             
-            // Coefficients d'absorption pour cette longueur d'onde et cette altitude
-            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * n_CO2 : 0;
-            const kappa_H2O_raw_cap = isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * n_H2O : 0;
-            const kappa_H2O = kappa_H2O_raw_cap * h2o_eds_scale_cap;
-            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * n_CH4 : 0;
+            const kappa_CO2 = cross_section_CO2[j] * n_CO2;
+            const kappa_H2O = cross_section_H2O[j] * n_H2O * h2o_eds_scale_cap;
+            const kappa_CH4 = cross_section_CH4[j] * n_CH4;
 
-            // Épaisseur optique pour cette couche
             const delta_tau_CO2 = kappa_CO2 * delta_z;
             const delta_tau_H2O = kappa_H2O * delta_z;
             const delta_tau_CH4 = kappa_CH4 * delta_z;
             
-            // Accumuler les épaisseurs optiques intégrées
+            if (!isFinite(delta_tau_CO2) || delta_tau_CO2 < 0) {
+                __noteBad('CO2', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_CO2: n_CO2,
+                    cross_CO2: cross_section_CO2[j], kappa_CO2: kappa_CO2, delta_tau_CO2: delta_tau_CO2
+                });
+            }
+            if (!isFinite(delta_tau_H2O) || delta_tau_H2O < 0) {
+                __noteBad('H2O', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_H2O: n_H2O,
+                    waterVaporFrac_z: waterVaporFractionAtZ(z),
+                    cross_H2O: cross_section_H2O[j], h2o_eds_scale_cap: h2o_eds_scale_cap,
+                    kappa_H2O: kappa_H2O, delta_tau_H2O: delta_tau_H2O
+                });
+            }
+            if (!isFinite(delta_tau_CH4) || delta_tau_CH4 < 0) {
+                __noteBad('CH4', idx, j, i, {
+                    lambda: DATA['📊'].lambda_range[j], z: z, delta_z: delta_z, n_air: n_air, n_CH4: n_CH4,
+                    methaneFrac_z: methaneFractionAtZ(z),
+                    cross_CH4: cross_section_CH4[j], kappa_CH4: kappa_CH4, delta_tau_CH4: delta_tau_CH4
+                });
+            }
             tau_CO2_lambda += delta_tau_CO2;
             tau_H2O_lambda += delta_tau_H2O;
             tau_CH4_lambda += delta_tau_CH4;

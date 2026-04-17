@@ -1,9 +1,16 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.77
+// Version 1.2.84
 // Date: [March 2026]
 // Logs:
+// - v1.2.84: retrait updateConvergenceBounds(dT_first_after_init) post-Init (ajout v1.2.80 soupçonné de changer le bassin de 📱 vers 21,2 °C) ; bornes posées par la boucle Search comme avant. Cap 1er pas conservé (neutre si FIRST_SEARCH_STEP_CAP_K=0, défaut). Logs diag gated logEdsDiagnostic : bornes/☯/phase
+// - v1.2.83: plafond 1er pas — Number.isFinite(capRaw) && capRaw>0 (évite chaîne "8" coercée par >0 → bassin ~21 °C 📱)
+// - v1.2.82: 1er pas après Init — plafond FIRST_SEARCH_STEP_CAP_K via Math.min(|dT|, lim) ; lim = cap si cap>0 sinon +∞ (un seul chemin, pas de if chaîne)
+// - v1.2.81: FIRST_SEARCH_STEP_CAP_K — défaut 0 = désactivé (héritage : même bassin convergence qu’avant, ex. 📱 ~15,6 °C). Si >0 seul, plafond 1er pas + bornes Init (tradeoff : trajet Protérozoïque moins « en V »)
+// - v1.2.80: après Init — cap optionnel 1er pas Search (🎚️.SOLVER.FIRST_SEARCH_STEP_CAP_K) pour bornes + incInit
+// - v1.2.79: calculateT0 — tic×ΔT : NaN si 📿💫/🔺🌡️💫 non finis (undefined×0) ; garde finie comme getEpochDateConfig
+// - v1.2.78: debugAPI → console.groupCollapsed computeRadiativeTransfer + log chaque itération boucle radiatif
 // - v1.2.77: log partition CO2 océan → pdTrace
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
 // - v1.2.68: mode anim: yield 1 frame par cycle (await requestAnimationFrame) pour affichage inter progressif, éviter flush final
@@ -25,7 +32,7 @@
 // - Phase Init cycle eau : utiliser T_epoch (pas T_solver) pour mêmes conditions initiales anim/sans anim
 // - Cycle 1 : même calculs anim/sans anim (T_epoch + composition + H2O + albedo), une seule séquence, ref supprimée
 // - Suppression computeRadiativeTransferLegacy (chemin mort) ; sans args → rejet, utiliser simulateRadiativeTransfer
-// - updateConvergenceBounds() : bornes Init basées sur 🧮🌡️ et ☯ (pas 📅🌡️🧮) pour anim Hadéen
+// - updateConvergenceBounds(dT_opt) : bornes Init ; dT_opt = pas Search déjà calculé/cappé (1er pas après Init)
 // - Premier cycle : phase Search + skip précip pour aligner ☁️/🍰🪩⛅ avec 1re itération radiatif
 // - Init: next_T_C pour affichage => next_T°C ; franchissement T_input vs T_output (0°C ou T_boil) en sortie → redoWaterCycle
 // - Dicho/bounds update après recalc flux (avant snapshot) pour affichage [🔽,🔼] et next_T°C corrects quand ☯=-1
@@ -196,7 +203,11 @@ function calculateT0() {
     if (DATA['🔘']['🔘🎞']) {
         DATA['🧮']['🧮🌡️🚩'] = DATA['🧮']['🧮🌡️']; // anim : garder T0 actuel
     } else {
-        const adjustment = DATA['📜']['🔺🌡️💫'] * DATA['📜']['📿💫'];
+        const ticRaw = DATA['📜']['📿💫'];
+        const dTRaw = DATA['📜']['🔺🌡️💫'];
+        const tic = (ticRaw != null && Number.isFinite(ticRaw)) ? ticRaw : 0;
+        const dTtic = (dTRaw != null && Number.isFinite(dTRaw)) ? dTRaw : 0;
+        const adjustment = dTtic * tic;
         DATA['🧮']['🧮🌡️🚩'] = DATA['📅']['🌡️🧮'] + adjustment; // sans anim : T0 = config époque
     }
 
@@ -364,11 +375,13 @@ function initForConfig() {
  * Convention Δ = flux_entrant - flux_sortant.
  * ☯=+1 : Δ>0, on reçoit plus qu'on émet → réchauffer → borne min (🔽) = T_curr.
  * ☯=-1 : Δ<0, on émet plus qu'on reçoit → refroidir → borne max (🔼) = T_curr. */
-function updateConvergenceBounds() {
+function updateConvergenceBounds(dT_override) {
     const DATA = window.DATA;
     const T_curr = DATA['🧮']['🧮🌡️'];
     const yinYang = DATA['🧮']['🧮☯'];
-    const dT = computeSearchIncrement();
+    const dT = (typeof dT_override === 'number' && Number.isFinite(dT_override))
+        ? dT_override
+        : computeSearchIncrement();
     // Δ = flux_entrant - flux_sortant : Δ>0 → réchauffer (🔽=T), Δ<0 → refroidir (🔼=T)
     if (yinYang > 0) {
         DATA['🧮']['🧮🌡️🔽'] = T_curr;
@@ -503,6 +516,10 @@ function dropLastStepSnapshot(DATA) {
     if (p.length && p[p.length - 1]) p[p.length - 1].data_snapshot = null;
 }
 async function computeRadiativeTransfer(callback, options) {
+    const FUNC = window.FUNC_API_BILAN;
+    const apiDbg = FUNC && typeof FUNC.isDebugAPI === 'function' && FUNC.isDebugAPI();
+    var computeDbgGroup = false;
+    try {
     if (window.ABORT_COMPUTE) return null;
     if (!options) options = {};
     const renderMode = options.renderMode === 'scie_' ? 'scie_' : 'visu_';
@@ -510,6 +527,10 @@ async function computeRadiativeTransfer(callback, options) {
     const CONST = window.CONST;
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const H2O = window.H2O;
+    if (apiDbg) {
+        console.groupCollapsed('[API_BILAN] computeRadiativeTransfer', renderMode, 'epoch=', DATA['📜']['🗿']);
+        computeDbgGroup = true;
+    }
     if (!DATA['🧮']['previous']) DATA['🧮']['previous'] = [];
     window.clearConvergenceTrace();
     if (DATA['🧮']['🧮🔄🌊'] == null) DATA['🧮']['🧮🔄🌊'] = 0;
@@ -524,6 +545,7 @@ async function computeRadiativeTransfer(callback, options) {
     const spinupWeightAtm = Math.max(0, Math.min(1, DATA['⚖️']['⚖️🫧'] / CONFIG_COMPUTE.climateSpinupAtmMassRefKg));
     const spinupWeightWater = Math.max(0, Math.min(1, DATA['⚖️']['⚖️💧'] / CONFIG_COMPUTE.climateSpinupWaterMassRefKg));
     const climateSpinupCyclesEffective = Math.max(0, Math.round(CONFIG_COMPUTE.climateSpinupCycles * spinupWeightAtm * spinupWeightWater));
+    if (apiDbg) console.log('[API_BILAN] pré-radiatif', 'spinupEff=' + climateSpinupCyclesEffective, 'waterPass=' + currentWaterPass, 'maxRadiatifIters=' + CONFIG_COMPUTE.maxRadiatifIters);
     if (currentWaterPass === 0) {
         if (climateSpinupCyclesEffective > 0) {
             const phasePrevSpinup = DATA['🧮']['🧮⚧'];
@@ -657,13 +679,17 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮☯'] = Math.sign(delta_equilibre_init);
     DATA['🧮']['🧮⚧'] = 'Search';
     DATA['🧮']['🧮🔄☀️'] = 0;
-    updateConvergenceBounds();  // Bornes basées sur 🧮🌡️ et ☯ (pas sur 📅🌡️🧮)
+    let dT_first_after_init = computeSearchIncrement();
+    const capRaw = DATA['🎚️'].SOLVER.FIRST_SEARCH_STEP_CAP_K;
+    const firstStepAbsMax = (Number.isFinite(capRaw) && capRaw > 0) ? capRaw : Number.POSITIVE_INFINITY;
+    dT_first_after_init = Math.sign(dT_first_after_init) * Math.min(Math.abs(dT_first_after_init), firstStepAbsMax);
+    // v1.2.84 : pas d'updateConvergenceBounds ici (revert v1.2.80). Bornes posées par la boucle Search lignes 815-823.
     DATA['🧮']['🧮🌡️⏮'] = DATA['🧮']['🧮🌡️'];
     DATA['🧮']['🧲🔺⏮'] = delta_equilibre_init;
     DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY * DATA['🎚️'].SOLVER.DELTA_T_ACCELERATION_DAYS;
     DATA['🧮']['🧮🛑'] = ''; // Réinit pour que le snapshot Init n'affiche pas l'ancien 'converged'
 
-    const incInit = computeSearchIncrement();
+    const incInit = dT_first_after_init;
     const T_init_K = DATA['🧮']['🧮🌡️'];
     const initPayload = {
         innerIter: -1,
@@ -701,6 +727,11 @@ async function computeRadiativeTransfer(callback, options) {
     let dichoSameDirCount = 0;
     let lastDichoSign = 0;
     while (DATA['🧮']['🧮🔄☀️'] < maxInnerIters && !innerConverged) {
+        if (apiDbg) {
+            var dFlux0 = DATA['🧲']['🔺🧲'];
+            var tC0 = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
+            console.log('[API_BILAN] radiatif step', DATA['🧮']['🧮🔄☀️'], 'phase', DATA['🧮']['🧮⚧'], 'T_C', tC0.toFixed(2), 'Δ', (typeof dFlux0 === 'number' && isFinite(dFlux0)) ? dFlux0.toFixed(4) : String(dFlux0));
+        }
         if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
         DATA['🧮']['🔬🌈'] = getBinsFromDelta(DATA['🧲']['🔺🧲']);
         // Mettre à jour hauteur atmosphère (📏🫧🧿, 📏🫧🛩) depuis T courante : même grille verticale à 15,8°C en cold/warm start
@@ -825,6 +856,12 @@ async function computeRadiativeTransfer(callback, options) {
                         DATA['🧮']['🧮🌡️🔼'] = DATA['🧮']['🧮🌡️'];
                         DATA['🧮']['🧮🌡️🔽'] = Math.max(100, DATA['🧮']['🧮🌡️'] - expK);
                     }
+                    if (CONFIG_COMPUTE.logEdsDiagnostic) {
+                        const T_C_exp = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
+                        const bLowC = DATA['🧮']['🧮🌡️🔽'] - CONST.KELVIN_TO_CELSIUS;
+                        const bHighC = DATA['🧮']['🧮🌡️🔼'] - CONST.KELVIN_TO_CELSIUS;
+                        console.log('[conv-diag] bracket-expand Dicho→Search step=' + DATA['🧮']['🧮🔄☀️'] + ' T=' + T_C_exp.toFixed(2) + '°C Δ=' + DATA['🧲']['🔺🧲'].toFixed(2) + ' signΔ=' + signDelta + ' expK=' + expK + ' → [' + bLowC.toFixed(2) + ', ' + bHighC.toFixed(2) + ']°C');
+                    }
                     dichoSameDirCount = 0;
                     lastDichoSign = 0;
                 }
@@ -852,6 +889,14 @@ async function computeRadiativeTransfer(callback, options) {
             }
         }
         expandBracketIfInvalid();
+        if (CONFIG_COMPUTE.logEdsDiagnostic) {
+            const T_C_s = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
+            const bLoK = DATA['🧮']['🧮🌡️🔽'];
+            const bHiK = DATA['🧮']['🧮🌡️🔼'];
+            const bLoC = (typeof bLoK === 'number' && Number.isFinite(bLoK)) ? (bLoK - CONST.KELVIN_TO_CELSIUS).toFixed(2) : '—';
+            const bHiC = (typeof bHiK === 'number' && Number.isFinite(bHiK)) ? (bHiK - CONST.KELVIN_TO_CELSIUS).toFixed(2) : '—';
+            console.log('[conv-diag] step=' + DATA['🧮']['🧮🔄☀️'] + ' ⚧=' + DATA['🧮']['🧮⚧'] + ' ☯=' + DATA['🧮']['🧮☯'] + ' T=' + T_C_s.toFixed(2) + '°C Δ=' + DATA['🧲']['🔺🧲'].toFixed(2) + ' 🧲📛=' + (DATA['📛'] && DATA['📛']['🧲📛'] != null ? DATA['📛']['🧲📛'].toFixed(2) : '—') + ' [🔽=' + bLoC + ', 🔼=' + bHiC + ']°C');
+        }
         window.CONVERGENCE_DEBUG = { bins: DATA['🧮']['🔬🌈'], step: DATA['🧮']['🧮🔄☀️'], delta: DATA['🧲']['🔺🧲'] };
         try { window.displayConvergence(); } catch (e) { console.warn('displayConvergence:', e); }
 
@@ -1249,7 +1294,11 @@ async function computeRadiativeTransfer(callback, options) {
         }
     }
     if (!DATA['🧮']['🧮🛑']) DATA['🧮']['🧮🛑'] = 'max_iter';
+    if (apiDbg) console.log('[API_BILAN] compute fin', '🧮🛑=', DATA['🧮']['🧮🛑'], '🧮🔄☀️=', DATA['🧮']['🧮🔄☀️']);
     return true;
+    } finally {
+        if (computeDbgGroup) console.groupEnd();
+    }
 }
 
 // Exposer les fonctions globalement. Aucune n'est dans window.DATA (DATA = données). Pas de window.FUNC.

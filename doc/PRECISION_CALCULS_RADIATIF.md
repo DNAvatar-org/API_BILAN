@@ -97,6 +97,24 @@ La convergence n’est pas la cause du décalage de ~2.7 K.
 
 ---
 
+### 2.6 Voigt / ailes : troncature + contrainte pdf (hitran.js v1.3.1 → v1.3.2)
+
+**Contexte** : Dans `crossSectionFromLines` (`API_BILAN/spectroscopy/hitran.js`), la somme des contributions de lignes utilise une fenêtre `HALF_WINDOW_CM = 5 cm⁻¹` autour de ν = 1/λ. Le profil `voigtNormalized` s'appuie sur une approximation de `Re(w)` (Faddeeva/Humlíček) qui peut rendre un `Re(w)` **légèrement négatif** (~eps machine relatif au pic) dans les ailes → σ(λ) **négatif** (~1e−29 m², observé en bench sur CH₄ à λ≈2.99 µm, bande 2ν₃).
+
+**Conséquence** (avant correction) : κ = σ·n < 0 → τ < 0 accumulé couche par couche → `1 − exp(−τ) = −∞` → `integral = −Infinity` → clamp `Math.max(0, Math.min(1, integral/weight_integral))` = **0** → capacités radiatives IR (🍰🫧🏭🌈, 🍰🫧💧🌈, 🍰🫧📿🌈) systématiquement nulles à l'affichage du bench, toutes époques confondues.
+
+**Correction v1.3.1** : troncature per-line `|δν| ≤ VOIGT_N_WIDTHS × (γ_L + γ_D)` avec `VOIGT_N_WIDTHS = 100` (standard LBL). **Limite** : si `100 × (γ_L + γ_D) ≥ HALF_WINDOW_CM`, la fenêtre globale (5 cm⁻¹) ne contient déjà aucun point au-delà de la troncature — la troncature ne retire alors aucune contribution ; le σ négatif peut persister (cas reproduit : `firstBad` identique bit-à-bit après v1.3.1).
+
+**Correction v1.3.2** : dans `voigtNormalized`, `return Math.max(0, reW) / (γ_D √π)`. **Justification** : le Voigt est une convolution de deux densités (Lorentz, Doppler) → la lineshape est une **pdf**, donc `f ≥ 0` par définition mathématique ; le résidu négatif est un artefact numérique de l'approximation Faddeeva, pas une quantité physique à conserver.
+
+**Effet attendu sur la physique** : nul au sens physique — on annule uniquement le bruit sous le seuil de validité de l'approximation.
+
+**Bonus v1.3.1** : évite les appels `lineIntensityS` pour les raies au-delà de N largeurs (quand N×(γ_L+γ_D) < 5 cm⁻¹).
+
+**Validation** : sonde `window.__RAD_CAP_LAST_DBG__.firstBad` dans `calculateRadiativeCapacities` (calculations.js v1.2.4) → `firstBad === null` attendu après v1.3.2. À retirer après validation multi-époques.
+
+---
+
 ## 3. Ordre de grandeur des sections efficaces
 
 Comparaison avec la littérature (HITRAN, PNNL) :

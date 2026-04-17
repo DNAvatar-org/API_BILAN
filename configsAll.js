@@ -1,11 +1,13 @@
 // File: API_BILAN/configsAll.js - Configs combinées (alphabet, dico, initDATA, model_tuning, configTimeline)
 // Desc: Concatenation automatique de : data/alphabet.js + data/dico.js + data/initDATA.js + config/model_tuning.js + config/model_tuning_biblio.js + config/fine_tuning_bounds.js + config/configTimeline.js
-// Version 1.0.15
+// Version 1.0.17
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 03, 2026] [23:05 UTC+1]
 // Logs:
+// - v1.0.17: FIRST_SEARCH_STEP_CAP_K défaut 0 (désactivé) — plafond 8 K changeait le bassin de convergence (📱 ~21 °C vs ~15,6 °C hérité)
+// - v1.0.16: SOLVER.FIRST_SEARCH_STEP_CAP_K (déf. 8 K) dans _solverDefault + TUNING.SOLVER (1er pas Search après Init)
 // - v1.0.15: KEYS 🐊 libellé « Éocène » (titre court)
 // - initDATA embarqué : DATA['🎚️'].HYSTERESIS (sync fillDataTuningFromBary / scie)
 // - CONFIG_COMPUTE.logCo2RadiativeDiagnostic (CO₂ atmosphère + 🧲📛🏭 après pas hyst ; aligné configTimeline)
@@ -98,18 +100,25 @@ const CHARS = {
     CORPS_NOIR: '⚫', // Corps noir
     HADEEN: '🔥',   // Hadéen : feu/lave
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
-    PROTEROZOIC: '🥟', // Protérozoïque : plantes primitives
-    SNOWBALL: '⛄',  // Boule de neige (720–600 Ma) : Snowball Earth
+    PROTEROZOIC: '🪸', // Protérozoïque (2500–750 Ma) : corail
+    HYSTERESIS_1A: 'hysteresis 1a', // Sturtienne (750–720 Ma) — bascule albédo↓
+    SNOWBALL_ENTRY: '☃', // Entrée Sturtienne (alias affichage hyst 1a)
+    SNOWBALL: '⛄',  // Plein Snowball (720–690 Ma)
+    HYSTERESIS_1B: 'hysteresis 1b', // Sortie Marinoen (690–600 Ma) — hyst 1b
+    SNOWBALL_EXIT: '⛈', // Sortie Marinoen (alias affichage hyst 1b)
+    PALEOZOIC_MARINE: '🪼', // Paléozoïque marin (600–420 Ma)
+    PALEOZOIC_LAND: '🍄', // Paléozoïque terrestre (420–280 Ma)
+    PERMIAN_TRIASSIC: '💀', // Limite P/T (280–250 Ma)
     MESOZOIC: '🦕', // Mésozoïque : dinosaure sauropode
-    PALEOZOIC: '🌿', // Paléozoïque (600–250 Ma en timeline) : os/fossile
-    CENOZOIC: '🦣', // Cénozoïque : mammouth
+    CENOZOIC: '🦤', // Cénozoïque (66–50 Ma) : dodo
     PETM_HOUSE: '🐊', // Éocène (50–35 Ma), pic thermique type PETM
-    HYSTERESIS_1: 'hysteresis 1', // Pré–Boule de neige (warm start, hidden)
-    PRELUDE_ICE: 'hysteresis 2', // ex ⛰ prélude glaciaire (35–33 Ma)
-    EOT: '🏔',      // Grande Coupure (~33 Ma)
-    QUATERNARY: '❄️', // Quaternaire (~2 Ma)
-    TODAY: '🚂',    // 1800 : train (1800)
-    MODERN: '📱',   // Moderne : smartphone (2025)
+    HYSTERESIS_2: 'hysteresis 2', // Eocène-Oligocène (35–33 Ma) — hyst 2
+    EOCENE_OLIGOCENE: '🐧', // Eocène-Oligocène (alias affichage hyst 2)
+    EOT: '🏔',      // Grande Coupure (33–2 Ma)
+    QUATERNARY: '🦣', // Quaternaire (2 Ma–10 ka)
+    HOLOCENE: '🛖', // Holocène (10 ka–1800)
+    TODAY: '🚂',    // Industriel (1800–2000) : train
+    MODERN: '📱',   // Aujourd'hui (2000–2100) : smartphone
     EVENTS: '🕰',   // Événements : horloge
     TRANSITION: '⏩', // Transition : flèche rapide
     DATE: '📅',     // Date : calendrier
@@ -204,19 +213,25 @@ const CHARS_DESC = {
     '⚫': 'Corps noir',
     '🔥': 'Hadéen',
     '🦠': 'Archéen',
-    '🥟': 'Protérozoïque',
-    '⛄': 'Boule de neige',
+    '🪸': 'Protérozoïque',
+    '☃': 'Sturtienne',
+    '⛄': 'Plein Snowball',
+    '⛈': 'Sortie Marinoen',
+    '🪼': 'Paléozoïque marin',
+    '🍄': 'Paléozoïque terrestre',
+    '💀': 'Limite P/T',
     '🦕': 'Mésozoïque',
-    '🌿': 'Paléozoïque',
-    '🦣': 'Cénozoïque',
+    '🦤': 'Cénozoïque',
     '🐊': 'Éocène',
-    '⛰': 'Montagne (relief)',
-    'hysteresis 1': 'hysteresis 1',
-    'hysteresis 2': 'hysteresis 2',
+    '🐧': 'Eocène-Oligocène',
+    'hysteresis 1a': 'Sturtienne',
+    'hysteresis 1b': 'Sortie Marinoen',
+    'hysteresis 2': 'Eocène-Oligocène',
     '🏔': 'Grande Coupure',
-    '❄️': 'Quaternaire',
-    '🚂': '1800',
-    '📱': '2025',
+    '🦣': 'Quaternaire',
+    '🛖': 'Holocène',
+    '🚂': 'Industriel',
+    '📱': 'Aujourd\'hui',
     '🕰': 'Événements',
     '⏩': 'Transition',
     '📅': 'Date (Ma)',
@@ -840,7 +855,7 @@ window.createDicoHtml = createDicoHtml;
     }
     var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
     // 100% = fine-tuning nominal (cohérence visu sans scie => 16.4°C 2025). Valeurs = max fine_tuning_bounds SOLVER.
-    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10 };  // 10 j (litt. 8–10 j)
+    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 0 };  // 10 j (litt. 8–10 j)
     // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
     var _cloudSwDefault = {
         CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
@@ -860,11 +875,16 @@ window.createDicoHtml = createDicoHtml;
         iceImpactFactor01: 0.7,
         co2OceanEffPump01: 0.1
     };
+    // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (default = bary SCIENCE 100 % = valeur max côté min>max)
+    var _radiativeDefaultInit = {
+        H2O_EDS_SCALE: 0.60  // bary SCIENCE 100 % → κ_H₂O min → EDS H₂O ~75 W/m² (Schmidt 2010)
+    };
     DATA['🎚️'] = {
         baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },
         CLOUD_SW: _cloudSwDefault,
-        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS },
-        HYSTERESIS: _hystDefaultInit
+        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS, FIRST_SEARCH_STEP_CAP_K: _solverDefault.FIRST_SEARCH_STEP_CAP_K },
+        HYSTERESIS: _hystDefaultInit,
+        RADIATIVE: _radiativeDefaultInit
     };
     window.DATA = DATA;
 })();
@@ -918,7 +938,8 @@ window.TUNING.SOLVER = {
     TOL_MIN_WM2: 0.05,
     MAX_SEARCH_STEP_K: 100,
     MAX_SEARCH_STEP_LARGE_K: 150,
-    LARGE_DELTA_FACTOR: 10
+    LARGE_DELTA_FACTOR: 10,
+    FIRST_SEARCH_STEP_CAP_K: 0
 };
 
 // ============================================================================
@@ -1214,6 +1235,19 @@ window.FINE_TUNING_BOUNDS = {
             biblio_ref: 'LARGE_DELTA_FACTOR'
         },
         {
+            group: 'RADIATIVE',
+            key: 'H2O_EDS_SCALE',
+            baryGroup: 'SCIENCE',
+            min: 1.00,       // bary 0 %  → κ_H₂O max (T haute)
+            max: 0.60,       // bary 100 % → κ_H₂O min (T basse, cible Schmidt 2010 ~75 W/m²). min>max volontaire (convention projet : bary 100 % = T basse).
+            default: 0.80,
+            unit: 'ratio',
+            note: 'multiplicateur global de κ_H₂O (EARTH.H2O_EDS_SCALE). Capture continuum MT_CKD non implémenté + overlap CO₂/H₂O + approximations HR(z). Scalaire global (feedback T via Clausius-Clapeyron déjà dans waterVaporMixingRatio).',
+            source: 'Schmidt 2010 (attribution EDS H₂O ≈ 50 % de 155 W/m² ≈ 75 W/m²) ; Held & Soden 2006 (CC feedback 6–8 %/K).',
+            effect: 'positive',
+            biblio_ref: 'H2O_EDS_SCALE'
+        },
+        {
             group: 'HYSTERESIS',
             key: 'seaIceTransitionRangeK',
             min: 1,
@@ -1423,7 +1457,7 @@ const timeline = [
         }
     },
     {
-        '📅': '🥟', // Protérozoïque
+        '📅': '🪸', // Protérozoïque
         '▶': 2.5e9,
         '◀': 750e6,
         // 🌡️🧮 : ~280–290 K (lit. Protérozoïque)
@@ -1455,9 +1489,9 @@ const timeline = [
             '💫': { '🔺⏳': 100 },
         }
     },
-    // hysteresis 1 — aligné configTimeline.js v1.3.10 (🌡️🧮 graine branche chaude avant scan CO₂↓)
+    // hysteresis 1a — aligné configTimeline.js v1.4.0 (🌡️🧮 graine branche chaude avant scan CO₂↓)
     {
-        '📅': 'hysteresis 1',
+        '📅': 'hysteresis 1a',
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 750e6,
         '◀': 720e6,
@@ -1560,11 +1594,11 @@ const timeline = [
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
                 '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
             }, // Événement 50 Ma
-            '🎇': { '⏩': '🦣' } // Big impact (K-Pg) → Cénozoïque
+            '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         }
     },
     {
-        '📅': '🦣', // Cénozoïque (66–50 Ma)
+        '📅': '🦤', // Cénozoïque (66–50 Ma)
         '▶': 66e6,
         '◀': 50e6,
         '⛄': 0,
@@ -1649,7 +1683,7 @@ const timeline = [
         '📅': '🏔',
         '⛄': 0.085,
         '▶': 33e6,
-        '◀': 23e6,
+        '◀': 2e6,
         '🌡️🧮': 285,
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26,
@@ -1671,10 +1705,10 @@ const timeline = [
         }
     },
     {
-        '📅': '❄️',
+        '📅': '🦣',
         '⛄': 0.11,
         '▶': 2e6,
-        '◀': 400,
+        '◀': 10e3,
         '🌡️🧮': 287,
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26,
@@ -1743,32 +1777,8 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
-
-window.TIMELINE_EPOCH_PREINDUSTRIAL_1800 = {
-    '📅': '🚂',
-    '▶': 1800,
-    '◀': 2025,
-    '🌡️🧮': 287,
-    '🧲🔬': 0.01,
-    '🔋☀️': 3.828e26,
-    '🔋🌕': 4.6e13,
-    '📐': 6371,
-    '🍎': 9.81,
-    '📏🌊': 3.7,
-    '🐚': 1.0,
-    '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-    '⚖️🫧': 5.15e18,
-    '⚖️🏭': 2.191e15,
-    '⚖️🐄': 3.605e12,
-    '⚖️💧': 1.4e21,
-    '⚖️🫁': 1.0815e18,
-    '⚖️✈': 1.5e12,
-    '⚖️💨': 3.97e18,
-    '🕰': {
-        '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 },
-    },
-    '🌱': 0.31
-};
+// ⚠️ v1.4.0 : TIMELINE_EPOCH_PREINDUSTRIAL_1800 supprimé — 🚂 Industriel intégré dans TIMELINE.
+// Ce bundle doit être régénéré pour inclure : 🍄 Paléozoïque terrestre, 💀 P/T, ⛈ Sortie Marinoen, 🛖 Holocène, 🚂 Industriel.
 
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :

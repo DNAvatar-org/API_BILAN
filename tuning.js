@@ -1,10 +1,14 @@
 // File: API_BILAN/tuning.js - Interpolation barycentre fine-tuning
 // Desc: Logique autonome d'interpolation [0-100 %] entre bornes min/max pour chaque paramètre
-//       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER.
+//       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
-// Version 1.0.1
-// Date: 2026-04-03
+// Version 1.0.6
+// Date: 2026-04-17
 // Logs:
+// - v1.0.6: syncRadiativeConfig — DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE → EARTH.H2O_EDS_SCALE. Remplace le recalcul dynamique 0.92·√P_ratio·CO2_factor (physics.js v2.0.8) par un paramètre fine-tuning dédié.
+// - v1.0.4: syncSolverConfig — firstSearchStepCapK = valeur SOLVER si >0 sinon undefined (une affectation, pas if/else delete)
+// - v1.0.3: syncSolverConfig — firstSearchStepCapK seulement si >0 ; sinon delete (défaut 0 = pas de plafond)
+// - v1.0.2: syncSolverConfig → CONFIG_COMPUTE.firstSearchStepCapK si SOLVER.FIRST_SEARCH_STEP_CAP_K défini
 // - v1.0.1: sous-objets DATA['🎚️'][group] créés si absents ; bary % manquant → 100 (sync scie/parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -54,6 +58,18 @@
         window.CONFIG_COMPUTE.maxSearchStepK = S.MAX_SEARCH_STEP_K;
         window.CONFIG_COMPUTE.maxSearchStepLargeK = S.MAX_SEARCH_STEP_LARGE_K;
         window.CONFIG_COMPUTE.largeDeltaFactor = S.LARGE_DELTA_FACTOR;
+        var cap = S.FIRST_SEARCH_STEP_CAP_K;
+        window.CONFIG_COMPUTE.firstSearchStepCapK = (Number.isFinite(cap) && cap > 0) ? cap : undefined;
+    }
+
+    /**
+     * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
+     * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
+     */
+    function syncRadiativeConfig() {
+        var R = window.DATA['🎚️'].RADIATIVE;
+        if (!R || !window.EARTH) return;
+        window.EARTH.H2O_EDS_SCALE = R.H2O_EDS_SCALE;
     }
 
     /**
@@ -90,6 +106,7 @@
             T[target.group][target.key] = interpolate(target, pct);
         }
         syncSolverConfig();
+        syncRadiativeConfig();
     }
 
     // --- Fonction publique ---
@@ -134,6 +151,7 @@
         if (payload.SCIENCE !== undefined)  applyBaryGroup('SCIENCE', payload.SCIENCE);
         if (payload.SOLVER !== undefined)   applyBaryGroup('SOLVER', payload.SOLVER);
         syncSolverConfig();
+        syncRadiativeConfig();
     }
 
     // --- Exports window ---
