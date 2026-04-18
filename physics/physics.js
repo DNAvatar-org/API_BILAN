@@ -1,6 +1,6 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
-// Desc: En français, dans l'architecture, je suis le module de physique fondamentale
+// Desc: module de physique fondamentale
 // Version 2.0.12
 // Date: [April 17, 2026] [15:00 UTC+1]
 // logs :

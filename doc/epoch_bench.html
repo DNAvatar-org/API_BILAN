@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
-  Version 1.0.1 — 2026-04-18 : jauge 🧩 Fine-tuning 🪩 (CLOUD_SW header + panneau dépliable, alignée scie_compute.html)
+  Version 1.0.13 — 2026-04-18 : BENCH_LIT notes retirées ; colonne Époque rétrécie
 -->
 <html lang="fr">
 <head>
@@ -105,9 +105,24 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.mono { font-family: 'Courier New', monospace; }
 
 .epoch-cell { display: flex; align-items: center; gap: 6px; }
-.epoch-logo { font-size: 18px; line-height: 1; }
+.epoch-logo { font-size: 18px; line-height: 1; flex-shrink: 0; }
 .epoch-name { color: #ccc; }
 .epoch-age { color: #666; font-size: 11px; }
+th.col-epoch, td.col-epoch {
+  max-width: 9rem;
+  width: 9rem;
+  box-sizing: border-box;
+}
+th.col-epoch { white-space: nowrap; }
+.col-epoch .epoch-cell { min-width: 0; }
+.col-epoch .epoch-cell > div { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.col-epoch .epoch-name,
+.col-epoch .epoch-age {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
 
 .status-ok   { color: #5dca5d; }
 .status-warn { color: #d4a520; }
@@ -122,7 +137,7 @@ td.mono { font-family: 'Courier New', monospace; }
 
 .val-na { color: #444; }
 
-td.json-config, td.json-rad-path, td.json-conv-atm {
+td.json-rad-path, td.json-conv-atm {
   font-size: 11px;
   font-family: 'Courier New', monospace;
   color: #9ab59a;
@@ -134,9 +149,12 @@ td.json-config, td.json-rad-path, td.json-conv-atm {
   vertical-align: top;
   line-height: 1.45;
 }
-td.json-config .bench-key, td.json-rad-path .bench-key, td.json-conv-atm .bench-key { color: #7a9a7a; }
+td.json-rad-path .bench-key, td.json-conv-atm .bench-key { color: #7a9a7a; }
 td.json-rad-path .bench-tpath { color: #b0c4e8; }
 td.json-rad-path .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.json-conv-atm .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.num.tinit-cell { white-space: normal; text-align: right; vertical-align: top; line-height: 1.35; }
+td.num.tinit-cell .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
 td.json-conv-atm .bench-ircap { color: #c2b07a; }
 
 td.cell-icon {
@@ -247,13 +265,12 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
   <thead>
     <tr>
       <th class="cell-icon" title="Copier la ligne">📋</th>
-      <th>Époque</th>
-      <th class="num fit">T init</th>
+      <th class="col-epoch">Époque</th>
+      <th class="num fit" title="Ligne 1 : T\u2080 solveur (\u00b0C). Ligne 2 : fourchette litt\u00e9rature CSV [Tmin,Tmax] (configTimeline).">T init</th>
       <th class="num fit">T FIN</th>
-      <th class="num fit">Δ T°</th>
-      <th>CONFIG (gaz)</th>
-      <th title="D\u00e9s\u00e9quilibre \u0394 = entrant \u2212 OLR au d\u00e9part (Init), puis \u0394 apr\u00e8s convergence ; la cha\u00eene T\u00b0C = pas de solveur.">RADIATIF (\u0394 + T\u00b0)</th>
-      <th>CONV ATM</th>
+      <th class="num fit" title="T_fin \u2212 T_graine (\u00b0C) ; T_graine = \u{1F321}\u{FE0F}\u{1F9EE} TIMELINE. Ce n\u2019est pas l\u2019\u00e9cart au milieu de la plage litt\u00e9rature CSV.">Δ T°</th>
+      <th title="Ligne 1 : \u0394 = flux entrant \u2212 OLR effective au 1er pas Init (W/m\u00b2), m\u00eame convention que DATA \u{1F53A}\u{1F9F2} (entrant \u2212 sortant). \u0394&lt;0 fr\u00e9quent si la graine T est au-dessus de l\u2019\u00e9quilibre radiatif (OLR &gt; apports). Lignes suivantes : T (\u00b0C) le long de la convergence.">RADIATIF (\u0394 + T\u00b0)</th>
+      <th title="Post-convergence + plages Lit. CO\u2082 / CH\u2084 / H\u2082O vap. (% mol) CSV">CONV ATM</th>
     </tr>
   </thead>
   <tbody id="results-body"></tbody>
@@ -431,118 +448,145 @@ var BENCH_M_AIR_KG_PER_MOL = 0.02897;
 /** Inventaire océan « PAL » moderne (kg) — repère % hydrosphère config. */
 var BENCH_PAL_OCEAN_KG = 1.4e21;
 
+/** Masse colonne atmosphère ~1 bar (kg) — même ordre que P_ratio dans doc physique (≈ 5,148e18). */
+var BENCH_M_ATM_REF_KG = 5.148e18;
+
 /**
- * CONFIG TIMELINE : CO₂ / CH₄ en ppm/ppb (approx. molaire), H₂O hydrosphère vs PAL (%),
- * CCN proxy 0.3–1 (même forme que calculateCloudFormationIndex, masses config).
+ * Fourchettes littérature (repère bench) — copie de la grille CSV en commentaire dans
+ * API_BILAN/config/configTimeline.js (~l.76–94). Resynchroniser si la grille bouge.
+ * tC = surface °C ; co2/ch4 = ppm molaires ; h2oVap = % molaire vapeur (atmosphère), pas masse océan.
  */
-function fmtEpochConfigGases(ep) {
-    if (!ep || typeof ep !== 'object') return '<span class="val-na">\u2014</span>';
-    var CONST = window.CONST;
-    var CONV = window.CONV;
-    if (!CONST || !CONV) return '<span class="val-na">\u2014</span>';
-    var atm = ep['⚖️🫧'];
-    var mCO2 = ep['⚖️🏭'];
-    var mCH4 = ep['⚖️🐄'];
-    var mH2O = ep['⚖️💧'];
-    var mO2 = ep['⚖️🫁'];
-    var mSO4 = ep['⚖️✈'];
-    var parts = [];
-    if (typeof atm === 'number' && atm > 0 && CONST.M_CO2 && typeof mCO2 === 'number' && isFinite(mCO2)) {
-        var nRatioCO2 = (mCO2 / CONST.M_CO2) / (atm / BENCH_M_AIR_KG_PER_MOL);
-        var ppmCO2 = nRatioCO2 * 1e6;
-        if (ppmCO2 < 1e5) {
-            parts.push('<span class="bench-key">CO\u2082</span>\u2248' + ppmCO2.toFixed(0) + ' ppm');
-        } else {
-            parts.push('<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 / 1e3).toFixed(0) + 'k ppm');
-        }
+var BENCH_LIT_BY_EPOCH_ID = {
+    '\u26ab': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
+    '\u{1F525}': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
+    '\u{1F9A0}': { tC: [10, 60], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
+    '\u{1FAB8}': { tC: [5, 20], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
+    'hysteresis 1a': { tC: [-50, 10], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
+    '\u26c4': { tC: [-60, -20], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
+    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
+    '\u{1FABC}': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
+    '\u{1F344}': { tC: [15, 25], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
+    '\u{1F480}': { tC: [20, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
+    '\u{1F995}': { tC: [20, 30], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
+    '\u{1F9A4}': { tC: [12, 22], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
+    '\u{1F40A}': { tC: [20, 28], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
+    '\u{1F3D4}': { tC: [12, 18], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
+    '\u{1F9A3}': { tC: [10, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
+    '\u{1F6D6}': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
+    '\u{1F682}': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
+    '\u{1F4F1}': { tC: [14.5, 15.5], co2: [415, 425], ch4: [1.8, 1.9], h2oVap: [1.0, 1.2] }
+};
+
+/** Plage litt\u00e9rature CSV : [min,max] avec virgule (m\u00eame r\u00e8gles d\u2019arrondi qu\u2019avant pour bench). */
+function benchLitRangeBracket(lo, hi) {
+    function f(x) {
+        if (!isFinite(x)) return '?';
+        var ax = Math.abs(x);
+        if (ax >= 1000) return (x / 1000).toFixed(x % 1000 === 0 ? 0 : 1).replace(/\.0$/, '') + 'k';
+        if (ax >= 100) return String(Math.round(x));
+        if (ax >= 10) return x.toFixed(1).replace(/\.0$/, '');
+        return x.toFixed(2);
     }
-    if (typeof atm === 'number' && atm > 0 && CONST.M_CH4 && typeof mCH4 === 'number' && isFinite(mCH4)) {
-        var nRatioCH4 = (mCH4 / CONST.M_CH4) / (atm / BENCH_M_AIR_KG_PER_MOL);
-        var ppmCH4 = nRatioCH4 * 1e6;
-        if (ppmCH4 < 1e5) {
-            parts.push('<span class="bench-key">CH\u2084</span>\u2248' + ppmCH4.toFixed(2) + ' ppm');
-        } else {
-            parts.push('<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 / 1e3).toFixed(0) + 'k ppm');
-        }
+    return '[' + f(lo) + ',' + f(hi) + ']';
+}
+
+/** T init : ligne 1 = T\u2080 (\u00b0C) ; ligne 2 = fourchette CSV [Tmin,Tmax] ; note \u00e9ventuelle (ligne 3). */
+function fmtTinitCell(epoch) {
+    var id = epoch['\u{1F4C5}'];
+    var tNum = (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
+    var L = BENCH_LIT_BY_EPOCH_ID[id];
+    if (!L) return tNum;
+    if (!('tC' in L)) {
+        return tNum + '<br><span class="bench-sub">' + L.note + '</span>';
     }
-    if (typeof mH2O === 'number' && isFinite(mH2O) && BENCH_PAL_OCEAN_KG > 0) {
-        var pctPal = 100 * mH2O / BENCH_PAL_OCEAN_KG;
-        parts.push('<span class="bench-key">H\u2082O</span> hydr. \u2248' + pctPal.toFixed(1) + '% vs PAL oc\u00e9an');
+    var out = tNum + '<br><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>';
+    if (L.note) {
+        out += '<br><span class="bench-sub">' + L.note + '</span>';
     }
-    var ccnRaw = 0.4 + 0.5 * (((typeof mO2 === 'number' && isFinite(mO2)) ? mO2 : 0) / CONV.CCN_O2_REF_KG
-        + ((typeof mCH4 === 'number' && isFinite(mCH4)) ? mCH4 : 0) / CONV.CCN_CH4_REF_KG)
-        + 0.1 * (((typeof mSO4 === 'number' && isFinite(mSO4)) ? mSO4 : 0) / CONV.CCN_SULFATE_REF_KG);
-    var ccn = Math.max(0.3, Math.min(1.0, ccnRaw));
-    parts.push('<span class="bench-key">CCN</span>\u2248' + ccn.toFixed(3) + ' (0.3\u20131)');
-    if (!parts.length) return '<span class="val-na">\u2014</span>';
-    return parts.join(' \u00b7 ');
+    return out;
 }
 
 /**
- * Snapshot atmosph\u00e9rique post-convergence (MOLAIRE, comme CONFIG et litt\u00e9rature) :
- * CO\u2082 ppm, CH\u2084 ppb, H\u2082O % (vapeur), alb\u00e9do%,
- * + capacit\u00e9s IR \u{1F370}\u{1FAE7}\u{1F3ED}\u{1F308} (CO\u2082), \u{1F370}\u{1FAE7}\u{1F4A7}\u{1F308} (H\u2082O), \u{1F370}\u{1FAE7}\u{1F4FF}\u{1F308} (\u03a3).
- * Conversion massique \u2192 molaire : mol_frac = mass_frac \u00d7 (M_air / M_gas), M_air = DATA['\ud83e\udee7']['\ud83e\uddea'].
+ * Snapshot post-convergence : CO\u2082 / CH\u2084 / H\u2082O ; ligne seule \u{1F370}\u{1FAE7}*\u{1F308}={\u2026} ; alb\u00e9do = CHARS.ALBEDO \u{1FAE9} (miroir, pas confondre avec d\u2019autres glyphes).
  */
-function fmtConvAtmSnapshot(snap) {
+function fmtConvAtmSnapshot(snap, epochId) {
     if (!snap) return '<span class="val-na">\u2014</span>';
     var CONST = window.CONST;
     var M_air = snap.Mair;
+    var L = (epochId != null && epochId !== '') ? BENCH_LIT_BY_EPOCH_ID[epochId] : null;
+    var hasLitGaz = L && ('tC' in L);
     var parts = [];
     if (typeof snap.co2Frac === 'number' && isFinite(snap.co2Frac) && CONST && M_air) {
         var ppmCO2 = snap.co2Frac * (M_air / CONST.M_CO2) * 1e6;
-        parts.push('<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm'));
+        var sCo2 = '<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm');
+        if (hasLitGaz) {
+            sCo2 += ' <span class="bench-sub">' + benchLitRangeBracket(L.co2[0], L.co2[1]) + '</span>';
+        }
+        parts.push(sCo2);
     }
     if (typeof snap.ch4Frac === 'number' && isFinite(snap.ch4Frac) && CONST && M_air) {
         var ppmCH4 = snap.ch4Frac * (M_air / CONST.M_CH4) * 1e6;
-        parts.push('<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm'));
+        var sCh4 = '<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm');
+        if (hasLitGaz) {
+            sCh4 += ' <span class="bench-sub">' + benchLitRangeBracket(L.ch4[0], L.ch4[1]) + '</span>';
+        }
+        parts.push(sCh4);
     }
     if (typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST && M_air) {
         var molH2O = snap.h2oFrac * (M_air / CONST.M_H2O);
-        parts.push('<span class="bench-key">H\u2082O</span>\u2248' + (molH2O * 100).toFixed(2) + '% vap. mol.');
+        var sH2o = '<span class="bench-key">H\u2082O</span>\u2248' + (molH2O * 100).toFixed(2) + '% vapmol.';
+        if (hasLitGaz) {
+            sH2o += ' <span class="bench-sub">' + benchLitRangeBracket(L.h2oVap[0], L.h2oVap[1]) + '</span>';
+        }
+        parts.push(sH2o);
     }
-    if (typeof snap.albedo === 'number' && isFinite(snap.albedo)) {
-        parts.push('<span class="bench-key">\u{1FAA9}</span>\u2248' + (snap.albedo * 100).toFixed(1) + '%');
-    }
-    var line1 = parts.length ? parts.join(' \u00b7 ') : '<span class="val-na">\u2014</span>';
     function fmtCap(v) {
         if (typeof v !== 'number' || !isFinite(v)) return null;
         if (v === 0) return '0';
         if (v >= 1e-4) return (v * 100).toFixed(2) + '%';
         return v.toExponential(2);
     }
-    var ir = [];
     var capCO2f = fmtCap(snap.capCO2IR);
     var capH2Of = fmtCap(snap.capH2OIR);
     var capSumf = fmtCap(snap.capSumIR);
-    if (capCO2f) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F3ED}\u{1F308}</span>=' + capCO2f);
-    if (capH2Of) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F4A7}\u{1F308}</span>=' + capH2Of);
-    if (capSumf) ir.push('<span class="bench-key">\u{1F370}\u{1FAE7}\u{1F4FF}\u{1F308}</span>=' + capSumf);
-    var line2 = ir.length ? ('<span class="bench-ircap">' + ir.join(' \u00b7 ') + '</span>') : '';
-    return line2 ? (line1 + '<br>' + line2) : line1;
+    var capSegs = [];
+    if (capCO2f) capSegs.push('\u{1F3ED}:' + capCO2f);
+    if (capH2Of) capSegs.push('\u{1F4A7}:' + capH2Of);
+    if (capSumf) capSegs.push('\u{1F4FF}:' + capSumf);
+    var lineCake = '';
+    if (capSegs.length) {
+        lineCake = '<span class="bench-ircap"><span class="bench-key">\u{1F370}\u{1FAE7}*\u{1F308}</span>={' + capSegs.join(', ') + '}</span>';
+    }
+    var lineAlb = '';
+    if (typeof snap.albedo === 'number' && isFinite(snap.albedo)) {
+        lineAlb = '<span class="bench-key" title="Alb\u00e9do effectif, cl\u00e9 DATA \u{1F370}\u{1FAE9}\u{1F4FF} (CHARS.ALBEDO)">🪩</span>\u2248' + (snap.albedo * 100).toFixed(1) + '%';
+    }
+    var chunks = [];
+    if (parts.length) {
+        chunks.push(parts.join('<br>'));
+    } else {
+        chunks.push('<span class="val-na">\u2014</span>');
+    }
+    if (lineCake) chunks.push(lineCake);
+    if (lineAlb) chunks.push(lineAlb);
+    var out = chunks.join('<br>');
+    if (L && !('tC' in L) && L.note) {
+        out += '<br><span class="bench-sub">' + L.note + '</span>';
+    } else if (hasLitGaz && L.note) {
+        out += '<br><span class="bench-sub">' + L.note + '</span>';
+    }
+    return out;
 }
 
-/** RADIATIF : \u0394 au d\u00e9part (Init) et \u0394 apr\u00e8s convergence (fin) ; cha\u00eene T\u00b0C (Init + Search/Dicho). Le \u0394 d\u00e9part \u2260 0 est normal (T \u00e9poque pas \u00e9quilibre radiatif). */
+/** RADIATIF : une ligne \u{1F53A}\u{1F9F2} init = \u0394 1er pas ; puis cha\u00eene T (\u00b0C). lastStepForDelta : r\u00e9serv\u00e9 appelant (non affich\u00e9). */
 function fmtRadInitAndPath(initStep, radTPath, lastStepForDelta) {
     var lines = [];
     var dInit = (initStep && typeof initStep.delta_equilibre === 'number' && isFinite(initStep.delta_equilibre))
         ? initStep.delta_equilibre : null;
-    var dFin = null;
-    if (lastStepForDelta && typeof lastStepForDelta.delta_equilibre === 'number' && isFinite(lastStepForDelta.delta_equilibre)) {
-        dFin = lastStepForDelta.delta_equilibre;
-    } else if (typeof window !== 'undefined' && window.DATA && window.DATA['🧲'] != null
-        && typeof window.DATA['🧲']['🔺🧲'] === 'number' && isFinite(window.DATA['🧲']['🔺🧲'])) {
-        dFin = window.DATA['🧲']['🔺🧲'];
-    }
     if (dInit != null) {
-        if (dFin != null) {
-            lines.push('<span class="bench-key">🔺🧲</span> <span class="bench-sub">d\u00e9part</span> ' + dInit.toFixed(3)
-                + ' <span class="bench-sub">\u2192 conv.</span> ' + dFin.toFixed(3) + ' W/m\u00b2');
-        } else {
-            lines.push('<span class="bench-key">🔺🧲</span> <span class="bench-sub">d\u00e9part</span> ' + dInit.toFixed(3) + ' W/m\u00b2');
-        }
+        lines.push('<span class="bench-key">\u{1F53A}\u{1F9F2}</span> init: ' + dInit.toFixed(3) + ' W/m\u00b2');
     } else {
-        lines.push('<span class="bench-key">🔺🧲</span>:\u2014');
+        lines.push('<span class="bench-key">\u{1F53A}\u{1F9F2}</span> init: \u2014');
     }
     if (radTPath && radTPath.length) {
         var seg = [];
@@ -590,7 +634,7 @@ function copyBenchRow(tr) {
     }
 }
 
-/** Fine-tuning : même jauge que scie_compute (🔺 CLOUD_SW % ▶️ 🔻 + panneau dépliable). Source tuning.js : fillDataTuningFromBary. */
+/** Fine-tuning : jauge unique ATM (☁️+🔬) comme scie_compute — même % pour CLOUD_SW et SCIENCE. tuning.js : fillDataTuningFromBary. */
 function benchFormatTuningValue(value) {
     if (value == null) return 'null';
     if (typeof value === 'number') {
@@ -621,6 +665,18 @@ function benchGetFineTuningTargetsByGroup(groupKey) {
 function benchGetFineTuningBaryPercent(groupKey) {
     return Number(window.DATA['🎚️'].baryByGroup[groupKey]);
 }
+/** Affichage jauge en-tête : si CLOUD_SW ≠ SCIENCE, moyenne arrondie jusqu’à prochain drag unifié. */
+function benchGetUnifiedAtmBaryForDisplay() {
+    var bg = window.DATA['🎚️'].baryByGroup;
+    var c = Number(bg.CLOUD_SW);
+    var s = Number(bg.SCIENCE);
+    if (!Number.isFinite(c)) c = 50;
+    if (!Number.isFinite(s)) s = 50;
+    c = Math.round(Math.max(0, Math.min(100, c)));
+    s = Math.round(Math.max(0, Math.min(100, s)));
+    if (c === s) return c;
+    return Math.round(Math.max(0, Math.min(100, (c + s) / 2)));
+}
 function benchSetFineTuningBaryPercent(groupKey, percentRaw) {
     var p = Number(percentRaw);
     var bounded = Math.max(0, Math.min(100, Number.isFinite(p) ? p : 0));
@@ -649,7 +705,7 @@ function benchGetTuningLineLogo(groupKey, key) {
         return '🔬';
     }
     if (groupKey === 'CLOUD_SW') {
-        if (key.indexOf('SULFATE') === 0) return '✈';
+        if (key.indexOf('SULFATE') === 0) return '\u2708\uFE0F';
         if (key.indexOf('CLOUD_') === 0) return '☁️';
         if (key.indexOf('OPTICAL_') === 0) return '🧪';
         if (key.indexOf('TEMP_') === 0) return '🌡️';
@@ -690,20 +746,30 @@ function benchRenderMergedCategory(groupKey, titleLabel, titleIcon, showHeader) 
     html += '</div>';
     return html;
 }
+/** DATA['🎚️'].baryByGroup ← CONFIG_COMPUTE.baryByGroupDefault (après chargement configTimeline / queue configsAll). */
+function benchSyncBaryFromConfigCompute() {
+    var bd = window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.baryByGroupDefault;
+    var bg = window.DATA && window.DATA['🎚️'] && window.DATA['🎚️'].baryByGroup;
+    if (!bd || !bg) return;
+    bg.CLOUD_SW = bd.CLOUD_SW;
+    bg.SCIENCE = bd.SCIENCE;
+    bg.SOLVER = bd.SOLVER;
+    bg.HYSTERESIS = bd.HYSTERESIS;
+}
 function benchDisplayFineTuning() {
     var titleSlot = document.getElementById('bench-ft-title-slot');
     var content = document.getElementById('bench-ft-content');
     if (!titleSlot || !content || !window.DATA || !window.DATA['🎚️']) return;
     if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
-    var cloudBary = Number(window.DATA['🎚️'].baryByGroup.CLOUD_SW);
-    if (!Number.isFinite(cloudBary)) cloudBary = 100;
-    cloudBary = Math.round(Math.max(0, Math.min(100, cloudBary)));
+    var atmBary = benchGetUnifiedAtmBaryForDisplay();
     var isOpen = content.style.display !== 'none';
-    titleSlot.innerHTML = '🧩 Fine-tuning 🪩 <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:4px;">🔺'
-        + '<input id="bench-ft-slider-CLOUD_SW-header" type="range" min="0" max="100" step="1" value="' + cloudBary
-        + '" oninput="window.__BENCH_FT__.onInput(\'CLOUD_SW\', this.value)">'
-        + '<span id="bench-ft-value-CLOUD_SW-header">' + cloudBary + '%</span>'
-        + '<button type="button" class="bench-ft-btn" onclick="window.__BENCH_FT__.applyAndRun(\'CLOUD_SW\', document.getElementById(\'bench-ft-slider-CLOUD_SW-header\').value); return false;">▶️</button>🔻</span>'
+    titleSlot.innerHTML = '🧩 Fine-tuning 🪩 <span style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:4px;">'
+        + '<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;" title="Même % pour CLOUD_SW (☁️) et SCIENCE (🔬)">🔺☁️🔬'
+        + '<input id="bench-ft-slider-ATM-header" type="range" min="0" max="100" step="1" value="' + atmBary
+        + '" oninput="window.__BENCH_FT__.onInput(\'ATM\', this.value)">'
+        + '<span id="bench-ft-value-ATM-header">' + atmBary + '%</span>'
+        + '<button type="button" class="bench-ft-btn" onclick="window.__BENCH_FT__.applyAndRun(\'ATM\', document.getElementById(\'bench-ft-slider-ATM-header\').value); return false;">▶️</button>🔻</span>'
+        + '</span>'
         + '<button type="button" class="bench-ft-btn bench-ft-toggle" id="bench-ft-panel-toggle" onclick="window.__BENCH_FT__.togglePanel(); return false;">' + (isOpen ? '−' : '+') + '</button>';
     content.innerHTML = benchRenderMergedCategory('CLOUD_SW', 'CLOUD_SW', '☁️', false)
         + benchRenderMergedCategory('SCIENCE', 'Science', '🔬', true)
@@ -715,14 +781,25 @@ function benchApplyFineTuningBaryGroup(groupKey, percentRaw, refreshPanel) {
     if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
     if (refreshPanel !== false) benchDisplayFineTuning();
 }
+function benchApplyFineTuningAtmUnified(percentRaw, refreshPanel) {
+    var v = benchSetFineTuningBaryPercent('CLOUD_SW', percentRaw);
+    benchSetFineTuningBaryPercent('SCIENCE', v);
+    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (refreshPanel !== false) benchDisplayFineTuning();
+}
 function benchOnFineTuningBaryInput(groupKey, percentRaw) {
+    if (groupKey === 'ATM') {
+        benchApplyFineTuningAtmUnified(percentRaw, false);
+        var pct = Math.round(Number(percentRaw));
+        var hAtm = document.getElementById('bench-ft-value-ATM-header');
+        if (hAtm) hAtm.textContent = pct + '%';
+        return;
+    }
     benchSetFineTuningBaryPercent(groupKey, percentRaw);
     if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
     var pct = Math.round(Number(percentRaw));
     var valueEl = document.getElementById('bench-ft-bary-value-' + groupKey);
     if (valueEl) valueEl.textContent = pct + '%';
-    var valueHeaderEl = document.getElementById('bench-ft-value-CLOUD_SW-header');
-    if (groupKey === 'CLOUD_SW' && valueHeaderEl) valueHeaderEl.textContent = pct + '%';
 }
 
 function fmtAge(years) {
@@ -751,7 +828,6 @@ function createRow(epoch) {
     var HYST_LOGOS = { 'hysteresis 1a': '\u2603', 'hysteresis 1b': '\u26c8', 'hysteresis 2': '\u{1F427}' };
     var displayLogo = HYST_LOGOS[id] || ((id.length <= 3) ? id : '\u2699');
     var ageStart = fmtAge(epoch['\u25b6']);
-    var tInitC = (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
 
     var safeId = id.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, function(c) {
         return '_x' + c.codePointAt(0).toString(16) + '_';
@@ -761,7 +837,7 @@ function createRow(epoch) {
     tr.className = 'running';
     tr.innerHTML =
       '<td class="cell-icon"><button type="button" class="btn-copy-row" data-copy-row="' + safeId + '" title="Copier la ligne" aria-label="Copier la ligne">\u{1F4CB}</button></td>' +
-      '<td>' +
+      '<td class="col-epoch">' +
         '<div class="epoch-cell">' +
           '<span class="epoch-logo">' + displayLogo + '</span>' +
           '<div>' +
@@ -770,10 +846,9 @@ function createRow(epoch) {
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td class="num fit">' + tInitC + '</td>' +
+      '<td class="num fit tinit-cell">' + fmtTinitCell(epoch) + '</td>' +
       '<td class="num fit" id="tconv-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="num fit" id="dfin-'  + safeId + '"><span class="status-run">\u2026</span></td>' +
-      '<td class="json-config mono" id="config-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-rad-path mono" id="radpath-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-conv-atm mono" id="convatm-' + safeId + '"><span class="status-run">\u2026</span></td>';
     tr.dataset.safeId = safeId;
@@ -798,13 +873,11 @@ function updateRow(id, initStep, lastStep, status, tEpochInitC, epoch, radTPath,
 
     var tConv = document.getElementById('tconv-' + safeId);
     var dFin  = document.getElementById('dfin-'  + safeId);
-    var configEl = document.getElementById('config-' + safeId);
     var radPathEl = document.getElementById('radpath-' + safeId);
     var convAtmEl = document.getElementById('convatm-' + safeId);
 
-    if (configEl) configEl.innerHTML = fmtEpochConfigGases(epoch);
     if (radPathEl) radPathEl.innerHTML = fmtRadInitAndPath(initStep, radTPath, lastStep);
-    if (convAtmEl) convAtmEl.innerHTML = fmtConvAtmSnapshot(convAtmSnap);
+    if (convAtmEl) convAtmEl.innerHTML = fmtConvAtmSnapshot(convAtmSnap, id);
     /* Pr\u00e9fixe statut dans la cellule T FIN : rien si converged, pictogramme + statut sinon (crash/max_iter/abort).
        Le message complet reste disponible dans les logs (console + log de run). */
     var statusPrefix = '';
@@ -999,7 +1072,11 @@ window.__BENCH_FT__ = {
         benchOnFineTuningBaryInput(groupKey, v);
     },
     applyAndRun: function (groupKey, v) {
-        benchApplyFineTuningBaryGroup(groupKey, v, true);
+        if (groupKey === 'ATM') {
+            benchApplyFineTuningAtmUnified(v, true);
+        } else {
+            benchApplyFineTuningBaryGroup(groupKey, v, true);
+        }
         runAllEpochs();
     },
     togglePanel: function () {
@@ -1017,7 +1094,7 @@ document.addEventListener('mousedown', function (e) {
     var el = e.target;
     if (!el || el.type !== 'range' || !el.id) return;
     var id = el.id;
-    if (id.indexOf('bench-ft-bary-slider') !== 0 && id !== 'bench-ft-slider-CLOUD_SW-header') return;
+    if (id.indexOf('bench-ft-bary-slider') !== 0 && id !== 'bench-ft-slider-ATM-header') return;
     var r = el.getBoundingClientRect();
     var min = parseFloat(el.min) || 0;
     var max = parseFloat(el.max) || 100;
@@ -1030,6 +1107,7 @@ document.addEventListener('mousedown', function (e) {
 var ok = window.DATA && window.TIMELINE && window.CONST && window.CONV;
 var footer = document.getElementById('footer-info');
 if (ok) {
+    benchSyncBaryFromConfigCompute();
     if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
     benchDisplayFineTuning();
     var dbgHint = window.debugAPI

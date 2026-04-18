@@ -1,8 +1,11 @@
 // File: API_BILAN/data/initDATA.js - Initialisation de l'objet DATA
 // Desc: Crée DATA depuis KEYS (dico.js) et 🎚️ ; chargé après dico.js. Source unique d'init.
-// Version 1.0.6
-// Date: [April 17, 2026] [11:45 UTC+1]
+// Version 1.0.9
+// Date: [April 18, 2026] [18:00 UTC+1]
 // logs :
+// - v1.0.9: baryByGroup défaut CLOUD_SW 65 + SCIENCE 65 (bench / convergence ajustée ailleurs) ; aligné CONFIG_COMPUTE
+// - v1.0.8: baryByGroup défaut CLOUD_SW 50 + SCIENCE 50 (jauge unique scie/bench) ; aligné CONFIG_COMPUTE.baryByGroupDefault
+// - v1.0.7: baryByGroup défaut aligné CONFIG_COMPUTE — CLOUD_SW 100, SCIENCE 50, SOLVER 100, HYSTERESIS 100 ; H2O_EDS_SCALE 0.80 (= interp. SCIENCE 50 % sur cible min 1 / max 0.60)
 // - v1.0.6: DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE (défaut 0.60 = bary SCIENCE 100 % = valeur max fine_tuning_bounds)
 // - v1.0.5: FIRST_SEARCH_STEP_CAP_K défaut 0 (désactivé ; aligné configsAll v1.0.17)
 // - v1.0.4: SOLVER.FIRST_SEARCH_STEP_CAP_K (aligné configsAll / fine_tuning_bounds)
@@ -40,10 +43,10 @@
             }
         }
     }
-    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
-    // 100% = fine-tuning nominal (cohérence visu sans scie => 16.4°C 2025). Valeurs = max fine_tuning_bounds SOLVER.
+    var _baryDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
+    // Aligné window.CONFIG_COMPUTE.baryByGroupDefault. UI : une jauge ATM = même % pour CLOUD_SW et SCIENCE.
     var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 0 };  // 10 j (litt. 8–10 j)
-    // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
+    // Valeurs nominales objets 🎚️ ; positions le long des plages = baryByGroup (ATM 65/65 par défaut).
     var _cloudSwDefault = {
         CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
         ANTHRO_RISE_START_YEAR: 1900, ANTHRO_RISE_WINDOW_YEARS: 80, ANTHRO_RISE_MAX: 0.25,
@@ -63,9 +66,9 @@
         iceImpactFactor01: 0.7,
         co2OceanEffPump01: 0.1
     };
-    // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (default = bary SCIENCE 100 % = valeur "max" min>max sémantique)
+    // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (bary SCIENCE 50 % : interp. linéaire 1.00 → 0.60)
     var _radiativeDefault = {
-        H2O_EDS_SCALE: 0.60  // bary SCIENCE 100 % → κ_H₂O min → EDS H₂O ~75 W/m² (Schmidt 2010)
+        H2O_EDS_SCALE: 0.80
     };
     DATA['🎚️'] = {
         baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },

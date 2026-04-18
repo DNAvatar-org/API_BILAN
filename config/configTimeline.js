@@ -1,8 +1,14 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.3
-// Date: [April 16, 2026] [14:30 UTC+1]
+// Version 1.4.9
+// Date: [April 18, 2026] [18:00 UTC+1]
 // logs :
+// - v1.4.9: baryByGroupDefault — CLOUD_SW 65 % + SCIENCE 65 % (bench ; convergence ajustée graines/gaz) ; graines 🌡️🧮 + ⚖️ gaz Archéen→Holocène (lit. CSV)
+// - v1.4.8: baryByGroupDefault — CLOUD_SW 50 % + SCIENCE 50 % (jauge unique scie/bench) ; SOLVER/HYSTERESIS 100 %
+// - v1.4.7: baryByGroupDefault — SCIENCE 50 % (CLOUD_SW/SOLVER/HYSTERESIS 100 %) ; aligné initDATA / configsAll queue
+// - v1.4.6: commentaire lien grille Lit. ↔ doc/epoch_bench.html (BENCH_LIT_BY_EPOCH_ID)
+// - v1.4.5: retrait 🌡️📚 (jamais lu par le moteur ; évite confusion avec 🌡️🧮). Sync mental avec configsAll si doublon TIMELINE.
+// - v1.4.4: grille littérature CSV (commentaire) + 🌡️🧮 ajustés vers milieux de plage (🔥 🦠 ⛄ hysteresis 1b 🏔) ; note CONV/H₂O/CC. Corps noir ±0 K.
 // - v1.4.3: fallback FIRST_SEARCH_STEP_CAP_K: 0 (désactivé ; évite changement bassin convergence 📱)
 // - v1.4.2: fallback SOLVER_TUNING — FIRST_SEARCH_STEP_CAP_K: 8 (aligné TUNING / calculations_flux 1er pas Init)
 // - v1.4.1: 🦠 Archéen — 🧲🌕 au début époque (W/m²) pour bary 🕰.🔀 ['⚖️','🌕'] ; sans clé, getEpochDateConfig → NaN → T NaN / calculateAlbedo
@@ -64,6 +70,41 @@
 // Toute valeur de 🔋☀️ DOIT être calculée avec cette formule. Pas d'arrondi arbitraire.
 // ============================================================================
 //
+// ---------------------------------------------------------------------------
+// GRILLE LITTÉRATURE (repère / bench) — CSV synthèse ; 🌡️🧮 TIMELINE = amorce solveur (K), pas T finale.
+// Fourchettes dupliquées pour l’UI bench : doc/epoch_bench.html (BENCH_LIT_BY_EPOCH_ID) — resync si cette grille change.
+// Colonnes : T_init °C plage ; CO₂ ppm ; CH₄ ppm ; H₂O vapeur mol % (atmosphère) ; albédo 🍰🪩📿.
+// Mapping époques TIMELINE ↔ libellés CSV : ⚫ Corps_noir ; 🔥 Hadéen ; 🦠 Archéen ; 🪸 Protérozoïque ;
+//   hysteresis 1a Sturtienne ; ⛄ Plein_Snowball ; hysteresis 1b Sortie_Marinoen ; 🪼 Paléozoïque_marin ;
+//   🍄 Paléozoïque_terre ; 💀 Limite_P/T ; 🦕 Mésozoïque ; 🦤 Cénozoïque ; 🐊 Éocène ; 🏔 Oligocène/Grande_Coupure ;
+//   🦣 Quaternaire ; 🛖 Holocène ; 📱 Aujourd'hui.
+// Époque,T_init_°C,CO2_ppm,CH4_ppm,H2O_vap_mol_%,Albedo_🪩
+// Corps_noir,[-19, -17],[0, 1],[0, 0.1],[0, 0.01],[0.29, 0.31]
+// Hadéen,[2000, 2500],[100000, 500000],[10, 100],[10, 20],[0.15, 0.35]
+// Archéen,[10, 60],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
+// Protérozoïque,[5, 20],[5000, 20000],[50, 500],[0.5, 1.5],[0.25, 0.35]
+// Sturtienne,[-50, 10],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
+// Plein_Snowball,[-60, -20],[300, 1500],[0.1, 10],[0.01, 0.5],[0.80, 0.90]
+// Sortie_Marinoen,[20, 50],[2000, 10000],[10, 100],[2.0, 5.0],[0.15, 0.25]
+// Paléozoïque_marin,[15, 25],[1500, 5000],[5, 20],[1.0, 2.5],[0.20, 0.25]
+// Paléozoïque_terre,[15, 25],[500, 3000],[5, 20],[1.0, 2.0],[0.20, 0.23]
+// Limite_P/T,[20, 32],[1500, 4000],[20, 100],[1.5, 3.5],[0.18, 0.22]
+// Mésozoïque,[20, 30],[1000, 2500],[10, 30],[1.5, 3.0],[0.18, 0.22]
+// Cénozoïque,[12, 22],[400, 1000],[1, 5],[0.8, 1.5],[0.22, 0.28]
+// Éocène,[20, 28],[800, 1500],[1, 5],[1.2, 2.5],[0.20, 0.25]
+// Oligocène,[12, 18],[400, 700],[1, 2],[0.8, 1.2],[0.25, 0.30]
+// Grande_Coupure,[10, 15],[300, 600],[1, 2],[0.7, 1.0],[0.28, 0.32]
+// Quaternaire,[10, 16],[180, 300],[0.4, 0.8],[0.6, 1.0],[0.28, 0.33]
+// Holocène,[13, 15],[260, 285],[0.6, 0.8],[0.8, 1.0],[0.29, 0.31]
+// Aujourd'hui,[14.5, 15.5],[415, 425],[1.8, 1.9],[1.0, 1.2],[0.29, 0.30]
+// ---------------------------------------------------------------------------
+// CONV ATM / humidité (rappel code) :
+// - Profil vapeur : waterVaporFractionAtZ + PHYS.computeH2OScaleHeight() (R·T²/(L·Γ), Clausius-Clapeyron + adiabatique).
+//   À T globale +1 K, la colonne H₂O suit ~7 %/K (Held & Soden 2006) via r₀ (🍰🫧💧) + H_vap(T) — pas de « garde » silencieuse.
+// - Hadéen / sortie Snowball : atmosphère steam (τ_H₂O élevé) ; Archéen CH₄ massif : brumes organiques possibles (albédo vs EDS) — overlap dans radiative/calculations.js + hitran.js (Voigt ≥0).
+// - Colonne bench « CONV ATM » : état post-convergence (DATA), pas la seule grille CSV ci-dessus.
+// ---------------------------------------------------------------------------
+//
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
 // Clouds/Faint Young Sun Copernicus 2011 ; Astrobiology 2014. Valeurs au DÉBUT de chaque époque (parcours temporel à venir).
 // Réfs masses gaz (⚖️🏭, ⚖️🐄) : doc/VALIDATION_CONFIG_GAZ.md
@@ -72,8 +113,8 @@ const timeline = [
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
         '◀': 4.5e9, // Fin
-        // 🌡️🧮 : ~255 K équilibre corps noir (σT⁴ = S/4) — -18 °C
-        '🌡️🧮': 255,
+        // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → ~255,2 K
+        '🌡️🧮': 255.2,
         '🧲🔬': 0.3,
         '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '🔋🌕': 0, // core_temperature (Pas de noyau en K)
@@ -118,14 +159,14 @@ const timeline = [
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
         '▶': 4.5e9,
         '◀': 4.0e9,
-        // 🌡️🧮 : océan de magma ~2000–2500 K (surface en fusion) — ~2177 °C
-        '🌡️🧮': 2450,
+        // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C ; T conv légèrement basse → +22 K amorce. 🔋🌕 / 🧲🌕 : scénario magma déjà fort — pas besoin d’augmenter le noyau pour rester dans la plage litt.
+        '🌡️🧮': 2545.15,
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         '🔋🌕': 1.23e21, // core_power_watts (Puissance géothermique totale calculée depuis 🧲🌕 = 2 MW/m² et R = 7008.1 km)
         // Flux géothermique colossal (2 MW/m²) pour maintenir la surface en fusion (~2400K)
         // Phase immédiate post-impact (océan de magma rayonnant) ; le temps peut avancer dans la simu
-        '🧲🌕': 2000000, // geothermal_flux (W/m²) - hardcodé pour cette époque
+        '🧲🌕': 2500000, // geothermal_flux (W/m²) - hardcodé pour cette époque
         '📐': 7008.1, // Rayon de la planète en km
         '🍎': 9.8, // Gravité en m/s²
         '📏🌊': 0.0, // Profondeur moyenne océan de magma en km (Hadéen)
@@ -139,8 +180,8 @@ const timeline = [
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         '⚖️🫧': 5.3e20, // Masse atmosphère (Atmosphère très dense ~100 bar)
         // Simulation parameters - Quantités en kg (pas de ppm/%)
-        '⚖️🏭': 5.15e17, // co2_kg (~10% de l'atmosphère moderne)
-        '⚖️🐄': 5.15e15, // ch4_kg (~1000 ppm)
+        '⚖️🏭': 5.0e17, // co2_kg (~10% de l'atmosphère moderne)
+        '⚖️🐄': 5.0e15, // ch4_kg (~1000 ppm)
         '⚖️💧': 2.1e20, // h2o_kg (~15% de 1.4e21 kg)
         '⚖️🫁': 0, // o2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
@@ -171,10 +212,8 @@ const timeline = [
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
         '▶': 4.0e9,
         '◀': 2.5e9,
-        // 🌡️🧮 : 288 K (15°C cible indicative). Lit. 281–303 K plausible (Charnay 2017, Kienert 2013). — 15 °C
-        // 288 K = état stable documenté (Clim. Past 9:1841, Astrobiology 2014). Parcours temporel à venir.
-        '🌡️🧮': 288,
-        '🌡️📚': [281, 303], // Fourchette littérature (K) — disclaimer si T simulée hors plage
+        // 🌡️🧮 : vers milieu grille CSV Archéen [10,60]°C → ~318 K (~45 °C). Amorce solveur / affichage.
+        '🌡️🧮': 318.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
@@ -204,13 +243,13 @@ const timeline = [
         //    Haqq-Misra et al. 2008 (Astrobiology) : jusqu'à 10 000 ppm, brume si CH₄/CO₂ > 0.1 ✓
         //    Pavlov et al. 2000 : 100–1 000 ppm ; Charnay 2020 : 100–17 000 ppm ✓
         // ✅ Ratio CH₄/CO₂ = 3.0e16 / 1.5e18 = 0.02 — sous le seuil de brume organique (0.1, Haqq-Misra 2008) ✓
-        '⚖️🏭': 1.5e18, // co2_kg — ~0.19 bar, validé Archéen précoce (4 Ga) — voir commentaire ci-dessus
-        '⚖️🐄': 3.0e16, // ch4_kg — ~4 780 ppm, CH₄/CO₂=0.02 < 0.1 (pas de brume) — voir commentaire ci-dessus
+        '⚖️🏭': 1.62e18, // co2_kg — hausse légère vs 1.5e18 (T conv basse bench)
+        '⚖️🐄': 3.25e16, // ch4_kg — hausse légère vs 3e16 (T conv basse bench)
         '⚖️💧': 1.8e21, // h2o_kg (~129% actuel, litt. Harvard océans +26%)
         '⚖️🫁': 0, // o2_kg
         '⚖️💨': 9.918e18, // n2_kg (base azote Archéen, lit. ~1–2× PAL ; Marty 2013)
         '⚖️✈': 0, // proxy_sulfates
-        '⚖️🫧': 1.145e19, // Masse atmosphère = N₂ + CO₂ + CH₄ = 9.918e18 + 1.5e18 + 3e16 (calculée, ~2.2 bar)
+        '⚖️🫧': 1.15705e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 1.62e18 + 3.25e16
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -232,8 +271,8 @@ const timeline = [
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
         '▶': 2.5e9,
         '◀': 750e6,
-        // 🌡️🧮 : ~280–290 K (lit. Protérozoïque) — 12 °C
-        '🌡️🧮': 285,
+        // 🌡️🧮 : Protérozoïque — rehausser amorce (T conv basse vs [5,20]°C CSV)
+        '🌡️🧮': 290.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
         '🔋🌕': 1.0e14, // core_power_watts (Puissance géothermique totale ~100 TW)
@@ -250,8 +289,8 @@ const timeline = [
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         '⚖️🫧': 5.15e18, // Masse atmosphère (~1 bar). Lit. 2.7 Ga: pression possiblement <0.5 bar.
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
-        '⚖️🏭': 4.7e16,  // co2_kg (~6000 ppm, milieu de fourchette lit. 5–9k ppm)
-        '⚖️🐄': 2.85e14,  // ch4_kg (~100 ppm, lit. 100–300 ppm)
+        '⚖️🏭': 5.0e16,  // co2_kg — léger + vs 4.7e16 (bench)
+        '⚖️🐄': 3.0e14,  // ch4_kg — léger + vs 2.85e14 (bench)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
         // Note: Les % seront calculés via calculations_atm.js
@@ -296,8 +335,8 @@ const timeline = [
         // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
         '▶': 720e6,
         '◀': 690e6,
-        // 🌡️🧮 : ~240 K (-33°C) — lit. Pierrehumbert 2011 : 220–250 K surface moyenne snowball
-        '🌡️🧮': 281,
+        // 🌡️🧮 : Plein_Snowball — amorce un peu plus chaude (T conv trop froide vs [-60,-20]°C CSV)
+        '🌡️🧮': 239.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
         '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
@@ -329,7 +368,7 @@ const timeline = [
         hidden: true,
         '▶': 690e6,
         '◀': 600e6,
-        '🌡️🧮': 295, // ~22 °C — amorce branche chaude post-déglaciation
+        '🌡️🧮': 312.15, // Sortie Marinoen [20,50]°C — amorce branche chaude + légère hausse (bench)
         '🧲🔬': 0.01,
         '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
         '🔋🌕': 7.5e13,
@@ -340,8 +379,8 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
         '⚖️🫧': 5.15e18,
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé cause de la déglaciation
-        '⚖️🏭': 2.5e16, // co2_kg (~4800 ppm, ordre hyper-greenhouse)
-        '⚖️🐄': 4.0e13,
+        '⚖️🏭': 2.75e16, // co2_kg — léger + (bench Sortie Marinoen)
+        '⚖️🐄': 4.5e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         '🕰': {
@@ -355,8 +394,8 @@ const timeline = [
         '📅': '🪼', // Paléozoïque marin (600–420 Ma) — explosion cambrienne, Hirnantienne
         '▶': 600e6,
         '◀': 420e6,
-        // 🌡️🧮 : ~285–295 K (Ordovicien chaud, Hirnantienne froide ponctuelle) — 17 °C moyen
-        '🌡️🧮': 290,
+        // 🌡️🧮 : Paléozoïque marin — T conv un peu haute vs [15,25]°C → amorce plus froide
+        '🌡️🧮': 288.5,
         '🧲🔬': 0.01,
         '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
         '🔋🌕': 6.5e13,
@@ -366,7 +405,7 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16 },
         '⚖️🫧': 5.15e18,
-        '⚖️🏭': 1.5e16, // co2_kg (~2900 ppm, moyenne Cambrien–Silurien)
+        '⚖️🏭': 1.38e16, // co2_kg — léger − (bench 🪼)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e17,
@@ -379,8 +418,8 @@ const timeline = [
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
         '▶': 420e6,
         '◀': 280e6,
-        // 🌡️🧮 : Dévonien greenhouse puis Karoo (Carbonifère–Permien glacial) — ~289 K moyen
-        '🌡️🧮': 291,
+        // 🌡️🧮 : Paléozoïque terrestre — T conv un peu haute vs [15,25]°C → amorce plus froide
+        '🌡️🧮': 289.5,
         '🧲🔬': 0.01,
         '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
         '🔋🌕': 6.0e13,
@@ -390,7 +429,7 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18 },
         '⚖️🫧': 5.15e18,
-        '⚖️🏭': 0.8e16, // co2_kg (~1540 ppm, moyenne Dévonien chaud → Karoo bas)
+        '⚖️🏭': 0.74e16, // co2_kg — léger − (bench 🍄)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 2.0e17,
@@ -491,7 +530,7 @@ const timeline = [
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,
-        '🌡️🧮': 297,
+        '🌡️🧮': 299.5,
         '🧲🔬': 0.1,
         '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
         '🔋🌕': 5.0e13,
@@ -505,7 +544,7 @@ const timeline = [
             '🍰🗻🌍': 0.20
         },
         '⚖️🫧': 5.15e18,
-        '⚖️🏭': 9.01e15, // co2_kg (~1750 ppm, ordre PETM / Éocène chaud)
+        '⚖️🏭': 9.4e15, // co2_kg — léger + (bench 🐊)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
@@ -550,7 +589,7 @@ const timeline = [
         '⛄': 0.085,
         '▶': 33e6,
         '◀': 2e6,
-        '🌡️🧮': 285, // 12 °C
+        '🌡️🧮': 288.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -604,8 +643,8 @@ const timeline = [
         '⛄': 0.105,
         '▶': 10e3,
         '◀': 1800,
-        // 🌡️🧮 : ~287 K (~14 °C) — optimum Holocène, cible pré-industrielle
-        '🌡️🧮': 287,
+        // 🌡️🧮 : Holocène — T conv basse vs [13,15]°C → amorce un peu plus chaude
+        '🌡️🧮': 288.65,
         '🧲🔬': 0.03,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -719,7 +758,7 @@ if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))
 }
 
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
+window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].

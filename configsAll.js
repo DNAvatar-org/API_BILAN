@@ -1,11 +1,15 @@
 // File: API_BILAN/configsAll.js - Configs combinées (alphabet, dico, initDATA, model_tuning, configTimeline)
 // Desc: Concatenation automatique de : data/alphabet.js + data/dico.js + data/initDATA.js + config/model_tuning.js + config/model_tuning_biblio.js + config/fine_tuning_bounds.js + config/configTimeline.js
-// Version 1.0.17
+// Version 1.0.21
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
-// Date: [April 03, 2026] [23:05 UTC+1]
+// Date: [April 18, 2026] [18:00 UTC+1]
 // Logs:
+// - v1.0.21: baryByGroupDefault CLOUD_SW 65 % + SCIENCE 65 % (aligné initDATA / configTimeline) ; calibrations époques fines → configTimeline.js v1.4.9+ (TIMELINE embarqué ci-dessous = schéma simplifié hérité)
+// - v1.0.20: baryByGroupDefault CLOUD_SW 50 % + SCIENCE 50 % (jauge unique scie/bench) ; aligné initDATA / configTimeline
+// - v1.0.19: baryByGroup init + CONFIG_COMPUTE.baryByGroupDefault — SCIENCE 50 % ; CHARS.SULFATE / CHARS_DESC = U+2708 U+FE0F (emoji ✈️) ; initDATA embarqué sync
+// - v1.0.18: Archéen TIMELINE embarquée — 🌡️🧮 308.15 K (sync configTimeline v1.4.4+) ; retrait 🌡️📚 (clé jamais lue par le moteur)
 // - v1.0.17: FIRST_SEARCH_STEP_CAP_K défaut 0 (désactivé) — plafond 8 K changeait le bassin de convergence (📱 ~21 °C vs ~15,6 °C hérité)
 // - v1.0.16: SOLVER.FIRST_SEARCH_STEP_CAP_K (déf. 8 K) dans _solverDefault + TUNING.SOLVER (1er pas Search après Init)
 // - v1.0.15: KEYS 🐊 libellé « Éocène » (titre court)
@@ -51,7 +55,7 @@ const CHARS = {
     ENERGY_FLUX: '🧲', // Energy flux : sources chaudes (W/m²)
     O2: '🫁',       // O2 : poumons (affichage)
     N2: '💨',       // N2 : vent (azote/air)
-    SULFATE: '✈',  // Aérosols sulfate (proxy CCN/optique nuageuse)
+    SULFATE: '\u2708\uFE0F',  // SO₄ proxy — présentation emoji (U+2708 + VS16), cf. pages UTF-8 DNAvatar
     WEIGHT: '⚖️',   // Poids : balance (masse)
     DENSITY: '💨',  // Densité : vent
     ALTITUDE: '🧿', // Altitude : galaxie (Ligne de Kármán, frontière atmosphère/espace)
@@ -168,7 +172,7 @@ const CHARS_DESC = {
     '🐄': 'CH₄',
     '🏭': 'CO₂',
     '🫁': 'O₂',
-    '✈': 'SO₄²⁻ (aérosols sulfate)',
+    '\u2708\uFE0F': 'SO₄²⁻ (aérosols sulfate)',
     '🧊': 'Glace',
     '⛅': 'Nuages',
     '🌊': 'Océan',
@@ -853,8 +857,8 @@ window.createDicoHtml = createDicoHtml;
             }
         }
     }
-    var _baryDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100, HYSTERESIS: 100 };
-    // 100% = fine-tuning nominal (cohérence visu sans scie => 16.4°C 2025). Valeurs = max fine_tuning_bounds SOLVER.
+    var _baryDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
+    // Jauge unique ATM : même % CLOUD_SW et SCIENCE. SOLVER 100 % = max fine_tuning_bounds solveur.
     var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 0 };  // 10 j (litt. 8–10 j)
     // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
     var _cloudSwDefault = {
@@ -877,7 +881,7 @@ window.createDicoHtml = createDicoHtml;
     };
     // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (default = bary SCIENCE 100 % = valeur max côté min>max)
     var _radiativeDefaultInit = {
-        H2O_EDS_SCALE: 0.60  // bary SCIENCE 100 % → κ_H₂O min → EDS H₂O ~75 W/m² (Schmidt 2010)
+        H2O_EDS_SCALE: 0.80  // bary SCIENCE 50 % (interp. 1.00 → 0.60) ; aligné initDATA.js
     };
     DATA['🎚️'] = {
         baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },
@@ -1424,10 +1428,8 @@ const timeline = [
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
         '▶': 4.0e9,
         '◀': 2.5e9,
-        // 🌡️🧮 : 288 K (15°C cible indicative). Lit. 281–303 K plausible (Charnay 2017, Kienert 2013).
-        // 288 K = état stable documenté (Clim. Past 9:1841, Astrobiology 2014). Parcours temporel à venir.
-        '🌡️🧮': 288,
-        '🌡️📚': [281, 303], // Fourchette littérature (K) — disclaimer si T simulée hors plage
+        // 🌡️🧮 : aligné configTimeline.js v1.4.4+ (milieu CSV Archéen). Pas de 🌡️📚 : clé non lue par le moteur (retirée v1.4.5).
+        '🌡️🧮': 308.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) @4.0Ga = 74.1%
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
@@ -1790,7 +1792,7 @@ if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))
 }
 
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 100, SCIENCE: 100, SOLVER: 100 };
+window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].

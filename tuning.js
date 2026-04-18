@@ -2,9 +2,10 @@
 // Desc: Logique autonome d'interpolation [0-100 %] entre bornes min/max pour chaque paramètre
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, SOLVER, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
-// Version 1.0.6
-// Date: 2026-04-17
+// Version 1.0.8
+// Date: 2026-04-18
 // Logs:
+// - v1.0.8: retrait fillDataTuningFromBary() automatique au chargement du module (init pages / bench)
 // - v1.0.6: syncRadiativeConfig — DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE → EARTH.H2O_EDS_SCALE. Remplace le recalcul dynamique 0.92·√P_ratio·CO2_factor (physics.js v2.0.8) par un paramètre fine-tuning dédié.
 // - v1.0.4: syncSolverConfig — firstSearchStepCapK = valeur SOLVER si >0 sinon undefined (une affectation, pas if/else delete)
 // - v1.0.3: syncSolverConfig — firstSearchStepCapK seulement si >0 ; sinon delete (défaut 0 = pas de plafond)
