@@ -1,8 +1,9 @@
 // File: API_BILAN/data/initDATA.js - Initialisation de l'objet DATA
 // Desc: Crée DATA depuis KEYS (dico.js) et 🎚️ ; chargé après dico.js. Source unique d'init.
-// Version 1.0.10
+// Version 1.0.11
 // Date: [April 18, 2026] [18:00 UTC+1]
 // logs :
+// - v1.0.11: FIRST_SEARCH_STEP_CAP_K 4 K (amortissement 1er pas après Init, plus fort que 8 K)
 // - v1.0.10: SOLVER.FIRST_SEARCH_STEP_CAP_K 8 (1er pas après Init ; lissage trajet vs 0) ; aligné configsAll / TUNING / configTimeline fallback
 // - v1.0.9: baryByGroup défaut CLOUD_SW 65 + SCIENCE 65 (bench / convergence ajustée ailleurs) ; aligné CONFIG_COMPUTE
 // - v1.0.8: baryByGroup défaut CLOUD_SW 50 + SCIENCE 50 (jauge unique scie/bench) ; aligné CONFIG_COMPUTE.baryByGroupDefault
@@ -46,7 +47,7 @@
     }
     var _baryDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
     // Aligné window.CONFIG_COMPUTE.baryByGroupDefault. UI : une jauge ATM = même % pour CLOUD_SW et SCIENCE.
-    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 8 };  // 10 j (litt. 8–10 j) ; cap 1er pas Init (test vs yoyo ~13 K)
+    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 4 };  // cap 1er pas Init (amortissement fort)
     // Valeurs nominales objets 🎚️ ; positions le long des plages = baryByGroup (ATM 65/65 par défaut).
     var _cloudSwDefault = {
         CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
