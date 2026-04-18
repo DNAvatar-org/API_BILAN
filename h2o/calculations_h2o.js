@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.15
-// Date: [November 2025]
+// Version 1.0.18
+// Date: [April 18, 2026]
 // logs :
+// - v1.0.18: deltaTAccelerationDays lu depuis window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER.
+// - v1.0.17: DELTA_T_ACCELERATION_DAYS lu depuis window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING.
+// - v1.0.16: DELTA_T_ACCELERATION_DAYS lu depuis window.TUNING.SOLVER (source unique, fin DATA['🎚️'].SOLVER).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -480,7 +483,7 @@ function calculateH2OParametersWithIteration() {
                 use_acceleration = false; // Passer à 🔺⏳ normal (1 jour)
             }
         }
-        DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * DATA['🎚️'].SOLVER.DELTA_T_ACCELERATION_DAYS : CONV.SECONDS_PER_DAY;
+        DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays : CONV.SECONDS_PER_DAY;
         
         // 🔒 ÉTAPE 1 : Calculer 🍰🫧☔ (RH) depuis la vapeur actuelle
         const q_sat = mass_ratio * max_vapor_fraction;

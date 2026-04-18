@@ -1,8 +1,11 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.11
-// Date: [April 18, 2026] [18:00 UTC+1]
+// Version 1.4.14
+// Date: [April 18, 2026] [22:30 UTC+1]
 // logs :
+// - v1.4.14: firstSearchStepCapK 0 → 4 (régression migration v1.4.13 : 📱 2000 passait 14 °C → 13,37 °C). Valeur réf. historique = 4 K.
+// - v1.4.13: CONFIG_COMPUTE source UNIQUE SOLVER (retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER) → clés tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, deltaTAccelerationDays, firstSearchStepCapK, bornesMinK, bornesMaxK, searchStepScaleMax. Valeurs directes (plus de miroirs depuis DATA).
+// - v1.4.12: retrait SOLVER_TUNING + blocs CONFIG_COMPUTE.{tolMinWm2,maxSearchStepK,maxSearchStepLargeK,largeDeltaFactor,searchStepScaleMax,bornesMinK,bornesMaxK} — dead code (écrits 2× jamais lus). Source SOLVER unique : window.TUNING.SOLVER.
 // - v1.4.11: fallback FIRST_SEARCH_STEP_CAP_K 4 K (amortissement 1er pas Init) ; aligné initDATA / configsAll
 // - v1.4.10: fallback SOLVER_TUNING.FIRST_SEARCH_STEP_CAP_K 8 K (si TUNING absent) ; aligné initDATA / configsAll pour 1er pas Init
 // - v1.4.9: baryByGroupDefault — CLOUD_SW 65 % + SCIENCE 65 % (bench ; convergence ajustée graines/gaz) ; graines 🌡️🧮 + ⚖️ gaz Archéen→Holocène (lit. CSV)
@@ -355,8 +358,8 @@ const timeline = [
         // CO₂ bas au début (cause du snowball), puis accumulation volcanique pendant la glaciation
         // Lit. : CO₂ ~100–1000 ppm pré-snowball ; ~350× PAL (~100 000 ppm) pour en sortir (Hoffman 1998)
         '⚖️🏭': 0.99e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
-        '⚖️🐄': 1.0e12,  // ch4_kg (faible, méthanogènes sous glace)
-        '⚖️💧': 1.2e21,  // h2o_kg (~86% actuel, océans sous glace)
+        '⚖️🐄': 1.0e14,
+        '⚖️💧': 1.2e21,
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
@@ -760,7 +763,7 @@ if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))
 }
 
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
+window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 };
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].
@@ -816,25 +819,21 @@ window.OVERRIDES = window.OVERRIDES || {};
 window.OVERRIDES.useEpochIceFixed = false;
 window.OVERRIDES['⛄'] = null;
 
-const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
-    ? window.TUNING.SOLVER
-    : {
-        TOL_MIN_WM2: 0.05,
-        MAX_SEARCH_STEP_K: 100,
-        MAX_SEARCH_STEP_LARGE_K: 150,
-        LARGE_DELTA_FACTOR: 10,
-        FIRST_SEARCH_STEP_CAP_K: 4
-    };
-// Borne min tolérance flux (W/m²) : évite convergence impossible sous bruit numérique.
-window.CONFIG_COMPUTE.tolMinWm2 = SOLVER_TUNING.TOL_MIN_WM2; // [EQ/NUM]
-// Search : ΔT proportionnel à Δ (formule Δ/(4σT³)). Cap max uniquement.
-window.CONFIG_COMPUTE.maxSearchStepK = SOLVER_TUNING.MAX_SEARCH_STEP_K; // [EQ/NUM]
-window.CONFIG_COMPUTE.maxSearchStepLargeK = SOLVER_TUNING.MAX_SEARCH_STEP_LARGE_K; // [EQ/NUM]
-window.CONFIG_COMPUTE.largeDeltaFactor = SOLVER_TUNING.LARGE_DELTA_FACTOR; // [EQ/NUM]
-window.CONFIG_COMPUTE.searchStepScaleMax = 200;                    // [EQ/NUM]
-// Bornes dichotomie Init
-window.CONFIG_COMPUTE.bornesMinK = 250;                            // [EQ/NUM]
-window.CONFIG_COMPUTE.bornesMaxK = 4000;                           // [EQ/NUM]
+// ===================== [SOLVER] ===================== source unique SOLVER (v1.4.13)
+// Statiques (pas d'UI, pas d'interpolation bary) → CONFIG_COMPUTE directement, pas dans DATA/DEFAULT.
+// Lus par calculations_flux.js (computeToleranceWm2, computeSearchIncrement, cap 1er pas Search),
+// physicsAll.js / calculations_h2o.js (🔺⏳ = accélération pas temps).
+window.CONFIG_COMPUTE.tolMinWm2 = 0.10;                  // [EQ/NUM] tolérance plancher flux (W/m²)
+window.CONFIG_COMPUTE.maxSearchStepK = 140;              // [EQ/NUM] cap pas Search nominal (K)
+window.CONFIG_COMPUTE.maxSearchStepLargeK = 200;         // [EQ/NUM] cap pas Search "grand delta" (K)
+window.CONFIG_COMPUTE.largeDeltaFactor = 16;             // [EQ/NUM] seuil |Δ| > factor × tol → grand pas
+window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
+// ⚠️ firstSearchStepCapK : plafond du 1er pas Search après Init (0 = désactivé, >0 = amortit yoyo SB linéarisé).
+// Modifier ICI pour tests. Attention : un plafond trop bas peut changer le bassin de convergence.
+window.CONFIG_COMPUTE.firstSearchStepCapK = 4;           // [EQ/NUM] 0 | 4 | 8 | 12 | 16 | 32 — 4 = référence actuelle (📱 2000 ≈ 14 °C)
+window.CONFIG_COMPUTE.bornesMinK = 250;                  // [EQ/NUM]
+window.CONFIG_COMPUTE.bornesMaxK = 4000;                 // [EQ/NUM]
+window.CONFIG_COMPUTE.searchStepScaleMax = 200;          // [EQ/NUM]
 
 // ===================== [OUTIL/DEBUG/UI] =====================
 // Log diagnostic EDS (h2o_eds_scale, bins, delta_z, n_layers, earth_flux, OLR, EDS)

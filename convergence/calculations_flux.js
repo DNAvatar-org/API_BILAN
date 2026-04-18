@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.84
-// Date: [March 2026]
+// Version 1.2.87
+// Date: [April 18, 2026]
 // Logs:
+// - v1.2.87: lectures SOLVER migrées vers window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER. Clés : tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, firstSearchStepCapK, deltaTAccelerationDays.
+// - v1.2.86: lectures live SOLVER migrées vers window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING. FIRST_SEARCH_STEP_CAP_K / DELTA_T_ACCELERATION_DAYS modifiables live via DATA['🎚️'].SOLVER.
+// - v1.2.85: source unique window.TUNING.SOLVER pour les 4 lectures (tolérance, cap Search, cap 1er pas, DELTA_T_ACCELERATION_DAYS). Fin DATA['🎚️'].SOLVER (plus d'interpolation bary sur le solveur — calibration statique).
 // - v1.2.84: retrait updateConvergenceBounds(dT_first_after_init) post-Init (ajout v1.2.80 soupçonné de changer le bassin de 📱 vers 21,2 °C) ; bornes posées par la boucle Search comme avant. Cap 1er pas conservé (neutre si FIRST_SEARCH_STEP_CAP_K=0, défaut). Logs diag gated logEdsDiagnostic : bornes/☯/phase
 // - v1.2.83: plafond 1er pas — Number.isFinite(capRaw) && capRaw>0 (évite chaîne "8" coercée par >0 → bassin ~21 °C 📱)
 // - v1.2.82: 1er pas après Init — plafond FIRST_SEARCH_STEP_CAP_K via Math.min(|dT|, lim) ; lim = cap si cap>0 sinon +∞ (un seul chemin, pas de if chaîne)
@@ -184,13 +187,12 @@ function snapshotEdsForConvergence() {
     return snap;
 }
 
-/** Tolérance flux (W/m²) = max(4σT³×precision_K, tolMinWm2). Source unique : DATA['🎚️'].SOLVER. */
+/** Tolérance flux (W/m²) = max(4σT³×precision_K, tolMinWm2). Source unique : window.CONFIG_COMPUTE. */
 function computeToleranceWm2(T_K, precision_K) {
     const CONST = window.CONST;
-    const DATA = window.DATA;
-    const SOLVER_TUNING = DATA['🎚️'].SOLVER;
+    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const tolRaw = 4 * CONST.STEFAN_BOLTZMANN * Math.pow(T_K, 3) * precision_K;
-    return Math.max(tolRaw, SOLVER_TUNING.TOL_MIN_WM2);
+    return Math.max(tolRaw, CONFIG_COMPUTE.tolMinWm2);
 }
 
 // Calcule T0 initial. Nouveau run (previous vide) : toujours T0 = époque. En anim en cours (previous non vide) : garder T actuelle.
@@ -394,19 +396,19 @@ function updateConvergenceBounds(dT_override) {
 
 /** Calcule l'incrément Search (incTemp) en K.
  * Formule physique : ΔT = Δ/(4σT³) (linéarisation Stefan-Boltzmann, dF/dT = 4σT³).
- * Cap max : SOLVER_TUNING.MAX_SEARCH_STEP_K. Si |Δ| > largeDeltaFactor×tol : MAX_SEARCH_STEP_LARGE_K.
+ * Cap max : CONFIG_COMPUTE.maxSearchStepK. Si |Δ| > largeDeltaFactor×tol : maxSearchStepLargeK.
  * Hadéen (T>2000K) : cap 80 K pour éviter oscillation.
  */
 function computeSearchIncrement() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const SOLVER_TUNING = DATA['🎚️'].SOLVER;
+    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const sigmaT3 = 4 * CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 3);
     let res = DATA['🧲']['🔺🧲'] / sigmaT3;
-    const cap = Math.min(SOLVER_TUNING.MAX_SEARCH_STEP_LARGE_K,
-        (Math.abs(DATA['🧲']['🔺🧲']) > SOLVER_TUNING.LARGE_DELTA_FACTOR * DATA['🧮']['🧲🔬'])
-            ? SOLVER_TUNING.MAX_SEARCH_STEP_LARGE_K
-            : SOLVER_TUNING.MAX_SEARCH_STEP_K);
+    const cap = Math.min(CONFIG_COMPUTE.maxSearchStepLargeK,
+        (Math.abs(DATA['🧲']['🔺🧲']) > CONFIG_COMPUTE.largeDeltaFactor * DATA['🧮']['🧲🔬'])
+            ? CONFIG_COMPUTE.maxSearchStepLargeK
+            : CONFIG_COMPUTE.maxSearchStepK);
     if (Math.abs(res) > cap) res = Math.sign(res) * cap;
     return res;
 }
@@ -531,6 +533,23 @@ async function computeRadiativeTransfer(callback, options) {
         console.groupCollapsed('[API_BILAN] computeRadiativeTransfer', renderMode, 'epoch=', DATA['📜']['🗿']);
         computeDbgGroup = true;
     }
+    // [DIAG bench vs scie] dump entree compute : bary, CLOUD_SW choisis, H2O_EDS_SCALE, cap solveur.
+    // console.warn => captured by CO2/static/logs_to_server.js => _logs/runtime.log.
+    const T_diag = DATA['🎚️'];
+    const diagBary = T_diag && T_diag.baryByGroup ? T_diag.baryByGroup : {};
+    const diagCloud = T_diag && T_diag.CLOUD_SW ? T_diag.CLOUD_SW : {};
+    const diagRad = T_diag && T_diag.RADIATIVE ? T_diag.RADIATIVE : {};
+    const diagEarth = window.EARTH || {};
+    console.warn('[DIAG compute entry] renderMode=' + renderMode
+        + ' epoch=' + (DATA['📜'] && DATA['📜']['🗿'])
+        + ' | bary CLOUD_SW=' + diagBary.CLOUD_SW + ' SCIENCE=' + diagBary.SCIENCE + ' HYSTERESIS=' + diagBary.HYSTERESIS
+        + ' | CLOUD_FRACTION_BASE=' + diagCloud.CLOUD_FRACTION_BASE
+        + ' OPTICAL_EFF_BASE=' + diagCloud.OPTICAL_EFF_BASE
+        + ' CCN_BASE=' + diagCloud.CCN_BASE
+        + ' | RADIATIVE.H2O_EDS_SCALE=' + diagRad.H2O_EDS_SCALE
+        + ' EARTH.H2O_EDS_SCALE=' + diagEarth.H2O_EDS_SCALE
+        + ' | firstSearchStepCapK=' + CONFIG_COMPUTE.firstSearchStepCapK
+        + ' tolMinWm2=' + CONFIG_COMPUTE.tolMinWm2);
     if (!DATA['🧮']['previous']) DATA['🧮']['previous'] = [];
     window.clearConvergenceTrace();
     if (DATA['🧮']['🧮🔄🌊'] == null) DATA['🧮']['🧮🔄🌊'] = 0;
@@ -680,13 +699,13 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮⚧'] = 'Search';
     DATA['🧮']['🧮🔄☀️'] = 0;
     let dT_first_after_init = computeSearchIncrement();
-    const capRaw = DATA['🎚️'].SOLVER.FIRST_SEARCH_STEP_CAP_K;
+    const capRaw = window.CONFIG_COMPUTE.firstSearchStepCapK;
     const firstStepAbsMax = (Number.isFinite(capRaw) && capRaw > 0) ? capRaw : Number.POSITIVE_INFINITY;
     dT_first_after_init = Math.sign(dT_first_after_init) * Math.min(Math.abs(dT_first_after_init), firstStepAbsMax);
     // v1.2.84 : pas d'updateConvergenceBounds ici (revert v1.2.80). Bornes posées par la boucle Search lignes 815-823.
     DATA['🧮']['🧮🌡️⏮'] = DATA['🧮']['🧮🌡️'];
     DATA['🧮']['🧲🔺⏮'] = delta_equilibre_init;
-    DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY * DATA['🎚️'].SOLVER.DELTA_T_ACCELERATION_DAYS;
+    DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays;
     DATA['🧮']['🧮🛑'] = ''; // Réinit pour que le snapshot Init n'affiche pas l'ancien 'converged'
 
     const incInit = dT_first_after_init;

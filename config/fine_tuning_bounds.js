@@ -1,8 +1,9 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.6
-// Date: [April 17, 2026] [11:30 UTC+1]
+// Version 1.3.7
+// Date: [April 18, 2026] [19:10 UTC+1]
 // logs :
+// - v1.3.7: retrait des 4 targets group:'SOLVER' (TOL_MIN_WM2, MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR) : plus de bary SOLVER, calibration statique via window.TUNING.SOLVER (source unique).
 // - v1.3.6: groupe RADIATIVE + cible H2O_EDS_SCALE (multiplicateur κ_H₂O global) — diagnostic : EDS H2O ~145 W/m² @ 0.92 vs ~75 W/m² litt. (Schmidt 2010). baryGroup SCIENCE ; min=1.00 max=0.60 volontaire (bary 100 % → valeur basse → T basse, convention projet).
 // - v1.3.5: retrait cible FIRST_SEARCH_STEP_CAP_K (interp. jauge 0–100 % → min/max faussait le défaut ; plafond = DATA['🎚️'].SOLVER optionnel, défaut 0 hors configsAll)
 // - v1.3.4: SOLVER.FIRST_SEARCH_STEP_CAP_K — plafond 1er pas après Init (atmosphère grise vs linéarisation 4σT³)
@@ -107,54 +108,6 @@ window.FINE_TUNING_BOUNDS = {
             source: 'Reference climat moderne (~15C)',
             effect: 'mixed',
             biblio_ref: 'TEMP_FACTOR_REF_K'
-        },
-        {
-            group: 'SOLVER',
-            key: 'TOL_MIN_WM2',
-            min: 0.03,
-            max: 0.10,
-            default: 0.05,
-            unit: 'W/m²',
-            note: 'tolérance flux minimale',
-            source: 'Choix numerique de convergence (stabilite/temps de calcul)',
-            effect: 'neutral_on_physics',
-            biblio_ref: 'TOL_MIN_WM2'
-        },
-        {
-            group: 'SOLVER',
-            key: 'MAX_SEARCH_STEP_K',
-            min: 60,
-            max: 140,
-            default: 100,
-            unit: 'K',
-            note: 'pas Search max',
-            source: 'Choix numerique solveur Search',
-            effect: 'neutral_on_physics',
-            biblio_ref: 'MAX_SEARCH_STEP_K'
-        },
-        {
-            group: 'SOLVER',
-            key: 'MAX_SEARCH_STEP_LARGE_K',
-            min: 100,
-            max: 200,
-            default: 150,
-            unit: 'K',
-            note: 'pas Search large',
-            source: 'Choix numerique solveur Search (grands deltas)',
-            effect: 'neutral_on_physics',
-            biblio_ref: 'MAX_SEARCH_STEP_LARGE_K'
-        },
-        {
-            group: 'SOLVER',
-            key: 'LARGE_DELTA_FACTOR',
-            min: 6,
-            max: 16,
-            default: 10,
-            unit: 'ratio',
-            note: 'seuil bascule grand delta',
-            source: 'Seuil de bascule vers cap large du pas Search',
-            effect: 'neutral_on_physics',
-            biblio_ref: 'LARGE_DELTA_FACTOR'
         },
         {
             group: 'RADIATIVE',

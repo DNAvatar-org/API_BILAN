@@ -6,6 +6,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script src="/CO2/static/logs_to_server.js"></script>
 <title>🌍 Bench Époques — Bilan Radiatif</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -290,7 +291,13 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
     var tPage0 = performance.now();
 
     var STEPS = [
-        { kind: 'script', src: BASE + 'configsAll.js', label: 'configsAll.js' },
+        // Ex-configsAll.js (bundle retiré v1.2.0) : sources séparées, ordre = dépendances.
+        { kind: 'script', src: BASE + 'config/model_tuning_biblio.js', label: 'model_tuning_biblio.js' },
+        { kind: 'script', src: BASE + 'config/configTimeline.js', label: 'configTimeline.js' },
+        { kind: 'script', src: '../../CO2/static/compute/alphabet.js', label: 'alphabet.js' },
+        { kind: 'script', src: '../../CO2/static/compute/dico.js', label: 'dico.js' },
+        { kind: 'script', src: BASE + 'data/initDATA.js', label: 'initDATA.js' },
+        { kind: 'script', src: BASE + 'config/fine_tuning_bounds.js', label: 'fine_tuning_bounds.js' },
         { kind: 'timeline', src: BASE + 'config/configTimeline.js', label: 'configTimeline.js (fetch)' },
         { kind: 'script', src: BASE + 'physics/physics.js', label: 'physics.js' },
         { kind: 'script', src: BASE + 'data/hitran_lines_CO2.js', label: 'hitran_lines_CO2.js' },

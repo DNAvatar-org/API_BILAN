@@ -3480,7 +3480,7 @@ function calculateH2OParametersWithIteration() {
                 use_acceleration = false; // Passer à 🔺⏳ normal (1 jour)
             }
         }
-        DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * DATA['🎚️'].SOLVER.DELTA_T_ACCELERATION_DAYS : CONV.SECONDS_PER_DAY;
+        DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays : CONV.SECONDS_PER_DAY;
         
         // 🔒 ÉTAPE 1 : Calculer 🍰🫧☔ (RH) depuis la vapeur actuelle
         const q_sat = mass_ratio * max_vapor_fraction;

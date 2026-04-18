@@ -1,8 +1,16 @@
-// File: API_BILAN/data/initDATA.js - Initialisation de l'objet DATA
-// Desc: Crée DATA depuis KEYS (dico.js) et 🎚️ ; chargé après dico.js. Source unique d'init.
-// Version 1.0.11
-// Date: [April 18, 2026] [18:00 UTC+1]
-// logs :
+// File: API_BILAN/data/initDATA.js - Initialisation DATA + window.DEFAULT (defaults uniques)
+// Desc: En français, dans l'architecture, je suis la source unique des valeurs par défaut live interpolées
+//       (window.DEFAULT.TUNING : baryByGroup / CLOUD_SW / HYSTERESIS / RADIATIVE ; window.DEFAULT.BOUNDS.HYSTERESIS
+//       pour les plages UI). Je clone ces defaults dans DATA['🎚️'] au chargement : DATA est ensuite la seule
+//       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
+//       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
+//       pas dans DATA/DEFAULT.
+// Version 1.2.0
+// Date: [April 18, 2026] [21:00 UTC+1]
+// Logs:
+// - v1.2.0: retrait bloc SOLVER de DEFAULT.TUNING (+ plus de DATA['🎚️'].SOLVER) → source unique SOLVER = window.CONFIG_COMPUTE (configTimeline.js clés tolMinWm2/maxSearchStepK/maxSearchStepLargeK/largeDeltaFactor/deltaTAccelerationDays/firstSearchStepCapK). DATA['🎚️'] = clone(DEFAULT.TUNING) = baryByGroup/CLOUD_SW/HYSTERESIS/RADIATIVE uniquement.
+// - v1.1.0: window.DEFAULT.TUNING (source unique defaults : baryByGroup/CLOUD_SW/SOLVER/HYSTERESIS/RADIATIVE) + window.DEFAULT.BOUNDS.HYSTERESIS (plages UI). DATA['🎚️'] = clone(DEFAULT.TUNING). Retrait de window.TUNING (remplacé dans model_tuning.js + migrations lecteurs live).
+// - v1.0.12: retrait DATA['🎚️'].SOLVER + baryByGroup.SOLVER + _solverDefault (déplacés vers window.TUNING.SOLVER, source unique lue par calculations_flux.js / calculations_h2o.js). Bary SOLVER jamais exposée en UI.
 // - v1.0.11: FIRST_SEARCH_STEP_CAP_K 4 K (amortissement 1er pas après Init, plus fort que 8 K)
 // - v1.0.10: SOLVER.FIRST_SEARCH_STEP_CAP_K 8 (1er pas après Init ; lissage trajet vs 0) ; aligné configsAll / TUNING / configTimeline fallback
 // - v1.0.9: baryByGroup défaut CLOUD_SW 65 + SCIENCE 65 (bench / convergence ajustée ailleurs) ; aligné CONFIG_COMPUTE
@@ -24,6 +32,79 @@
 
 (function () {
     'use strict';
+
+    // ============================================================================
+    // window.DEFAULT — defaults uniques (source de clonage vers DATA['🎚️']).
+    // Séparé en deux sous-objets :
+    //   - DEFAULT.TUNING : valeurs scalaires live (copiées dans DATA['🎚️']).
+    //   - DEFAULT.BOUNDS : plages {min, max, default, sens_threshold} pour interpolation UI
+    //                      (pas dans DATA, lues directement par les panneaux).
+    // ============================================================================
+    window.DEFAULT = window.DEFAULT || {};
+
+    window.DEFAULT.TUNING = {
+        // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
+        baryByGroup: { CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 },
+
+        // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
+        CLOUD_SW: {
+            CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
+            ANTHRO_RISE_START_YEAR: 1900, ANTHRO_RISE_WINDOW_YEARS: 80, ANTHRO_RISE_MAX: 0.25,
+            ANTHRO_DECAY_START_YEAR: 1980, ANTHRO_DECAY_WINDOW_YEARS: 40, ANTHRO_DECAY_MAX: 0.15,
+            SULFATE_BOOST_SCALE: 700, SULFATE_BOOST_MAX: 0.45,
+            MODERN_REF_O2: 0.21, MODERN_REF_FOREST: 0.03,
+            PRESSURE_FACTOR_MAX: 1.2, OXIDATION_BASE: 0.3, OXIDATION_O2_GAIN: 4.0,
+            TEMP_FACTOR_MIN: 0.6, TEMP_FACTOR_MAX: 1.3, TEMP_FACTOR_REF_K: 294,
+            OPTICAL_EFF_BASE: 1.20, OPTICAL_EFF_CCN_GAIN: 0.60,
+            OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
+            CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
+        },
+
+        // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →
+        // window.CONFIG_COMPUTE dans configTimeline.js. Statiques, pas interpolés → pas dans DATA/DEFAULT.
+
+        // Hystérésis (scalaires live) — lus par scie_hysteresis_search.js (scan + dicho seuil CO₂),
+        // interpolés par tuning.js/fillDataTuningFromBary depuis FINE_TUNING_BOUNDS groupe HYSTERESIS.
+        // Les plages UI (seaIceTransitionRangeK.{min,max}, iceAlbedoCoeff.{min,max}…) sont dans DEFAULT.BOUNDS.HYSTERESIS.
+        HYSTERESIS: {
+            // Paramètres physiques (interpolés depuis FINE_TUNING_BOUNDS)
+            seaIceTransitionRangeK: 2.2,
+            seaIceStrength01: 1,
+            iceImpactFactor01: 0.7,
+            co2OceanEffPump01: 0.1,
+            // Paramètres scan/dichotomie CO₂ (scie_hysteresis_search.js v2)
+            epsilonT_C: 1,
+            epsilonPpm: 1,
+            convergencePpmMass: 1,
+            brutalDeltaT_C: 3,
+            scanCo2MassFactor: 0.9,
+            maxDichoSteps: 30,
+            warmBranchHint_C: -5,
+            coldBranchHint_C: -20
+        },
+
+        // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).
+        // Propagé vers EARTH.H2O_EDS_SCALE par tuning.js/syncRadiativeConfig.
+        RADIATIVE: {
+            H2O_EDS_SCALE: 0.80
+        }
+    };
+
+    // Plages UI hystérésis (min/max/sens) pour panneaux scie / search.
+    // Références : Budyko 1969, Sellers 1969 (rétroaction glace-albédo) ; Hoffman & Schrag 2002, Pierrehumbert 2004 (Snowball Earth).
+    window.DEFAULT.BOUNDS = window.DEFAULT.BOUNDS || {};
+    window.DEFAULT.BOUNDS.HYSTERESIS = {
+        seaIceTransitionRangeK:   { min: 1,    max: 80,  default: 20,  sens_threshold: '➘' },
+        seaIceStrength01:         { min: 0.0,  max: 1.0, default: 1.0, sens_threshold: '➚' },
+        co2OceanScale01:          { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
+        co2OceanPumpOverride01:   { min: 0.0,  max: 1.0, default: 1.0, sens_threshold: '➚' },
+        co2OceanEffPump01:        { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
+        iceAlbedoCoeff:           { min: 0.50, max: 0.90, default: 0.70, sens_threshold: '➚' }
+    };
+
+    // ============================================================================
+    // Création DATA depuis KEYS (dico.js) + clone DEFAULT.TUNING dans DATA['🎚️'].
+    // ============================================================================
     var KEYS = window.KEYS;
     var DATA = {};
     var categoryKey, category, keysArray, fullKey;
@@ -45,42 +126,14 @@
             }
         }
     }
-    var _baryDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
-    // Aligné window.CONFIG_COMPUTE.baryByGroupDefault. UI : une jauge ATM = même % pour CLOUD_SW et SCIENCE.
-    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 4 };  // cap 1er pas Init (amortissement fort)
-    // Valeurs nominales objets 🎚️ ; positions le long des plages = baryByGroup (ATM 65/65 par défaut).
-    var _cloudSwDefault = {
-        CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
-        ANTHRO_RISE_START_YEAR: 1900, ANTHRO_RISE_WINDOW_YEARS: 80, ANTHRO_RISE_MAX: 0.25,
-        ANTHRO_DECAY_START_YEAR: 1980, ANTHRO_DECAY_WINDOW_YEARS: 40, ANTHRO_DECAY_MAX: 0.15,
-        SULFATE_BOOST_SCALE: 700, SULFATE_BOOST_MAX: 0.45,
-        MODERN_REF_O2: 0.21, MODERN_REF_FOREST: 0.03,
-        PRESSURE_FACTOR_MAX: 1.2, OXIDATION_BASE: 0.3, OXIDATION_O2_GAIN: 4.0,
-        TEMP_FACTOR_MIN: 0.6, TEMP_FACTOR_MAX: 1.3, TEMP_FACTOR_REF_K: 294,
-        OPTICAL_EFF_BASE: 1.20, OPTICAL_EFF_CCN_GAIN: 0.60,
-        OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
-        CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
-    };
-    // Aligné FINE_TUNING_BOUNDS groupe HYSTERESIS (defaults = 100 % bary)
-    var _hystDefault = {
-        seaIceTransitionRangeK: 2.2,
-        seaIceStrength01: 1,
-        iceImpactFactor01: 0.7,
-        co2OceanEffPump01: 0.1
-    };
-    // Aligné FINE_TUNING_BOUNDS groupe RADIATIVE (bary SCIENCE 50 % : interp. linéaire 1.00 → 0.60)
-    var _radiativeDefault = {
-        H2O_EDS_SCALE: 0.80
-    };
-    DATA['🎚️'] = {
-        baryByGroup: { CLOUD_SW: _baryDefault.CLOUD_SW, SCIENCE: _baryDefault.SCIENCE, SOLVER: _baryDefault.SOLVER, HYSTERESIS: _baryDefault.HYSTERESIS },
-        CLOUD_SW: _cloudSwDefault,
-        SOLVER: { TOL_MIN_WM2: _solverDefault.TOL_MIN_WM2, MAX_SEARCH_STEP_K: _solverDefault.MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K: _solverDefault.MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR: _solverDefault.LARGE_DELTA_FACTOR, DELTA_T_ACCELERATION_DAYS: _solverDefault.DELTA_T_ACCELERATION_DAYS, FIRST_SEARCH_STEP_CAP_K: _solverDefault.FIRST_SEARCH_STEP_CAP_K },
-        HYSTERESIS: _hystDefault,
-        RADIATIVE: _radiativeDefault
-    };
+
+    // DATA['🎚️'] = deep clone de DEFAULT.TUNING (source live de la physique).
+    // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).
+    DATA['🎚️'] = JSON.parse(JSON.stringify(window.DEFAULT.TUNING));
+
     // Réservoir océan (cycle CO2) : non présent dans KEYS, on l'initialise ici.
     if (!DATA['🌊']) DATA['🌊'] = {};
     DATA['🌊']['⚖️🌊🏭'] = 0;
+
     window.DATA = DATA;
 })();
