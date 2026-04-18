@@ -1,8 +1,9 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.2.7
+// Version 1.2.8
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.2.8: calculateFluxForT0 — retrait du fallback silencieux voie série (111 lignes). Si spectralWorkerPool absent/non-ready → throw (crash-first). Cause historique scie 15.28°C vs bench 15.35°C (📱 2000) : scie/visu (index.html) n'avait pas workers/worker_pool.js dans loader_panels.js → silencieusement voie série, ordre addition float différent (0.115 W/m² sur 348 W/m²). Fix loader : v1.1.19.
 // - v1.2.7: waterVaporMixingRatio + waterVaporFractionAtZ utilisent window.PHYS.computeH2OScaleHeight() (= R·T²/(L·Γ), dépend T et g_epoch). Remplace la constante EARTH.H2O_SCALE_HEIGHT_M (retirée) pour couvrir Hadéen (P, T extrêmes). Voir physics.js v2.0.12.
 // - v1.2.6: waterVaporMixingRatio + waterVaporFractionAtZ utilisent EARTH.H2O_SCALE_HEIGHT_M (=2200 m, Clausius-Clapeyron effectif) au lieu de R·T/(M_H2O·g) (≈13,6 km, hydrostatique pur — irréaliste car H₂O condense avec T(z), surestimait PWV ×2,6 et τ_H₂O d'autant).
 // - v1.2.5: retrait recalcul dynamique EARTH.H2O_EDS_SCALE (0.92·√P_ratio·CO2_factor) — double-comptait pressure broadening HITRAN. Valeur pilotée par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE via tuning.js (sync SCIENCE bary).
@@ -471,8 +472,14 @@ async function calculateFluxForT0() {
     const usePressureBroadening = window.CONFIG_COMPUTE.pressureBroadening;
     const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
 
-    // ── Dispatch parallèle (Transferable, N-1 workers) ─────────────────────────────────
-    if (window.spectralWorkerPool && window.spectralWorkerPool.ready) {
+    // ── Dispatch parallèle OBLIGATOIRE (Transferable, N-1 workers) ──────────────────
+    // Pré-requis strict : workers/worker_pool.js chargé (scie/visu via loader_panels.js, bench via epoch_bench.html).
+    // Ancienne voie série retirée : désynchro numérique silencieuse (ordre d'addition float) → scie 15.28°C vs bench 15.35°C
+    // pour même config (📱 2000). Crash-first ici pour éviter que ça se reproduise.
+    if (!window.spectralWorkerPool || !window.spectralWorkerPool.ready) {
+        throw new Error('[calculateFluxForT0] spectralWorkerPool absent ou non-ready. Vérifier chargement API_BILAN/workers/worker_pool.js dans le loader.');
+    }
+    {
         console.log('⚙️ [workers] dispatch ' + lambda_range.length + ' bins × ' + z_range.length + ' layers → ' + window.spectralWorkerPool.nWorkers + ' workers');
         const nL = lambda_range.length;
         const nZ = z_range.length;
@@ -517,120 +524,8 @@ async function calculateFluxForT0() {
         }
         console.log('⚙️ [workers] done OLR=' + OLR_w.toFixed(2) + ' W/m²');
         // resultBuf non référencé après ici → GC peut collecter le Transferable
-    } else {
-    // ── Voie série (fallback) ────────────────────────────────────────────────────────
-    for (let i = 0; i < i_trop; i++) {
-        const z = z_range[i];
-        const T = DATA['🧮']['🧮🌡️'] + Gamma * z; // Calcul direct, sans appel à temperature()
-        // ⚡ OPTIMISATION : Calculer les densités numériques une seule fois par altitude (pas dans la boucle lambda)
-        const n_air = window.airNumberDensityAtZ(z);
-        const n_CO2 = n_air * DATA['🫧']['🍰🫧🏭'];
-        const n_H2O = n_air * waterVaporFractionAtZ(z);
-        const n_CH4 = n_air * methaneFractionAtZ(z);
-        // Pressure broadening : σ_eff = σ × √(P/P_ref). Lorentz broadening, cap 2.0.
-        const P_z = usePressureBroadening && window.pressureAtZ ? window.pressureAtZ(z) : P_REF;
-        const pressureBroadening = usePressureBroadening ? Math.min(2.0, Math.sqrt(Math.max(1, P_z) / P_REF)) : 1.0;
-
-        // Épaisseur réelle de la couche i → τ cohérent quel que soit delta_z (convergence quand précision augmente).
-        const delta_z_real = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : delta_z_troposphere;
-
-        if (flux_in.length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE troposphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles troposphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
-        }
-
-        const z_last = z_range[z_range.length - 1];
-        for (let j = 0; j < lambda_range.length; j++) {
-            const lambda = lambda_range[j];
-            const sigma_broad = pressureBroadening;
-            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * sigma_broad * n_CO2 : 0;
-            const kappa_H2O_raw = isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * sigma_broad * n_H2O : 0;
-            const kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
-            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
-            const kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
-            const tau_cloud_layer = tau_cloud_per_layer;
-            const tau_raw = kappa * delta_z_real + tau_cloud_layer;
-            const tau_eff = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(tau_raw, TAU_EFF_MAX) : 0;
-
-            const has_absorption = (DATA['🫧']['🍰🫧🏭'] > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
-            let out_clamped;
-            if (!has_absorption) {
-                out_clamped = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
-            } else {
-                const tau = Math.max(TAU_EFF_MIN, tau_eff);
-                const transmission = Math.exp(-tau);
-                const emissivity = 1 - transmission;
-                const em_flux = emissivity * Math.PI * PHYS.planckFunction(lambda, T) * effective_delta_lambda * lambda_weights[j];
-                let out = flux_in[j] * transmission + em_flux;
-                if (!Number.isFinite(out)) out = flux_in[j];
-                out_clamped = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out));
-                const tau_CO2 = Math.max(0, kappa_CO2 * delta_z_real);
-                const tau_H2O = Math.max(0, kappa_H2O * delta_z_real);
-                const tau_CH4 = Math.max(0, kappa_CH4 * delta_z_real);
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-tau_CO2));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-tau_H2O));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-tau_CH4));
-                sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
-            }
-            flux_in[j] = out_clamped;
-            // Tracking Ychange : première couche où le flux descend de > YCHANGE_THR vs surface
-            if (ychange[j] >= z_last && out_clamped < flux_init[j] * (1 - YCHANGE_THR)) {
-                ychange[j] = z_range[i];
-            }
-        }
     }
 
-    // ⚡ OPTIMISATION : Boucle après tropopause (T constante = T_trop, B_λ précalculé)
-    for (let i = i_trop; i < z_range.length; i++) {
-        const z = z_range[i];
-        // ⚡ OPTIMISATION : Calculer les densités numériques une seule fois par altitude (pas dans la boucle lambda)
-        const n_air = window.airNumberDensityAtZ(z);
-        const n_CO2 = n_air * DATA['🫧']['🍰🫧🏭'];
-        const n_H2O = n_air * waterVaporFractionAtZ(z);
-        const n_CH4 = n_air * methaneFractionAtZ(z);
-        const P_z_s = usePressureBroadening && window.pressureAtZ ? window.pressureAtZ(z) : P_REF;
-        const pressureBroadening_s = usePressureBroadening ? Math.min(2.0, Math.sqrt(Math.max(1, P_z_s) / P_REF)) : 1.0;
-
-        // Épaisseur réelle de la couche i (z_range[i-1] → z_range[i]) : cohérent avec troposphère, pas de pas fixe stratosphère.
-        const delta_z_real = i > 0 ? (z_range[i] - z_range[i - 1]) : delta_z_stratosphere;
-
-        if (flux_in.length !== lambda_range.length) {
-            console.error(`[calculateFluxForT0] ❌ ERREUR CRITIQUE stratosphère i=${i}: flux_in.length (${flux_in.length}) != lambda_range.length (${lambda_range.length})`);
-            throw new Error(`Longueurs incompatibles stratosphère: flux_in (${flux_in.length}) != lambda_range (${lambda_range.length})`);
-        }
-
-        const z_last_s = z_range[z_range.length - 1];
-        for (let j = 0; j < lambda_range.length; j++) {
-            const kappa_CO2 = isFinite(n_CO2) && isFinite(cross_section_CO2[j]) ? cross_section_CO2[j] * pressureBroadening_s * n_CO2 : 0;
-            const kappa_H2O = (isFinite(n_H2O) && isFinite(cross_section_H2O[j]) ? cross_section_H2O[j] * pressureBroadening_s * n_H2O : 0) * h2o_eds_scale;
-            const kappa_CH4 = isFinite(n_CH4) && isFinite(cross_section_CH4[j]) ? cross_section_CH4[j] * pressureBroadening_s * n_CH4 : 0;
-            const kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
-            const tau_eff_s = (Number.isFinite(kappa * delta_z_real) && kappa * delta_z_real >= 0) ? Math.min(kappa * delta_z_real, TAU_EFF_MAX) : 0;
-            const has_absorption = (DATA['🫧']['🍰🫧🏭'] > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10);
-            let out_clamped_s;
-            if (!has_absorption) {
-                out_clamped_s = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
-            } else {
-                const tau = Math.max(TAU_EFF_MIN, tau_eff_s);
-                const transmission = Math.exp(-tau);
-                const emissivity = 1 - transmission;
-                const em_flux = emissivity * Math.PI * planck_trop[j] * effective_delta_lambda * lambda_weights[j];
-                let out_s = flux_in[j] * transmission + em_flux;
-                if (!Number.isFinite(out_s)) out_s = flux_in[j];
-                out_clamped_s = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out_s));
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
-            }
-            flux_in[j] = out_clamped_s;
-            if (ychange[j] >= z_last_s && out_clamped_s < flux_init[j] * (1 - YCHANGE_THR)) {
-                ychange[j] = z_range[i];
-            }
-        }
-    }
-    } // fin else (voie série)
-
-    // Log supprimé (non essentiel)
 
     // flux_in contient le flux au sommet après propagation complète (OLR)
     if (!flux_in || flux_in.length === 0) throw new Error('[calculateFluxForT0] flux_in vide ou invalide après boucle');

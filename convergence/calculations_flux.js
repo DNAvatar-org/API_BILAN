@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.87
+// Version 1.2.88
 // Date: [April 18, 2026]
 // Logs:
+// - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
 // - v1.2.87: lectures SOLVER migrées vers window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER. Clés : tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, firstSearchStepCapK, deltaTAccelerationDays.
 // - v1.2.86: lectures live SOLVER migrées vers window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING. FIRST_SEARCH_STEP_CAP_K / DELTA_T_ACCELERATION_DAYS modifiables live via DATA['🎚️'].SOLVER.
 // - v1.2.85: source unique window.TUNING.SOLVER pour les 4 lectures (tolérance, cap Search, cap 1er pas, DELTA_T_ACCELERATION_DAYS). Fin DATA['🎚️'].SOLVER (plus d'interpolation bary sur le solveur — calibration statique).
@@ -533,23 +534,6 @@ async function computeRadiativeTransfer(callback, options) {
         console.groupCollapsed('[API_BILAN] computeRadiativeTransfer', renderMode, 'epoch=', DATA['📜']['🗿']);
         computeDbgGroup = true;
     }
-    // [DIAG bench vs scie] dump entree compute : bary, CLOUD_SW choisis, H2O_EDS_SCALE, cap solveur.
-    // console.warn => captured by CO2/static/logs_to_server.js => _logs/runtime.log.
-    const T_diag = DATA['🎚️'];
-    const diagBary = T_diag && T_diag.baryByGroup ? T_diag.baryByGroup : {};
-    const diagCloud = T_diag && T_diag.CLOUD_SW ? T_diag.CLOUD_SW : {};
-    const diagRad = T_diag && T_diag.RADIATIVE ? T_diag.RADIATIVE : {};
-    const diagEarth = window.EARTH || {};
-    console.warn('[DIAG compute entry] renderMode=' + renderMode
-        + ' epoch=' + (DATA['📜'] && DATA['📜']['🗿'])
-        + ' | bary CLOUD_SW=' + diagBary.CLOUD_SW + ' SCIENCE=' + diagBary.SCIENCE + ' HYSTERESIS=' + diagBary.HYSTERESIS
-        + ' | CLOUD_FRACTION_BASE=' + diagCloud.CLOUD_FRACTION_BASE
-        + ' OPTICAL_EFF_BASE=' + diagCloud.OPTICAL_EFF_BASE
-        + ' CCN_BASE=' + diagCloud.CCN_BASE
-        + ' | RADIATIVE.H2O_EDS_SCALE=' + diagRad.H2O_EDS_SCALE
-        + ' EARTH.H2O_EDS_SCALE=' + diagEarth.H2O_EDS_SCALE
-        + ' | firstSearchStepCapK=' + CONFIG_COMPUTE.firstSearchStepCapK
-        + ' tolMinWm2=' + CONFIG_COMPUTE.tolMinWm2);
     if (!DATA['🧮']['previous']) DATA['🧮']['previous'] = [];
     window.clearConvergenceTrace();
     if (DATA['🧮']['🧮🔄🌊'] == null) DATA['🧮']['🧮🔄🌊'] = 0;
