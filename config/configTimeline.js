@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.9
+// Version 1.4.10
 // Date: [April 18, 2026] [18:00 UTC+1]
 // logs :
+// - v1.4.10: fallback SOLVER_TUNING.FIRST_SEARCH_STEP_CAP_K 8 K (si TUNING absent) ; aligné initDATA / configsAll pour 1er pas Init
 // - v1.4.9: baryByGroupDefault — CLOUD_SW 65 % + SCIENCE 65 % (bench ; convergence ajustée graines/gaz) ; graines 🌡️🧮 + ⚖️ gaz Archéen→Holocène (lit. CSV)
 // - v1.4.8: baryByGroupDefault — CLOUD_SW 50 % + SCIENCE 50 % (jauge unique scie/bench) ; SOLVER/HYSTERESIS 100 %
 // - v1.4.7: baryByGroupDefault — SCIENCE 50 % (CLOUD_SW/SOLVER/HYSTERESIS 100 %) ; aligné initDATA / configsAll queue
@@ -821,7 +822,7 @@ const SOLVER_TUNING = (window.TUNING && window.TUNING.SOLVER)
         MAX_SEARCH_STEP_K: 100,
         MAX_SEARCH_STEP_LARGE_K: 150,
         LARGE_DELTA_FACTOR: 10,
-        FIRST_SEARCH_STEP_CAP_K: 0
+        FIRST_SEARCH_STEP_CAP_K: 8
     };
 // Borne min tolérance flux (W/m²) : évite convergence impossible sous bruit numérique.
 window.CONFIG_COMPUTE.tolMinWm2 = SOLVER_TUNING.TOL_MIN_WM2; // [EQ/NUM]

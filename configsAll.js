@@ -1,11 +1,12 @@
 // File: API_BILAN/configsAll.js - Configs combinées (alphabet, dico, initDATA, model_tuning, configTimeline)
 // Desc: Concatenation automatique de : data/alphabet.js + data/dico.js + data/initDATA.js + config/model_tuning.js + config/model_tuning_biblio.js + config/fine_tuning_bounds.js + config/configTimeline.js
-// Version 1.0.21
+// Version 1.0.22
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 18, 2026] [18:00 UTC+1]
 // Logs:
+// - v1.0.22: FIRST_SEARCH_STEP_CAP_K 8 K (1er pas après Init) ; aligné initDATA / TUNING.SOLVER / configTimeline fallback — tradeoff T_fin 📱 possible vs cap 0
 // - v1.0.21: baryByGroupDefault CLOUD_SW 65 % + SCIENCE 65 % (aligné initDATA / configTimeline) ; calibrations époques fines → configTimeline.js v1.4.9+ (TIMELINE embarqué ci-dessous = schéma simplifié hérité)
 // - v1.0.20: baryByGroupDefault CLOUD_SW 50 % + SCIENCE 50 % (jauge unique scie/bench) ; aligné initDATA / configTimeline
 // - v1.0.19: baryByGroup init + CONFIG_COMPUTE.baryByGroupDefault — SCIENCE 50 % ; CHARS.SULFATE / CHARS_DESC = U+2708 U+FE0F (emoji ✈️) ; initDATA embarqué sync
@@ -859,7 +860,7 @@ window.createDicoHtml = createDicoHtml;
     }
     var _baryDefault = { CLOUD_SW: 65, SCIENCE: 65, SOLVER: 100, HYSTERESIS: 100 };
     // Jauge unique ATM : même % CLOUD_SW et SCIENCE. SOLVER 100 % = max fine_tuning_bounds solveur.
-    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 0 };  // 10 j (litt. 8–10 j)
+    var _solverDefault = { TOL_MIN_WM2: 0.10, MAX_SEARCH_STEP_K: 140, MAX_SEARCH_STEP_LARGE_K: 200, LARGE_DELTA_FACTOR: 16, DELTA_T_ACCELERATION_DAYS: 10, FIRST_SEARCH_STEP_CAP_K: 8 };  // cap 1er pas Init (test)
     // 100% = valeurs max fine_tuning_bounds (CLOUD_SW + SCIENCE) pour cohérence visu sans scie => 16.4°C 2025
     var _cloudSwDefault = {
         CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
@@ -943,7 +944,7 @@ window.TUNING.SOLVER = {
     MAX_SEARCH_STEP_K: 100,
     MAX_SEARCH_STEP_LARGE_K: 150,
     LARGE_DELTA_FACTOR: 10,
-    FIRST_SEARCH_STEP_CAP_K: 0
+    FIRST_SEARCH_STEP_CAP_K: 8
 };
 
 // ============================================================================
