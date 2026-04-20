@@ -1,8 +1,9 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.43
-// Date: [April 03, 2026] [22:30 UTC+1]
+// Version 1.2.44
+// Date: [April 18, 2026]
 // logs :
+// - v1.2.44: expositions fonctions regroupées sous window.ALBEDO (doublons window.foo retirés). Ajout ALBEDO.updateLevelsConfig. Appelants migrés window.foo() → ALBEDO.foo() dans radiative/calculations.js, convergence/calculations_flux.js, ui/main.js, organigramme/organigramme.js.
 // - v1.2.43: updateLevelsConfig — lecture directe DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] (pas de const stale)
 // - v1.2.42: diagnostics glace / albédo → pdTrace au lieu de pd
 // - v1.2.41: CONFIG_COMPUTE.logIceFractionDiagnostic — journal chaîne complète vers 🍰🪩🧊 (polaire, mer gelée, verrous, surface finale)
@@ -729,12 +730,7 @@ ALBEDO.calculateCloudCoverage = calculateCloudCoverage; // DEPRECATED: utiliser 
 ALBEDO.calculateCloudFormationIndex = calculateCloudFormationIndex;
 ALBEDO.calculateSolarFluxAbsorbed = calculateSolarFluxAbsorbed;
 ALBEDO.calculateGeologySurfaces = calculateGeologySurfaces;
-window.calculateAlbedo = calculateAlbedo;
-window.calculateCloudCoverage = calculateCloudCoverage;
-window.calculateCloudFormationIndex = calculateCloudFormationIndex;
-window.calculateSolarFluxAbsorbed = calculateSolarFluxAbsorbed;
-window.calculateGeologySurfaces = calculateGeologySurfaces;
-window.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
+// Expositions : tout passe par window.ALBEDO (doublons window.foo retirés).
 
 function updateLevelsConfig() {
     const DATA = window.DATA;
@@ -745,14 +741,14 @@ function updateLevelsConfig() {
     // Initialiser CO2 depuis EPOCH
     let co2_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🏭'] > 0) {
-        const co2_fraction = window.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
+        const co2_fraction = window.ATM.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         co2_ppm = co2_fraction * 1e6;
     }
     
     // Initialiser CH4 depuis EPOCH
     let ch4_ppm = 0;
     if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
-        const ch4_fraction = window.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
+        const ch4_fraction = window.ATM.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
         ch4_ppm = ch4_fraction * 1e6;
     }
     
@@ -763,10 +759,10 @@ function updateLevelsConfig() {
     }
     
     // Si maximiseData (appel depuis un événement), prendre le max entre la valeur sauvegardée et la valeur par défaut
-    if (window.maximiseData) {
-        const savedCO2 = window.savedCO2 || 0;
-        const savedCH4 = window.savedCH4 || 0;
-        const savedH2O = window.savedH2O || 0;
+    if (window.UI_STATE.maximiseData) {
+        const savedCO2 = window.UI_STATE.savedCO2;
+        const savedCH4 = window.UI_STATE.savedCH4;
+        const savedH2O = window.UI_STATE.savedH2O;
         co2_ppm = Math.max(savedCO2, co2_ppm);
         ch4_ppm = Math.max(savedCH4, ch4_ppm);
         h2o_percent = Math.max(savedH2O, h2o_percent);
@@ -778,9 +774,9 @@ function updateLevelsConfig() {
         plotData.ch4_ppm = ch4_ppm;
     }
     
-    // Mettre à jour window.h2oVaporPercent
-    window.h2oVaporPercent = h2o_percent;
-    window.h2oTotalFromMeteorites = 0;
+    // Mettre à jour window.RUNTIME_STATE.h2oVaporPercent
+    window.RUNTIME_STATE.h2oVaporPercent = h2o_percent;
+    window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
     
     const h2o_total_kg = DATA['⚖️']['⚖️💧'];
     if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logLevelsConfig) {
@@ -788,6 +784,5 @@ function updateLevelsConfig() {
     }
 }
 
-// Exposer globalement pour utilisation dans main.js
-window.updateLevelsConfig = updateLevelsConfig;
+ALBEDO.updateLevelsConfig = updateLevelsConfig;
 

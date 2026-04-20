@@ -1,8 +1,9 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.1.6
-// Date: [June 08, 2025] [HH:MM UTC+1]
+// Version 1.1.7
+// Date: [April 18, 2026]
 // logs :
+// - v1.1.7: expositions fonctions regroupées sous window.ATM (doublons window.foo retirés). Appelants migrés window.foo() → ATM.foo() dans radiative/calculations.js, albedo/calculations_albedo.js, ui/main.js, courbes/plot.js, sync_panels.js, scie_hysteresis_search.js, organigramme.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -27,7 +28,7 @@ function calculateAtmosphereProperties() {
     const DATA = window.DATA;
     
     const temperature_K = DATA['🧮']['🧮🌡️'];
-    window.calculateMolarMassAir();
+    window.ATM.calculateMolarMassAir();
     const molar_mass_kg_mol = DATA['🫧']['🧪'];
 
     const CONST = window.CONST;
@@ -193,7 +194,7 @@ function calculateAtmosphereComposition() {
         DATA['🫧']['🍰🫧💨'] = Math.max(0, 1.0 - (DATA['🫧']['🍰🫧🏭'] + DATA['🫧']['🍰🫧🐄'] + DATA['🫧']['🍰🫧🫁']));
     }
     
-    const props = window.calculateAtmosphereProperties();
+    const props = window.ATM.calculateAtmosphereProperties();
     const altitude = props.z_max;
     const tropopause = calculateTropopauseHeight();
     
@@ -218,7 +219,7 @@ function calculateAtmosphereComposition() {
  *  À appeler au début de chaque pas radiatif pour que cold start et warm start
  *  aient la même grille verticale à même T (évite Δ différent à 15,8°C). */
 function updateAtmosphereHeightFromCurrentT() {
-    const props = window.calculateAtmosphereProperties();
+    const props = window.ATM.calculateAtmosphereProperties();
     const tropopause_m = calculateTropopauseHeight();
     window.DATA['🫧']['📏🫧🧿'] = props.z_max / 1000;
     window.DATA['🫧']['📏🫧🛩'] = tropopause_m / 1000;
@@ -250,7 +251,7 @@ function pressureAtZ(z) {
 
 function airNumberDensityAtZ(z) {
     const CONST = window.CONST;
-    return pressureAtZ(z) / (CONST.BOLTZMANN_KB * window.temperatureAtZ(z));
+    return pressureAtZ(z) / (CONST.BOLTZMANN_KB * window.RADIATIVE.temperatureAtZ(z));
 }
 
 /** Convertit masse CO2 (kg) en fraction molaire : (mass_CO2/M_CO2) / (mass_total/M_air) */
@@ -280,13 +281,4 @@ ATM.pressureAtZ = pressureAtZ;
 ATM.airNumberDensityAtZ = airNumberDensityAtZ;
 ATM.co2KgToFraction = co2KgToFraction;
 ATM.ch4KgToFraction = ch4KgToFraction;
-window.calculateAtmosphereProperties = calculateAtmosphereProperties;
-window.calculateMolarMassAir = calculateMolarMassAir;
-window.calculatePressureAtm = calculatePressureAtm;
-window.calculateAtmosphereComposition = calculateAtmosphereComposition;
-window.updateAtmosphereHeightFromCurrentT = updateAtmosphereHeightFromCurrentT;
-window.calculateTropopauseHeight = calculateTropopauseHeight;
-window.pressureAtZ = pressureAtZ;
-window.airNumberDensityAtZ = airNumberDensityAtZ;
-window.co2KgToFraction = co2KgToFraction;
-window.ch4KgToFraction = ch4KgToFraction;
+// Expositions : tout passe par window.ATM (doublons window.foo retirés).

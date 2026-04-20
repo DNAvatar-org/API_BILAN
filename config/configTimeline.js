@@ -1,8 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.14
+// Version 1.4.16
 // Date: [April 18, 2026] [22:30 UTC+1]
 // logs :
+// - v1.4.16: Archéen 🦠 — commentaires ⚖️🏭/🐄/💧/💨 : bornes grille bench (ppm, % vap. atm) à côté des masses kg ; distinction océan vs vapeur atmosphérique.
+// - v1.4.15: Archéen 🦠 — duplication explicite des fourchettes tolérables (grille bench) dans l’objet TIMELINE + note : plage T [10,60] °C = enveloppe large pour affichage bench, pas précision paléo serrée ; resync epoch_bench BENCH_LIT 🦠.
 // - v1.4.14: firstSearchStepCapK 0 → 4 (régression migration v1.4.13 : 📱 2000 passait 14 °C → 13,37 °C). Valeur réf. historique = 4 K.
 // - v1.4.13: CONFIG_COMPUTE source UNIQUE SOLVER (retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER) → clés tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, deltaTAccelerationDays, firstSearchStepCapK, bornesMinK, bornesMaxK, searchStepScaleMax. Valeurs directes (plus de miroirs depuis DATA).
 // - v1.4.12: retrait SOLVER_TUNING + blocs CONFIG_COMPUTE.{tolMinWm2,maxSearchStepK,maxSearchStepLargeK,largeDeltaFactor,searchStepScaleMax,bornesMinK,bornesMaxK} — dead code (écrits 2× jamais lus). Source SOLVER unique : window.TUNING.SOLVER.
@@ -78,6 +80,7 @@
 // ---------------------------------------------------------------------------
 // GRILLE LITTÉRATURE (repère / bench) — CSV synthèse ; 🌡️🧮 TIMELINE = amorce solveur (K), pas T finale.
 // Fourchettes dupliquées pour l’UI bench : doc/epoch_bench.html (BENCH_LIT_BY_EPOCH_ID) — resync si cette grille change.
+// Chaque entrée d’époque dans timeline[] reprend en commentaire les mêmes nombres (voir Archéen 🦠 modèle).
 // Colonnes : T_init °C plage ; CO₂ ppm ; CH₄ ppm ; H₂O vapeur mol % (atmosphère) ; albédo 🍰🪩📿.
 // Mapping époques TIMELINE ↔ libellés CSV : ⚫ Corps_noir ; 🔥 Hadéen ; 🦠 Archéen ; 🪸 Protérozoïque ;
 //   hysteresis 1a Sturtienne ; ⛄ Plein_Snowball ; hysteresis 1b Sortie_Marinoen ; 🪼 Paléozoïque_marin ;
@@ -87,6 +90,7 @@
 // Corps_noir,[-19, -17],[0, 1],[0, 0.1],[0, 0.01],[0.29, 0.31]
 // Hadéen,[2000, 2500],[100000, 500000],[10, 100],[10, 20],[0.15, 0.35]
 // Archéen,[10, 60],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
+//   → T surface : enveloppe bench très large (early Archean ~4 Ga peu contraint en T exacte) ; ne pas lire « entre 10 et 60 °C » comme une incertitude expérimentale fine. Ajustements futurs : resserrer les bornes ici + ligne CSV Archéen + BENCH_LIT 🦠 + bloc commentaire objet Archéen (timeline[]).
 // Protérozoïque,[5, 20],[5000, 20000],[50, 500],[0.5, 1.5],[0.25, 0.35]
 // Sturtienne,[-50, 10],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
 // Plein_Snowball,[-60, -20],[300, 1500],[0.1, 10],[0.01, 0.5],[0.80, 0.90]
@@ -217,7 +221,16 @@ const timeline = [
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
         '▶': 4.0e9,
         '◀': 2.5e9,
-        // 🌡️🧮 : vers milieu grille CSV Archéen [10,60]°C → ~318 K (~45 °C). Amorce solveur / affichage.
+        //
+        // --- FOURCHETTES TOLÉRABLES (bench / litt. synthèse) — DUPLICATA de la ligne CSV « Archéen » dans la GRILLE du haut de ce fichier ---
+        // Même objet litt. que doc/epoch_bench.html → BENCH_LIT_BY_EPOCH_ID['🦠'] (clé \u{1F9A0}). Toute modification : les 3 endroits ensemble.
+        //   T °C surface   : [10, 60]     — enveloppe large (repère tableau bench), pas une fourchette physique serrée.
+        //   CO₂ ppm          : [50000, 150000]
+        //   CH₄ ppm          : [1000, 10000]
+        //   H₂O vap. mol %   : [0.5, 3.0]
+        //   Albédo effectif 🪩 : [0.20, 0.30] (colonne CSV « Albedo », pas une clé TIMELINE séparée)
+        //
+        // 🌡️🧮 : milieu mathématique de [10,60] °C → ~35 °C au-dessus de 273.15 → ~318 K (~45 °C). Amorce solveur uniquement ; T convergée peut sortir de [10,60].
         '🌡️🧮': 318.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
@@ -248,11 +261,12 @@ const timeline = [
         //    Haqq-Misra et al. 2008 (Astrobiology) : jusqu'à 10 000 ppm, brume si CH₄/CO₂ > 0.1 ✓
         //    Pavlov et al. 2000 : 100–1 000 ppm ; Charnay 2020 : 100–17 000 ppm ✓
         // ✅ Ratio CH₄/CO₂ = 3.0e16 / 1.5e18 = 0.02 — sous le seuil de brume organique (0.1, Haqq-Misra 2008) ✓
-        '⚖️🏭': 1.62e18, // co2_kg — hausse légère vs 1.5e18 (T conv basse bench)
-        '⚖️🐄': 3.25e16, // ch4_kg — hausse légère vs 3e16 (T conv basse bench)
-        '⚖️💧': 1.8e21, // h2o_kg (~129% actuel, litt. Harvard océans +26%)
-        '⚖️🫁': 0, // o2_kg
-        '⚖️💨': 9.918e18, // n2_kg (base azote Archéen, lit. ~1–2× PAL ; Marty 2013)
+        // ⚖️ = masses totales (kg). Grille CSV « Archéen » : CO₂ ppm [50k,150k] ; CH₄ [1k,10k] ; H₂O vapeur atm [0.5,3.0]% mol — utiles comme bornes repère, les ppm se déduisent des masses via calculations_atm.
+        '⚖️🏭': 10.62e18, // co2_kg — repère bench ppm CO₂ [50000, 150000] (même ligne CSV / BENCH_LIT 🦠) ; valeur = masse ; ~95k ppm pour ce jeu ⚖️🫧/📐
+        '⚖️🐄': 3.25e16, // ch4_kg — repère bench ppm CH₄ [1000, 10000]
+        '⚖️💧': 1.8e21, // h2o_kg inventaire hydrosphère (océan…) — pas la colonne CSV « H₂O vap. mol % » ; celle-ci est vapeur atmosphérique [0.5, 3.0]% (grille). ~129% PAL océan (repère Harvard +26%)
+        '⚖️🫁': 0, // o2_kg — prébiotique, pas de plage ppm bench Archéen
+        '⚖️💨': 9.918e18, // n2_kg — dominant ; litt. masse atmos. N₂ ~1–2× PAL (Marty 2013), pas de colonne ppm dédiée dans la grille CSV Archéen
         '⚖️✈': 0, // proxy_sulfates
         '⚖️🫧': 1.15705e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 1.62e18 + 3.25e16
         // Note: Les % seront calculés via calculations_atm.js

@@ -40,7 +40,7 @@ function createReceiver(options) {
     return function (event, payload) {
         const IO_LISTENER = window.IO_LISTENER;
         const shell = window.shell;
-        const updateFluxLabels = window.updateFluxLabels;
+        const updateFluxLabels = window.ORG.updateFluxLabels;
         const projectToVisu = window.projectToVisu;
 
         if (event === 'convergenceStep') {
@@ -55,7 +55,7 @@ function createReceiver(options) {
                 try { updateFluxLabels('cycleCalcul'); } catch (e) {}
             }
             if (!isInIframe && dispatchScie && scieTarget && payload && payload.DATA) {
-                try { scieTarget.postMessage({ type: 'cycleCalcul', DATA: payload.DATA, h2oVaporPercent: window.h2oVaporPercent }, '*'); } catch (e) {}
+                try { scieTarget.postMessage({ type: 'cycleCalcul', DATA: payload.DATA, h2oVaporPercent: window.RUNTIME_STATE.h2oVaporPercent }, '*'); } catch (e) {}
             }
             return;
         }

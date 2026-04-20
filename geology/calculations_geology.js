@@ -1,6 +1,10 @@
 // ============================================================================
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
+// Version 1.0.1
+// Date: [April 18, 2026]
+// Logs:
+// - v1.0.1: expositions regroupées sous nouveau namespace window.GEOLOGY (getGeologicalPeriodByName, getGeologicalPeriod, getMoltenCrustFactor, getGeologicalEra, calculateGeothermalFlux). Doublons window.foo retirés. Appelants migrés dans physics/climate.js, radiative/calculations.js, organigramme.js, ui/main.js, courbes/plot.js, sync_panels.js, flux_manager.js. Fallbacks inline dans CO2/html/*.html supprimés (dead code : module geology toujours chargé).
 // ============================================================================
 
 // Constantes pour la croûte molle (identiques à geology.js)
@@ -175,11 +179,9 @@ function calculateGeothermalFlux(core_temperature_K, geothermal_diffusion_factor
     return core_temperature_K * geothermal_diffusion_factor * CONVERSION_CONSTANT;
 }
 
-// Exposer globalement
-if (typeof window !== 'undefined') {
-    window.getGeologicalPeriodByName = getGeologicalPeriodByName;
-    window.getGeologicalPeriod = getGeologicalPeriod;
-    window.getMoltenCrustFactor = getMoltenCrustFactor;
-    window.getGeologicalEra = getGeologicalEra;
-    window.calculateGeothermalFlux = calculateGeothermalFlux;
-}
+var GEOLOGY = window.GEOLOGY = window.GEOLOGY || {};
+GEOLOGY.getGeologicalPeriodByName = getGeologicalPeriodByName;
+GEOLOGY.getGeologicalPeriod = getGeologicalPeriod;
+GEOLOGY.getMoltenCrustFactor = getMoltenCrustFactor;
+GEOLOGY.getGeologicalEra = getGeologicalEra;
+GEOLOGY.calculateGeothermalFlux = calculateGeothermalFlux;

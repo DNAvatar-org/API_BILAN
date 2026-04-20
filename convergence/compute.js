@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.8
-// Date: [January 2025]
+// Version 1.0.9
+// Date: [April 18, 2026]
 // logs :
+// - v1.0.9: expositions fonctions regroupées sous window.COMPUTE (doublons window.foo retirés). Appelants migrés window.foo() → COMPUTE.foo() dans api.js, scie_hysteresis_search.js, sync_panels.js, ui/main.js, events.js, CO2/html/*.html.
 // - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
 // - v1.0.3: bary (📿💫+📿☄️)/maxTics; interpolation via 🕰['🔀'] and 🕰['◀']; getMasses/getSoleil/getNoyau use interpolated DATA when 🔀
 // - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
@@ -369,13 +370,7 @@ COMPUTE.getEnabledStates = getEnabledStates;
 COMPUTE.getSoleil = getSoleil;
 COMPUTE.goughLuminosity = goughLuminosity;
 COMPUTE.getNoyau = getNoyau;
-window.getEpochDateConfig = getEpochDateConfig;
-window.getDateConfig = getEpochDateConfig;
-window.getMasses = getMasses;
-window.getEnabledStates = getEnabledStates;
-window.getSoleil = getSoleil;
-window.goughLuminosity = goughLuminosity;
-window.getNoyau = getNoyau;
+// Expositions : tout passe par window.COMPUTE (doublons window.foo retirés).
 // T0 est dans DATA['🧮']['🧮🌡️'], pas besoin de window.T0
 // getLogo et getLogoKey sont exposés par alphabet.js
 

@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.18
+// Version 1.0.19
 // Date: [April 18, 2026]
 // logs :
+// - v1.0.19: expositions fonctions regroupées sous window.H2O (plus de window.foo isolés). Clés ajoutées au namespace : calculateH2OGreenhouseForcing, calculateCloudAlbedoContribution, calculateWaterPartition, calculatePrecipitationFeedback, getBoilingPointKFromPressure. Appelants migrés window.foo() → H2O.foo() dans calculations_flux.js, radiative/calculations.js, ui/main.js, CO2/html/*.html.
 // - v1.0.18: deltaTAccelerationDays lu depuis window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER.
 // - v1.0.17: DELTA_T_ACCELERATION_DAYS lu depuis window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING.
 // - v1.0.16: DELTA_T_ACCELERATION_DAYS lu depuis window.TUNING.SOLVER (source unique, fin DATA['🎚️'].SOLVER).
@@ -632,13 +633,9 @@ H2O.calculateH2OParameters = function () {
     H2O._lastH2OParamsCache = { T, P };
     return true;
 };
-window.calculateH2OParameters = H2O.calculateH2OParameters;
-
-// Exposer uniquement les fonctions utilisées ailleurs (calculations.js, main.js, calculations_albedo.js)
-// Note: Ces fonctions sont déjà appelées dans calculateH2OParameters, donc les exposer permet de les réutiliser sans recalculer
-window.calculateH2OGreenhouseForcing = calculateH2OGreenhouseForcing;
-window.calculateCloudAlbedoContribution = calculateCloudAlbedoContribution;
-// 🔒 SUPPRIMÉ : window.estimateCloudCoverage - Les nuages ne sont pas un stock d'eau
-window.calculateWaterPartition = calculateWaterPartition;
-window.calculatePrecipitationFeedback = calculatePrecipitationFeedback;
-window.getBoilingPointKFromPressure = getBoilingPointKFromPressure;
+// Toutes les fonctions exposées passent par le namespace window.H2O (source unique).
+H2O.calculateH2OGreenhouseForcing = calculateH2OGreenhouseForcing;
+H2O.calculateCloudAlbedoContribution = calculateCloudAlbedoContribution;
+H2O.calculateWaterPartition = calculateWaterPartition;
+H2O.calculatePrecipitationFeedback = calculatePrecipitationFeedback;
+H2O.getBoilingPointKFromPressure = getBoilingPointKFromPressure;

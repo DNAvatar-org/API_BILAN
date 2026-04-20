@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.88
+// Version 1.2.89
 // Date: [April 18, 2026]
 // Logs:
+// - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
 // - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
 // - v1.2.87: lectures SOLVER migrées vers window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER. Clés : tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, firstSearchStepCapK, deltaTAccelerationDays.
 // - v1.2.86: lectures live SOLVER migrées vers window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING. FIRST_SEARCH_STEP_CAP_K / DELTA_T_ACCELERATION_DAYS modifiables live via DATA['🎚️'].SOLVER.
@@ -110,8 +111,9 @@
 // ============================================================================
 
 // No-ops par défaut ; scie_compute.html les remplace par les implé réelles si la page est chargée.
-window.clearConvergenceTrace = function () {};
-window.appendConvergenceStep = function () {};
+var CONVERGE = window.CONVERGE = window.CONVERGE || {};
+CONVERGE.clearConvergenceTrace = function () {};
+CONVERGE.appendConvergenceStep = function () {};
 
 // ============================================================================
 // FONCTIONS DE CALCUL DE FLUX RADIATIF
@@ -466,7 +468,7 @@ async function cycleDeLeau(isFirst) {
     if (window.ABORT_COMPUTE) return { changed: false };
     COMPUTE.getEnabledStates();
     // Premier cycle : pas de calculatePrecipitationFeedback (comme la 1re itération Search)
-    if (!isFirst) window.calculatePrecipitationFeedback();
+    if (!isFirst) window.H2O.calculatePrecipitationFeedback();
     ALBEDO.calculateAlbedo();
     if (window.ABORT_COMPUTE) return { changed: false };
     ALBEDO.calculateCloudFormationIndex();
@@ -487,7 +489,7 @@ async function cycleDeLeau(isFirst) {
                 '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
             }
         };
-        window.appendConvergenceStep(firstCyclePayload);
+        window.CONVERGE.appendConvergenceStep(firstCyclePayload);
         if (callback) callback('convergenceStep', firstCyclePayload);
         dropLastStepSnapshot(DATA);
         COMPUTE._lastCycleRef = { albedo: DATA['🪩']['🍰🪩📿'], vapor: DATA['💧']['🍰🫧💧'] };
@@ -535,7 +537,7 @@ async function computeRadiativeTransfer(callback, options) {
         computeDbgGroup = true;
     }
     if (!DATA['🧮']['previous']) DATA['🧮']['previous'] = [];
-    window.clearConvergenceTrace();
+    window.CONVERGE.clearConvergenceTrace();
     if (DATA['🧮']['🧮🔄🌊'] == null) DATA['🧮']['🧮🔄🌊'] = 0;
     const currentWaterPass = DATA['🧮']['🧮🔄🌊'];
     const maxWaterPass = 5;
@@ -554,7 +556,7 @@ async function computeRadiativeTransfer(callback, options) {
             const phasePrevSpinup = DATA['🧮']['🧮⚧'];
             DATA['🧮']['🧮⚧'] = 'Search';
             for (let w = 0; w < climateSpinupCyclesEffective; w++) {
-                const resSpinup = await window.cycleDeLeau(false);
+                const resSpinup = await window.CONVERGE.cycleDeLeau(false);
                 const T_C_init = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
                 if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[spinup] CycleEau #' + (w + 1) + ' @' + T_C_init.toFixed(1) + '°C');
                 const spinupPayload = {
@@ -571,7 +573,7 @@ async function computeRadiativeTransfer(callback, options) {
                         '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
-                window.appendConvergenceStep(spinupPayload);
+                window.CONVERGE.appendConvergenceStep(spinupPayload);
                 if (callback) callback('convergenceStep', spinupPayload);
                 dropLastStepSnapshot(DATA);
                 if (!resSpinup.changed) break;
@@ -580,7 +582,7 @@ async function computeRadiativeTransfer(callback, options) {
             DATA['🧮']['🧮⚧'] = phasePrevSpinup;
         } else {
             for (let w = 0; w < CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit; w++) {
-                const resInit = await window.cycleDeLeau(false);
+                const resInit = await window.CONVERGE.cycleDeLeau(false);
                 const T_C_init = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
                 if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[cycle] Init @' + T_C_init.toFixed(1) + '°C');
                 const initCyclePayload = {
@@ -597,7 +599,7 @@ async function computeRadiativeTransfer(callback, options) {
                         '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
-                window.appendConvergenceStep(initCyclePayload);
+                window.CONVERGE.appendConvergenceStep(initCyclePayload);
                 if (callback) callback('convergenceStep', initCyclePayload);
                 dropLastStepSnapshot(DATA);
                 if (!resInit.changed) break;
@@ -621,7 +623,7 @@ async function computeRadiativeTransfer(callback, options) {
                 '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
             }
         };
-        window.appendConvergenceStep(cycleAfterCrossPayload);
+        window.CONVERGE.appendConvergenceStep(cycleAfterCrossPayload);
         if (callback) callback('convergenceStep', cycleAfterCrossPayload);
         dropLastStepSnapshot(DATA);
         window._fromCrossing = false;
@@ -634,7 +636,7 @@ async function computeRadiativeTransfer(callback, options) {
 
     const calcFluxInitOk = await window.calculateFluxForT0();
     if (calcFluxInitOk !== true) return Promise.reject(new Error('calculateFluxForT0() a échoué'));
-    const spectral_result_init = window.getSpectralResultFromDATA();
+    const spectral_result_init = window.RADIATIVE.getSpectralResultFromDATA();
     if (spectral_result_init.lambda_range && spectral_result_init.z_range) {
         const bins = spectral_result_init.lambda_range.length;
         const layers = spectral_result_init.z_range.length;
@@ -650,7 +652,7 @@ async function computeRadiativeTransfer(callback, options) {
             window._spectralMemoryWarned = true;
         }
     }
-    if (window.calculateRadiativeCapacities) window.calculateRadiativeCapacities();
+    window.RADIATIVE.calculateRadiativeCapacities();
     // Équilibre radiatif (sommet de l'atmosphère) :
     // - flux_entrant = solaire absorbé + géothermique (ce que la planète reçoit).
     // - flux_sortant_effectif = intégrale du spectre d'émission réel au sommet = aire sous la courbe "réelle"
@@ -676,7 +678,7 @@ async function computeRadiativeTransfer(callback, options) {
     if (CONFIG_COMPUTE.logEdsDiagnostic) console.log('[Init] OLR=' + flux_sortant_effectif_init.toFixed(2) + ' Δ=' + delta_equilibre_init.toFixed(2));
     const bInit = DATA['📊'] && DATA['📊'].eds_breakdown;
     DATA['📛'] = buildEdsBreakdown(bInit);
-    if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+    if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
     DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧮']['🧮🌡️'], DATA['📜']['🧲🔬']);
 
     DATA['🧮']['🧮☯'] = Math.sign(delta_equilibre_init);
@@ -713,7 +715,7 @@ async function computeRadiativeTransfer(callback, options) {
             '📛': snapshotEdsForConvergence()
         }
     };
-    window.appendConvergenceStep(initPayload);
+    window.CONVERGE.appendConvergenceStep(initPayload);
     if (callback) callback('convergenceStep', initPayload);
     dropLastStepSnapshot(DATA);
     if (Number.isFinite(delta_equilibre_init)) {
@@ -766,13 +768,13 @@ async function computeRadiativeTransfer(callback, options) {
                     '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                 }
             };
-            window.appendConvergenceStep(cyclePayload);
+            window.CONVERGE.appendConvergenceStep(cyclePayload);
             if (callback) callback('convergenceStep', cyclePayload);
             dropLastStepSnapshot(DATA);
         } else {
             const baseAlbedoIter = (DATA['🧮']['🧮🔄🪩'] != null ? DATA['🧮']['🧮🔄🪩'] : 0) * maxWaterAlbedo;
             for (let w = 0; w < maxWaterAlbedo; w++) {
-                const res = await window.cycleDeLeau(false);
+                const res = await window.CONVERGE.cycleDeLeau(false);
                 const T_C_step = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
                 const albedoPctStep = (DATA['🪩']['🍰🪩📿'] != null) ? (DATA['🪩']['🍰🪩📿'] * 100).toFixed(2) : '-';
                 const h2oPctStep = (DATA['💧']['🍰🫧💧'] != null) ? (DATA['💧']['🍰🫧💧'] * 100).toFixed(2) : '-';
@@ -792,7 +794,7 @@ async function computeRadiativeTransfer(callback, options) {
                         '🌊': DATA['🌊'] ? JSON.parse(JSON.stringify(DATA['🌊'])) : undefined
                     }
                 };
-                window.appendConvergenceStep(cyclePayloadW);
+                window.CONVERGE.appendConvergenceStep(cyclePayloadW);
                 if (callback) callback('convergenceStep', cyclePayloadW);
                 dropLastStepSnapshot(DATA);
                 if (!res.changed) break;
@@ -800,9 +802,9 @@ async function computeRadiativeTransfer(callback, options) {
             }
         }
         await window.calculateFluxForT0();
-        window.calculateRadiativeCapacities();
-        const spectral_result = window.getSpectralResultFromDATA();
-        DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();
+        window.RADIATIVE.calculateRadiativeCapacities();
+        const spectral_result = window.RADIATIVE.getSpectralResultFromDATA();
+        DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
         DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
         DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
         DATA['🧲']['🧲🌈🔼'] = spectral_result.total_flux;
@@ -811,7 +813,7 @@ async function computeRadiativeTransfer(callback, options) {
         DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
         const b = DATA['📊'] && DATA['📊'].eds_breakdown;
         DATA['📛'] = buildEdsBreakdown(b);
-        if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+        if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
         // Phase AVANT mise à jour : pour affichage cohérent (phase utilisée pour le pas précédent)
         const phaseAtInput = DATA['🧮']['🧮⚧'];
 
@@ -913,13 +915,13 @@ async function computeRadiativeTransfer(callback, options) {
             const actualBins = (DATA['📊'] && DATA['📊'].lambda_range) ? DATA['📊'].lambda_range.length : 0;
             if (actualBins !== currentBins) {
                 await window.calculateFluxForT0();
-                window.calculateRadiativeCapacities();
-                const spectral_sync = window.getSpectralResultFromDATA();
+                window.RADIATIVE.calculateRadiativeCapacities();
+                const spectral_sync = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_sync.total_flux;
                 DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
                 if (DATA['📊'] && DATA['📊'].eds_breakdown) {
                     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
-                    if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+                    if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
                 }
             }
             const maxBins = CONFIG_COMPUTE.maxSpectralBinsConvergence;
@@ -930,14 +932,14 @@ async function computeRadiativeTransfer(callback, options) {
                 // Passe finale à résolution max pour courbe spectrale et EDS précis
                 DATA['🧮']['🔬🌈'] = maxBins;
                 await window.calculateFluxForT0();
-                window.calculateRadiativeCapacities();
-                const spectral_final = window.getSpectralResultFromDATA();
+                window.RADIATIVE.calculateRadiativeCapacities();
+                const spectral_final = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_final.total_flux;
                 DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
                 DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
                 if (DATA['📊'] && DATA['📊'].eds_breakdown) {
                     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
-                    if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+                    if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
                 }
             }
             window.CONVERGENCE_DEBUG = { bins: DATA['🧮']['🔬🌈'], step: DATA['🧮']['🧮🔄☀️'], delta: DATA['🧲']['🔺🧲'] };
@@ -966,7 +968,7 @@ async function computeRadiativeTransfer(callback, options) {
                 pushConv.dichoT_low_C = DATA['🧮']['🧮🌡️🔽'] - CONST.KELVIN_TO_CELSIUS;
                 pushConv.dichoT_high_C = DATA['🧮']['🧮🌡️🔼'] - CONST.KELVIN_TO_CELSIUS;
             }
-            window.appendConvergenceStep(pushConv);
+            window.CONVERGE.appendConvergenceStep(pushConv);
             if (callback) callback('convergenceStep', pushConv);
             dropLastStepSnapshot(DATA);
             logConvergenceT(); // Log unique à la convergence pour régler T° (cible ~15°C)
@@ -1008,7 +1010,7 @@ async function computeRadiativeTransfer(callback, options) {
             }
             DATA['🧮']['🧮🌡️'] = T_next_K;
         }
-        const T_boil = window.getBoilingPointKFromPressure(DATA['🫧']['🎈']);
+        const T_boil = window.H2O.getBoilingPointKFromPressure(DATA['🫧']['🎈']);
         const crosses = (DATA['🧮']['🧮🌡️⏮'] < CONST.T0_WATER && T_next_K >= CONST.T0_WATER) || (DATA['🧮']['🧮🌡️⏮'] >= CONST.T0_WATER && T_next_K < CONST.T0_WATER)
             || (DATA['🧮']['🧮🌡️⏮'] < T_boil && T_next_K >= T_boil) || (DATA['🧮']['🧮🌡️⏮'] >= T_boil && T_next_K < T_boil);
         if (crosses && T_next_K != null && Number.isFinite(T_next_K)) {
@@ -1019,16 +1021,16 @@ async function computeRadiativeTransfer(callback, options) {
             window.COMPUTE.getEnabledStates();
             window.ALBEDO.calculateAlbedo();
             await window.calculateFluxForT0();
-            window.calculateRadiativeCapacities();
-            DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();
+            window.RADIATIVE.calculateRadiativeCapacities();
+            DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
             DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
             DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
-            DATA['🧲']['🧲🌈🔼'] = window.getSpectralResultFromDATA().total_flux;
+            DATA['🧲']['🧲🌈🔼'] = window.RADIATIVE.getSpectralResultFromDATA().total_flux;
             DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
             DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
             const bCross = DATA['📊'] && DATA['📊'].eds_breakdown;
             DATA['📛'] = buildEdsBreakdown(bCross);
-            if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+            if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
             // Même bloc Dicho/bounds qu'en flux normal : sinon snapshot incohérent (☯, [🔽,🔼])
             if (DATA['🧮']['🧮⚧'] === 'Search' && DATA['🧮']['🧮🔄☀️'] > 0) {
             if (DATA['🧲']['🔺🧲'] > 0) {
@@ -1077,7 +1079,7 @@ async function computeRadiativeTransfer(callback, options) {
                 pushPayload.dichoT_high_C = DATA['🧮']['🧮🌡️🔼'] - CONST.KELVIN_TO_CELSIUS;
             }
             DATA['🧮']['previous'].push(pushPayload);
-            window.appendConvergenceStep(pushPayload);
+            window.CONVERGE.appendConvergenceStep(pushPayload);
             if (callback) callback('convergenceStep', pushPayload);
             dropLastStepSnapshot(DATA);
             if (DATA['🧮']['🧮🔄🪩'] != null) DATA['🧮']['🧮🔄🪩']++;
@@ -1100,7 +1102,7 @@ async function computeRadiativeTransfer(callback, options) {
                     '🪩': JSON.parse(JSON.stringify(DATA['🪩']))
                 }
             };
-            window.appendConvergenceStep(crossingPayload);
+            window.CONVERGE.appendConvergenceStep(crossingPayload);
             if (callback) callback('convergenceStep', crossingPayload);
             dropLastStepSnapshot(DATA);
             H2O._lastH2OParamsCache = null;
@@ -1111,7 +1113,7 @@ async function computeRadiativeTransfer(callback, options) {
                 DATA['🧮']['🧮🛑'] = 'max_water';
                 return true;
             }
-            const cycleResult = window.cycleDeLeau ? await window.cycleDeLeau(false) : { changed: false };
+            const cycleResult = window.CONVERGE.cycleDeLeau ? await window.CONVERGE.cycleDeLeau(false) : { changed: false };
             window.displayConvergence();
             if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             DATA['🧮']['🧮🔄🌊']++;
@@ -1142,15 +1144,15 @@ async function computeRadiativeTransfer(callback, options) {
             window.ALBEDO.calculateAlbedo();
         } else {
             for (let w = 0; w < maxWaterAlbedoPost; w++) {
-                const resPost = await window.cycleDeLeau(false);
+                const resPost = await window.CONVERGE.cycleDeLeau(false);
                 if (!resPost.changed) break;
                 if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             }
         }
         await window.calculateFluxForT0();
-        window.calculateRadiativeCapacities();
-        const spectral_after = window.getSpectralResultFromDATA();
-        DATA['🧲']['🧲☀️🔽'] = window.calculateSolarFluxAbsorbed();
+        window.RADIATIVE.calculateRadiativeCapacities();
+        const spectral_after = window.RADIATIVE.getSpectralResultFromDATA();
+        DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
         DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
         DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
         DATA['🧲']['🧲🌈🔼'] = spectral_after.total_flux;
@@ -1158,7 +1160,7 @@ async function computeRadiativeTransfer(callback, options) {
         DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
         const bPost = DATA['📊'] && DATA['📊'].eds_breakdown;
         DATA['📛'] = buildEdsBreakdown(bPost);
-        if (DATA['📛']) window.calculateH2OGreenhouseForcing();
+        if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
         // Ne pas mettre à jour ☯ si changement de signe (Δ×☯<0) : garder ☯ pour détecter le passage en Dicho au tour suivant
         const signChangePost = (DATA['🧮']['🧮☯'] !== 0 && DATA['🧲']['🔺🧲'] * DATA['🧮']['🧮☯'] < 0);
         if (!signChangePost) DATA['🧮']['🧮☯'] = Math.sign(DATA['🧲']['🔺🧲']);
@@ -1222,7 +1224,7 @@ async function computeRadiativeTransfer(callback, options) {
         }
         // next_T_C = T atteinte par le pas (Search et Dicho)
         pushPayload.next_T_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
-            window.appendConvergenceStep(pushPayload);
+            window.CONVERGE.appendConvergenceStep(pushPayload);
             if (callback) callback('convergenceStep', pushPayload);
             dropLastStepSnapshot(DATA);
             DATA['🧮']['🧮🔄🪩']++;
@@ -1276,8 +1278,8 @@ async function computeRadiativeTransfer(callback, options) {
         } else {
             // scie_ ou sans anim : mise à jour légère (pas de draw spectral)
             var h2o_frac = (DATA['💧'] && DATA['💧']['🍰🫧💧'] != null) ? DATA['💧']['🍰🫧💧'] : 0;
-            var h2o_meteorites = (typeof window.h2oTotalFromMeteorites !== 'undefined') ? window.h2oTotalFromMeteorites : 0;
-            window.h2oVaporPercent = Math.min(100, Math.max(0, h2o_frac * 100 + h2o_meteorites));
+            var h2o_meteorites = (typeof window.RUNTIME_STATE.h2oTotalFromMeteorites !== 'undefined') ? window.RUNTIME_STATE.h2oTotalFromMeteorites : 0;
+            window.RUNTIME_STATE.h2oVaporPercent = Math.min(100, Math.max(0, h2o_frac * 100 + h2o_meteorites));
             if (window.plotData) {
                 window.plotData.ch4_ppm = (DATA['🫧']['🍰🫧🐄'] != null ? DATA['🫧']['🍰🫧🐄'] : 0) * 1e6;
             }
@@ -1285,14 +1287,14 @@ async function computeRadiativeTransfer(callback, options) {
             DATA['📊'].total_flux = spectral_result.total_flux;
             if (window !== window.top) {
                 var dataSubset = { '🧮': DATA['🧮'], '🪩': DATA['🪩'], '🫧': DATA['🫧'], '💧': DATA['💧'], '📛': snapshotEdsForConvergence(), '📜': DATA['📜'], '📊': DATA['📊'] };
-                window.parent.postMessage({ type: 'cycleCalcul', DATA: dataSubset, h2oVaporPercent: window.h2oVaporPercent }, '*');
+                window.parent.postMessage({ type: 'cycleCalcul', DATA: dataSubset, h2oVaporPercent: window.RUNTIME_STATE.h2oVaporPercent }, '*');
             }
-            if (callback) callback('cycleCalcul', { DATA: DATA, h2oVaporPercent: window.h2oVaporPercent });
+            if (callback) callback('cycleCalcul', { DATA: DATA, h2oVaporPercent: window.RUNTIME_STATE.h2oVaporPercent });
             // Émettre compute:progress une seule fois (chemin scie_/non-anim)
             if (window.IO_LISTENER) window.IO_LISTENER.emit('compute:progress', payload);
-            const fpsOk = (typeof window.fps === 'number' && window.fps >= (window.FPSalert || 25));
-            if (fpsOk && typeof window.updateFluxLabels === 'function') {
-                window.updateFluxLabels('cycleCalcul');
+            const fpsOk = (window.RUNTIME_STATE.fps >= window.UI_STATE.FPSalert);
+            if (fpsOk) {
+                window.ORG.updateFluxLabels('cycleCalcul');
             }
         }
     }
@@ -1306,11 +1308,11 @@ async function computeRadiativeTransfer(callback, options) {
 
 // Exposer les fonctions globalement. Aucune n'est dans window.DATA (DATA = données). Pas de window.FUNC.
 // computeRadiativeTransfer accepte callback optionnel + options ({ renderMode: 'visu_'|'scie_' }). getEpochDateConfig dans compute.js.
-window.calculateT0 = calculateT0;
-window.initForConfig = initForConfig;
-window.cycleDeLeau = cycleDeLeau;
-window.updateConvergenceBounds = updateConvergenceBounds;
-window.computeRadiativeTransfer = computeRadiativeTransfer; // async (RAF yield indispensable), callback optionnel, options({renderMode})
-window.newDate = newDate;
-window.snapshotEdsForConvergence = snapshotEdsForConvergence;
+CONVERGE.calculateT0 = calculateT0;
+CONVERGE.initForConfig = initForConfig;
+CONVERGE.cycleDeLeau = cycleDeLeau;
+CONVERGE.updateConvergenceBounds = updateConvergenceBounds;
+CONVERGE.computeRadiativeTransfer = computeRadiativeTransfer; // async (RAF yield indispensable), callback optionnel, options({renderMode})
+CONVERGE.newDate = newDate;
+CONVERGE.snapshotEdsForConvergence = snapshotEdsForConvergence;
 

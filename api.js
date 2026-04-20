@@ -5,7 +5,7 @@
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: 2025-02-25
 // Logs:
-// - v1.0.7: debugAPI (?debugAPI=true ou window.debugAPI) → console.groupCollapsed sur run + fin ProcessFinished / erreur
+// - v1.0.7: debugAPI (?debugAPI=true ou window.UI_STATE.debugAPI) → console.groupCollapsed sur run + fin ProcessFinished / erreur
 // - v1.0.6: snapshot PRE_INIT/POST_INIT via pdTrace (pas pd)
 // - v1.0.1 FUNC_API_BILAN, const MAJ en tête ; dossier renommé API_BILAN
 // - v1.0.2 add pd() snapshots PRE_INIT/POST_INIT for API inputs
@@ -17,12 +17,12 @@
 
 if (!window.FUNC_API_BILAN) window.FUNC_API_BILAN = {};
 /**
- * Logs groupés (console) pour bench / diagnostic. Activer : ?debugAPI=true ou window.debugAPI = true.
+ * Logs groupés (console) pour bench / diagnostic. Activer : ?debugAPI=true ou window.UI_STATE.debugAPI = true.
  * @returns {boolean}
  */
 window.FUNC_API_BILAN.isDebugAPI = function isDebugAPI() {
     if (typeof window === 'undefined') return false;
-    if (window.debugAPI === true) return true;
+    if (window.UI_STATE.debugAPI === true) return true;
     try {
         if (typeof location !== 'undefined' && location.search) {
             var v = new URLSearchParams(location.search).get('debugAPI');
@@ -65,8 +65,8 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     const DATA = window.DATA;
     const TIMELINE = window.TIMELINE;
     const SYNC_STATE = window.SYNC_STATE;
-    const initForConfig = window.initForConfig;
-    const computeRadiativeTransfer = window.computeRadiativeTransfer;
+    const initForConfig = window.CONVERGE.initForConfig;
+    const computeRadiativeTransfer = window.CONVERGE.computeRadiativeTransfer;
     var self = this;
 
     if (!DATA || !TIMELINE) {
@@ -87,9 +87,9 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     }
     if (config.animEnabled !== undefined && SYNC_STATE) SYNC_STATE.animEnabled = config.animEnabled;
     if (config.ticTime !== undefined && SYNC_STATE) SYNC_STATE.ticTime = config.ticTime;
-    if (config.tuning) window.applyTuningPayload(config.tuning);
-    window.getEnabledStates();
-    window.getMasses();
+    if (config.tuning) window.TUNING.applyTuningPayload(config.tuning);
+    window.COMPUTE.getEnabledStates();
+    window.COMPUTE.getMasses();
     if (config.animEnabled === false) {
         DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];
     }
@@ -140,7 +140,7 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     DATA['🧮']['previous'] = [];
     DATA['🧮']['🧮🔄🌊'] = 0;
     DATA['🧮']['🧮🔄🪩'] = 0;
-    window.h2oTotalFromMeteorites = 0;
+    window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
     if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
 
     snap('PRE_INIT');

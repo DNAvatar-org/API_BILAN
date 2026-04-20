@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.15 — 2026-04-20 : commentaire BENCH_LIT 🦠 ↔ configTimeline.js (grille CSV + bloc objet Archéen)
+  Version 1.0.14 — 2026-04-20 : window.ORG no-op (pas organigramme.js) pour calculations_flux / radiative cycleCalcul
   Version 1.0.13 — 2026-04-18 : BENCH_LIT notes retirées ; colonne Époque rétrécie
 -->
 <html lang="fr">
@@ -237,7 +239,10 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
 (function syncDebugAPIFromURL() {
     try {
         var q = new URLSearchParams(window.location.search);
-        if (q.get('debugAPI') === 'true' || q.get('debugAPI') === '1') window.debugAPI = true;
+        if (q.get('debugAPI') === 'true' || q.get('debugAPI') === '1') {
+            window.UI_STATE = window.UI_STATE || {};
+            window.UI_STATE.debugAPI = true;
+        }
     } catch (e) { }
 })();
 window.__EPOCH_BENCH_PAGE__ = true;
@@ -429,6 +434,16 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
 
 function initEpochBenchPage() {
 
+/**
+ * Bench ne charge pas CO2/organigramme/organigramme.js : CONVERGE / RADIATIVE appellent
+ * window.ORG.updateFluxLabels en cycleCalcul. Contrat host complet : assignation explicite,
+ * pas de branche typeof sur ORG dans l’API pour cette page isolée.
+ */
+window.ORG = {
+    updateFluxLabels: function () {},
+    updateLabel: function () {}
+};
+
 window.SYNC_STATE = window.SYNC_STATE || {
     epochId: '\u26ab', animEnabled: false, ticTime: 0, calculationInProgress: false
 };
@@ -460,12 +475,14 @@ var BENCH_M_ATM_REF_KG = 5.148e18;
 
 /**
  * Fourchettes littérature (repère bench) — copie de la grille CSV en commentaire dans
- * API_BILAN/config/configTimeline.js (~l.76–94). Resynchroniser si la grille bouge.
+ * API_BILAN/config/configTimeline.js (section « GRILLE LITTÉRATURE » + duplicata détaillé sous l’objet TIMELINE Archéen 🦠).
+ * Resynchroniser les trois endroits ensemble si une plage bouge.
  * tC = surface °C ; co2/ch4 = ppm molaires ; h2oVap = % molaire vapeur (atmosphère), pas masse océan.
  */
 var BENCH_LIT_BY_EPOCH_ID = {
     '\u26ab': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
     '\u{1F525}': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
+    /* 🦠 Archéen : milieu ligne CSV Archéen ; plage T volontairement large — voir note configTimeline.js */
     '\u{1F9A0}': { tC: [10, 60], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
     '\u{1FAB8}': { tC: [5, 20], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
     'hysteresis 1a': { tC: [-50, 10], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
@@ -767,7 +784,7 @@ function benchDisplayFineTuning() {
     var titleSlot = document.getElementById('bench-ft-title-slot');
     var content = document.getElementById('bench-ft-content');
     if (!titleSlot || !content || !window.DATA || !window.DATA['🎚️']) return;
-    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     var atmBary = benchGetUnifiedAtmBaryForDisplay();
     var isOpen = content.style.display !== 'none';
     titleSlot.innerHTML = '🧩 Fine-tuning 🪩 <span style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:4px;">'
@@ -785,13 +802,13 @@ function benchDisplayFineTuning() {
 }
 function benchApplyFineTuningBaryGroup(groupKey, percentRaw, refreshPanel) {
     benchSetFineTuningBaryPercent(groupKey, percentRaw);
-    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     if (refreshPanel !== false) benchDisplayFineTuning();
 }
 function benchApplyFineTuningAtmUnified(percentRaw, refreshPanel) {
     var v = benchSetFineTuningBaryPercent('CLOUD_SW', percentRaw);
     benchSetFineTuningBaryPercent('SCIENCE', v);
-    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     if (refreshPanel !== false) benchDisplayFineTuning();
 }
 function benchOnFineTuningBaryInput(groupKey, percentRaw) {
@@ -803,7 +820,7 @@ function benchOnFineTuningBaryInput(groupKey, percentRaw) {
         return;
     }
     benchSetFineTuningBaryPercent(groupKey, percentRaw);
-    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     var pct = Math.round(Number(percentRaw));
     var valueEl = document.getElementById('bench-ft-bary-value-' + groupKey);
     if (valueEl) valueEl.textContent = pct + '%';
@@ -1016,11 +1033,11 @@ async function runAllEpochs() {
             }
         }
         window.__RAD_CAP_LAST_DBG__ = null;
-        if (window.calculateRadiativeCapacities) {
-            try { window.calculateRadiativeCapacities(); }
+        if (window.RADIATIVE && window.RADIATIVE.calculateRadiativeCapacities) {
+            try { window.RADIATIVE.calculateRadiativeCapacities(); }
             catch (e) { console.error('[bench][' + epochId + '] calculateRadiativeCapacities threw', e); }
         } else {
-            console.error('[bench][' + epochId + '] window.calculateRadiativeCapacities is NOT defined');
+            console.error('[bench][' + epochId + '] window.RADIATIVE.calculateRadiativeCapacities is NOT defined');
         }
         var __dbg = window.__RAD_CAP_LAST_DBG__;
         console.log('[bench][' + epochId + '] RAD_CAP dbg =', __dbg);
@@ -1115,9 +1132,9 @@ var ok = window.DATA && window.TIMELINE && window.CONST && window.CONV;
 var footer = document.getElementById('footer-info');
 if (ok) {
     benchSyncBaryFromConfigCompute();
-    if (typeof window.fillDataTuningFromBary === 'function') window.fillDataTuningFromBary();
+    if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     benchDisplayFineTuning();
-    var dbgHint = window.debugAPI
+    var dbgHint = window.UI_STATE.debugAPI
         ? ' \u2014 debugAPI : groupes [API_BILAN] calcul'
         : ' \u2014 ?debugAPI=true pour logs calcul group\u00e9s';
     footer.textContent = 'Pr\u00eat \u2014 ' + window.TIMELINE.length + ' \u00e9poques charg\u00e9es' + dbgHint;

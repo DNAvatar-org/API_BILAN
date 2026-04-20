@@ -3,9 +3,10 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.0.11
+// Version 1.0.12
 // Date: 2026-04-18
 // Logs:
+// - v1.0.12: expositions regroupées sous nouveau namespace window.TUNING (applyTuningPayload, fillDataTuningFromBary). Doublons window.foo retirés. Consommateurs migrés : api.js, ui/main.js, sync_panels.js, API_BILAN/doc/epoch_bench.html.
 // - v1.0.11: syncRadiativeConfig — retrait garde silencieuse `if (!R || !window.EARTH) return` (crash-first). Pré-requis : physics.js chargé avant tuning.js (loader_panels.js v1.1.18).
 // - v1.0.10: auto-init fillDataTuningFromBary() à la fin du module — corrige scie/visu qui restaient aux defaults bruts (13.4°C au lieu de 15.35°C pour 📱 2000). Bench (iframe, recharge stack complet) écrase ensuite via applyTuningPayload → idempotent.
 // - v1.0.9: retrait syncSolverConfig + gestion SOLVER dans applyTuningPayload / fillDataTuningFromBary (plus de bary SOLVER, plus de CONFIG_COMPUTE.xxx dead).
@@ -136,10 +137,10 @@
         syncRadiativeConfig();
     }
 
-    // --- Exports window ---
-
-    window.applyTuningPayload = applyTuningPayload;
-    window.fillDataTuningFromBary = fillDataTuningFromBary;
+    // --- Exports namespace TUNING ---
+    window.TUNING = window.TUNING || {};
+    window.TUNING.applyTuningPayload = applyTuningPayload;
+    window.TUNING.fillDataTuningFromBary = fillDataTuningFromBary;
 
     // Auto-init : interpole DATA['🎚️'] depuis baryByGroup × FINE_TUNING_BOUNDS dès que le module est chargé.
     // Pré-requis : initDATA.js + fine_tuning_bounds.js chargés avant (ordre dans loader_panels.js).

@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/climate.js - Forçages radiatifs (convention affichage) et climatologie
 // Desc: ΔF = diagnostic conventionnel (terrestre / contemporain), pas utilisé pour le calcul de T. EDS/OLR = physique (calculations.js).
-// Version 1.0.1
-// Date: [January 2025]
+// Version 1.0.2
+// Date: [April 18, 2026]
 // logs :
+// - v1.0.2: expositions regroupées sous nouveau namespace window.CLIMATE (getEffectiveTemperatureNoGreenhouse, calculateCO2Forcing, calculateCH4Forcing, calculateH2OForcing, calculateAlbedoForcing). Doublons window.foo retirés. Appelants migrés dans radiative/calculations.js, ui/main.js, organigramme.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -34,8 +35,8 @@ function getEffectiveTemperatureNoGreenhouse() {
 
     // Récupérer l'albedo de base de l'époque courante
     let albedo_ref = 0.3; 
-    if (window.currentEpochName && typeof window.getGeologicalPeriodByName === 'function') {
-        const currentEpoch = window.getGeologicalPeriodByName(window.currentEpochName);
+    if (window.RUNTIME_STATE.currentEpochName && window.GEOLOGY) {
+        const currentEpoch = window.GEOLOGY.getGeologicalPeriodByName(window.RUNTIME_STATE.currentEpochName);
         if (currentEpoch) {
             // Ajuster la constante solaire si définie
             if (typeof currentEpoch.solar_intensity === 'number') {
@@ -141,8 +142,8 @@ function calculateAlbedoForcing(albedo) {
     
     // Récupérer l'albedo de référence de l'époque courante (albedo_base)
     let albedo_ref = 0.3; // Valeur par défaut (terrestre moyenne)
-    if (typeof window !== 'undefined' && window.currentEpochName && typeof window.getGeologicalPeriodByName === 'function') {
-        const currentEpoch = window.getGeologicalPeriodByName(window.currentEpochName);
+    if (window.RUNTIME_STATE.currentEpochName && window.GEOLOGY) {
+        const currentEpoch = window.GEOLOGY.getGeologicalPeriodByName(window.RUNTIME_STATE.currentEpochName);
         if (currentEpoch && typeof currentEpoch.albedo_base === 'number') {
             albedo_ref = currentEpoch.albedo_base;
         }
@@ -165,12 +166,11 @@ function calculateAlbedoForcing(albedo) {
     return forcing; // W/m²
 }
 
-// Exposer uniquement les appels (fonctions) ; pas de variables MAJUSCULE sur window (règle : CONST/DATA)
-if (typeof window !== 'undefined') {
-    window.getEffectiveTemperatureNoGreenhouse = getEffectiveTemperatureNoGreenhouse;
-    window.calculateCO2Forcing = calculateCO2Forcing;
-    window.calculateCH4Forcing = calculateCH4Forcing;
-    window.calculateH2OForcing = calculateH2OForcing;
-    window.calculateAlbedoForcing = calculateAlbedoForcing;
-}
+// Namespace window.CLIMATE : forcings globaux (CO2, CH4, H2O, albedo) + T_effective sans effet de serre.
+var CLIMATE = window.CLIMATE = window.CLIMATE || {};
+CLIMATE.getEffectiveTemperatureNoGreenhouse = getEffectiveTemperatureNoGreenhouse;
+CLIMATE.calculateCO2Forcing = calculateCO2Forcing;
+CLIMATE.calculateCH4Forcing = calculateCH4Forcing;
+CLIMATE.calculateH2OForcing = calculateH2OForcing;
+CLIMATE.calculateAlbedoForcing = calculateAlbedoForcing;
 
