@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.89
-// Date: [April 18, 2026]
+// Version 1.2.90
+// Date: [April 21, 2026]
 // Logs:
+// - v1.2.90: avant 1er calculateFluxForT0 — updateAtmosphereHeightFromCurrentT + calculateH2OParameters en phase Search (restauration phase). Corrige 🍰🫧💧≈0 après cycles (Init+précip ou spin-up+🔺⏳ long) → OLR trop haute / EDS H2O affiché 0% alors que C–C à T impose vapeur >0.
 // - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
 // - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
 // - v1.2.87: lectures SOLVER migrées vers window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER. Clés : tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, firstSearchStepCapK, deltaTAccelerationDays.
@@ -629,6 +630,15 @@ async function computeRadiativeTransfer(callback, options) {
         window._fromCrossing = false;
     }
 
+    // Même grille verticale qu’aux pas Search (v1.2.47) ; vapeur C–C à T courante sans branche Init
+    // (les cycles ci‑dessus peuvent laisser 🍰🫧💧≈0 : itération Init/précip ou précip feedback × 🔺⏳ long).
+    window.ATM.updateAtmosphereHeightFromCurrentT();
+    const phaseBeforeFirstFlux = DATA['🧮']['🧮⚧'];
+    DATA['🧮']['🧮⚧'] = 'Search';
+    H2O._lastH2OParamsCache = null;
+    H2O.calculateH2OParameters();
+    DATA['🧮']['🧮⚧'] = phaseBeforeFirstFlux;
+
     const T_input_K = DATA['🧮']['🧮🌡️'];
     const albedo_init = (DATA['🪩'] && Number.isFinite(DATA['🪩']['🍰🪩📿'])) ? DATA['🪩']['🍰🪩📿'] : 0;
     const flux_solaire_absorbe_init = DATA['☀️']['🧲☀️🎱'] * (1 - albedo_init);
@@ -684,10 +694,8 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮☯'] = Math.sign(delta_equilibre_init);
     DATA['🧮']['🧮⚧'] = 'Search';
     DATA['🧮']['🧮🔄☀️'] = 0;
-    let dT_first_after_init = computeSearchIncrement();
-    const capRaw = window.CONFIG_COMPUTE.firstSearchStepCapK;
-    const firstStepAbsMax = (Number.isFinite(capRaw) && capRaw > 0) ? capRaw : Number.POSITIVE_INFINITY;
-    dT_first_after_init = Math.sign(dT_first_after_init) * Math.min(Math.abs(dT_first_after_init), firstStepAbsMax);
+    const dT_first_after_init = computeSearchIncrement();
+    // v1.2.88 : cap 1er pas Search (firstSearchStepCapK) supprimé — patch historique SB linéarisé, obsolète.
     // v1.2.84 : pas d'updateConvergenceBounds ici (revert v1.2.80). Bornes posées par la boucle Search lignes 815-823.
     DATA['🧮']['🧮🌡️⏮'] = DATA['🧮']['🧮🌡️'];
     DATA['🧮']['🧲🔺⏮'] = delta_equilibre_init;

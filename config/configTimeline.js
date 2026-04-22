@@ -815,7 +815,8 @@ window.CONFIG_COMPUTE.maxSearchT_K = null;                         // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolAlbedo = 1e-4;                       // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolVapor = 1e-6;                        // [EQ/NUM]
 // Spin-up climatologique avant solver radiatif (cycles eau/albédo à glace verrouillée). Confirmé >= 0 entier.
-window.CONFIG_COMPUTE.climateSpinupCycles = Math.max(0, Math.floor(8)); // [EQ/NUM]
+// v1.4.14 : réduit 8→1 (les 8 palliaient le bug H2O=0 à Init, désormais corrigé par calculateH2OParameters() avant calculateFluxForT0()).
+window.CONFIG_COMPUTE.climateSpinupCycles = Math.max(0, Math.floor(1)); // [EQ/NUM]
 // Cycles eau/albédo par pas radiatif (1 = même résultat visu/scie 16.4°C 2025 ; 2 = visu peut dériver albédo → 15.2°C)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep = 1;             // [EQ/NUM]
 // Cycles eau/albédo à l'Init uniquement (T fixe)
@@ -842,9 +843,8 @@ window.CONFIG_COMPUTE.maxSearchStepK = 140;              // [EQ/NUM] cap pas Sea
 window.CONFIG_COMPUTE.maxSearchStepLargeK = 200;         // [EQ/NUM] cap pas Search "grand delta" (K)
 window.CONFIG_COMPUTE.largeDeltaFactor = 16;             // [EQ/NUM] seuil |Δ| > factor × tol → grand pas
 window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
-// ⚠️ firstSearchStepCapK : plafond du 1er pas Search après Init (0 = désactivé, >0 = amortit yoyo SB linéarisé).
-// Modifier ICI pour tests. Attention : un plafond trop bas peut changer le bassin de convergence.
-window.CONFIG_COMPUTE.firstSearchStepCapK = 4;           // [EQ/NUM] 0 | 4 | 8 | 12 | 16 | 32 — 4 = référence actuelle (📱 2000 ≈ 14 °C)
+// v1.4.14 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).
+// Le 1er pas Search est désormais pris tel quel depuis computeSearchIncrement().
 window.CONFIG_COMPUTE.bornesMinK = 250;                  // [EQ/NUM]
 window.CONFIG_COMPUTE.bornesMaxK = 4000;                 // [EQ/NUM]
 window.CONFIG_COMPUTE.searchStepScaleMax = 200;          // [EQ/NUM]
