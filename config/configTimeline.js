@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.16
-// Date: [April 18, 2026] [22:30 UTC+1]
+// Version 1.4.17
+// Date: [April 22, 2026]
 // logs :
+// - v1.4.17: firstSearchStepCapK SUPPRIMÉ (annule v1.4.14/v1.4.11/v1.4.3/v1.4.2/v1.4.10) — patch SB linéarisé historique rendu obsolète par calculateH2OParameters() pre-flux Init (calculations_flux v1.2.90). Code du cap retiré côté solveur. climateSpinupCycles 8→1 (les 8 palliaient le bug H2O=0 à Init).
 // - v1.4.16: Archéen 🦠 — commentaires ⚖️🏭/🐄/💧/💨 : bornes grille bench (ppm, % vap. atm) à côté des masses kg ; distinction océan vs vapeur atmosphérique.
 // - v1.4.15: Archéen 🦠 — duplication explicite des fourchettes tolérables (grille bench) dans l’objet TIMELINE + note : plage T [10,60] °C = enveloppe large pour affichage bench, pas précision paléo serrée ; resync epoch_bench BENCH_LIT 🦠.
 // - v1.4.14: firstSearchStepCapK 0 → 4 (régression migration v1.4.13 : 📱 2000 passait 14 °C → 13,37 °C). Valeur réf. historique = 4 K.
@@ -815,7 +816,7 @@ window.CONFIG_COMPUTE.maxSearchT_K = null;                         // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolAlbedo = 1e-4;                       // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolVapor = 1e-6;                        // [EQ/NUM]
 // Spin-up climatologique avant solver radiatif (cycles eau/albédo à glace verrouillée). Confirmé >= 0 entier.
-// v1.4.14 : réduit 8→1 (les 8 palliaient le bug H2O=0 à Init, désormais corrigé par calculateH2OParameters() avant calculateFluxForT0()).
+// v1.4.17 : réduit 8→1 (les 8 palliaient le bug H2O=0 à Init, désormais corrigé par calculateH2OParameters() avant calculateFluxForT0()).
 window.CONFIG_COMPUTE.climateSpinupCycles = Math.max(0, Math.floor(1)); // [EQ/NUM]
 // Cycles eau/albédo par pas radiatif (1 = même résultat visu/scie 16.4°C 2025 ; 2 = visu peut dériver albédo → 15.2°C)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep = 1;             // [EQ/NUM]
@@ -843,7 +844,7 @@ window.CONFIG_COMPUTE.maxSearchStepK = 140;              // [EQ/NUM] cap pas Sea
 window.CONFIG_COMPUTE.maxSearchStepLargeK = 200;         // [EQ/NUM] cap pas Search "grand delta" (K)
 window.CONFIG_COMPUTE.largeDeltaFactor = 16;             // [EQ/NUM] seuil |Δ| > factor × tol → grand pas
 window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
-// v1.4.14 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).
+// v1.4.17 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).
 // Le 1er pas Search est désormais pris tel quel depuis computeSearchIncrement().
 window.CONFIG_COMPUTE.bornesMinK = 250;                  // [EQ/NUM]
 window.CONFIG_COMPUTE.bornesMaxK = 4000;                 // [EQ/NUM]
