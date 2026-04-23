@@ -1,8 +1,13 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.17
-// Date: [April 22, 2026]
+// Version 1.4.22
+// Date: [April 23, 2026]
 // logs :
+// - v1.4.22: Archéen 🦠 — CO₂ CAP au max bench [50k,150k] mol ppm : '⚖️🏭' 10.62e18 → 2.75e18 kg (~150k mol ppm). '⚖️🫧' recalculé 1.2700e19 kg. Bornes acceptables annotées en commentaires pour chaque clé de masse (CO₂/CH₄/H₂O/N₂/O₂/sulfates) avec repère Archéen bench + PAL. Bloc doc obliquité ⚾ étendu : plages physiques [0°, 90°] (Laskar 1993 sans Lune, Williams 1993 45–70°, Milankovitch 22–24.5°, seuil 54° basse-lat). Pas de changement logique, uniquement valeurs + doc.
+// - v1.4.21: baryByGroupDefault CLOUD_SW/SCIENCE 65 -> 25 pour aligner l'UI fine-tuning avec initDATA DEFAULT.TUNING.baryByGroup (source visible utilisateur).
+// - v1.4.20: amplification polaire — retrait TOTAL des overrides par époque (plus de clés polarAmplificationK / midlatAmplificationK dans hysteresis 1a ni ⛄). Les constantes dT_pol/dT_mid passent en GEOPHYSICAL GLOBAL CONSTANT via EARTH.POLAR_AMP_POL_K / EARTH.POLAR_AMP_MID_K (physics.js). Défauts CONFIG_COMPUTE alignés (20 K / 5 K, override expérimental uniquement). Formule unifiée albedo/flux/h2o ancrée sur T_FREEZE_SEAWATER + dT (cf. calculations_albedo.js v1.2.48, calculations_flux.js v1.2.91, calculations_h2o.js v1.0.20). Pas de patch par époque : faire de la physique, pas du patch.
+// - v1.4.19: (DÉPRÉCIÉ par v1.4.20) amplification polaire epoch-spécifique via clés EPOCH.
+// - v1.4.18: refacto post-step recalc (calculations_flux) — suppression du bloc redondant water/albedo/flux/Δ + bracket update + switch Dicho juste après le step. Ces opérations sont déjà faites en début de boucle suivante (lignes 755-887) sur le même T_next → travail en double (2× coût flux/itération). Snapshot figé à T_input (data_snapshot['🧮']['🧮🌡️'] override) pour que cycle albédo/water/radiatif affichent tous la même T. Label 🪩 cycle albédo lit state.temperature_C (= T_input) au lieu de next_T_C (scie_convergence.js).
 // - v1.4.17: firstSearchStepCapK SUPPRIMÉ (annule v1.4.14/v1.4.11/v1.4.3/v1.4.2/v1.4.10) — patch SB linéarisé historique rendu obsolète par calculateH2OParameters() pre-flux Init (calculations_flux v1.2.90). Code du cap retiré côté solveur. climateSpinupCycles 8→1 (les 8 palliaient le bug H2O=0 à Init).
 // - v1.4.16: Archéen 🦠 — commentaires ⚖️🏭/🐄/💧/💨 : bornes grille bench (ppm, % vap. atm) à côté des masses kg ; distinction océan vs vapeur atmosphérique.
 // - v1.4.15: Archéen 🦠 — duplication explicite des fourchettes tolérables (grille bench) dans l’objet TIMELINE + note : plage T [10,60] °C = enveloppe large pour affichage bench, pas précision paléo serrée ; resync epoch_bench BENCH_LIT 🦠.
@@ -240,8 +245,13 @@ const timeline = [
         '🧲🌕': 1.5e14 / (4 * Math.PI * Math.pow(6371e3, 2)), // ≈ 0,294 W/m² = 🔋🌕/(4πR²), R=📐 km ; fin 🕰.◀.🌕 → 0,127
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
+        // ⚾ OBLIQUITÉ ε — plages acceptables (cf. commentaire global '⚾' en bas de fichier) :
+        //   [22°, 24.5°] Terre moderne ; [0°, 60°] Terre sans Lune (Laskar 1993) ; [45°, 70°] Williams 1993.
+        //   Facteur sin(ε)/sin(23.44°) : 23.44→1.00  35→1.44  45→1.78  54→2.04  60→2.18  70→2.36  90→2.51.
+        //   Pourquoi pas ! → tester 54° (seuil Williams basse-lat.), 35° (intermédiaire), 0° (pas de saison).
+        '⚾': 45.0, // ε Archéen = 45° (choix conservateur Williams 1993 : 45–70° sans Snowball global). amp saisonnière × 1.78.
         '📏🌊': 4.7, // Profondeur moyenne océans en km (Archéen, moins d'eau)
-        '🐚': 1.0, // Facteur relief sous-marin 
+        '🐚': 1.0, // Facteur relief sous-marin
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
             '🍰🗻🌊': 0.85, // Surface océanique potentielle (80% - moins de continents qu'aujourd'hui)
@@ -262,14 +272,21 @@ const timeline = [
         //    Haqq-Misra et al. 2008 (Astrobiology) : jusqu'à 10 000 ppm, brume si CH₄/CO₂ > 0.1 ✓
         //    Pavlov et al. 2000 : 100–1 000 ppm ; Charnay 2020 : 100–17 000 ppm ✓
         // ✅ Ratio CH₄/CO₂ = 3.0e16 / 1.5e18 = 0.02 — sous le seuil de brume organique (0.1, Haqq-Misra 2008) ✓
-        // ⚖️ = masses totales (kg). Grille CSV « Archéen » : CO₂ ppm [50k,150k] ; CH₄ [1k,10k] ; H₂O vapeur atm [0.5,3.0]% mol — utiles comme bornes repère, les ppm se déduisent des masses via calculations_atm.
-        '⚖️🏭': 10.62e18, // co2_kg — repère bench ppm CO₂ [50000, 150000] (même ligne CSV / BENCH_LIT 🦠) ; valeur = masse ; ~95k ppm pour ce jeu ⚖️🫧/📐
-        '⚖️🐄': 3.25e16, // ch4_kg — repère bench ppm CH₄ [1000, 10000]
-        '⚖️💧': 1.8e21, // h2o_kg inventaire hydrosphère (océan…) — pas la colonne CSV « H₂O vap. mol % » ; celle-ci est vapeur atmosphérique [0.5, 3.0]% (grille). ~129% PAL océan (repère Harvard +26%)
-        '⚖️🫁': 0, // o2_kg — prébiotique, pas de plage ppm bench Archéen
-        '⚖️💨': 9.918e18, // n2_kg — dominant ; litt. masse atmos. N₂ ~1–2× PAL (Marty 2013), pas de colonne ppm dédiée dans la grille CSV Archéen
-        '⚖️✈': 0, // proxy_sulfates
-        '⚖️🫧': 1.15705e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 1.62e18 + 3.25e16
+        // ⚖️ = masses totales (kg). Grille CSV « Archéen » : CO₂ ppm [50k,150k] ; CH₄ [1k,10k] ; H₂O vapeur atm [0.5,3.0]% mol.
+        // ppm calculés par epoch_bench.html (ligne 544) : ppm_molaire = mass_frac × (M_air / M_gaz) × 1e6.
+        // Repère rapide pour ajuster les masses (N₂ ≈ 9.918e18 dominant) : CO₂ 150k mol ppm ⇒ ≈ 2.75e18 kg ; CO₂ 50k mol ppm ⇒ ≈ 0.80e18 kg ; CH₄ 10k mol ppm ⇒ ≈ 6.7e16 kg ; CH₄ 1k mol ppm ⇒ ≈ 6.5e15 kg.
+        //
+        // ─── CAP MAX ACCEPTABLE (v1.4.22) ───────────────────────────────────────
+        // CO₂ précédemment à 10.62e18 kg → ~400–900k mol ppm (très au-dessus de [50k,150k]).
+        // Ramené au MAX acceptable 150k mol ppm ≈ 2.75e18 kg, conformément à la grille CSV Archéen.
+        // Pour regagner de la T° perdue : chercher ailleurs (CH₄ physique Haqq-Misra 2008 ; obliquité ; albédo couches chaudes).
+        '⚖️🏭': 2.75e18, // co2_kg — CAP MAX bench CO₂ [50000, 150000] mol ppm ; cible 150k ppm. Plage : 0.80e18 (50k) → 2.75e18 (150k).
+        '⚖️🐄': 3.25e16, // ch4_kg — bench CH₄ [1000, 10000] mol ppm ; valeur ≈ 4.8k mol ppm (milieu plage). Plage : 6.5e15 (1k) → 6.7e16 (10k).
+        '⚖️💧': 1.8e21, // h2o_kg inventaire hydrosphère (océan…) — PAS la colonne CSV « H₂O vap. mol % » (celle-ci = vapeur atmosphérique dynamique [0.5,3.0]% gérée par calculations_h2o). ~129% PAL océan (earthTotalWaterMassKg=1.4e21). Plage raisonnable [0.8e21, 2.5e21].
+        '⚖️🫁': 0, // o2_kg — prébiotique (Archéen pré-GOE). Pas de plage ppm bench. Plage acceptable [0, 1e16] (traces biosphère anoxygénique pré-2.4 Ga).
+        '⚖️💨': 9.918e18, // n2_kg — masse atmos. N₂ ~1–2× PAL (Marty 2013). PAL N₂ ≈ 4e18 kg → valeur ≈ 2.5× PAL (haut fourchette). Plage acceptable [4e18, 10e18] (1×PAL → 2.5×PAL).
+        '⚖️✈': 0, // proxy_sulfates — pré-industriel, pas d'émissions anthropiques. Plage acceptable [0, 1e15] (volcanisme explosif ponctuel).
+        '⚖️🫧': 1.2700e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 2.75e18 + 3.25e16. Recalculer si une masse change.
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -356,7 +373,7 @@ const timeline = [
         '▶': 720e6,
         '◀': 690e6,
         // 🌡️🧮 : Plein_Snowball — amorce un peu plus chaude (T conv trop froide vs [-60,-20]°C CSV)
-        '🌡️🧮': 239.15,
+        '🌡️🧮': 290,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
         '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
@@ -772,13 +789,50 @@ window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
 // Réservée à un usage ultérieur (ex. ajout anthropique en fin de chaîne). Pas les calculs naturels ni l’hystérésis.
 // Activer explicitement : CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = true
 window.CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = false;
-// Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH['🍰⚽'] + 📜['🔺🍰⚽'] → DATA['🪩']['🍰⚽'] obstruction, DATA['🪩']['🍰🪩⚽']=1−🍰⚽
+// Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
 if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))) {
     window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
 }
+// ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.20 ────────────
+// SOURCE DE VÉRITÉ : physics.js (EARTH.POLAR_AMP_POL_K, EARTH.POLAR_AMP_MID_K, EARTH.POLAR_ZONE_FRAC, EARTH.MIDLAT_ZONE_FRAC).
+// Les calculs (albedo/flux/h2o) lisent CONFIG_COMPUTE.* en priorité → fallback EARTH.*
+// Les défauts ci-dessous sont alignés sur EARTH.* (ne pas y toucher sauf pour tests de sensibilité).
+//
+// 🏷️ TUNING — valeurs Earth-modern (Budyko 1969, Sellers 1969, IPCC AR6 WG1 ch.7) :
+//   dT_pol = 20 K (gradient global→pôle) ; dT_mid = 5 K (gradient global→mi-lat)
+// 🏷️ FLOU SCIENTIFIQUE — dépendance obliquité ε (ACTIVÉE via '⚾'), P_atm, transport méridien.
+// Ces constantes sont GLOBALES à toutes les époques : pas d'override par époque (faire de la physique, pas du patch).
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.polarZoneFraction)))    window.CONFIG_COMPUTE.polarZoneFraction   = 0.13;  // ~60°–90° les 2 pôles
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatZoneFraction)))   window.CONFIG_COMPUTE.midlatZoneFraction  = 0.37;  // ~30°–60° les 2 hémisphères
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.polarAmplificationK)))  window.CONFIG_COMPUTE.polarAmplificationK = 20;    // aligné EARTH.POLAR_AMP_POL_K (override expérimental uniquement)
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatAmplificationK))) window.CONFIG_COMPUTE.midlatAmplificationK = 5;    // aligné EARTH.POLAR_AMP_MID_K (override expérimental uniquement)
+// ⚾ OBLIQUITÉ AXIALE ε (degrés). Défaut Terre 2025 = 23.44° (= EARTH.OBLIQUITY_DEG_REF).
+// Par époque : clé '⚾' sur l'objet epoch écrase ce défaut (ex. Archéen ε ~ 45–70° hyp. Williams 1993).
+// Effet : amp_z_eff = SEASONAL_AMP_z_K × sin(ε)/sin(23.44°) dans EARTH.computeIceTempFactor.
+//
+// ─── BORNES PHYSIQUES ACCEPTABLES (et pourquoi pas ! — libre au dialogue avec le modèle) ───
+//   ε = 0°   → aucune saison, pas de solstice ⇒ amp_eff = 0  (limite mathématique)
+//   ε ≈ 23.44° → Terre actuelle (IAU 2009). Laskar 1993 : Lune stabilise à ±1.3° sur 5 Ga.
+//   ε ∈ [22.0°, 24.5°]  → cycle Milankovitch moderne (41 ka, obliquity signal en δ¹⁸O marin).
+//   ε ∈ [0°, 60°]        → plage "sans Lune" (Laskar, Joutel & Robutel 1993, Nature 361:615) :
+//                           sans satellite stabilisateur l'axe terrestre diffuse chaotiquement.
+//   ε ∈ [45°, 70°]        → hypothèse Williams 1993 (EPSL 117:377) pour expliquer glaciations
+//                           basse-latitude du Néoprotérozoïque/Archéen SANS Snowball global.
+//                           Facteur sin(ε)/sin(23.44°) : 45°→1.78  54°→2.04  70°→1.18 (repasse < 90°).
+//                           Argument de Williams : si ε > 54°, l'équateur reçoit MOINS d'insolation
+//                           annuelle que les pôles → glaciations tropicales sans refroidir les hautes lat.
+//                           NB : notre formule sin() monotone jusqu'à 90°, ne modélise pas l'inversion
+//                           d'insolation annuelle — à raffiner si on pousse ε > 54°.
+//   ε = 90°               → "planète couchée" (Uranus-like, 97.8°) ; saison extrême, un pôle en nuit
+//                           permanente 6 mois. Limite haute de sin(ε) = 1.
+//   ε > 90°               → rotation rétrograde (sin(ε) redescend, sin(180°)=0) — hors cadre ici.
+// --- POURQUOI PAS ! --- Tester ε = 54° (seuil Williams), ε = 35° (intermédiaire), ε = 0° (neutre
+// saison) pour isoler l'effet de la saisonnalité vs moyennes annuelles. Combinable avec CO₂/CH₄
+// pour voir si la saisonnalité "suffit" ou si la physique radiative reste le vrai goulot.
+if (!Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)))         window.CONFIG_COMPUTE.obliquityDeg       = 23.44; // 🏷️ OBS/CALIB (IAU 2009) — plage acceptée [0°, 90°] (voir bloc ci-dessus)
 
 // Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 };
+window.CONFIG_COMPUTE.baryByGroupDefault = { ATM: 25, CLOUD_SW: 25, SCIENCE: 25, HYSTERESIS: 100 };
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].

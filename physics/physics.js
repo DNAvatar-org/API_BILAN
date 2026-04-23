@@ -1,9 +1,11 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.12
-// Date: [April 17, 2026] [15:00 UTC+1]
+// Version 2.0.14
+// Date: [April 23, 2026]
 // logs :
+// - v2.0.14: EARTH.CH4_EDS_SCALE (défaut 1.0) + EARTH.CH4_HAZE_RATIO_THRESHOLD (0.1) ajoutés. CH4_EDS_SCALE parallèle à H2O_EDS_SCALE, tuning fin du line-by-line HITRAN (saturation bandes 3.3/7.7 µm, overlap H2O). CH4_HAZE_RATIO_THRESHOLD = seuil Haqq-Misra 2008 pour formation brume organique (pas encore câblé, hook SW futur).
+// - v2.0.13: EARTH.OBLIQUITY_DEG_REF/DEFAULT (23.44°) + couplage ε dans computeIceTempFactor (amp_pol/amp_mid = SEASONAL_AMP_* × sin(ε)/sin(23.44°)). Plumbing EPOCH['⚾'] dans calculations_{albedo,flux,h2o}.
 // - v2.0.12: H_vap passe de constante (2200 m) à fonction computeH2OScaleHeight() = R·T²/(L·Γ) (Clausius-Clapeyron + gradient adiabatique). Dépend de T courant et g de l'époque. EARTH.CP_AIR_MOIST_J_KG_K = 1005 ajouté. EARTH.H2O_SCALE_HEIGHT_M retiré.
 // - v2.0.11: EARTH.H2O_SCALE_HEIGHT_M = 2200 (hauteur d'échelle H₂O effective, Clausius-Clapeyron ; ex-calcul hydrostatique R·T/(M·g) ≈ 13,6 km, irréaliste, surestimait PWV ×2,6).
 // - v2.0.10: EARTH.H2O_EDS_SCALE défaut 0.60 (ex-0.92). Piloté par FINE_TUNING_BOUNDS.RADIATIVE via tuning.js. Recalcul dynamique sqrt(P_ratio)·CO2_factor retiré (radiative/calculations.js v1.2.5).
@@ -86,11 +88,124 @@ CONV.SCALE_CLOUD = 0.4;
 // ========== EARTH (terrestre : seuils climat, cycle eau, albédos par défaut ; overridable par époque) ==========
 // var pour permettre plot.js / main.js de faire var EARTH = window.EARTH sans erreur
 var EARTH = window.EARTH = window.EARTH || {};
-EARTH.T_NO_POLAR_ICE_K = CONST.KELVIN_TO_CELSIUS + 20;
-EARTH.T_NO_POLAR_ICE_RANGE_K = 20;
+// 🏷️ LEGACY — T_NO_POLAR_ICE_K = 293K était calibré comme seuil de T_GLOBALE (plus utilisé dans la formule 3-zones ;
+// conservé pour rétro-compat outils externes / logs). La formule glace utilise désormais T_FREEZE_SEAWATER + dT.
+EARTH.T_NO_POLAR_ICE_K = CONST.KELVIN_TO_CELSIUS + 20;         // 🏷️ DEPRECATED (usage hors albédo/flux/h2o)
+EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // largeur de rampe ice_temp_factor (utilisée)
 /** Fraction max de glace polaire depuis la formule thermique (ice_temp_factor × ce coef, plafonné par highlands). */
-EARTH.ICE_FORMULA_MAX_FRACTION = 0.46;
+EARTH.ICE_FORMULA_MAX_FRACTION = 0.46;                         // 🏷️ TUNING (calib visu Terre moderne)
 EARTH.T_ICE_TRANSITION_RANGE_K = 20;
+
+// ─── Amplification polaire (EBM 0D 3-zones, Budyko-Sellers) ────────────────────
+// Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où T_locale < T_freeze.
+// On approxime avec 2 zones froides pondérées par leur fraction de surface :
+//   Mi-latitude (30°–60°) : T_mid = T_glob − POLAR_AMP_MID_K    (f_mid ≈ 0.37 des 2 hémisphères)
+//   Polaire     (60°–90°) : T_pol = T_glob − POLAR_AMP_POL_K    (f_pol ≈ 0.13 des 2 calottes)
+// La zone tropicale (0°–30°, f≈0.50) est implicitement plus chaude (sans glace) et n'intervient pas.
+// Seuil local glace → seuil global : T_thresh_z = T_FREEZE_SEAWATER_K + POLAR_AMP_z_K.
+//
+// 🏷️ TUNING — valeurs Earth-modern (Budyko 1969 ; Sellers 1969 ; IPCC AR6 WG1 ch.7 & fig 4.18) :
+//   POLAR_AMP_POL_K = 20 K (gradient tropiques→pôles ~40 K réel, amplification polaire Arctique observée ~2×)
+//   POLAR_AMP_MID_K =  5 K (gradient tropiques→mi-lat ~10 K réel)
+// 🏷️ FLOU SCIENTIFIQUE — ces valeurs dépendent en réalité de :
+//   1) l'obliquité axiale ε (insolation annuelle pondérée par latitude) ;
+//      - North & Coakley 1979 EBM 2D : gradient T = f(ε, S, A) — pour ε↑ → gradient↓ (pôles reçoivent plus en été)
+//      - Loi approximée : ΔT_pol ∝ S(φ=90°)/S̄ ≈ (2/π)·sin(ε) — donc à ε=0°, ΔT_pol maximum ; à ε=90°, pôles « tropicaux »
+//      - Formule possible future : POLAR_AMP_POL_K ≈ 20 × (sin(23.44°) / sin(ε)), non activée ici.
+//   2) circulation atmosphérique/océanique (transport de chaleur méridien, ~5 PW Terre moderne)
+//   3) rétroaction glace-albédo (déjà modélisée en aval)
+//   4) épaisseur de l'atmosphère (Archéen P_atm ≠ moderne → transport différent)
+// Pour l'instant : constantes Terre-moderne pour toutes les époques. À discuter avant d'introduire ε dans le calcul.
+EARTH.POLAR_AMP_POL_K = 20;                                    // écart global→pôle annuel moyen (Terre 2025 ; 🏷️ CALIB observationnelle)
+EARTH.POLAR_AMP_MID_K = 5;                                     // écart global→mi-lat annuel moyen (Terre 2025)
+EARTH.POLAR_ZONE_FRAC = 0.13;                                  // fraction surface polaire (60°–90° sur 2 hémisphères)
+EARTH.MIDLAT_ZONE_FRAC = 0.37;                                 // fraction surface mi-latitude (30°–60°)
+
+// ─── Amplitude saisonnière : largeur physique de la rampe glace ────────────────
+// Amplitude saisonnière pic-à-pic divisée par 2 (half-range été-hiver), CALIBRÉES à ε_REF.
+// Sources : ERA5 reanalysis 1991-2020 (T_mensuelles min/max) ; Peixoto & Oort 1992 ch.7.
+// 🏷️ FLOU SCIENTIFIQUE — l'amplitude dépend aussi de la capacité thermique (océan/continent),
+// circulation atmosphérique, ère glaciaire vs interglaciaire. Valeurs ci-dessous = Terre-moderne.
+EARTH.SEASONAL_AMP_POL_K = 15;  // pôle : amplitude annuelle 2× (été + 15 K, hiver − 15 K) autour de la moyenne
+EARTH.SEASONAL_AMP_MID_K = 25;  // mi-lat continentale : amplitude plus large (effet continentalité)
+
+// ─── Couplage obliquité ε (activé) ─────────────────────────────────────────────
+// ε = obliquité axiale (clé epoch '⚾'). Terre 2025 : ε_REF = 23.44°.
+// Loi : amp_z_eff = SEASONAL_AMP_z_K × sin(ε) / sin(ε_REF)   (ε→0 → pas de saison → amp_eff=0)
+// Source : insolation annuelle latitude-dépendante f(ε) — Berger 1978, Laskar et al. 2004.
+// Hypothèse Archéen : Williams 1993 suggère ε ~ 45–70° (expliquerait glaciations basse-latitude
+// du Protérozoïque sans invoquer un Snowball global).
+EARTH.OBLIQUITY_DEG_REF = 23.44;     // référence où SEASONAL_AMP_*_K sont calibrés
+EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // défaut si l'epoch n'a pas de '⚾'
+
+/**
+ * EARTH.computeIceTempFactor(T_glob_K, opts?) : ice_temp_factor ∈ [0,1].
+ * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
+ *
+ * MODÈLE PHYSIQUE (EBM 0D × saisonnalité × obliquité) :
+ *   En zone z, la T_locale annuelle vaut T_glob − dT_z (écart moyen observé).
+ *   Amplitude saisonnière effective : amp_z_eff = SEASONAL_AMP_z_K × sin(ε) / sin(ε_REF).
+ *   La glace se forme dès T_locale_hiver < T_FREEZE_SEAWATER (T_locale − amp_eff < T_FREEZE).
+ *   La glace devient permanente dès T_locale_été < T_FREEZE (T_locale + amp_eff < T_FREEZE).
+ *
+ *   ⇒ Seuil HAUT (glace commence) : T_glob = T_FREEZE + dT_z + amp_z_eff
+ *   ⇒ Seuil BAS  (glace permanente) : T_glob = T_FREEZE + dT_z − amp_z_eff
+ *   ⇒ Rampe linéaire largeur = 2·amp_z_eff (ε↑ → rampe plus large → snowball plus difficile).
+ *
+ * opts (override test de sensibilité) :
+ *   { dT_pol, dT_mid, amp_pol, amp_mid, f_pol, f_mid, obliquity_deg }
+ *   amp_pol/amp_mid directs écrasent le calcul sin(ε) (sinon dérivés d'obliquity_deg).
+ *
+ * @returns {{ice_tf, tf_pol, tf_mid, T_thresh_pol_high, T_thresh_pol_low,
+ *            T_thresh_mid_high, T_thresh_mid_low, dT_pol, dT_mid, amp_pol, amp_mid,
+ *            obliquity_deg, obliquity_factor}}
+ */
+EARTH.computeIceTempFactor = function (T_glob_K, opts) {
+    opts = opts || {};
+    var cc = (typeof window !== 'undefined' && window.CONFIG_COMPUTE) ? window.CONFIG_COMPUTE : {};
+    var f_pol = Number.isFinite(Number(opts.f_pol)) ? Number(opts.f_pol)
+              : (Number.isFinite(Number(cc.polarZoneFraction))  ? Number(cc.polarZoneFraction)  : EARTH.POLAR_ZONE_FRAC);
+    var f_mid = Number.isFinite(Number(opts.f_mid)) ? Number(opts.f_mid)
+              : (Number.isFinite(Number(cc.midlatZoneFraction)) ? Number(cc.midlatZoneFraction) : EARTH.MIDLAT_ZONE_FRAC);
+    var dT_pol = Number.isFinite(Number(opts.dT_pol)) ? Number(opts.dT_pol)
+              : (Number.isFinite(Number(cc.polarAmplificationK))  ? Number(cc.polarAmplificationK)  : EARTH.POLAR_AMP_POL_K);
+    var dT_mid = Number.isFinite(Number(opts.dT_mid)) ? Number(opts.dT_mid)
+              : (Number.isFinite(Number(cc.midlatAmplificationK)) ? Number(cc.midlatAmplificationK) : EARTH.POLAR_AMP_MID_K);
+    // Obliquité : opts > CONFIG_COMPUTE global > EARTH default.
+    var obliquity_deg = Number.isFinite(Number(opts.obliquity_deg)) ? Number(opts.obliquity_deg)
+              : (Number.isFinite(Number(cc.obliquityDeg)) ? Number(cc.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT);
+    // Facteur sin(ε)/sin(ε_REF), borné à 0 (ε peut chaoser mais sin ne devient pas négatif ici).
+    var toRad = Math.PI / 180;
+    var sinRef = Math.sin(EARTH.OBLIQUITY_DEG_REF * toRad);
+    var obliquity_factor = Math.max(0, Math.sin(obliquity_deg * toRad) / sinRef);
+    // Amplitudes effectives : opts.amp_* écrasent le dérivé d'obliquité (pour tests sensibilité).
+    var amp_pol_base = Number.isFinite(Number(cc.seasonalAmpPolK)) ? Number(cc.seasonalAmpPolK) : EARTH.SEASONAL_AMP_POL_K;
+    var amp_mid_base = Number.isFinite(Number(cc.seasonalAmpMidK)) ? Number(cc.seasonalAmpMidK) : EARTH.SEASONAL_AMP_MID_K;
+    var amp_pol = Number.isFinite(Number(opts.amp_pol)) ? Number(opts.amp_pol) : (amp_pol_base * obliquity_factor);
+    var amp_mid = Number.isFinite(Number(opts.amp_mid)) ? Number(opts.amp_mid) : (amp_mid_base * obliquity_factor);
+    // Seuils haut (glace commence saisonnalement) et bas (glace permanente).
+    var T_thresh_pol_high = EARTH.T_FREEZE_SEAWATER_K + dT_pol + amp_pol;
+    var T_thresh_pol_low  = EARTH.T_FREEZE_SEAWATER_K + dT_pol - amp_pol;
+    var T_thresh_mid_high = EARTH.T_FREEZE_SEAWATER_K + dT_mid + amp_mid;
+    var T_thresh_mid_low  = EARTH.T_FREEZE_SEAWATER_K + dT_mid - amp_mid;
+    // Rampe linéaire sur 2·amp_z_eff (largeur physique, dérivée de sin(ε)).
+    var widthPol = Math.max(1e-6, 2 * amp_pol);
+    var widthMid = Math.max(1e-6, 2 * amp_mid);
+    var tf_pol = Math.max(0, Math.min(1, (T_thresh_pol_high - T_glob_K) / widthPol));
+    var tf_mid = Math.max(0, Math.min(1, (T_thresh_mid_high - T_glob_K) / widthMid));
+    var fsum = f_pol + f_mid;
+    var ice_tf = fsum > 0 ? (f_pol * tf_pol + f_mid * tf_mid) / fsum : 0;
+    return {
+        ice_tf: ice_tf,
+        tf_pol: tf_pol, tf_mid: tf_mid,
+        T_thresh_pol_high: T_thresh_pol_high, T_thresh_pol_low: T_thresh_pol_low,
+        T_thresh_mid_high: T_thresh_mid_high, T_thresh_mid_low: T_thresh_mid_low,
+        // compat rétro-facing (ancien champ exposé par calculations_albedo.js) :
+        T_thresh_pol: T_thresh_pol_high, T_thresh_mid: T_thresh_mid_high,
+        dT_pol: dT_pol, dT_mid: dT_mid, amp_pol: amp_pol, amp_mid: amp_mid,
+        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor
+    };
+};
 EARTH.EVAPORATION_E0 = 0.001;
 EARTH.EVAPORATION_T_REF = 288;
 EARTH.EVAPORATION_T_SCALE = 20;
@@ -125,6 +240,27 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib 
 // Facteur κ_H2O global dans EDS. Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
 // Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré v2.0.10 (double-comptait pressure broadening HITRAN).
 EARTH.H2O_EDS_SCALE = 0.60;
+
+// ─── Facteur κ_CH4 global dans EDS (pressure broadening / saturation bandes) ─────
+// Parallèle à H2O_EDS_SCALE. Ajouté pour permettre un tuning fin du méthane sans toucher le line-by-line HITRAN.
+// Défaut 1.0 : HITRAN natif (= cross_section × √(P/P_ref) déjà appliqué dans spectral_slice_worker).
+// Réf. Haqq-Misra et al. 2008 (Astrobiology 8:1127) « A revised, hazy methane greenhouse » :
+//   - CH4 en atmosphère CO2-riche (Archéen) : chauffage maximum ~9–11 K pour 1000–5000 ppm ;
+//   - Saturation radiative IR au-delà de ~1000 ppm (bandes 3.3 / 7.7 µm opaques).
+//   - Au-dessus de CH4/CO2 > 0.1 molaire : formation brume organique (Tholin) → anti-greenhouse SW
+//     dominant → refroidissement net. Seuil strict ε ≈ 0.1 (non modélisé ici, à ajouter via SW).
+//   - Pressure-broadening (déjà dans HITRAN + √(P/P_ref) du worker) couvre partiellement la
+//     non-linéarité ; un scalar supplémentaire reste utile pour caler EDS_CH4 sur cible litt.
+// Plage tolérée pour tuning : [0.3, 1.5] (0.3 = bandes fortement saturées / overlap H2O, 1.5 = bonus Haqq-Misra bandes mineures).
+// NB : le seuil haze CH4/CO2 = 0.1 peut être vérifié dans calculateAlbedo (SW) plus tard.
+EARTH.CH4_EDS_SCALE = 1.0;
+
+// ─── Seuil de brume organique (Haqq-Misra 2008 Fig. 1) ─────────────────────────
+// Rapport molaire CH4/CO2 au-delà duquel le méthane polymérise en Tholin (brume organique)
+// qui absorbe le SW en stratosphère → anti-greenhouse. Au-dessous : pas de brume.
+// Seuil Haqq-Misra 2008 : 0.1. NB : modèles plus récents (Arney et al. 2016) suggèrent plutôt 0.2.
+// Actuellement INFORMATIF UNIQUEMENT — non-lu par le worker spectral. Hook futur pour SW haze.
+EARTH.CH4_HAZE_RATIO_THRESHOLD = 0.1;
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;

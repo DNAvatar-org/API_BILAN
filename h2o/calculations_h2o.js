@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.19
-// Date: [April 18, 2026]
+// Version 1.0.20
+// Date: [April 23, 2026]
 // logs :
+// - v1.0.20: polar_ice_fraction_climate UNIFIÉ avec albedo v1.2.48 / flux v1.2.91 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT_pol (EARTH.POLAR_AMP_POL_K). Remplace l'ancien seuil T_NO_POLAR_ICE_K = 293 K (seuil GLOBAL traité à tort comme seuil LOCAL). Bloc gel océan (T < T_FREEZE) inchangé. Pas d'override par époque.
 // - v1.0.19: expositions fonctions regroupées sous window.H2O (plus de window.foo isolés). Clés ajoutées au namespace : calculateH2OGreenhouseForcing, calculateCloudAlbedoContribution, calculateWaterPartition, calculatePrecipitationFeedback, getBoilingPointKFromPressure. Appelants migrés window.foo() → H2O.foo() dans calculations_flux.js, radiative/calculations.js, ui/main.js, CO2/html/*.html.
 // - v1.0.18: deltaTAccelerationDays lu depuis window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER.
 // - v1.0.17: DELTA_T_ACCELERATION_DAYS lu depuis window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING.
@@ -198,10 +199,20 @@ function calculateWaterPartition() {
 
     // 🔒 ÉTAPE 2 : Déterminer la glace selon la température ET les surfaces disponibles
     // Deux régimes :
-    //   T >= T_freeze_seawater : glace polaire sur hautes terres (calottes classiques)
-    //   T <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
-    const has_polar_ice = DATA['🧮']['🧮🌡️'] < EARTH.T_NO_POLAR_ICE_K;
-    const polar_ice_fraction_climate = has_polar_ice ? Math.max(0, Math.min(0.10, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K * 0.10)) : 0;
+    //   T_glob >= T_freeze_seawater : glace polaire sur hautes terres (calottes classiques)
+    //   T_glob <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
+    //
+    // v1.0.21 — FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob, opts) — cf. physics.js.
+    // Obliquité ε : lue sur l'objet epoch ('⚾'), sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
+    // Cap à 10 % (fraction massique d'eau piégée en calottes polaires).
+    const _EPOCH_h2o = window.TIMELINE && window.TIMELINE[DATA['📜'] && DATA['📜']['👉']];
+    const _epochObliquity_h2o = (_EPOCH_h2o && Number.isFinite(Number(_EPOCH_h2o['⚾']))) ? Number(_EPOCH_h2o['⚾']) : undefined;
+    const _iceTF_h2o = EARTH.computeIceTempFactor(
+        DATA['🧮']['🧮🌡️'],
+        _epochObliquity_h2o !== undefined ? { obliquity_deg: _epochObliquity_h2o } : undefined
+    );
+    const has_polar_ice = _iceTF_h2o.tf_pol > 0;
+    const polar_ice_fraction_climate = 0.10 * _iceTF_h2o.tf_pol;
 
     let polar_ice_fraction;
     if (DATA['🧮']['🧮🌡️'] >= EARTH.T_FREEZE_SEAWATER_K) {

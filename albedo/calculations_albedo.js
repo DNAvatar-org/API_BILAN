@@ -1,8 +1,12 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.44
-// Date: [April 18, 2026]
+// Version 1.2.48
+// Date: [April 23, 2026]
 // logs :
+// - v1.2.48: ice_temp_factor UNIFIÉ — formule physiquement ancrée sur T_FREEZE_SEAWATER (fonte mer) + amplification polaire globale EARTH.POLAR_AMP_POL_K/MID_K (pas d'override par époque). Suppression des clés EPOCH['polarAmplificationK'/'midlatAmplificationK'] : constantes géophysiques (Terre-moderne), mêmes pour toutes les époques. Seuils : T_thresh_pol = T_FREEZE + dT_pol (≈18°C global) ; T_thresh_mid = T_FREEZE + dT_mid (≈3°C global). Correction du bug sémantique v1.2.47 où T_NO_POLAR_ICE_K (seuil global calibré à 20°C) était utilisé comme seuil LOCAL → ice_tf saturait toujours à 1.0 dans la plage utile.
+// - v1.2.47: (déprécié par v1.2.48) amplification polaire epoch-spécifique.
+// - v1.2.46: 3 zones latitudinales EBM 0D (Budyko-Sellers) — ice_temp_factor pondéré polaire/mi-latitude/tropiques. Rétroaction glace-albédo activée à T réaliste (T_glob − dT_pol < T_NO_POLAR_ICE_K).
+// - v1.2.45: amplification polaire simple (T_K − POLAR_OFFSET) — remplacé par 3-zones en v1.2.46.
 // - v1.2.44: expositions fonctions regroupées sous window.ALBEDO (doublons window.foo retirés). Ajout ALBEDO.updateLevelsConfig. Appelants migrés window.foo() → ALBEDO.foo() dans radiative/calculations.js, convergence/calculations_flux.js, ui/main.js, organigramme/organigramme.js.
 // - v1.2.43: updateLevelsConfig — lecture directe DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] (pas de const stale)
 // - v1.2.42: diagnostics glace / albédo → pdTrace au lieu de pd
@@ -56,6 +60,8 @@
 // - v1.2.36 : clés DATA lave 🍰🪩🎾 / 🪩🍰🎾 (remplace 🌋 pour la fraction surface magmatique)
 // - v1.2.37 : 🍰🪩⚽ dans DATA['🪩'] (puis aligné v1.2.38 : transmission = 1−🍰⚽) ; purge 🍰🪩🌋
 // - v1.2.38 : 🍰⚽ obstruction, 🍰🪩⚽ = 1−🍰⚽ ; flux × transmission (priorité lecture 🍰⚽)
+// - v1.2.46: ice_temp_factor — 3 zones latitudinales (Budyko-Sellers EBM 0D) : polaire (f=0.13, −20K) + mi-latitude (f=0.37, −5K) ; tropiques implicitement compensés (+9K). ice_temp_factor = moyenne pondérée normalisée des 2 zones froides. Remplace v1.2.45 mono-zone −15K qui causait gel immédiat à T_glob>20°C.
+// - v1.2.45: ice_temp_factor — amplification polaire EBM 0D (Budyko-Sellers) : T_K_polar = T_K − CONFIG_COMPUTE.polarAmplificationK (défaut 15 K). Sans ce décalage, ice_temp_factor=0 à T_globale>20°C → rétroaction glace-albédo inactive, snowball impossible.
 // - v1.2.39 : 🍰🪩📿 inclut voile (A_eff) ; calculateSolarFluxAbsorbed = S×(1−A_eff) sans double ×🍰🪩⚽
 //
 // FORMULES ALBEDO :
@@ -223,13 +229,15 @@ function calculateAlbedo() {
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
     function calcGlaceEquilibre(T_K) {
+        // Même logique que ice_temp_factor ci-dessous, mais utilisée pour blend héritage glaciaire (pas l'albédo instantané).
+        // Régime 1 (T_K >= T_freeze) : calottes polaires ; max ~10% surface (highlands).
+        //   Rampe linéaire pondérée par l'amplification polaire → seuil global T_thresh_pol = T_FREEZE + dT_pol.
+        // Régime 2 (T_K <  T_freeze) : océan gèle → jusqu'à 90% surface en glace de mer, rampe sur 20 K.
         if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
-            // Régime calottes polaires : max ~10% de surface (highlands)
-            const stock_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + EARTH.POLAR_AMP_POL_K;
+            const stock_factor = Math.max(0, Math.min(1, (T_thresh_pol - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K));
             return Math.max(0, Math.min(1, 0.1 * stock_factor));
         }
-        // Régime gel océan (équilibre) : sous T_freeze (~271 K), une part croissante de surface devient glace de mer.
-        // Rampe linéaire : 0 → 90% sur ~20 K sous T_freeze. (Toujours bornée par 0.9 par design du modèle.)
         const ocean_freeze_fraction = Math.min(1, Math.max(0, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20));
         return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
@@ -307,7 +315,38 @@ function calculateAlbedo() {
     // 🍰🪩🧊 est borné par le support physique disponible :
     // - hautes terres géologiques
     // - ou couche d'eau globale équivalente si l'astre a peu/pas de relief mais assez d'eau pour geler en surface
-    const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - DATA['🧮']['🧮🌡️']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+    //
+    // ─── Amplification polaire 3 zones (EBM 0D) — v1.2.48 ───────────────────────
+    // Appel à la FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob_K) — définie dans physics.js.
+    // Même source dans calculations_flux.js et calculations_h2o.js. Pas de duplication.
+    // 🏷️ TUNING géophysique : dT_pol = 20 K, dT_mid = 5 K, RANGE = 20 K (Terre-moderne).
+    // 🏷️ FLOU SCIENTIFIQUE : couplage obliquité / P_atm non activé (cf. physics.js).
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Obliquité ε : lue sur l'objet epoch ('⚾'), sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
+    const _epochObliquity = (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) ? Number(EPOCH['⚾']) : undefined;
+    const _iceTF = EARTH.computeIceTempFactor(
+        DATA['🧮']['🧮🌡️'],
+        _epochObliquity !== undefined ? { obliquity_deg: _epochObliquity } : undefined
+    );
+    const ice_temp_factor = _iceTF.ice_tf;
+    const ice_tf_pol = _iceTF.tf_pol;
+    const ice_tf_mid = _iceTF.tf_mid;
+    const T_thresh_pol = _iceTF.T_thresh_pol;
+    const T_thresh_mid = _iceTF.T_thresh_mid;
+    // Debug topic-based : uniquement actif si DEBUG.setTopic('iceFactor') appelé (ou ?debug=iceFactor).
+    if (typeof window !== 'undefined' && window.DEBUG && window.DEBUG.topic === 'iceFactor') {
+        const _T_C = (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(2);
+        window.DEBUG.log(
+            '[iceTF] epoch=' + (DATA['📜'] && DATA['📜']['🗿']) +
+            ' T=' + _T_C + '°C' +
+            ' ε=' + _iceTF.obliquity_deg.toFixed(2) + '° (×' + _iceTF.obliquity_factor.toFixed(3) + ')' +
+            ' dT_pol=' + _iceTF.dT_pol + ' amp_pol=' + _iceTF.amp_pol.toFixed(2) +
+            ' dT_mid=' + _iceTF.dT_mid + ' amp_mid=' + _iceTF.amp_mid.toFixed(2) +
+            ' | tf_pol=' + _iceTF.tf_pol.toFixed(3) +
+            ' tf_mid=' + _iceTF.tf_mid.toFixed(3) +
+            ' -> ice_tf=' + _iceTF.ice_tf.toFixed(3)
+        );
+    }
     const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
     const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
     let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
@@ -499,7 +538,9 @@ function calculateAlbedo() {
             + ' | T_freeze=' + T_freeze.toFixed(2) + ' seaRangeK=' + seaIceRangeK.toFixed(3)
             + ' seaRaw=' + seaIceFracRaw.toFixed(4) + ' seaF=' + seaIceFrac.toFixed(4)
             + ' | ice_temp_factor=' + ice_temp_factor.toFixed(4)
-            + ' TnoIce=' + EARTH.T_NO_POLAR_ICE_K + ' dTRange=' + EARTH.T_NO_POLAR_ICE_RANGE_K
+            + ' (tf_pol=' + ice_tf_pol.toFixed(3) + ' tf_mid=' + ice_tf_mid.toFixed(3) + ')'
+            + ' T_thresh_pol=' + T_thresh_pol.toFixed(2) + ' T_thresh_mid=' + T_thresh_mid.toFixed(2)
+            + ' dTRange=' + EARTH.T_NO_POLAR_ICE_RANGE_K
             + ' ICEmax*factor=' + iceProdBare.toFixed(4)
             + ' | cap=' + ice_cap_surface.toFixed(4) + ' hydro=' + hydrosphere_surface_support.toFixed(4) + ' highland=' + DATA['🗻']['🍰🗻🏔'].toFixed(4)
             + ' | polarTarget=' + icePolarFormulaTarget.toFixed(4) + ' mergeSea=' + iceAfterSeaIceMerge.toFixed(4)

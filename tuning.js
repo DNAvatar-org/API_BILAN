@@ -3,9 +3,11 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.0.12
-// Date: 2026-04-18
+// Version 1.0.14
+// Date: 2026-04-22
 // Logs:
+// - v1.0.14: ATM obligatoire (crash-first). Suppression des fallbacks CLOUD_SW/SCIENCE quand ATM absent/invalide ; throw explicite.
+// - v1.0.13: bary ATM source unique (🎚️.baryByGroup.ATM). CLOUD_SW et SCIENCE sont forcés à la même valeur ATM dans applyBaryGroup/fillData/applyTuningPayload.
 // - v1.0.12: expositions regroupées sous nouveau namespace window.TUNING (applyTuningPayload, fillDataTuningFromBary). Doublons window.foo retirés. Consommateurs migrés : api.js, ui/main.js, sync_panels.js, API_BILAN/doc/epoch_bench.html.
 // - v1.0.11: syncRadiativeConfig — retrait garde silencieuse `if (!R || !window.EARTH) return` (crash-first). Pré-requis : physics.js chargé avant tuning.js (loader_panels.js v1.1.18).
 // - v1.0.10: auto-init fillDataTuningFromBary() à la fin du module — corrige scie/visu qui restaient aux defaults bruts (13.4°C au lieu de 15.35°C pour 📱 2000). Bench (iframe, recharge stack complet) écrase ensuite via applyTuningPayload → idempotent.
@@ -59,13 +61,52 @@
         window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;
     }
 
+    function clampPercent(percentRaw) {
+        return Math.max(0, Math.min(100, Number(percentRaw)));
+    }
+
+    function requireFinitePercent(percentRaw, label) {
+        var value = Number(percentRaw);
+        if (!Number.isFinite(value)) {
+            throw new Error('[tuning.js] ' + label + ' requis et invalide: ' + String(percentRaw));
+        }
+        return value;
+    }
+
+    function normalizeAtmBary(bg) {
+        var atm = clampPercent(requireFinitePercent(bg.ATM, 'baryByGroup.ATM'));
+        bg.ATM = atm;
+        bg.CLOUD_SW = atm;
+        bg.SCIENCE = atm;
+        return atm;
+    }
+
     /**
      * Applique le barycentre pour un groupe donné.
      * Met à jour baryByGroup[groupKey] puis interpole chaque paramètre du groupe.
      */
     function applyBaryGroup(groupKey, percentRaw) {
         var T = window.DATA['🎚️'];
-        var pct = Math.max(0, Math.min(100, Number.isFinite(Number(percentRaw)) ? Number(percentRaw) : 100));
+        var pct = clampPercent(requireFinitePercent(percentRaw, 'percentRaw'));
+        if (groupKey === 'ATM' || groupKey === 'CLOUD_SW' || groupKey === 'SCIENCE') {
+            T.baryByGroup.ATM = pct;
+            T.baryByGroup.CLOUD_SW = pct;
+            T.baryByGroup.SCIENCE = pct;
+            var targetsCloud = targetsByGroup('CLOUD_SW');
+            for (var c = 0; c < targetsCloud.length; c++) {
+                var tc = targetsCloud[c];
+                if (!T[tc.group]) T[tc.group] = {};
+                T[tc.group][tc.key] = interpolate(tc, pct);
+            }
+            var targetsScience = targetsByGroup('SCIENCE');
+            for (var s = 0; s < targetsScience.length; s++) {
+                var ts = targetsScience[s];
+                if (!T[ts.group]) T[ts.group] = {};
+                T[ts.group][ts.key] = interpolate(ts, pct);
+            }
+            syncRadiativeConfig();
+            return;
+        }
         T.baryByGroup[groupKey] = pct;
         var targets = targetsByGroup(groupKey);
         for (var i = 0; i < targets.length; i++) {
@@ -82,14 +123,15 @@
     function fillDataTuningFromBary() {
         var T = window.DATA['🎚️'];
         var bg = T.baryByGroup;
+        var atmPct = normalizeAtmBary(bg);
         var bounds = window.FINE_TUNING_BOUNDS;
         if (!bounds || !bounds.targets) return;
         for (var i = 0; i < bounds.targets.length; i++) {
             var target = bounds.targets[i];
             var baryKey = target.baryGroup || target.group;
+            var pctRaw = (baryKey === 'CLOUD_SW' || baryKey === 'SCIENCE') ? atmPct : bg[baryKey];
+            var pct = clampPercent(requireFinitePercent(pctRaw, 'baryByGroup.' + baryKey));
             if (!T[target.group]) T[target.group] = {};
-            var pctRaw = bg[baryKey];
-            var pct = Number.isFinite(Number(pctRaw)) ? Number(pctRaw) : 100;
             T[target.group][target.key] = interpolate(target, pct);
         }
         syncRadiativeConfig();
@@ -114,6 +156,7 @@
 
         // Format 2 : payload complet avec baryByGroup + valeurs directes (compatibilité CO2)
         if (payload.baryByGroup) {
+            if (payload.baryByGroup.ATM !== undefined) T.baryByGroup.ATM = payload.baryByGroup.ATM;
             if (payload.baryByGroup.CLOUD_SW !== undefined) T.baryByGroup.CLOUD_SW = payload.baryByGroup.CLOUD_SW;
             if (payload.baryByGroup.SCIENCE !== undefined) T.baryByGroup.SCIENCE = payload.baryByGroup.SCIENCE;
             if (payload.baryByGroup.HYSTERESIS !== undefined) T.baryByGroup.HYSTERESIS = payload.baryByGroup.HYSTERESIS;

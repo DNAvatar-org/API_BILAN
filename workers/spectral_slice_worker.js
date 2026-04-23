@@ -1,14 +1,15 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.4.1
+// Version 0.5.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: March 08, 2026
+// Date: April 23, 2026
 // Logs:
-// - v0.2.0 constantes depuis payload (CONST côté main), plus de doublon
-// - v0.3.0 Add slice_shared message type: write upward_flux directly into SharedArrayBuffer (zero-copy result)
-// - v0.4.0 Add slice_transfer message type: Transferable Float32Array (compatible prod, sans headers COOP/COEP)
+// - v0.5.0 ch4_eds_scale (Haqq-Misra 2008) appliqué sur kappa_CH4 dans les 3 fonctions (runSlice / runSliceShared / runSliceTransfer). Défaut 1.0 si param absent ou non-fini.
 // - v0.4.1 Retrait guards abusifs (Number.isFinite, != null, || fallbacks) dans runSliceShared/Transfer (regle-js-crash)
+// - v0.4.0 Add slice_transfer message type: Transferable Float32Array (compatible prod, sans headers COOP/COEP)
+// - v0.3.0 Add slice_shared message type: write upward_flux directly into SharedArrayBuffer (zero-copy result)
+// - v0.2.0 constantes depuis payload (CONST côté main), plus de doublon
 
 'use strict';
 
@@ -48,6 +49,7 @@ function runSlice(p) {
     var layers = p.layers;
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
+    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var T_surf = p.T_surf;
@@ -74,7 +76,8 @@ function runSlice(p) {
             var kappa_CO2 = (Number.isFinite(n_CO2) && cross_section_CO2[j] != null) ? cross_section_CO2[j] * sigma_broad * n_CO2 : 0;
             var kappa_H2O_raw = (Number.isFinite(n_H2O) && cross_section_H2O[j] != null) ? cross_section_H2O[j] * sigma_broad * n_H2O : 0;
             var kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
-            var kappa_CH4 = (Number.isFinite(n_CH4) && cross_section_CH4[j] != null) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
+            var kappa_CH4_raw = (Number.isFinite(n_CH4) && cross_section_CH4[j] != null) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
+            var kappa_CH4 = kappa_CH4_raw * ch4_eds_scale;
             var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
             var tau_raw = kappa * delta_z_real + tau_cloud_layer;
             var tau = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(Math.max(tau_raw, TAU_EFF_MIN), TAU_EFF_MAX) : 0;
@@ -131,6 +134,7 @@ function runSliceShared(p) {
     var layers = p.layers;
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
+    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var nL = lambda_range.length;        // slice size
@@ -154,7 +158,7 @@ function runSliceShared(p) {
             var lambda = lambda_range[j];
             var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
             var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
-            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4;
+            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
             var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
             var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
             var transmission = Math.exp(-tau);
@@ -194,6 +198,7 @@ function runSliceTransfer(p) {
     var layers = p.layers;
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
+    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var nL = lambda_range.length;
@@ -216,7 +221,7 @@ function runSliceTransfer(p) {
             var lambda = lambda_range[j];
             var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
             var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
-            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4;
+            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
             var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
             var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
             var transmission = Math.exp(-tau);

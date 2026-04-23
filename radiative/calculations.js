@@ -1,8 +1,9 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.2.9
+// Version 1.3.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.3.0: intégration EARTH.CH4_EDS_SCALE (Haqq-Misra 2008) en parallèle de H2O_EDS_SCALE. Passé au dispatch des workers (spectral_slice_worker v1.0.X + worker_pool). Également appliqué dans calculateRadiativeCapacities (capacité IR normalisée CH4). Défaut 1.0 = HITRAN native, tunable [0.3, 1.5] pour caler EDS_CH4 sur littérature (saturation bandes 3.3/7.7 µm, overlap H2O). Seuil haze Haqq-Misra CH4/CO2 > 0.1 documenté dans physics.js mais pas encore câblé côté SW.
 // - v1.2.9: expositions regroupées sous nouveau namespace window.RADIATIVE (getSpectralResultFromDATA, calculateRadiativeCapacities, temperatureAtZ, simulateRadiativeTransfer). Doublons window.foo retirés. Consommateurs migrés : convergence/calculations_flux.js, sync_panels.js, ui/main.js, atmosphere/calculations_atm.js, doc/epoch_bench.html. Appels H2O/ALBEDO/ATM/GEOLOGY/CLIMATE migrés vers namespaces correspondants.
 // - v1.2.8: calculateFluxForT0 — retrait du fallback silencieux voie série (111 lignes). Si spectralWorkerPool absent/non-ready → throw (crash-first). Cause historique scie 15.28°C vs bench 15.35°C (📱 2000) : scie/visu (index.html) n'avait pas workers/worker_pool.js dans loader_panels.js → silencieusement voie série, ordre addition float différent (0.115 W/m² sur 348 W/m²). Fix loader : v1.1.19.
 // - v1.2.7: waterVaporMixingRatio + waterVaporFractionAtZ utilisent window.PHYS.computeH2OScaleHeight() (= R·T²/(L·Γ), dépend T et g_epoch). Remplace la constante EARTH.H2O_SCALE_HEIGHT_M (retirée) pour couvrir Hadéen (P, T extrêmes). Voir physics.js v2.0.12.
@@ -447,6 +448,9 @@ async function calculateFluxForT0() {
     // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
     // Propagé par tuning.js → syncRadiativeConfig(). Ex-recalcul dynamique 0.92·√P_ratio·CO2_factor retiré (double-comptait le pressure broadening déjà dans HITRAN).
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
+    // EARTH.CH4_EDS_SCALE : parallèle à H2O_EDS_SCALE. Défaut 1.0 (line-by-line HITRAN + √(P/P_ref) natif).
+    // Pilotable via FINE_TUNING_BOUNDS.RADIATIVE.CH4_EDS_SCALE (si exposé) pour caler sur cible Haqq-Misra 2008.
+    const ch4_eds_scale = (EARTH.CH4_EDS_SCALE != null && Number.isFinite(EARTH.CH4_EDS_SCALE)) ? EARTH.CH4_EDS_SCALE : 1.0;
 
     // h2o_enabled et ch4_enabled sont déjà lus depuis DATA au début de la fonction
 
@@ -500,7 +504,7 @@ async function calculateFluxForT0() {
         const { resultBuf, sums } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
             cross_section_CO2, cross_section_H2O, cross_section_CH4,
-            earth_flux, layers: layers_w, i_trop, h2o_eds_scale,
+            earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale,
             tau_cloud_per_layer, effective_delta_lambda,
             T_surf: DATA['🧮']['🧮🌡️'],
             constants: { PLANCK_H: CONST.PLANCK_H, SPEED_OF_LIGHT: CONST.SPEED_OF_LIGHT, BOLTZMANN_KB: CONST.BOLTZMANN_KB, MAX_PLANCK_SAFE: CONST.MAX_PLANCK_SAFE }
@@ -702,7 +706,8 @@ function calculateRadiativeCapacities() {
     const cross_section_H2O = lr.map(lambda => crossSectionH2O(lambda));
     const cross_section_CH4 = lr.map(lambda => crossSectionCH4(lambda));
     const h2o_eds_scale_cap = EARTH.H2O_EDS_SCALE;
-    
+    const ch4_eds_scale_cap = (EARTH.CH4_EDS_SCALE != null && Number.isFinite(EARTH.CH4_EDS_SCALE)) ? EARTH.CH4_EDS_SCALE : 1.0;
+
     // Initialiser les intégrales pondérées
     let integral_H2O = 0;
     let integral_CO2 = 0;
@@ -739,7 +744,7 @@ function calculateRadiativeCapacities() {
             
             const kappa_CO2 = cross_section_CO2[j] * n_CO2;
             const kappa_H2O = cross_section_H2O[j] * n_H2O * h2o_eds_scale_cap;
-            const kappa_CH4 = cross_section_CH4[j] * n_CH4;
+            const kappa_CH4 = cross_section_CH4[j] * n_CH4 * ch4_eds_scale_cap;
 
             const delta_tau_CO2 = kappa_CO2 * delta_z;
             const delta_tau_H2O = kappa_H2O * delta_z;

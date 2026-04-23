@@ -45,7 +45,7 @@
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
-        baryByGroup: { CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 },
+        baryByGroup: { ATM: 25, CLOUD_SW: 25, SCIENCE: 25, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {
@@ -81,7 +81,10 @@
             scanCo2MassFactor: 0.9,
             maxDichoSteps: 30,
             warmBranchHint_C: -5,
-            coldBranchHint_C: -20
+            coldBranchHint_C: -20,
+            // Couplage CCN-CO₂ : ⚖️✈ = baseline × (x0/xNew)^ccnSulfateCoupling à chaque pas du scan.
+            // 0 = désactivé ; 0.5 = racine carrée (softer) ; 1 = inverse linéaire.
+            ccnSulfateCoupling: 0.5
         },
 
         // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).

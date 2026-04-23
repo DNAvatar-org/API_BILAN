@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.90
-// Date: [April 21, 2026]
+// Version 1.2.93
+// Date: [April 23, 2026]
 // Logs:
+// - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
+// - v1.2.92: (obliquité) plumbing EPOCH['⚾'] → EARTH.computeIceTempFactor(opts.obliquity_deg) pour ice_formula_epoch ; même contrat que albedo v1.2.49 / h2o v1.0.21.
+// - v1.2.91: ice_formula_epoch UNIFIÉ avec albedo v1.2.48 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT (EARTH.POLAR_AMP_POL_K/MID_K). Remplace l'ancienne formule mono-zone (T_NO_POLAR_ICE − T_epoch)/RANGE qui divergeait de la formule albédo et saturait à 1.0 dans la plage utile. Pas de dépendance par époque (constantes géophysiques globales).
 // - v1.2.90: avant 1er calculateFluxForT0 — updateAtmosphereHeightFromCurrentT + calculateH2OParameters en phase Search (restauration phase). Corrige 🍰🫧💧≈0 après cycles (Init+précip ou spin-up+🔺⏳ long) → OLR trop haute / EDS H2O affiché 0% alors que C–C à T impose vapeur >0.
 // - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
 // - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
@@ -328,7 +331,13 @@ function initForConfig() {
     const ice_surface_cap = Math.max(DATA['🗻']['🍰🗻🏔'], Math.max(0, Math.min(0.9,
         (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / (4 * Math.PI * Math.pow((EPOCH['📐'] || 6371) * 1000, 2)) : 0) / 10)));
     const ice_data_continuity = hasAtmWaterSupport ? Math.min(ice_surface_cap, DATA['💧']['🍰💧🧊']) : 0;
-    const ice_temp_factor = Math.max(0, (EARTH.T_NO_POLAR_ICE_K - EPOCH['🌡️🧮']) / EARTH.T_NO_POLAR_ICE_RANGE_K);
+    // ice_temp_factor v1.2.92 : FONCTION UNIQUE (cf. physics.js EARTH.computeIceTempFactor).
+    // Obliquité ε : lue sur EPOCH['⚾'], sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
+    const _epochObliquity_flux = (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) ? Number(EPOCH['⚾']) : undefined;
+    const ice_temp_factor = EARTH.computeIceTempFactor(
+        EPOCH['🌡️🧮'],
+        _epochObliquity_flux !== undefined ? { obliquity_deg: _epochObliquity_flux } : undefined
+    ).ice_tf;
     const ice_formula_epoch = Math.min(ice_surface_cap, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
     // Priorité : EPOCH['⛄'] (per-epoch) > OVERRIDES['⛄'] (global) > continuité DATA
     const epochIceOverride = (EPOCH != null && EPOCH['⛄'] != null && Number.isFinite(Number(EPOCH['⛄']))) ? Number(EPOCH['⛄']) : null;
@@ -988,6 +997,8 @@ async function computeRadiativeTransfer(callback, options) {
 
         // Phase utilisée pour ce pas (avant tout changement) : afficher phase réelle du pas, pas celle du suivant
         const phaseForStep = DATA['🧮']['🧮⚧'];
+        // ☯ figé à T_input (avant step) : pour push cohérent, ☯ affiché = ☯@T_input
+        const yinYangForPush = DATA['🧮']['🧮☯'];
 
         // Calculer T_next AVANT de déplacer (pour snapshot cohérent : T, Δ, bounds, next_T)
         // Init : pas de déplacement (snapshot seul). Search/Dicho : déplacement ici (increment ou milieu bracket).
@@ -1144,67 +1155,16 @@ async function computeRadiativeTransfer(callback, options) {
         }
         DATA['🧮']['🧮🔄☀️']++;
 
-        // Recalculer flux et Δ à la nouvelle T pour afficher (T_new, Δ_new) cohérent (météo : 2 ou 4 cycles si config)
-        const maxWaterAlbedoPost = CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep;
-        if (maxWaterAlbedoPost <= 1) {
-            window.H2O.calculateH2OParameters();
-            window.COMPUTE.getEnabledStates();
-            window.ALBEDO.calculateAlbedo();
-        } else {
-            for (let w = 0; w < maxWaterAlbedoPost; w++) {
-                const resPost = await window.CONVERGE.cycleDeLeau(false);
-                if (!resPost.changed) break;
-                if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
-            }
-        }
-        await window.calculateFluxForT0();
-        window.RADIATIVE.calculateRadiativeCapacities();
-        const spectral_after = window.RADIATIVE.getSpectralResultFromDATA();
-        DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
-        DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
-        DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
-        DATA['🧲']['🧲🌈🔼'] = spectral_after.total_flux;
-        DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
-        DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
-        const bPost = DATA['📊'] && DATA['📊'].eds_breakdown;
-        DATA['📛'] = buildEdsBreakdown(bPost);
-        if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
-        // Ne pas mettre à jour ☯ si changement de signe (Δ×☯<0) : garder ☯ pour détecter le passage en Dicho au tour suivant
-        const signChangePost = (DATA['🧮']['🧮☯'] !== 0 && DATA['🧲']['🔺🧲'] * DATA['🧮']['🧮☯'] < 0);
-        if (!signChangePost) DATA['🧮']['🧮☯'] = Math.sign(DATA['🧲']['🔺🧲']);
-        // Sauvegarder ☯ avant mise à jour finale : pour push cohérent (☯ = ancien signe, celui qui a déclenché Dicho si switch)
-        const yinYangForPush = DATA['🧮']['🧮☯'];
-
-        // Mise à jour bornes Dicho/Search AVANT snapshot : sinon affichage [🔽,🔼] et next_T°C incorrects
-        // (le bloc en début de boucle s'exécute avant le déplacement de T ; ici T et Δ sont à jour)
-        if (DATA['🧮']['🧮⚧'] === 'Search' && DATA['🧮']['🧮🔄☀️'] > 0) {
-            if (DATA['🧲']['🔺🧲'] > 0) {
-                DATA['🧮']['🧮🌡️🔽'] = DATA['🧮']['🧮🌡️'];
-                if (DATA['🧮']['🧮🌡️🔼'] <= DATA['🧮']['🧮🌡️']) DATA['🧮']['🧮🌡️🔼'] = DATA['🧮']['🧮🌡️'] + 50;
-            } else if (DATA['🧲']['🔺🧲'] < 0) {
-                DATA['🧮']['🧮🌡️🔼'] = DATA['🧮']['🧮🌡️'];
-                if (DATA['🧮']['🧮🌡️🔽'] >= DATA['🧮']['🧮🌡️']) DATA['🧮']['🧮🌡️🔽'] = Math.max(100, DATA['🧮']['🧮🌡️'] - 50);
-            }
-        }
-        if (DATA['🧮']['🧮⚧'] === 'Dicho') {
-            // Réduction du bracket (post-T) : T et Δ sont à la NOUVELLE T (après déplacement).
-            // Δ>0 → 🔽=T (réchauffer) ; Δ<0 → 🔼=T (refroidir).
-            // On peut mettre à jour les deux bornes dans la même itération : avant move (T_curr, Δ_curr)
-            // puis après move (T_new, Δ_new) — ex: T=2409 Δ<0→🔼=2409, move→2218, Δ>0→🔽=2218.
-            if (DATA['🧲']['🔺🧲'] > 0 && DATA['🧮']['🧮🌡️'] > DATA['🧮']['🧮🌡️🔽'] && DATA['🧮']['🧮🌡️'] < DATA['🧮']['🧮🌡️🔼'])
-                DATA['🧮']['🧮🌡️🔽'] = DATA['🧮']['🧮🌡️'];
-            else if (DATA['🧲']['🔺🧲'] < 0 && DATA['🧮']['🧮🌡️'] < DATA['🧮']['🧮🌡️🔼'] && DATA['🧮']['🧮🌡️'] > DATA['🧮']['🧮🌡️🔽'])
-                DATA['🧮']['🧮🌡️🔼'] = DATA['🧮']['🧮🌡️'];
-        }
-        if (DATA['🧮']['🧮☯'] !== 0 && DATA['🧲']['🔺🧲'] * DATA['🧮']['🧮☯'] < 0) {
-            DATA['🧮']['🧮⚧'] = 'Dicho';
-            const T_prev = DATA['🧮']['🧮🌡️⏮'];
-            const T_curr = DATA['🧮']['🧮🌡️'];
-            DATA['🧮']['🧮🌡️🔽'] = Math.min(T_prev, T_curr);
-            DATA['🧮']['🧮🌡️🔼'] = Math.max(T_prev, T_curr);
-        }
-        DATA['🧮']['🧮☯'] = Math.sign(DATA['🧲']['🔺🧲']);
-        expandBracketIfInvalid();
+        // REFACTO : plus de post-step recalc water/albedo/flux/Δ ici.
+        // La boucle suivante démarre par un recalc complet à T_next (lignes 755-824) :
+        // water, albedo, flux et Δ sont évalués à T_next AVANT de décider du pas suivant.
+        // Le bracket update + switch Dicho sont aussi faits en début de boucle (lignes 829-887).
+        // => Ce bloc post-step faisait le même travail en double (2× coût de flux par itération).
+        //
+        // Snapshot figé à T_input (= DATA['🧮']['🧮🌡️⏮'] après sauvegarde ligne 850 de l'itération précédente) :
+        // - T, Δ, water, albedo, ☯, phase, EDS : tous à T_input (state à l'entrée du pas)
+        // - Bornes 🔽/🔼 : reflètent la tightening Dicho du step (utiles pour l'affichage midpoint utilisé)
+        // On override snapshot['🧮']['🧮🌡️'] à T_input car DATA['🧮']['🧮🌡️'] vaut T_next après step.
         const data_snapshot = {
             '🧮': (() => { const d = { ...DATA['🧮'] }; delete d.previous; return JSON.parse(JSON.stringify(d)); })(),
             '🧲': JSON.parse(JSON.stringify(DATA['🧲'])),
@@ -1214,6 +1174,7 @@ async function computeRadiativeTransfer(callback, options) {
         };
         // T affichée = température d'entrée du calcul radiatif (avant le pas), pas la sortie
         const T_input_iter = DATA['🧮']['🧮🌡️⏮'];
+        data_snapshot['🧮']['🧮🌡️'] = T_input_iter; // cohérence : snapshot entier à T_input
         const pushPayload = {
             innerIter: DATA['🧮']['🧮🔄☀️'] - 1,
             albedoIter: DATA['🧮']['🧮🔄🪩'],
@@ -1232,10 +1193,10 @@ async function computeRadiativeTransfer(callback, options) {
         }
         // next_T_C = T atteinte par le pas (Search et Dicho)
         pushPayload.next_T_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
-            window.CONVERGE.appendConvergenceStep(pushPayload);
-            if (callback) callback('convergenceStep', pushPayload);
-            dropLastStepSnapshot(DATA);
-            DATA['🧮']['🧮🔄🪩']++;
+        window.CONVERGE.appendConvergenceStep(pushPayload);
+        if (callback) callback('convergenceStep', pushPayload);
+        dropLastStepSnapshot(DATA);
+        DATA['🧮']['🧮🔄🪩']++;
 
         var payload = { iteration: DATA['🧮']['🧮🔄☀️'] - 1, T0: DATA['🧮']['🧮🌡️'], total_flux: spectral_result.total_flux, phase: phaseForStep };
         if (callback) callback('cycleCalcul', payload);

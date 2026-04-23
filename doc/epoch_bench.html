@@ -1144,7 +1144,11 @@ if (ok) {
         + ', TIMELINE=' + !!window.TIMELINE + ', CONST=' + !!window.CONST
         + ', CONV=' + !!window.CONV + ')';
 }
-document.getElementById('btn-run').addEventListener('click', function () { runAllEpochs(); });
+document.getElementById('btn-run').addEventListener('click', function () {
+    // Reset du fichier topic courant AVANT le run : garantit "que le dernier test" (p.ex. iceFactor.txt).
+    if (window.DEBUG && window.DEBUG.topic) { window.DEBUG.reset(); }
+    runAllEpochs();
+});
 
 document.getElementById('results-body').addEventListener('click', function (ev) {
     var t = ev.target;

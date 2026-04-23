@@ -3,11 +3,12 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.1.4
+// Version 1.1.5
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: March 08, 2026
+// Date: April 23, 2026
 // Logs:
+// - v1.1.5 passage de ch4_eds_scale (EARTH.CH4_EDS_SCALE) au worker slice_transfer (parallèle à h2o_eds_scale).
 // - v1.1.4 URL worker : window.__SPECTRAL_WORKER_SCRIPT__ (epoch_bench doc/) sinon ../API_BILAN/workers/ (CO2)
 // - v1.1.3 __API_BILAN_WORKER_POOL__ + silence console si __EPOCH_BENCH_PAGE__ (résumé dans epoch_bench)
 // - v1.0.0 Initial: N-1 workers, SAB Float32 pour upward_flux, sums EDS via postMessage
@@ -105,6 +106,7 @@
                     layers:              params.layers,
                     i_trop:              params.i_trop,
                     h2o_eds_scale:       params.h2o_eds_scale,
+                    ch4_eds_scale:       params.ch4_eds_scale,
                     tau_cloud_per_layer: params.tau_cloud_per_layer,
                     effective_delta_lambda: params.effective_delta_lambda,
                     T_surf:              params.T_surf,
