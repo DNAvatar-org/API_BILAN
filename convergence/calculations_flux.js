@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.93
+// Version 1.2.94
 // Date: [April 23, 2026]
 // Logs:
+// - v1.2.94: (doc-only relais) physics.js v2.0.15 — ice_tf passe à 3 zones (pol+mid+trop, Σf=1.0). ICE_FORMULA_MAX_FRACTION devient 1.0 (artefact 0.46 supprimé), donc `ICE_FORMULA_MAX_FRACTION * ice_temp_factor` (ligne 341) reste no-op. Aucun changement de logique flux.
 // - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
 // - v1.2.92: (obliquité) plumbing EPOCH['⚾'] → EARTH.computeIceTempFactor(opts.obliquity_deg) pour ice_formula_epoch ; même contrat que albedo v1.2.49 / h2o v1.0.21.
 // - v1.2.91: ice_formula_epoch UNIFIÉ avec albedo v1.2.48 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT (EARTH.POLAR_AMP_POL_K/MID_K). Remplace l'ancienne formule mono-zone (T_NO_POLAR_ICE − T_epoch)/RANGE qui divergeait de la formule albédo et saturait à 1.0 dans la plage utile. Pas de dépendance par époque (constantes géophysiques globales).

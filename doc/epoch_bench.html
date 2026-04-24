@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.18 — 2026-04-23 : benchSyncBaryFromConfigCompute copie aussi ATM ; SOLVER seulement si défini dans baryByGroupDefault (initDATA v1.3.1 = ref unique % avec CONFIG miroir).
+  Version 1.0.17 — 2026-04-23 : bench parle ET écoute. benchEmitTuningToParent sur oninput (run:false) → visu/scie/hysteresis reçoivent la jauge bench live. benchSyncFineTuningSlidersFromBary (update slider+span seulement, même pattern que scie) dans le listener sync:tuning pour éviter rebuild DOM pendant l'écho (casserait le drag). Fallback rebuild si sliders absents.
+  Version 1.0.16 — 2026-04-23 : benchApplyFineTuningAtmUnified → set ATM dans baryByGroup (fix: fillDataTuningFromBary/normalizeAtmBary lisait l'ancien ATM et réécrasait CLOUD_SW/SCIENCE → slider sans effet). Ajout listener postMessage 'sync:tuning' pour sync depuis visu via sync_panels.js.
   Version 1.0.15 — 2026-04-20 : commentaire BENCH_LIT 🦠 ↔ configTimeline.js (grille CSV + bloc objet Archéen)
   Version 1.0.14 — 2026-04-20 : window.ORG no-op (pas organigramme.js) pour calculations_flux / radiative cycleCalcul
   Version 1.0.13 — 2026-04-18 : BENCH_LIT notes retirées ; colonne Époque rétrécie
@@ -770,16 +773,69 @@ function benchRenderMergedCategory(groupKey, titleLabel, titleIcon, showHeader) 
     html += '</div>';
     return html;
 }
-/** DATA['🎚️'].baryByGroup ← CONFIG_COMPUTE.baryByGroupDefault (après chargement configTimeline / queue configsAll). */
+/** DATA['🎚️'].baryByGroup ← CONFIG_COMPUTE.baryByGroupDefault (miroir de DEFAULT.TUNING.baryByGroup, initDATA v1.3.1). */
 function benchSyncBaryFromConfigCompute() {
     var bd = window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.baryByGroupDefault;
     var bg = window.DATA && window.DATA['🎚️'] && window.DATA['🎚️'].baryByGroup;
     if (!bd || !bg) return;
+    if (bd.ATM !== undefined) bg.ATM = bd.ATM;
     bg.CLOUD_SW = bd.CLOUD_SW;
     bg.SCIENCE = bd.SCIENCE;
-    bg.SOLVER = bd.SOLVER;
+    if (bd.SOLVER !== undefined) bg.SOLVER = bd.SOLVER;
     bg.HYSTERESIS = bd.HYSTERESIS;
 }
+// v1.0.17 : mise à jour des sliders existants sans rebuild DOM.
+// Utilisé par le listener sync:tuning pour éviter que l'écho d'une émission bench ne recrée
+// le slider en plein drag (même pattern que scie_compute.html / syncFineTuningSlidersFromBary).
+// Retourne true si au moins le slider ATM header a été trouvé (⇒ rebuild pas nécessaire).
+function benchSyncFineTuningSlidersFromBary() {
+    var hEl = document.getElementById('bench-ft-slider-ATM-header');
+    if (!hEl) return false;
+    var atm = benchGetUnifiedAtmBaryForDisplay();
+    hEl.value = String(atm);
+    var hSpan = document.getElementById('bench-ft-value-ATM-header');
+    if (hSpan) hSpan.textContent = atm + '%';
+    var bg = window.DATA && window.DATA['🎚️'] && window.DATA['🎚️'].baryByGroup;
+    if (bg) {
+        var groups = ['CLOUD_SW', 'SCIENCE', 'SOLVER'];
+        for (var gi = 0; gi < groups.length; gi++) {
+            var gk = groups[gi];
+            var raw = Number(bg[gk]);
+            var v = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 100;
+            var gEl = document.getElementById('bench-ft-bary-slider-' + gk);
+            if (gEl) gEl.value = String(v);
+            var gSpan = document.getElementById('bench-ft-bary-value-' + gk);
+            if (gSpan) gSpan.textContent = v + '%';
+        }
+    }
+    return true;
+}
+
+// v1.0.17 : bench parle — émet sync:tuning vers le parent (index.html → sync_panels.js).
+// Payload identique à celui de scie_compute.html / syncTuningToParent pour homogénéité.
+// runFlag === true => parent relance runComputeInParent ; false => simple propagation d'état.
+function benchEmitTuningToParent(runFlag) {
+    if (!window.parent || window.parent === window) return;
+    var T = window.DATA && window.DATA['🎚️'];
+    if (!T || !T.baryByGroup) return;
+    window.parent.postMessage({
+        type: 'sync:tuning',
+        payload: {
+            baryByGroup: {
+                ATM: T.baryByGroup.ATM,
+                CLOUD_SW: T.baryByGroup.ATM,
+                SCIENCE: T.baryByGroup.ATM,
+                SOLVER: T.baryByGroup.SOLVER,
+                HYSTERESIS: T.baryByGroup.HYSTERESIS
+            },
+            CLOUD_SW: T.CLOUD_SW,
+            SOLVER: T.SOLVER,
+            updates: [],
+            run: runFlag === true
+        }
+    }, '*');
+}
+
 function benchDisplayFineTuning() {
     var titleSlot = document.getElementById('bench-ft-title-slot');
     var content = document.getElementById('bench-ft-content');
@@ -808,6 +864,10 @@ function benchApplyFineTuningBaryGroup(groupKey, percentRaw, refreshPanel) {
 function benchApplyFineTuningAtmUnified(percentRaw, refreshPanel) {
     var v = benchSetFineTuningBaryPercent('CLOUD_SW', percentRaw);
     benchSetFineTuningBaryPercent('SCIENCE', v);
+    // v1.0.16 fix : ATM doit être mis à jour AVANT fillDataTuningFromBary.
+    // normalizeAtmBary() lit bg.ATM et réécrase CLOUD_SW=SCIENCE=ATM → si ATM non mis à jour,
+    // le slider n'a aucun effet sur le calcul.
+    benchSetFineTuningBaryPercent('ATM', v);
     if (window.TUNING && window.TUNING.fillDataTuningFromBary) window.TUNING.fillDataTuningFromBary();
     if (refreshPanel !== false) benchDisplayFineTuning();
 }
@@ -817,6 +877,7 @@ function benchOnFineTuningBaryInput(groupKey, percentRaw) {
         var pct = Math.round(Number(percentRaw));
         var hAtm = document.getElementById('bench-ft-value-ATM-header');
         if (hAtm) hAtm.textContent = pct + '%';
+        benchEmitTuningToParent(false); // v1.0.17 : bench parle (live drag, run:false)
         return;
     }
     benchSetFineTuningBaryPercent(groupKey, percentRaw);
@@ -824,6 +885,7 @@ function benchOnFineTuningBaryInput(groupKey, percentRaw) {
     var pct = Math.round(Number(percentRaw));
     var valueEl = document.getElementById('bench-ft-bary-value-' + groupKey);
     if (valueEl) valueEl.textContent = pct + '%';
+    benchEmitTuningToParent(false); // v1.0.17 : bench parle (live drag, run:false)
 }
 
 function fmtAge(years) {
@@ -1127,6 +1189,23 @@ document.addEventListener('mousedown', function (e) {
     var thumbX = r.left + pct * r.width;
     if (Math.abs(e.clientX - thumbX) > 15) e.preventDefault();
 }, true);
+
+// v1.0.16 : réception sync:tuning depuis le parent (sync_panels.js → syncTuningToBench).
+// v1.0.17 : update slider-seulement si déjà rendu (même pattern que scie) pour éviter rebuild DOM
+// pendant l'écho d'une émission bench (benchEmitTuningToParent → parent → écho) qui casserait le drag.
+// Fallback benchDisplayFineTuning si sliders absents (premier affichage).
+// Ne relance PAS runAllEpochs (le bench relance sur clic ▶️ uniquement).
+window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'sync:tuning') return;
+    var p = e.data.payload;
+    if (!p) return;
+    if (window.TUNING && window.TUNING.applyTuningPayload) {
+        window.TUNING.applyTuningPayload(p);
+    }
+    if (!benchSyncFineTuningSlidersFromBary()) {
+        benchDisplayFineTuning();
+    }
+});
 
 var ok = window.DATA && window.TIMELINE && window.CONST && window.CONV;
 var footer = document.getElementById('footer-info');

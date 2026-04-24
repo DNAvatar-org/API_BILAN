@@ -5,9 +5,10 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.0
-// Date: [April 18, 2026]
+// Version 1.3.1
+// Date: [April 23, 2026]
 // Logs:
+// - v1.3.1: CONFIG_COMPUTE.baryByGroupDefault = copie profonde de DEFAULT.TUNING.baryByGroup après init DATA['🎚️'] — ref unique utilisateur (plus de littéral dupliqué dans configTimeline qui écrasait CLOUD_SW/SCIENCE vs ATM au bench).
 // - v1.3.0: création window.UI_STATE (flags UI) + window.RUNTIME_STATE (état d'exécution live). Regroupe les dizaines de window.minuscule épars (waterVaporEnabled, methaneEnabled, calculationConverged, fps, plotData, currentEpochName, spectralConverged, h2oVaporPercent…) sous deux namespaces source unique. Initialisation au tout début du boot (avant loader_panels charge les consommateurs).
 // - v1.2.0: retrait bloc SOLVER de DEFAULT.TUNING (+ plus de DATA['🎚️'].SOLVER) → source unique SOLVER = window.CONFIG_COMPUTE (configTimeline.js clés tolMinWm2/maxSearchStepK/maxSearchStepLargeK/largeDeltaFactor/deltaTAccelerationDays/firstSearchStepCapK). DATA['🎚️'] = clone(DEFAULT.TUNING) = baryByGroup/CLOUD_SW/HYSTERESIS/RADIATIVE uniquement.
 // - v1.1.0: window.DEFAULT.TUNING (source unique defaults : baryByGroup/CLOUD_SW/SOLVER/HYSTERESIS/RADIATIVE) + window.DEFAULT.BOUNDS.HYSTERESIS (plages UI). DATA['🎚️'] = clone(DEFAULT.TUNING). Retrait de window.TUNING (remplacé dans model_tuning.js + migrations lecteurs live).
@@ -45,7 +46,7 @@
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
-        baryByGroup: { ATM: 25, CLOUD_SW: 25, SCIENCE: 25, HYSTERESIS: 100 },
+        baryByGroup: { ATM: 15, CLOUD_SW: 15, SCIENCE: 15, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {
@@ -134,6 +135,12 @@
     // DATA['🎚️'] = deep clone de DEFAULT.TUNING (source live de la physique).
     // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).
     DATA['🎚️'] = JSON.parse(JSON.stringify(window.DEFAULT.TUNING));
+
+    // Miroir legacy : un seul jeu de % jauge (ATM = CLOUD_SW = SCIENCE en usage unifié).
+    // benchSyncBaryFromConfigCompute / docs anciennes lisent CONFIG_COMPUTE.baryByGroupDefault.
+    if (window.CONFIG_COMPUTE && window.DEFAULT.TUNING && window.DEFAULT.TUNING.baryByGroup) {
+        window.CONFIG_COMPUTE.baryByGroupDefault = JSON.parse(JSON.stringify(window.DEFAULT.TUNING.baryByGroup));
+    }
 
     // Réservoir océan (cycle CO2) : non présent dans KEYS, on l'initialise ici.
     if (!DATA['🌊']) DATA['🌊'] = {};

@@ -1,8 +1,9 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.48
+// Version 1.2.49
 // Date: [April 23, 2026]
 // logs :
+// - v1.2.49: plumbing 3e zone tropicale (physics.js v2.0.15) — ice_tf_trop + T_thresh_trop ajoutés aux logs diagnostics. Rétro-compat : `ICE_FORMULA_MAX_FRACTION × ice_temp_factor` devient `1.0 × ice_tf` (pas de changement API). La formule pol+mid+trop autorise Snowball (ice_tf → 1.0 quand T_glob < −4°C et que les 3 zones gèlent).
 // - v1.2.48: ice_temp_factor UNIFIÉ — formule physiquement ancrée sur T_FREEZE_SEAWATER (fonte mer) + amplification polaire globale EARTH.POLAR_AMP_POL_K/MID_K (pas d'override par époque). Suppression des clés EPOCH['polarAmplificationK'/'midlatAmplificationK'] : constantes géophysiques (Terre-moderne), mêmes pour toutes les époques. Seuils : T_thresh_pol = T_FREEZE + dT_pol (≈18°C global) ; T_thresh_mid = T_FREEZE + dT_mid (≈3°C global). Correction du bug sémantique v1.2.47 où T_NO_POLAR_ICE_K (seuil global calibré à 20°C) était utilisé comme seuil LOCAL → ice_tf saturait toujours à 1.0 dans la plage utile.
 // - v1.2.47: (déprécié par v1.2.48) amplification polaire epoch-spécifique.
 // - v1.2.46: 3 zones latitudinales EBM 0D (Budyko-Sellers) — ice_temp_factor pondéré polaire/mi-latitude/tropiques. Rétroaction glace-albédo activée à T réaliste (T_glob − dT_pol < T_NO_POLAR_ICE_K).
@@ -331,8 +332,10 @@ function calculateAlbedo() {
     const ice_temp_factor = _iceTF.ice_tf;
     const ice_tf_pol = _iceTF.tf_pol;
     const ice_tf_mid = _iceTF.tf_mid;
+    const ice_tf_trop = _iceTF.tf_trop;  // v2.0.15 : 3e zone (physics.js)
     const T_thresh_pol = _iceTF.T_thresh_pol;
     const T_thresh_mid = _iceTF.T_thresh_mid;
+    const T_thresh_trop = _iceTF.T_thresh_trop_high;
     // Debug topic-based : uniquement actif si DEBUG.setTopic('iceFactor') appelé (ou ?debug=iceFactor).
     if (typeof window !== 'undefined' && window.DEBUG && window.DEBUG.topic === 'iceFactor') {
         const _T_C = (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(2);
@@ -342,8 +345,10 @@ function calculateAlbedo() {
             ' ε=' + _iceTF.obliquity_deg.toFixed(2) + '° (×' + _iceTF.obliquity_factor.toFixed(3) + ')' +
             ' dT_pol=' + _iceTF.dT_pol + ' amp_pol=' + _iceTF.amp_pol.toFixed(2) +
             ' dT_mid=' + _iceTF.dT_mid + ' amp_mid=' + _iceTF.amp_mid.toFixed(2) +
+            ' dT_trop=' + _iceTF.dT_trop + ' amp_trop=' + _iceTF.amp_trop.toFixed(2) +
             ' | tf_pol=' + _iceTF.tf_pol.toFixed(3) +
             ' tf_mid=' + _iceTF.tf_mid.toFixed(3) +
+            ' tf_trop=' + _iceTF.tf_trop.toFixed(3) +
             ' -> ice_tf=' + _iceTF.ice_tf.toFixed(3)
         );
     }
@@ -538,8 +543,8 @@ function calculateAlbedo() {
             + ' | T_freeze=' + T_freeze.toFixed(2) + ' seaRangeK=' + seaIceRangeK.toFixed(3)
             + ' seaRaw=' + seaIceFracRaw.toFixed(4) + ' seaF=' + seaIceFrac.toFixed(4)
             + ' | ice_temp_factor=' + ice_temp_factor.toFixed(4)
-            + ' (tf_pol=' + ice_tf_pol.toFixed(3) + ' tf_mid=' + ice_tf_mid.toFixed(3) + ')'
-            + ' T_thresh_pol=' + T_thresh_pol.toFixed(2) + ' T_thresh_mid=' + T_thresh_mid.toFixed(2)
+            + ' (tf_pol=' + ice_tf_pol.toFixed(3) + ' tf_mid=' + ice_tf_mid.toFixed(3) + ' tf_trop=' + ice_tf_trop.toFixed(3) + ')'
+            + ' T_thresh_pol=' + T_thresh_pol.toFixed(2) + ' T_thresh_mid=' + T_thresh_mid.toFixed(2) + ' T_thresh_trop=' + T_thresh_trop.toFixed(2)
             + ' dTRange=' + EARTH.T_NO_POLAR_ICE_RANGE_K
             + ' ICEmax*factor=' + iceProdBare.toFixed(4)
             + ' | cap=' + ice_cap_surface.toFixed(4) + ' hydro=' + hydrosphere_surface_support.toFixed(4) + ' highland=' + DATA['🗻']['🍰🗻🏔'].toFixed(4)

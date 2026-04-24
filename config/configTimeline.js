@@ -1,8 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.22
+// Version 1.4.24
 // Date: [April 23, 2026]
 // logs :
+// - v1.4.24: baryByGroupDefault — littéral retiré ; assignation unique dans initDATA.js v1.3.1 depuis window.DEFAULT.TUNING.baryByGroup (évite doublon 25 % vs ATM 15 % au bench).
+// - v1.4.23: bornes per-epoch structurées '🔒' pour la jauge bary d'hystérésis (Step 2). Schéma : '🔒'[mass_key] = { min, max, cools }. Sources : CSV GRILLE LITTÉRATURE (haut de fichier) + références paléo. Priorité Step 2 : 🦠 Archéen (CSV [50k,150k]ppm CO₂ etc.), ⛄ Plein Snowball (CSV [300,1500]ppm CO₂, [0.1,10]ppm CH₄), 📱 Aujourd'hui (RCP pré-industriel → RCP8.5). Les autres époques utiliseront un fallback multiplicatif global dans Step 3 (scie_hysteresis_bary.js). 'cools' : direction dans laquelle la bary refroidit ('min' pour GES, 'max' pour sulfates). Pas de changement logique moteur, juste lecture par l'algo hystérésis.
 // - v1.4.22: Archéen 🦠 — CO₂ CAP au max bench [50k,150k] mol ppm : '⚖️🏭' 10.62e18 → 2.75e18 kg (~150k mol ppm). '⚖️🫧' recalculé 1.2700e19 kg. Bornes acceptables annotées en commentaires pour chaque clé de masse (CO₂/CH₄/H₂O/N₂/O₂/sulfates) avec repère Archéen bench + PAL. Bloc doc obliquité ⚾ étendu : plages physiques [0°, 90°] (Laskar 1993 sans Lune, Williams 1993 45–70°, Milankovitch 22–24.5°, seuil 54° basse-lat). Pas de changement logique, uniquement valeurs + doc.
 // - v1.4.21: baryByGroupDefault CLOUD_SW/SCIENCE 65 -> 25 pour aligner l'UI fine-tuning avec initDATA DEFAULT.TUNING.baryByGroup (source visible utilisateur).
 // - v1.4.20: amplification polaire — retrait TOTAL des overrides par époque (plus de clés polarAmplificationK / midlatAmplificationK dans hysteresis 1a ni ⛄). Les constantes dT_pol/dT_mid passent en GEOPHYSICAL GLOBAL CONSTANT via EARTH.POLAR_AMP_POL_K / EARTH.POLAR_AMP_MID_K (physics.js). Défauts CONFIG_COMPUTE alignés (20 K / 5 K, override expérimental uniquement). Formule unifiée albedo/flux/h2o ancrée sur T_FREEZE_SEAWATER + dT (cf. calculations_albedo.js v1.2.48, calculations_flux.js v1.2.91, calculations_h2o.js v1.0.20). Pas de patch par époque : faire de la physique, pas du patch.
@@ -118,6 +120,26 @@
 //   À T globale +1 K, la colonne H₂O suit ~7 %/K (Held & Soden 2006) via r₀ (🍰🫧💧) + H_vap(T) — pas de « garde » silencieuse.
 // - Hadéen / sortie Snowball : atmosphère steam (τ_H₂O élevé) ; Archéen CH₄ massif : brumes organiques possibles (albédo vs EDS) — overlap dans radiative/calculations.js + hitran.js (Voigt ≥0).
 // - Colonne bench « CONV ATM » : état post-convergence (DATA), pas la seule grille CSV ci-dessus.
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+// 🔒 SCHÉMA BORNES HYSTÉRÉSIS (v1.4.23) — per-epoch min/max pour la jauge bary scie_hysteresis_bary.js (Step 3)
+// Structure dans chaque entrée timeline[] :
+//   '🔒': {
+//       '⚖️🏭': { min, max, cools }, // CO₂ (kg)
+//       '⚖️🐄': { min, max, cools }, // CH₄ (kg)
+//       '⚖️💨': { min, max, cools }, // N₂  (kg) — dilution/pressure-broadening
+//       '⚖️✈': { min, max, cools }, // sulfates (kg) — CCN/aérosols
+//       '⚖️🫁': { min, max, cools }, // O₂  (kg)
+//       '⚖️💧': { min, max, cools }, // H₂O hydrosphère (kg)
+//   }
+//   cools ∈ {'min','max'} : direction de refroidissement. 'min' pour GES (↓CO₂/CH₄ = froid), 'max' pour sulfates (↑CCN = froid par ⚖️✈→ε_CCN→albédo).
+//   N₂ : 'min' = froid (moins de pressure-broadening / effet lapse rate) — ambigu, cf. Goldblatt 2009.
+// Sources : GRILLE LITTÉRATURE CSV ci-dessus + épochs_bench.html + VALIDATION_CONFIG_GAZ.md.
+// Priorité Step 2 : 🦠 Archéen, ⛄ Plein Snowball, 📱 Aujourd'hui. Autres époques : fallback global (Step 3).
+// Sémantique bary 0→100 % : 0 % = refroidissement max (pousse vers cools), 100 % = réchauffement max (inverse).
+// Pour une quantité q donnée, valeur = cools==='min' ? (bary=0 → min, bary=1 → max) : (bary=0 → max, bary=1 → min).
+// L'algo hystérésis utilise ces bornes comme espace de recherche du point de bascule (Step 3 Sonnet).
 // ---------------------------------------------------------------------------
 //
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
@@ -286,6 +308,16 @@ const timeline = [
         '⚖️🫁': 0, // o2_kg — prébiotique (Archéen pré-GOE). Pas de plage ppm bench. Plage acceptable [0, 1e16] (traces biosphère anoxygénique pré-2.4 Ga).
         '⚖️💨': 9.918e18, // n2_kg — masse atmos. N₂ ~1–2× PAL (Marty 2013). PAL N₂ ≈ 4e18 kg → valeur ≈ 2.5× PAL (haut fourchette). Plage acceptable [4e18, 10e18] (1×PAL → 2.5×PAL).
         '⚖️✈': 0, // proxy_sulfates — pré-industriel, pas d'émissions anthropiques. Plage acceptable [0, 1e15] (volcanisme explosif ponctuel).
+        // 🔒 Bornes hystérésis Archéen — cf. schéma commentaire global "🔒 SCHÉMA BORNES HYSTÉRÉSIS" + CSV « Archéen » [50k,150k]ppm CO₂, [1k,10k]ppm CH₄.
+        //    Refs : Sleep & Zahnle 2001 (CO₂ 0.2–10 bar), Haqq-Misra 2008 (CH₄ ≤10k ppm ; haze si CH₄/CO₂ > 0.1), Som 2012/2016 (N₂ paléo 0.7–2.2 atm), Marty 2013 (N₂ Archéen ≈1–2× PAL).
+        '🔒': {
+            '⚖️🏭': { min: 0.80e18, max: 2.75e18, cools: 'min' }, // CO₂ : CSV [50k,150k] mol ppm
+            '⚖️🐄': { min: 6.5e15,  max: 6.7e16,  cools: 'min' }, // CH₄ : CSV [1k,10k] mol ppm
+            '⚖️💨': { min: 4.0e18,  max: 1.0e19,  cools: 'min' }, // N₂  : 1× → 2.5× PAL (Som 2012)
+            '⚖️✈': { min: 0,       max: 1.0e15,  cools: 'max' }, // sulfates : volcanisme explosif (refroidit)
+            '⚖️🫁': { min: 0,       max: 1.0e16,  cools: 'min' }, // O₂ : pré-GOE (traces seulement)
+            '⚖️💧': { min: 0.8e21,  max: 2.5e21,  cools: 'min' }, // H₂O hydrosphère : ~57% → ~179% PAL
+        },
         '⚖️🫧': 1.2700e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 2.75e18 + 3.25e16. Recalculer si une masse change.
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
@@ -389,10 +421,21 @@ const timeline = [
         '⚖️🫧': 5.15e18,
         // CO₂ bas au début (cause du snowball), puis accumulation volcanique pendant la glaciation
         // Lit. : CO₂ ~100–1000 ppm pré-snowball ; ~350× PAL (~100 000 ppm) pour en sortir (Hoffman 1998)
-        '⚖️🏭': 0.99e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
+        '⚖️🏭': 0.8e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
         '⚖️🐄': 1.0e14,
         '⚖️💧': 1.2e21,
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
+        // 🔒 Bornes hystérésis Plein Snowball — CSV « Plein_Snowball » [300,1500]ppm CO₂, [0.1,10]ppm CH₄, [0.01,0.5]% H₂O vap.
+        //    Refs : Hoffman et al. 1998 (CO₂ entrée ~100–1000 ppm, sortie ~100k ppm), Pierrehumbert 2011 (CH₄ ppm résiduel), Hoffman & Schrag 2002.
+        //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.
+        '🔒': {
+            '⚖️🏭': { min: 2.35e15, max: 1.17e16, cools: 'min' }, // CO₂ : CSV [300,1500] ppm
+            '⚖️🐄': { min: 2.84e11, max: 2.84e13, cools: 'min' }, // CH₄ : CSV [0.1,10] ppm
+            '⚖️💨': { min: 3.0e18,  max: 5.0e18,  cools: 'min' }, // N₂  : post-GOE, proche modern
+            '⚖️✈': { min: 0,       max: 5.0e14,  cools: 'max' }, // sulfates : volcanisme neoprotérozoïque
+            '⚖️🫁': { min: 5.0e17,  max: 2.0e18,  cools: 'min' }, // O₂ : post-GOE ~5–20% modern
+            '⚖️💧': { min: 1.0e21,  max: 1.4e21,  cools: 'min' }, // H₂O hydrosphère (eau piégée dans glace)
+        },
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
         },
@@ -757,6 +800,17 @@ const timeline = [
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
         '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
+        // 🔒 Bornes hystérésis Aujourd'hui — pré-industriel → RCP8.5 extreme.
+        //    Refs : NOAA/GISS (CO₂ 2000 ≈369 ppm, 280 ppm pré-industriel), IPCC AR6 WG1 SSP5-8.5 (~1135 ppm @2100), CH₄ pré-ind ≈700 ppb → ~3500 ppb RCP8.5, Crutzen 2006 (SRM sulfates stratosphériques 1–5 Tg S/an → ~5e14 kg équivalent).
+        //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.
+        '🔒': {
+            '⚖️🏭': { min: 2.19e15, max: 1.0e16, cools: 'min' }, // CO₂ : 280 ppm (pré-ind) → ~1280 ppm (RCP8.5+)
+            '⚖️🐄': { min: 2.0e12,  max: 2.0e13, cools: 'min' }, // CH₄ : 700 ppb → 7 ppm
+            '⚖️💨': { min: 3.90e18, max: 4.05e18, cools: 'min' }, // N₂ : très stable (pas de réservoir rapide)
+            '⚖️✈': { min: 0,       max: 5.0e14, cools: 'max' }, // sulfates : 0 (nettoyage total) → SRM Crutzen
+            '⚖️🫁': { min: 1.17e18, max: 1.19e18, cools: 'min' }, // O₂ : quasi-constant échelle humaine
+            '⚖️💧': { min: 1.38e21, max: 1.42e21, cools: 'min' }, // H₂O hydrosphère : très stable
+        },
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas
@@ -831,8 +885,8 @@ if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatAmplificationK))) window
 // pour voir si la saisonnalité "suffit" ou si la physique radiative reste le vrai goulot.
 if (!Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)))         window.CONFIG_COMPUTE.obliquityDeg       = 23.44; // 🏷️ OBS/CALIB (IAU 2009) — plage acceptée [0°, 90°] (voir bloc ci-dessus)
 
-// Valeurs par défaut des jauges fine-tuning (% ). Utilisées uniquement à l'init de DATA['🎚️'].baryByGroup (initDATA.js). DATA seule ref ensuite.
-window.CONFIG_COMPUTE.baryByGroupDefault = { ATM: 25, CLOUD_SW: 25, SCIENCE: 25, HYSTERESIS: 100 };
+// Valeurs par défaut des jauges fine-tuning (% ) : source unique window.DEFAULT.TUNING.baryByGroup (initDATA.js v1.3.1
+// copie ici dans CONFIG_COMPUTE.baryByGroupDefault après DATA['🎚️']). Ne pas dupliquer de littéraux dans ce fichier.
 
 // ===================== [OBS/CALIB] =====================
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].
@@ -919,10 +973,10 @@ window.CONFIG_COMPUTE.spectralBandLogoImgPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoEmojiPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoImgPxByEmoji = {};
 // Logs diagnostics
-window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
+window.CONFIG_COMPUTE.logIceFixedDiagnostic = true;
 // true : une ligne par calculateAlbedo (T, mer gelée, facteur polaire, cibles, verrous hyst, 🍰🪩🧊 après normalisation surfaces)
-window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
-window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
-window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
-window.CONFIG_COMPUTE.logIrisDiagnostic = false;
+window.CONFIG_COMPUTE.logIceFractionDiagnostic = true;
+window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = true;
+window.CONFIG_COMPUTE.logCloudProxyDiagnostic = true;
+window.CONFIG_COMPUTE.logIrisDiagnostic = true;
 

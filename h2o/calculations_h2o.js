@@ -1,9 +1,11 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.20
+// Version 1.0.22
 // Date: [April 23, 2026]
 // logs :
+// - v1.0.22: (doc-only relais) physics.js v2.0.15 — EARTH.computeIceTempFactor intègre désormais 3 zones (pol+mid+trop). h2o utilise uniquement `_iceTF_h2o.tf_pol` (cap calottes polaires 10%), inchangé. Le passage à 3 zones n'affecte donc pas ce module. Bloc gel océan (T < T_FREEZE) toujours géré ici.
+// - v1.0.21: (obsolète marker v1.0.20 remplaçait en place)
 // - v1.0.20: polar_ice_fraction_climate UNIFIÉ avec albedo v1.2.48 / flux v1.2.91 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT_pol (EARTH.POLAR_AMP_POL_K). Remplace l'ancien seuil T_NO_POLAR_ICE_K = 293 K (seuil GLOBAL traité à tort comme seuil LOCAL). Bloc gel océan (T < T_FREEZE) inchangé. Pas d'override par époque.
 // - v1.0.19: expositions fonctions regroupées sous window.H2O (plus de window.foo isolés). Clés ajoutées au namespace : calculateH2OGreenhouseForcing, calculateCloudAlbedoContribution, calculateWaterPartition, calculatePrecipitationFeedback, getBoilingPointKFromPressure. Appelants migrés window.foo() → H2O.foo() dans calculations_flux.js, radiative/calculations.js, ui/main.js, CO2/html/*.html.
 // - v1.0.18: deltaTAccelerationDays lu depuis window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER.
