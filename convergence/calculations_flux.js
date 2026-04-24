@@ -1,9 +1,16 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.95
+// Version 1.2.97
 // Date: [April 24, 2026]
 // Logs:
+// - v1.2.97: Seed océan CO₂ multiplié par CONFIG_COMPUTE.co2OceanPartitionFactor01. 1 = comportement
+//            v1.2.96 ; 0 = test off strict sans mémoire ⚖️🌊🏭 au démarrage.
+// - v1.2.96: SEED ocean CO₂ à l'équilibre Henry analytique dans initForConfig (après ATM.calculatePressureAtm).
+//            ⚖️🌊🏭 = ratio_ref × ⚖️🏭 (T=T_ref ⇒ ratio_T=ratio_ref, pump net flux=0 au pas 0). Garantit que le
+//            bench radiatif ne déclenche pas la pompe à l'init d'époque (user: "pompe toujours active, juste à
+//            l'équilibre sur les conditions init"). Désactivé si ⚖️💧=0 ou EPOCH['🌊🏭']=0 (⚫ 🔥 🦠 ⛄ ⇒ ⚖️🌊🏭=0).
+//            Corrèle avec calculations_co2.js v1.2.0 qui retire le NO-OP co2OceanPartitionInRadiativeConvergence.
 // - v1.2.95: verrous glace d'époque supprimés (user: "virer le verrou tout le temps"). initForConfig ne pose plus STATE.iceEpochFixedWaterState / iceEpochFixedAlbedoState / iceEpochFixedState. Les reset à null sont conservés (état propre pour lecteurs UI legacy api.js / sync_panels.js — ils afficheront simplement "n/a"). Le blend dt 🍰💧🧊 est désormais piloté à chaque pas par calculations_albedo.js v1.2.53 (facteur CONFIG_COMPUTE.iceBlendRelaxation01, défaut 1.0). ice_fixed_value continue d'être calculé pour le diagnostic [ice-nolock].
 // - v1.2.94: (doc-only relais) physics.js v2.0.15 — ice_tf passe à 3 zones (pol+mid+trop, Σf=1.0). ICE_FORMULA_MAX_FRACTION devient 1.0 (artefact 0.46 supprimé), donc `ICE_FORMULA_MAX_FRACTION * ice_temp_factor` (ligne 341) reste no-op. Aucun changement de logique flux.
 // - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
@@ -322,6 +329,19 @@ function initForConfig() {
     STATE.iceEpochFixedAlbedoState = null;    // plus posé (verrou supprimé)
     ATM.calculateAtmosphereComposition();
     ATM.calculatePressureAtm();
+    // v1.2.96 : SEED OCÉAN CO₂ À L'ÉQUILIBRE HENRY (analytique, T = T_ref ⇒ ratio_T = ratio_ref).
+    // Garantit que calculateCO2Partition donne flux net = 0 au pas 0 du bench (bench = visu).
+    // Si perturbation ultérieure (anthropique via 🏭📊, clic user, T ≠ T_ref pendant convergence),
+    // la pompe re-équilibre via conservation totale_carbon = ⚖️🏭 + ⚖️🌊🏭.
+    // Produit = 0 si ⚖️💧=0 (⚫ 🔥 : pas de mer) OU si EPOCH['🌊🏭']=0 (⛄ : glace globale coupe Henry).
+    // Crash-first : EPOCH['🌊🏭'], co2OceanRatioRef et co2OceanPartitionFactor01 DOIVENT être définis.
+    const EPOCH_init = window.TIMELINE[DATA['📜']['👉']];
+    const hasOceanWaterGate = (DATA['⚖️']['⚖️💧'] > 0) ? 1.0 : 0.0;
+    const epochPumpGate = (Number(EPOCH_init['🌊🏭']) > 0) ? 1.0 : 0.0;
+    const ratio_ref_init = Math.max(0.1, Number(CONFIG_COMPUTE.co2OceanRatioRef));
+    const oceanPartitionFactor01 = Math.max(0, Number(CONFIG_COMPUTE.co2OceanPartitionFactor01));
+    DATA['🌊'] = DATA['🌊'] || {};
+    DATA['🌊']['⚖️🌊🏭'] = hasOceanWaterGate * epochPumpGate * oceanPartitionFactor01 * ratio_ref_init * DATA['⚖️']['⚖️🏭'];
     if (ALBEDO.calculateGeologySurfaces) ALBEDO.calculateGeologySurfaces();
     // Partition eau une fois avec T0 de la config (cache invalidé pour forcer le recalcul)
     // 🔒 WORKAROUND : En Init, calculateH2OParametersWithIteration converge vers 🍰🫧💧=0 (précip sans évap).

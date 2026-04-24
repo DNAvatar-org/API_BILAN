@@ -1,8 +1,34 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.29
+// Version 1.4.35
 // Date: [April 24, 2026]
 // logs :
+// - v1.4.35: Ajout CONFIG_COMPUTE.co2OceanPartitionFactor01 (1 actif, 0 test off) pour isoler l'impact
+//   de la partition CO₂ océan-atmosphère sur la divergence 2000. Multiplicateur contractuel, sans branche
+//   logique nouvelle ; appliqué aussi au seed ⚖️🌊🏭 dans calculations_flux.js v1.2.97.
+// - v1.4.34: Glace solver — freezePolarIceDuringSearch remis à true. Le verrou reste une stabilisation
+//   numérique du run direct ; le scan hystérésis conserve son déverrouillage via HYSTERESIS.active.
+// - v1.4.33: Glace solver — pose explicite CONFIG_COMPUTE.freezePolarIceDuringSearch=false.
+//   Le run direct et l'hystérésis utilisent désormais la même rétroaction glace-albédo ; le verrou Search
+//   reste réactivable par ce flag indépendant si besoin de debug numérique.
+// - v1.4.32: ⛄ Plein Snowball — config générale posée sur la branche froide trouvée par hysteresis 1a
+//   (T≈-62.78°C, ⚖️🏭≈1.930e15 kg, ⚖️✈≈1.018e12 kg). Objectif : run direct cohérent avec le seuil
+//   froid d'hystérésis, sans propager HYSTERESIS.active ni ajouter de garde/fallback logique.
+// - v1.4.31: hysteresis 1a — ajout explicite de ⚖️✈=1.0e12 kg pour aligner le run direct avec l'init
+//   du scan hystérésis (baseline sulfate volcanique Néoprotérozoïque). Retrait de l'ancienne valeur commentée
+//   8.0e15 kg afin d'éviter un désaccord config/calcul sans ajouter de fallback logique.
+// - v1.4.30: EPOCH['🌊🏭'] facteur pompe océanique CO₂ (Henry × Urey) ajouté aux 19 époques. Corrèle avec
+//   calculations_co2.js v1.2.0 (pompe toujours active) + calculations_flux.js v1.2.96 (seed ⚖️🌊🏭=50·⚖️🏭
+//   à l'init d'époque, équilibre Henry analytique ⇒ net flux = 0 au pas 0). Valeurs :
+//   ⚫ 🔥 = 0 (pas d'océan liquide) ; 🦠 = 0.05 (peu de continents émergés) ; 🪸 = 0.15 (Urey lent pré-Rodinia,
+//   Goddéris 2017) ; ☃ hyst 1a = 0.5 (Rodinia break-up + Franklin LIP, Mills 2011, Macdonald 2010) ;
+//   ⛄ = 0 (banquise coupe Henry, Higgins & Schrag 2003) ; ⛈ hyst 1b = 2.0 (déglaciation catastrophique
+//   + carbonates de couverture Marinoen) ; 🪼 = 1.0 (Walker-Hays-Kasting 1981) ; 🍄 = 1.3 (forêts Dévonien/
+//   Carbonifère → weathering accru, Berner GEOCARB III 2001) ; 💀 = 0.7 (Trapps sibériens saturent océan) ;
+//   🦕 🦤 = 1.0 ; 🐊 hyst2 🏔 = 1.1 (orogenèse himalayenne, Raymo & Ruddiman 1992) ; 🦣 🛖 🚂 📱 = 1.0.
+//   Désormais chaque époque DOIT avoir '🌊🏭' (crash-first : pas de fallback côté calculations_co2.js).
+//   NEW : CONFIG_COMPUTE.co2OceanRatioRef = 50 (rapport Henry modern ; Sarmiento & Gruber 2006).
+//   RETRAIT : CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence (obsolète — remplacé par EPOCH['🌊🏭']).
 // - v1.4.29: Correction config hysteresis 1a (Sturtienne) confrontée à la littérature Néoprotérozoïque.
 //   ⚖️🐄 CH₄ : 1.0e14 kg (35 ppm, borne sup. extrême) → 2.0e13 kg (7 ppm, milieu fourchette post-GOE
 //   1-30 ppm ; Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
@@ -207,7 +233,10 @@ const timeline = [
         },
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
         // ⚫ Corps noir : pas d'océan, pas d'atmosphère, pas de vie → gate = 0 (tautologie).
-        '🧫': 0.0
+        '🧫': 0.0,
+        // 🌊🏭 = facteur pompe océanique CO₂ (Henry × Urey). 0 = désactivée (pas de mer liquide).
+        // Réf : calculations_co2.js v1.2.0. Corps noir : pas d'atmosphère, pas de Henry possible.
+        '🌊🏭': 0.0
     },
     {// Hadéen
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
@@ -263,7 +292,9 @@ const timeline = [
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
         // 🔥 Hadéen : océan de magma à ~2500 K, pas de vie → pas de DMS → gate = 0.
-        '🧫': 0.0
+        '🧫': 0.0,
+        // 🌊🏭 : pompe CO₂→océan = 0. T_surf ~2500 K → pas d'eau liquide, Henry physiquement impossible.
+        '🌊🏭': 0.0
     },
     {// Archéen
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
@@ -358,7 +389,11 @@ const timeline = [
         // 🧫 : 🦠 Archéen — océans anoxiques dominés par cyanobactéries procaryotes
         // (pas d'eucaryotes marins, DMSP producteurs quasi-absents). Knoll 2003, Falkowski 2004.
         // Tapis microbiens côtiers → flux DMS minimal (~5% moderne).
-        '🧫': 0.05
+        '🧫': 0.05,
+        // 🌊🏭 : pompe Urey très lente. Peu de continents émergés → altération silicatée faible
+        // (Lee et al. 2018, Nature 553:188 — arc-continent collision Urey régulator). CO₂ atm très élevé
+        // (~150 000 ppm bench) tamponné par carbonates sédimentaires Archéens (Sleep & Zahnle 2001).
+        '🌊🏭': 0.05
     },
     {// Protérozoïque
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
@@ -396,7 +431,11 @@ const timeline = [
         // 🧫 : 🪸 Protérozoïque — post-GOE, premiers eucaryotes marins (acritarches ~1.8 Ga),
         // algues rouges ~1.2 Ga. Diversification lente, encore dominés par procaryotes.
         // Flux DMS ~10% moderne (avant radiation des phytoplanctons modernes).
-        '🧫': 0.1
+        '🧫': 0.1,
+        // 🌊🏭 : pompe Urey lente pré-Rodinia. Supercontinent Rodinia assemblé (~1.1 Ga → ~800 Ma)
+        // limite la surface continentale exposée aux intempéries tropicales (Goddéris et al. 2017 Earth-Sci Rev).
+        // Pas encore de plantes vasculaires → weathering par acides organiques très limité (Lenton & Watson 2011).
+        '🌊🏭': 0.15
     },
     // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
@@ -420,7 +459,7 @@ const timeline = [
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
         // c'est la recherche hystérésis (scie_hysteresis_search.js) qui descend jusque-là, pas ce baseline.
-        '⚖️🏭': 1.0e16,
+        '⚖️🏭': 2.0e15,
         // CH₄ : 2.0e13 kg = 7 ppm. Post-GOE (après 2.4 Ga) l'atmosphère oxygénée détruit le CH₄ rapidement.
         // Fourchette lit. Néoprotérozoïque : 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         // Corrigé v1.4.29 : était 1.0e14 kg (35 ppm, trop haut, borne sup. extrême).
@@ -431,12 +470,19 @@ const timeline = [
         // (Lyons et al. 2014 ; Planavsky et al. 2014 ; Sperling 2015). Pré-NOE (Neoproterozoic Oxygenation Event).
         // Corrigé v1.4.29 : était 1.5e16 kg (1.3 % PAL, borne sup. extrême).
         '⚖️🫁': 5.0e15,
-        //'⚖️✈': 8.0e15,
+        // ⚖️✈ : baseline sulfate volcanique explicite, identique au démarrage du scan hystérésis.
+        // Rend le run direct contractuel sans fallback côté calcul.
+        '⚖️✈': 1.0e12,
         '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
         // faibles émissions DMS (même ordre que ⛄). ~5% moderne.
-        '🧫': 0.05
+        '🧫': 0.05,
+        // 🌊🏭 : pompe Urey ACCÉLÉRÉE. Rodinia break-up (800-720 Ma) expose de vastes surfaces
+        // continentales tropicales aux intempéries (Godderis et al. 2003, Donnadieu et al. 2004 Nature).
+        // Franklin LIP (717 Ma) : basaltes frais très altérables (Macdonald 2010 Science 327:1241).
+        // Pierrehumbert 2004 "deglaciation problem" : drawdown CO₂ × 3-5 vs moderne.
+        '🌊🏭': 0.5
     },
     // ⛄ = Plein Snowball (720–690 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma)
     // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
@@ -445,8 +491,8 @@ const timeline = [
         // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
         '▶': 720e6,
         '◀': 690e6,
-        // 🌡️🧮 : Plein_Snowball — amorce un peu plus chaude (T conv trop froide vs [-60,-20]°C CSV)
-        '🌡️🧮': 290,
+        // 🌡️🧮 : Plein Snowball — branche froide issue du seuil hysteresis 1a (−62.78 °C).
+        '🌡️🧮': 210.37,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
         '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
@@ -460,9 +506,9 @@ const timeline = [
             '🍰🗻🌍': 0.12
         },
         '⚖️🫧': 5.15e18,
-        // CO₂ bas au début (cause du snowball), puis accumulation volcanique pendant la glaciation
-        // Lit. : CO₂ ~100–1000 ppm pré-snowball ; ~350× PAL (~100 000 ppm) pour en sortir (Hoffman 1998)
-        '⚖️🏭': 0.8e16,  // co2_kg (~3800 ppm, valeur moyenne représentative)
+        // CO₂ branche froide trouvée par hysteresis 1a : seuil ≈239 ppm (1.930e15 kg).
+        // Pendant ⛄, l'accumulation volcanique remonte ensuite vers le seuil de sortie (hysteresis 1b).
+        '⚖️🏭': 1.930e+15,
         '⚖️🐄': 1.0e14,
         '⚖️💧': 1.2e21,
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
@@ -472,7 +518,7 @@ const timeline = [
         // Source ÉTEINTE : pathway DMS marin (ocean gelé → plancton marginal, gaté par EPOCH['🧫']=0.05).
         // Baseline ~1e12 kg cohérent avec 🛖 Holocène (volcanique sans DMS). Pulses LIP peuvent ×10-100
         // ponctuellement mais on prend l'équilibre moyen pour la navigation normale (hors scan hyst).
-        '⚖️✈': 1.0e12,
+        '⚖️✈': 1.018e12,
         // 🔒 Bornes hystérésis Plein Snowball — CSV « Plein_Snowball » [300,1500]ppm CO₂, [0.1,10]ppm CH₄, [0.01,0.5]% H₂O vap.
         //    Refs : Hoffman et al. 1998 (CO₂ entrée ~100–1000 ppm, sortie ~100k ppm), Pierrehumbert 2011 (CH₄ ppm résiduel), Hoffman & Schrag 2002.
         //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.
@@ -499,7 +545,12 @@ const timeline = [
         // Le DMS marin s'effondre, découplant la boucle CLAW — crucial pour la sortie du
         // snowball (pas de CCN biogénique → moins de nuages → moins d'albédo → réchauffement).
         // Valeur ε=0.05 : DMS quasi-éteint, seul reste le sulfate volcanique direct.
-        '🧫': 0.05
+        '🧫': 0.05,
+        // 🌊🏭 : pompe Urey COUPÉE. Banquise kilométrique isole atmosphère de l'océan
+        // (Hoffman & Schrag 2002, Pierrehumbert 2004/2005) : Henry physiquement bloqué.
+        // Altération silicatée continentale ~0 (terres enneigées). Seul le CO₂ volcanique s'accumule
+        // → deglaciation problem : CO₂ doit atteindre ~100 000 ppm sur ~10 Ma (Higgins & Schrag 2003).
+        '🌊🏭': 0.0
     },
     // hysteresis 1b = Sortie Marinoen (690–600 Ma) : déglaciation brutale, hyper-greenhouse, pluies acides.
     // Branche chaude post-Snowball, le scan hystérésis cherche le seuil de sortie (CO₂↑ → saut T).
@@ -529,7 +580,12 @@ const timeline = [
         '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
         // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
-        '🧫': 0.1
+        '🧫': 0.1,
+        // 🌊🏭 : pompe Urey CATASTROPHIQUEMENT amplifiée (cap carbonates de couverture Marinoen).
+        // Hyper-greenhouse ~80 000 ppm CO₂ + chaleur tropicale extrême + altération silicates régolithe
+        // glaciaire (roches broyées pendant snowball) → drawdown record ~10 Ma (Higgins & Schrag 2003,
+        // Hoffman et al. 2017 Sci Adv 3:e1600983). CO₂ chute de 80 k à ~1 k ppm en quelques Ma.
+        '🌊🏭': 2.0
     },
     // Paléozoïque scindé (v1.4.0) : 🪼 marin 600→420 + 🍄 terrestre 420→280 + 💀 P/T 280→250.
     // Ordre chronologique : … Protérozoïque → ☃/⛄/⛈ Snowball → 🪼 → 🍄 → 💀 → Mésozoïque …
@@ -559,7 +615,10 @@ const timeline = [
         // 🧫 : 🪼 Paléozoïque marin (600→420 Ma) — explosion cambrienne, radiation des
         // phytoplanctons modernes (acritarches puis dinoflagellés). Boucle CLAW progressivement
         // active. Falkowski 2004 Science 305:354. ~50% moderne.
-        '🧫': 0.5
+        '🧫': 0.5,
+        // 🌊🏭 : pompe Urey standard Phanérozoïque — Walker, Hays & Kasting 1981 JGR 86:9776
+        // (feedback silicate weathering → CO₂ atm stable). Pas encore de plantes vasculaires.
+        '🌊🏭': 1.0
     },
     {// Paléozoïque terrestre 🍄
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
@@ -587,7 +646,12 @@ const timeline = [
         // 🧫 : 🍄 Paléozoïque terrestre (420→280 Ma) — Dévonien/Carbonifère,
         // diversification marine avancée, coccolithophoridés pas encore installés.
         // Flux DMS élevé mais pas encore saturé. ~70% moderne.
-        '🧫': 0.7
+        '🧫': 0.7,
+        // 🌊🏭 : pompe Urey AMPLIFIÉE. Apparition forêts Dévonien/Carbonifère → racines profondes +
+        // acides humiques accélèrent weathering silicaté (Berner & Kothavala 2001 GEOCARB III,
+        // Am J Sci 301:182). Algeo & Scheckler 1998 GSA Today 8:1 : "Devonian land plant crisis".
+        // Enfouissement carbone organique (Karoo, Gondwana) → chute CO₂ → glaciation fin-Carbonifère.
+        '🌊🏭': 1.3
     },
     {// Limite P/T 💀 (extinction massive, pas hystérésis)
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
@@ -615,7 +679,12 @@ const timeline = [
         // 🧫 : 💀 Limite P/T (280→250 Ma) — extinction massive marine (~96% espèces),
         // anoxie océanique (Canfield state), effondrement du plancton. ~30% moderne
         // (suppression partielle de CLAW pendant la crise).
-        '🧫': 0.3
+        '🧫': 0.3,
+        // 🌊🏭 : pompe Urey ATTÉNUÉE. Trapps sibériens (~252 Ma, 4e6 km³ basaltes) injectent
+        // ~1e19 kg CO₂ + SO₂ en ~1 Ma → saturation acide océanique, effondrement carbonates
+        // (Payne & Clapham 2012 Annu Rev Earth Planet Sci 40:89). Anoxie + forêts éradiquées
+        // → weathering biotique chute (Algeo 2011). Hyperthermie entretenue ~5 Ma.
+        '🌊🏭': 0.7
     },
     {// Mésozoïque 🦕
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
@@ -653,7 +722,10 @@ const timeline = [
         '🌱': 0.31,
         // 🧫 : 🦕 Mésozoïque (250→66 Ma) — radiation coccolithophoridés (Emiliania précurseurs),
         // dinoflagellés, diatomées émergentes (fin Crétacé). Boucle CLAW pleinement installée.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey standard — serre chaude stable, feedback silicate actif mais
+        // géographie (Gondwana/Laurasia → Pangée) maintient CO₂ atm élevé ~2500 ppm (Berner 2001).
+        '🌊🏭': 1.0
     },
     {// Cénozoïque 🦤
         '📅': '🦤', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
@@ -683,7 +755,10 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🦤 Cénozoïque (66→50 Ma) — phytoplancton moderne installé, CLAW active.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey standard post-K-Pg. Refroidissement progressif → altération accrue
+        // aux moyennes latitudes. Pas encore de collision Inde/Asie (début ~50 Ma).
+        '🌊🏭': 1.0
     },
     {// Éocène 🐊
         '📅': '🐊', // Éocène (50–35 Ma), pic thermique / CO₂ élevé (ordre PETM) ; puis décroissance (altération silicates, Himalaya)
@@ -713,7 +788,13 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🐊 Éocène (50→35 Ma) — PETM, CLAW moderne.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey AMPLIFIÉE à partir de l'Éocène moyen. Collision Inde/Asie (~50 Ma)
+        // + orogenèse himalayenne exposent basaltes frais du Deccan + silicates tibétains →
+        // weathering accru (Raymo & Ruddiman 1992 Nature 359:117 "uplift-weathering hypothesis").
+        // Controversé : GEOCARBSULF (Berner 2006) minimise l'effet ; Misra & Froelich 2012 confirme
+        // via δ⁷Li marin. Compromis : légère amplification.
+        '🌊🏭': 1.1
     },
     {// hysteresis 2 (Eocène–Oligocène ~35–33 Ma — bascule calotte Antarctique, Oi-1)
         '📅': 'hysteresis 2', // id stable (logo affichage 🐧 ; ex ⛰ prélude glaciaire)
@@ -745,7 +826,10 @@ const timeline = [
         '🌱': 0.31,
         // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
         // phytoplancton pleinement installé.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey amplifiée (Himalaya toujours actif + refroidissement = plus d'altération).
+        // Zachos et al. 2001 Science 292:686 : chute CO₂ ~1000 → 600 ppm sur 35-33 Ma.
+        '🌊🏭': 1.1
     },
     // Grande Coupure → Miocène/Pliocène (33–2 Ma) : calotte Antarctique stable, puis glace Nord vers 3 Ma
     {// 🏔 Grande Coupure / Miocène–Pliocène
@@ -775,7 +859,9 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🏔 Grande Coupure / Miocène–Pliocène — CLAW moderne active.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey amplifiée (Miocene Climate Optimum puis refroidissement).
+        '🌊🏭': 1.1
     },
     // Quaternaire (2 Ma → 10 ka) : cycles glaciaires/interglaciaires, LGM (~20 ka), Milankovitch
     {// Quaternaire 🦣
@@ -804,7 +890,10 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🦣 Quaternaire — CLAW moderne, cycles Milankovitch.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey moderne. Cycles glaciaires cf. Sigman & Boyle 2000 Nature 407:859
+        // (CO₂ 180 ↔ 280 ppm interglaciaire/glaciaire via solubilité océanique accrue à T_cold).
+        '🌊🏭': 1.0
     },
     // Holocène (10 ka → 1800) : interglaciaire, agriculture, stabilité climatique pré-industrielle
     {// Holocène 🛖
@@ -834,7 +923,9 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey moderne pré-industrielle (équilibre stationnaire 280 ppm).
+        '🌊🏭': 1.0
     },
     // Industriel (1800 → 2000) : révolution industrielle, CO₂ 280 → 370 ppm, début signal anthropique
     {// Industriel 🚂
@@ -862,7 +953,9 @@ const timeline = [
         },
         '🌱': 0.31,
         // 🧫 : 🚂 Industriel — CLAW moderne + début SO₂ anthropique (le vrai boost sulfate arrive via anthro_factor).
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey moderne. Absorption océan ~25-30 % anthro (Le Quéré et al. 2018 ESSD 10:2141).
+        '🌊🏭': 1.0
     },
     {// Aujourd'hui 📱
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
@@ -926,7 +1019,11 @@ const timeline = [
         '🌱': 0.31,
         // 🧫 : 📱 Aujourd'hui — CLAW moderne + sulfate anthropique (SO₂ industriel → CCN).
         // Réfs : Charlson 1987 (CLAW), Twomey 1977, Quinn & Bates 2011, Woodhouse 2010.
-        '🧫': 1.0
+        '🧫': 1.0,
+        // 🌊🏭 : pompe Urey = référence Henry moderne. ratio_ref=50 (CONFIG_COMPUTE.co2OceanRatioRef).
+        // Absorption océanique anthropique ~25-30 % (Le Quéré et al. 2018, Friedlingstein et al. 2023
+        // Global Carbon Budget). cf. calculations_co2.js v1.2.0 : seed ⚖️🌊🏭=50·⚖️🏭 à l'init.
+        '🌊🏭': 1.0
     }
 ];
 
@@ -938,10 +1035,17 @@ window.TIMELINE = timeline;
 // - [EQ/NUM]    : valeur de schéma numérique, solveur ou stratégie de convergence
 window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
 
-// Partition CO₂ atmosphère ↔ océan (Henry) dans calculateCO2Partition : désactivée par défaut dans la boucle radiative.
-// Réservée à un usage ultérieur (ex. ajout anthropique en fin de chaîne). Pas les calculs naturels ni l’hystérésis.
-// Activer explicitement : CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = true
-window.CONFIG_COMPUTE.co2OceanPartitionInRadiativeConvergence = false;
+// Partition CO₂ atmosphère ↔ océan (Henry — Van 't Hoff, 2400 K).
+// v1.4.30 : POMPE TOUJOURS ACTIVE (bench = visu). Flag co2OceanPartitionInRadiativeConvergence RETIRÉ
+// (obsolète — remplacé par EPOCH['🌊🏭'] facteur par époque ∈ [0, +∞[ ; 0 = Urey éteint).
+// L'équilibre à l'init est garanti par initForConfig (seed ⚖️🌊🏭 = ratio_ref × ⚖️🏭).
+//
+// co2OceanRatioRef : rapport Masse CO2_océan / Masse_CO2_atm de RÉFÉRENCE (T = T_ref époque).
+// 50 ≈ Terre moderne (Sarmiento & Gruber 2006, Ocean Biogeochemical Dynamics, Tab. 10.2.1 :
+//   ~38 000 GtC océan / ~760 GtC atm pré-industriel → ratio ≈ 50). Crash-first (lu sans fallback).
+window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
+// Flag de test pompe CO₂ océan : 1 = actif, 0 = coupé (seed océan inclus), >1 = amplification volontaire.
+window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
 if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))) {
     window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
@@ -1032,7 +1136,7 @@ window.CONFIG_COMPUTE.maxSearchT_K = null;                         // [EQ/NUM]
 // Tolérances cycle eau (changement albedo/vapor pour relancer tour radiatif)
 window.CONFIG_COMPUTE.cycleTolAlbedo = 1e-4;                       // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolVapor = 1e-6;                        // [EQ/NUM]
-// Spin-up climatologique avant solver radiatif (cycles eau/albédo à glace verrouillée). Confirmé >= 0 entier.
+// Spin-up climatologique avant solver radiatif (cycles eau/albédo avant convergence). Confirmé >= 0 entier.
 // v1.4.17 : réduit 8→1 (les 8 palliaient le bug H2O=0 à Init, désormais corrigé par calculateH2OParameters() avant calculateFluxForT0()).
 window.CONFIG_COMPUTE.climateSpinupCycles = Math.max(0, Math.floor(1)); // [EQ/NUM]
 // Cycles eau/albédo par pas radiatif (1 = même résultat visu/scie 16.4°C 2025 ; 2 = visu peut dériver albédo → 15.2°C)
@@ -1040,6 +1144,7 @@ window.CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep = 1;             // [EQ/NUM]
 // Cycles eau/albédo à l'Init uniquement (T fixe)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit = 1;              // [EQ/NUM]
 // Rampe glace en convergence : step nominal et step renforcé sur les premières itérations Search
+window.CONFIG_COMPUTE.freezePolarIceDuringSearch = true;               // [EQ/NUM] true = stabilise le run direct ; hystérésis déverrouille via HYSTERESIS.active.
 window.CONFIG_COMPUTE.iceCoverageRampMaxStep = 0.004;              // [EQ/NUM]
 window.CONFIG_COMPUTE.iceCoverageRampEarlyIters = 10;              // [EQ/NUM]
 window.CONFIG_COMPUTE.iceCoverageRampMaxStepEarly = 0.001;         // [EQ/NUM]
