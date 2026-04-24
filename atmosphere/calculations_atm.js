@@ -1,8 +1,14 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.1.7
-// Date: [April 18, 2026]
+// Version 1.1.9
+// Date: [April 24, 2026]
 // logs :
+// - v1.1.9: calculateTropopauseHeight redevient la hauteur radiative effective RT/Mg, multipliée par
+//   CONFIG_COMPUTE.radiativeTropopauseExtensionFactor. Ce n'est pas la tropopause WMO stricte ; c'est
+//   la coupure thermique effective du modèle spectral 0D/1D.
+// - v1.1.8: calculateTropopauseHeight corrige la confusion hauteur d'échelle RT/Mg vs tropopause.
+//   Nouvelle définition lapse-rate : z=(T_surface−CONFIG_COMPUTE.tropopauseReferenceTemperatureK)
+//   / CONFIG_COMPUTE.troposphericLapseRateKPerM (WMO / U.S. Standard Atmosphere).
 // - v1.1.7: expositions fonctions regroupées sous window.ATM (doublons window.foo retirés). Appelants migrés window.foo() → ATM.foo() dans radiative/calculations.js, albedo/calculations_albedo.js, ui/main.js, courbes/plot.js, sync_panels.js, scie_hysteresis_search.js, organigramme.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
@@ -233,10 +239,12 @@ function updateAtmosphereHeightFromCurrentT() {
 function calculateTropopauseHeight() {
     const DATA = window.DATA;
     const CONST = window.CONST;
+    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const atm_mass = (DATA['⚖️'] && DATA['⚖️']['⚖️🫧']) ? DATA['⚖️']['⚖️🫧'] : 0;
     if (atm_mass <= 0) return 0;
-    return (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
+    const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
+    return scale_height_m * Number(CONFIG_COMPUTE.radiativeTropopauseExtensionFactor);
 }
 
 function pressureAtZ(z) {

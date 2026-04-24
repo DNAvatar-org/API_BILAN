@@ -1,8 +1,14 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.35
+// Version 1.4.37
 // Date: [April 24, 2026]
 // logs :
+// - v1.4.37: Remplace le test tropopause WMO direct par une hauteur radiative effective héritée de RT/Mg,
+//   multipliée par CONFIG_COMPUTE.radiativeTropopauseExtensionFactor=1.03. Objectif : tester une
+//   transition radiative progressive au-dessus de la hauteur d'échelle sans surchauffer le modèle.
+// - v1.4.36: Ajout CONFIG_COMPUTE.tropopauseReferenceTemperatureK=216.65 et
+//   troposphericLapseRateKPerM=0.0065. Corrige la confusion tropopause vs hauteur d'échelle RT/Mg :
+//   📏🫧🛩 suit désormais la définition lapse-rate standard (WMO / U.S. Standard Atmosphere).
 // - v1.4.35: Ajout CONFIG_COMPUTE.co2OceanPartitionFactor01 (1 actif, 0 test off) pour isoler l'impact
 //   de la partition CO₂ océan-atmosphère sur la divergence 2000. Multiplicateur contractuel, sans branche
 //   logique nouvelle ; appliqué aussi au seed ⚖️🌊🏭 dans calculations_flux.js v1.2.97.
@@ -1126,6 +1132,10 @@ window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB
 window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
+// Hauteur radiative effective : base RT/Mg (hauteur d'échelle), étendue pour représenter une transition
+// radiative progressive au-dessus de la coupure stricte. 1.0 = héritage ; 1.03 ≈ retour 2000 vers 15.4°C.
+window.CONFIG_COMPUTE.radiativeTropopauseExtensionFactor = 1.03;    // [OBS/CALIB]
+window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
 

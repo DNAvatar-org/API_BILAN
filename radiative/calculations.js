@@ -1,8 +1,12 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.3.0
+// Version 1.3.2
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.3.2: temperatureAtZ revient au gradient effectif historique (EPOCH.lapse_rate ou −g/Cp).
+//   Le test 0.0065 global refroidissait 2000 en réduisant l'absorption via airNumberDensityAtZ.
+// - v1.3.1: Gradient troposphérique lu depuis CONFIG_COMPUTE.troposphericLapseRateKPerM afin d'aligner
+//   la structure thermique radiative avec calculateTropopauseHeight() (WMO / U.S. Standard Atmosphere).
 // - v1.3.0: intégration EARTH.CH4_EDS_SCALE (Haqq-Misra 2008) en parallèle de H2O_EDS_SCALE. Passé au dispatch des workers (spectral_slice_worker v1.0.X + worker_pool). Également appliqué dans calculateRadiativeCapacities (capacité IR normalisée CH4). Défaut 1.0 = HITRAN native, tunable [0.3, 1.5] pour caler EDS_CH4 sur littérature (saturation bandes 3.3/7.7 µm, overlap H2O). Seuil haze Haqq-Misra CH4/CO2 > 0.1 documenté dans physics.js mais pas encore câblé côté SW.
 // - v1.2.9: expositions regroupées sous nouveau namespace window.RADIATIVE (getSpectralResultFromDATA, calculateRadiativeCapacities, temperatureAtZ, simulateRadiativeTransfer). Doublons window.foo retirés. Consommateurs migrés : convergence/calculations_flux.js, sync_panels.js, ui/main.js, atmosphere/calculations_atm.js, doc/epoch_bench.html. Appels H2O/ALBEDO/ATM/GEOLOGY/CLIMATE migrés vers namespaces correspondants.
 // - v1.2.8: calculateFluxForT0 — retrait du fallback silencieux voie série (111 lignes). Si spectralWorkerPool absent/non-ready → throw (crash-first). Cause historique scie 15.28°C vs bench 15.35°C (📱 2000) : scie/visu (index.html) n'avait pas workers/worker_pool.js dans loader_panels.js → silencieusement voie série, ordre addition float différent (0.115 W/m² sur 348 W/m²). Fix loader : v1.1.19.
@@ -377,7 +381,7 @@ async function calculateFluxForT0() {
 
     // ⚡ OPTIMISATION : Calculer tropopause une seule fois
     const z_trop = window.ATM.calculateTropopauseHeight();
-    const Gamma = -0.0065; // Gradient de température, K/m
+    const Gamma = -window.CONFIG_COMPUTE.troposphericLapseRateKPerM; // Gradient de température, K/m
 
     const T_trop = DATA['🧮']['🧮🌡️'] + Gamma * z_trop;
 
@@ -714,7 +718,7 @@ function calculateRadiativeCapacities() {
     let integral_CH4 = 0;
     
     // Calculer la densité numérique de l'air à chaque altitude
-    const Gamma = -0.0065; // Gradient de température, K/m
+    const Gamma = -window.CONFIG_COMPUTE.troposphericLapseRateKPerM; // Gradient de température, K/m
     const airNumberDensity = (z) => {
         const T = DATA['🧮']['🧮🌡️'] + Gamma * z;
         const P = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA * Math.exp(-z / (CONST.R_GAS * T / (EPOCH['🍎'] * CONV.molar_mass_air_ref)));
