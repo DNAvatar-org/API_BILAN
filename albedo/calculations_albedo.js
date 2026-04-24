@@ -1,8 +1,13 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.49
-// Date: [April 23, 2026]
+// Version 1.2.54
+// Date: [April 24, 2026]
 // logs :
+// - v1.2.54: passage fraction_fonte LINÉAIRE → EXPONENTIELLE. Nouvelle formule : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 (cohérence sémantique : facteur multiplieur du temps caractéristique). Avantages : (1) intrinsèquement ∈ [0,1) (pas de clamp arbitraire qui écrête à 1 quand duree_ans dépasse tau × factor), (2) sémantique physique claire (half-life = ln(2) × tau_eff), (3) composable (cascades exp). factor=1.0 standard ; factor=0 → tau_eff=0 → fraction_fonte=1 (équilibre instantané, cas limite safe). Cf. configTimeline.js v1.4.28.
+// - v1.2.53: verrou STATE.iceEpochFixedWaterState supprimé (user: "doit sauter", "virer le verrou tout le temps"). Le blend dt se ré-évalue désormais à CHAQUE pas (plus de garde epochId). T source = DATA['🧮']['🧮🌡️'] (T courante solver) au lieu de EPOCH['🌡️🧮'] (seed config) → feedback T→glace opérationnel dans scan hystérésis ⛄. Nouveau paramètre CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) pour calibrer la temporalité sans désactiver brutalement le couplage (0.0 = blend off, 0.5 = amortissement Picard). STATE.iceEpochFixedState / iceDurationBlendState ne sont plus posés ici. Fix bug ⛄ : 🍰💧🧊 figé à 0.006 pendant tout le scan CO₂ à cause de calcGlaceEquilibre(T_seed=290K) verrouillé une fois. Ref : Hoffman & Schrag 2002 + Pierrehumbert 2005 (feedback glace-albédo doit suivre T dans la branche froide de la bifurcation).
+// - v1.2.52: fix NaN cascade sulfate_boost — EPOCH['🧫'] sorti hors Math.min pour éviter 0×Infinity=NaN quand '⚖️🫧'=0 (⚫ Corps noir : pas d'atmosphère → 🍰🫧✈=⚖️✈/⚖️🫧=Infinity). Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity×0) = NaN (cascade via ccn_proxy → cloud_fraction → final_albedo). Nouveau : sulfate_boost = 1 + 🧫 × Math.min(MAX, 🍰🫧✈ × SCALE). Gate biosphère marine appliqué au *boost* (enhancement > 1.0), physiquement équivalent quand 🍰🫧✈ fini. Fix signalé par Zorba sur epoch-click setEpoch (main.js:2485).
+// - v1.2.51: Briegleb étendu — seuil plateau α_snow_deep abaissé de −30°C → −10°C (Gardner & Sharp 2010 JGR 115:F01009 : α_fresh=0.84 à −10°C, standard CICE/CLM/MPAS-Seaice ; Flanner-Zender 2006 ; Domine 2008). 3 segments linéaires : [−∞,−10°C] plateau 0.85 ; [−10,−5°C] snow aging 0.85→0.70 ; [−5,0°C] melt pond onset 0.70→0.50 ; [0°C,+∞] melt 0.50. Effet : ⛄ Snowball atteignable dès T_pol ≤ −10°C (= T_glob ≤ +10°C avec amp 20 K) — active la rétroaction glace-albédo Pierrehumbert 2005 sur la gamme physique d'un scan hystérésis.
+// - v1.2.50: sulfate_boost × EPOCH['🧫'] — gate biosphère MARINE sur le couplage DMS-CCN (hypothèse CLAW, Charlson-Lovelock-Andreae-Warren 1987 Nature 326:655). 🧫=0 (Hadéen/Corps noir) à 1 (moderne), avec 🧫=0.05 pour ⛄ Plein Snowball → DMS quasi-éteint sous banquise, couplage CCN-sulfate neutralisé, reste seul le sulfate volcanique direct. Lecture directe EPOCH['🧫'] sans fallback (regle-data-territoire.mdc : NaN-crash si clé absente). Couple avec configTimeline.js v1.4.25.
 // - v1.2.49: plumbing 3e zone tropicale (physics.js v2.0.15) — ice_tf_trop + T_thresh_trop ajoutés aux logs diagnostics. Rétro-compat : `ICE_FORMULA_MAX_FRACTION × ice_temp_factor` devient `1.0 × ice_tf` (pas de changement API). La formule pol+mid+trop autorise Snowball (ice_tf → 1.0 quand T_glob < −4°C et que les 3 zones gèlent).
 // - v1.2.48: ice_temp_factor UNIFIÉ — formule physiquement ancrée sur T_FREEZE_SEAWATER (fonte mer) + amplification polaire globale EARTH.POLAR_AMP_POL_K/MID_K (pas d'override par époque). Suppression des clés EPOCH['polarAmplificationK'/'midlatAmplificationK'] : constantes géophysiques (Terre-moderne), mêmes pour toutes les époques. Seuils : T_thresh_pol = T_FREEZE + dT_pol (≈18°C global) ; T_thresh_mid = T_FREEZE + dT_mid (≈3°C global). Correction du bug sémantique v1.2.47 où T_NO_POLAR_ICE_K (seuil global calibré à 20°C) était utilisé comme seuil LOCAL → ice_tf saturait toujours à 1.0 dans la plage utile.
 // - v1.2.47: (déprécié par v1.2.48) amplification polaire epoch-spécifique.
@@ -242,18 +247,22 @@ function calculateAlbedo() {
         const ocean_freeze_fraction = Math.min(1, Math.max(0, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20));
         return Math.max(0, Math.min(0.9, ocean_freeze_fraction * 0.9));
     }
-    // Ne pas écraser le verrou glace posé par initForConfig en phase Search/Dicho (reproductibilité visu vs scie)
-    const inSolverPhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
-    const epochLockAlreadySet = STATE.iceEpochFixedWaterState && STATE.iceEpochFixedWaterState.epochId === DATA['📜']['🗿'];
-    if ((!STATE.iceDurationBlendState || STATE.iceDurationBlendState.epochId !== DATA['📜']['🗿']) && !(inSolverPhase && epochLockAlreadySet)) {
-        const duree_ans = Math.abs(EPOCH['▶'] - EPOCH['◀']);
-        const fraction_fonte = Math.max(0, Math.min(1, duree_ans / CONFIG_COMPUTE.tauGlaceAns));
-        const glace_equilibre = calcGlaceEquilibre(EPOCH['🌡️🧮']);
-        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, DATA['💧']['🍰💧🧊'] * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
-        STATE.iceDurationBlendState = { epochId: DATA['📜']['🗿'] };
-        STATE.iceEpochFixedWaterState = { epochId: DATA['📜']['🗿'], value: DATA['💧']['🍰💧🧊'] };
-        STATE.iceEpochFixedState = STATE.iceEpochFixedWaterState; // compat
-    }
+    // v1.2.54 — Blend dt réévalué à CHAQUE pas (verrou iceEpochFixedWaterState supprimé).
+    // Forme exponentielle : tau_eff = tauGlaceAns × iceInertiaFactor01
+    //                       fraction_fonte = 1 − exp(−duree_ans / tau_eff), naturellement ∈ [0,1).
+    //   • factor=1.0 → tau_eff = tauGlaceAns (temporalité géologique standard)
+    //   • factor>1   → plus d'inertie (fonte/formation plus lente, tau_eff rallongé)
+    //   • factor<1   → moins d'inertie (converge plus vite vers glace_equilibre)
+    //   • factor=0   → tau_eff = 0 → fraction_fonte = 1 (équilibre instantané)
+    // T source = T courante solver (permet feedback T→glace dans scan hystérésis).
+    // Fallback seed config EPOCH['🌡️🧮'] uniquement si 🧮🌡️ absent (premier appel avant initDATA).
+    const duree_ans = Math.abs(EPOCH['▶'] - EPOCH['◀']);
+    const iceInertia = Math.max(0, Number.isFinite(CONFIG_COMPUTE.iceInertiaFactor01) ? CONFIG_COMPUTE.iceInertiaFactor01 : 1);
+    const tau_eff = CONFIG_COMPUTE.tauGlaceAns * iceInertia;
+    const fraction_fonte = (tau_eff > 0) ? (1 - Math.exp(-duree_ans / tau_eff)) : 1;
+    const T_for_equil = (Number.isFinite(DATA['🧮']['🧮🌡️']) && DATA['🧮']['🧮🌡️'] > 0) ? DATA['🧮']['🧮🌡️'] : EPOCH['🌡️🧮'];
+    const glace_equilibre = calcGlaceEquilibre(T_for_equil);
+    DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, DATA['💧']['🍰💧🧊'] * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
     ALBEDO.calculateGeologySurfaces();
     
@@ -293,12 +302,10 @@ function calculateAlbedo() {
     const T_K = DATA['🧮']['🧮🌡️'];
     const hasOcean = (DATA['⚖️']['⚖️💧'] > 0);
     const T_freeze = EARTH.T_FREEZE_SEAWATER_K;
-    const seaIceRangeK = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.seaIceTransitionRangeK)))
-        ? Number(window.CONFIG_COMPUTE.seaIceTransitionRangeK)
-        : 20;
-    const seaIceStrength01 = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.seaIceStrength01)))
-        ? Math.max(0, Math.min(1, Number(window.CONFIG_COMPUTE.seaIceStrength01)))
-        : 1.0;
+    // 🏷️ Source unique : DATA['🎚️'].HYSTERESIS (initDATA.js → interpolé depuis FINE_TUNING_BOUNDS).
+    // Règle regle-data-territoire : lecture directe, pas de Number.isFinite/fallback. Si invalide, crash.
+    const seaIceRangeK = DATA['🎚️'].HYSTERESIS.seaIceTransitionRangeK;
+    const seaIceStrength01 = DATA['🎚️'].HYSTERESIS.seaIceStrength01;
     const seaIceFracRaw = seaIceRangeK > 0 ? Math.max(0, Math.min(1, (T_freeze - T_K) / seaIceRangeK)) : (T_K < T_freeze ? 1 : 0);
     const seaIceFrac = seaIceStrength01 * seaIceFracRaw;
     // Part d'océan encore libre:
@@ -372,14 +379,14 @@ function calculateAlbedo() {
         STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
     }
     const isConvergencePhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
-    const albedoFixedState = STATE.iceEpochFixedAlbedoState;
-    const hasEpochIceLock = isConvergencePhase && albedoFixedState && albedoFixedState.epochId === DATA['📜']['🗿'];
+    // v1.2.53 : verrou albédo glace (iceEpochFixedAlbedoState) supprimé — plus posé par initForConfig.
+    //           hasEpochIceLock reste défini pour préserver le flow des gardes ci-dessous (!hasEpochIceLock),
+    //           mais vaut toujours false → dead code du bloc `if (hasEpochIceLock && !hystUnlockIce)`.
+    const albedoFixedState = null;
+    const hasEpochIceLock = false;
     // Scan CO₂ hystérésis : la glace doit suivre T (rétroaction albédo), sinon T ne peut pas chuter de ΔT_brut en un pas.
     const hystUnlockIce = typeof window !== 'undefined' && window.HYSTERESIS && window.HYSTERESIS.active;
     DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    if (hasEpochIceLock && !hystUnlockIce) {
-        DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, albedoFixedState.value));
-    }
     const freezeIceDuringSearch = CONFIG_COMPUTE.freezePolarIceDuringSearch !== false;
     const waterPass = (DATA['🧮'] && DATA['🧮']['🧮🔄🌊'] != null) ? DATA['🧮']['🧮🔄🌊'] : 0;
     const lock = STATE.iceCoverageLock;
@@ -430,9 +437,15 @@ function calculateAlbedo() {
     // === FORÊT - VERSION RÉALISTE (pas de if d'époque) ===
     // Réf : FAO Global Forest Resources Assessment 2020 ~31% des terres émergées. Formule en K : (T_K - 268.15) / 25 = (°C + 5) / 25.
     // Corps noir (⚫) : pas de CO2/atmosphère pour plantes → forêt = 0 (à reprendre pour époques tardives)
+    // 🌱 = facteur biosphère terrestre par époque (fraction max des terres pouvant porter végétation) :
+    //   - Hadéen / Archéen / Protéro / ⛄ / 🪼 / Cambrien : ≈ 0 (pas de plantes terrestres avant Ordovicien ~−470 Ma)
+    //   - Ordovicien / Silurien : rampe 0 → 0.1 → 0.3 (bryophytes, ptéridophytes)
+    //   - Dévonien → moderne : 0.31 (forêts établies, cf. FAO 2020)
+    // Réf paléobotanique : Kenrick & Crane 1997 (Nature), Gensel 2008 (Ann Rev E E&S),
+    //                     Stein et al. 2012 (Gilboa, PNAS — Archaeopteris).
     const relative_humidity = DATA['💧']['🍰🫧☔'];
     const temp_suitability = Math.max(0.4, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - 268.15) / 25));
-    const forest_potential = 0.31 * land_available * temp_suitability;
+    const forest_potential = EPOCH['🌱'] * land_available * temp_suitability;
     const forest_coverage = (DATA['📜']['🗿'] === '⚫') ? 0 : Math.min(land_available, forest_potential);
     
     // 🔒 ÉTAPE 7 : Calculer déserts 🏜️
@@ -559,29 +572,82 @@ function calculateAlbedo() {
     // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
     // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
     const albedo_coeff = { ...EARTH['🪩🍰'], ...(EPOCH['🪩🍰'] || {}) };
+
+    // [EQ] Briegleb et al. (2004) — melt-pond sea ice albedo, ÉTENDU neige propre.
+    // Réf : Briegleb B.P. et al., "Scientific description of the sea ice component in CCSM3",
+    // NCAR/TN-463+STR, §5 ; Perovich (2002) SHEBA ; AR6 WG1 Annex VI (Cryosphere).
+    // Seuil plateau snow_deep mis à jour de −30°C → −10°C suite à :
+    //   Gardner & Sharp (2010) JGR 115:F01009 — α_fresh=0.84 à T=−10°C, chute linéaire 0.84→0.73 entre
+    //     −10°C et 0°C. Paramétrisation standard CICE/CLM/MPAS-Seaice.
+    //   Flanner & Zender (2006) J. Climate 19:5141 — grain growth rapide > −10°C, lent < −15°C.
+    //   Domine et al. (2008) ACP 8:171 — SSA (specific surface area) de la neige de surface reste
+    //     élevée à T < −15°C, chute rapide à T > −10°C.
+    //   Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 — α pristine snow 0.85-0.90 (sans seuil T strict).
+    // 3 segments (T_polaire croissante) :
+    //   T_pol ≤ −10 °C : neige propre / fine-grain → α_snow_deep = EARTH['🪩🍰']['🪩🍰❄️'] (~0.85).
+    //   −10 < T_pol ≤ −5 °C : métamorphisme thermique actif, α_snow_deep → α_cold (snow→firn).
+    //   −5 < T_pol < 0 °C  : onset melt pond, α_cold → α_melt (Perovich 2002).
+    //   T_pol ≥ 0 °C        : bare ice + melt ponds → α_melt = 0.50 (SHEBA, CICE default).
+    // Feedback positif : T↓ → α↑ → T↓↓ (rétroaction glace-albédo, pilier du snowball Pierrehumbert 2005).
+    //
+    // Amplification polaire Budyko-Sellers (EBM 0D) : T_polaire = T_globale − polarAmplificationK.
+    // Source de vérité GLOBALE : CONFIG_COMPUTE.polarAmplificationK (= EARTH.POLAR_AMP_POL_K, 20 K Earth-modern).
+    // Pas d'override par époque (faire de la physique, pas du patch) — modulation par obliquité ⚾ uniquement,
+    // via computeIceTempFactor dans physics.js (Laskar 1993, Williams 1993 EPSL 117:377).
+    // Réf : Budyko (1969) Tellus 21:611, Sellers (1969) J. Appl. Meteor. 8:392 ; AR6 WG1 Ch.4 Arctic Amp ;
+    // Holland & Bitz (2003) Clim. Dyn. 21:221 ; Pierrehumbert 2011 ch.5.
+    const T_polar_K = DATA['🧮']['🧮🌡️'] - window.CONFIG_COMPUTE.polarAmplificationK;
+    const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];                 // ~0.70 (sea ice saisonnière, CCSM3)
+    const iceAlbedoSnowDeep = albedo_coeff['🪩🍰❄️'];             // ~0.85 (neige propre Gardner-Sharp 2010)
+    const iceAlbedoMelt = 0.50;                                   // bare ice + melt ponds (SHEBA)
+    let iceAlbedoEff;
+    if (T_polar_K <= 263.15) {
+        // ≤ −10 °C : neige propre / pristine snow (plateau Gardner-Sharp 2010)
+        iceAlbedoEff = iceAlbedoSnowDeep;
+    } else if (T_polar_K <= 268.15) {
+        // −10 → −5 °C : métamorphisme thermique → snow aging
+        const t = (T_polar_K - 263.15) / 5.0;
+        iceAlbedoEff = iceAlbedoSnowDeep + (iceAlbedoCold - iceAlbedoSnowDeep) * t;
+    } else if (T_polar_K < 273.15) {
+        // −5 → 0 °C : melt pond onset (Perovich 2002)
+        const t = (T_polar_K - 268.15) / 5.0;
+        iceAlbedoEff = iceAlbedoCold + (iceAlbedoMelt - iceAlbedoCold) * t;
+    } else {
+        // ≥ 0 °C : bare ice + melt ponds
+        iceAlbedoEff = iceAlbedoMelt;
+    }
+    const iceAlbedoMeltProgress01 = Math.max(0, Math.min(1, (T_polar_K - 263.15) / 10.0));  // rétro-compat diag
+    // ── Diagnostic hystérésis (stash) : glace
+    window._hystDiag = window._hystDiag || {};
+    window._hystDiag.T_polar_C = T_polar_K - 273.15;
+    window._hystDiag.iceAlbedoCold = iceAlbedoCold;
+    window._hystDiag.iceAlbedoSnowDeep = iceAlbedoSnowDeep;
+    window._hystDiag.iceAlbedoMeltProgress01 = iceAlbedoMeltProgress01;
+    window._hystDiag.iceAlbedoEff = iceAlbedoEff;
+
     let weighted_albedo = 0;
-    
+
     if (albedo_coeff) {
         weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🎾'];
         weighted_albedo += ocean_surface * albedo_coeff['🪩🍰🌊'];
         weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
         weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
         weighted_albedo += desert_surface * albedo_coeff['🪩🍰🏜️'];
-        weighted_albedo += ice_surface * albedo_coeff['🪩🍰🧊'];
+        weighted_albedo += ice_surface * iceAlbedoEff;
     }
-    
+
     albedo_base = weighted_albedo;
-    
+
     let albedo = albedo_base;
 
     // 🔒 CONTRIBUTION H2O (GLACE) : Calculée séparément, n'affecte PAS la somme des surfaces
     // Mais elle doit rester bornée par le support de surface réellement disponible :
     // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
-    const ice_albedo = albedo_coeff['🪩🍰🧊'];
+    const ice_albedo = iceAlbedoEff;
     const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
-    const ice_impact_factor = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.iceImpactFactor01)))
-        ? Math.max(0, Math.min(1, Number(window.CONFIG_COMPUTE.iceImpactFactor01)))
-        : 0.5;
+    // 🏷️ Source unique : DATA['🎚️'].HYSTERESIS.iceImpactFactor01 (initDATA.js + FINE_TUNING_BOUNDS).
+    // Règle regle-data-territoire : pas de fallback ni Number.isFinite.
+    const ice_impact_factor = DATA['🎚️'].HYSTERESIS.iceImpactFactor01;
     const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
     const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction * ice_impact_factor;
     albedo = albedo_base + ice_albedo_contribution;
@@ -629,8 +695,38 @@ function calculateAlbedo() {
         if (EPOCH['▶'] > DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) {
             anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
         }
+        // 🧫 = facteur biosphère MARINE (gate CLAW) — symétrique de 🌱 (biosphère terrestre).
+        // Réf. princeps : Charlson, Lovelock, Andreae & Warren (1987) Nature 326:655-661
+        //   "Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate" (hypothèse CLAW).
+        // Chaîne physique proxy (4 étages) :
+        //   1. Phytoplancton marin (⇐ EPOCH['🧫']) émet du diméthylsulfure (DMS) par catabolisme du DMSP.
+        //   2. DMS → SO₂ → acide sulfurique H₂SO₄ par oxydation atmosphérique (OH, BrO).
+        //   3. Sulfate (DATA['🫧']['🍰🫧✈']) nuclée des CCN marins de taille sous-micrométrique.
+        //   4. CCN ↑ ⇒ nombre de gouttelettes ↑ ⇒ rayon effectif ↓ ⇒ albédo nuageux ↑ (Twomey 1977).
+        // Refs complémentaires : Andreae & Crutzen 1997 (Science 276:1052), Vallina & Simó 2007 (Science
+        // 315:506), Quinn & Bates 2011 (Nature 480:51, critique amplitude CLAW), Kloster 2006
+        // (J. Geophys. Res.), Woodhouse 2010 (ACP 10:7545).
+        // Paléo : Knoll 2003 Life on a Young Planet ; Falkowski 2004 Science 305:354 (évolution
+        // plancton marin) ; Knoll & Follows 2016 Proc. R. Soc. B 283:20161755.
+        //
+        // Justification ⛄ Néoprotérozoïque (-735 Ma) : l'océan est gelé (glace de mer globale),
+        // le plancton photosynthétique est quasi-absent de la colonne d'eau sous la banquise, et
+        // les eucaryotes marins n'ont pas encore pleinement diversifié (avant radiation Cambrienne).
+        // → 🧫 ≈ 0.05 : quasi-éteint le couplage DMS-CCN, seul reste le sulfate volcanique direct.
+        //
+        // C'est un PROXY paramétrique (pas de modèle DMS/DMSP dynamique couplé à la bio marine).
+        // On peut donc jouer dessus sans remords — ajuster 🧫 pour chaque époque selon la paléo-
+        // abondance plausible du plancton marin (0=stérile, 1=moderne pleinement opérationnel).
+        //
+        // NaN-crash policy : EPOCH['🧫'] lu sans fallback — si absent → NaN → crash explicite
+        // (regle-data-territoire.mdc : pas de Number.isFinite guard, on veut savoir si ça manque).
+        // Note v1.2.52 : EPOCH['🧫'] sorti hors du Math.min pour éviter 0 × Infinity = NaN
+        // quand '⚖️🫧' = 0 (⚫ Corps noir, pas d'atmosphère) : 🍰🫧✈ = ⚖️✈/⚖️🫧 → Infinity,
+        // Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity × 0) = NaN (cascade).
+        // Le gate biosphère marine s'applique au *boost* (enhancement au-dessus de 1.0), pas à la
+        // fraction sulfate elle-même — physiquement équivalent quand 🍰🫧✈ est fini.
         const sulfate_boost = (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR)
-            ? (1.0 + Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧✈'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
+            ? (1.0 + EPOCH['🧫'] * Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧✈'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
             : 1.0;
         const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
         // [OBS/CALIB] Référence moderne explicite : O2=21%, biomasse efficace ~3%, anthro courant.
@@ -642,7 +738,13 @@ function calculateAlbedo() {
         // [EQ] Forme analytique simple (pression/oxydation/température) pour la microphysique effective.
         const pressure_factor = Math.min(DATA['🎚️'].CLOUD_SW.PRESSURE_FACTOR_MAX, DATA['🫧']['🎈']);
         const oxidation_factor = Math.min(1.0, DATA['🎚️'].CLOUD_SW.OXIDATION_BASE + DATA['🎚️'].CLOUD_SW.OXIDATION_O2_GAIN * DATA['🫧']['🍰🫧🫁']);
-        const temp_factor = Math.max(DATA['🎚️'].CLOUD_SW.TEMP_FACTOR_MIN, Math.min(DATA['🎚️'].CLOUD_SW.TEMP_FACTOR_MAX, DATA['🧮']['🧮🌡️'] / DATA['🎚️'].CLOUD_SW.TEMP_FACTOR_REF_K));
+        // [EQ] Hu & Stamnes (1993) — partition phase liquide/glace des nuages.
+        // Réf : Hu Y.X. & Stamnes K., J. Climate 6, 728–742. Paramétrisation standard (CAM, CICE, AR6).
+        // f_liq = 1 pour T ≥ 273.15 K (nuages liquides : gouttelettes ~10-15 μm, SW efficace ~1.0)
+        // f_liq = 0 pour T ≤ 233.15 K (nuages glace : cristaux ~30-50 μm, SW efficace ~0.6)
+        // Transition linéaire dans [-40°C, 0°C] ; plus de bornes arbitraires MIN/MAX.
+        const f_liq = Math.max(0, Math.min(1, (DATA['🧮']['🧮🌡️'] - 233.15) / 40.0));
+        const temp_factor = f_liq * 1.0 + (1 - f_liq) * 0.6;
 
         // 3) Efficacité optique réelle (Twomey + microphysique)
         // Centrage moderne autour de 1.0-1.2 ; états pauvres en CCN en dessous.
@@ -659,6 +761,20 @@ function calculateAlbedo() {
 
         // Limites physiques
         cloud_fraction = Math.max(0, Math.min(DATA['🎚️'].CLOUD_SW.CLOUD_FRACTION_MAX, cloud_fraction));
+        // ── Diagnostic hystérésis (stash) : nuages
+        window._hystDiag = window._hystDiag || {};
+        window._hystDiag.cloudIndex = cloud_index;
+        window._hystDiag.ccnProxy = ccn_proxy;
+        window._hystDiag.ccnRefModern = ccn_ref_modern;
+        window._hystDiag.ccnRatio = ccn_ratio;
+        window._hystDiag.sulfateBoost = sulfate_boost;
+        window._hystDiag.anthroFactor = anthro_factor;
+        window._hystDiag.pressureFactor = pressure_factor;
+        window._hystDiag.oxidationFactor = oxidation_factor;
+        window._hystDiag.tempFactor = temp_factor;
+        window._hystDiag.fLiq = f_liq;
+        window._hystDiag.cloudOptEff = cloud_optical_efficiency;
+        window._hystDiag.cloudFraction = cloud_fraction;
         if (CONFIG_COMPUTE.logCloudProxyDiagnostic) {
             console.log('[cloud-proxy] epoch=' + DATA['📜']['🗿']
                 + ' T_C=' + CONST.K2C(DATA['🧮']['🧮🌡️']).toFixed(2)
@@ -720,6 +836,12 @@ function calculateAlbedo() {
     }
     DATA['🪩']['🍰🪩📿'] = A_eff;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
+    // ── Diagnostic hystérésis (stash) : albédo agrégé
+    window._hystDiag = window._hystDiag || {};
+    window._hystDiag.weightedAlbedoBase = weighted_albedo;
+    window._hystDiag.finalAlbedo = final_albedo;
+    window._hystDiag.blackbodyFactor = blackbody_factor;
+    window._hystDiag.aEff = A_eff;
     return A_eff;
 }
 

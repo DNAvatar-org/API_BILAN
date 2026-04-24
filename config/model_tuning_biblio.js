@@ -43,12 +43,11 @@ window.TUNING_BIBLIO = {
             value: 0.35,
             source: "Borne numerique de securite (evite emballement du proxy)",
             effect_on_warming_when_increased: "negative"
-        },
-        TEMP_FACTOR_REF_K: {
-            value: 288,
-            source: "Reference climat moderne (~15C)",
-            effect_on_warming_when_increased: "mixed"
         }
+        // TEMP_FACTOR_REF_K (et MIN/MAX) retirés v1.0.2 : remplacés dans
+        // calculations_albedo.js par la partition de phase Hu & Stamnes (1993),
+        // J. Climate 6, 728. Plus de bornes arbitraires — f_liq lisse sur [-40, 0]°C,
+        // temp_factor = f_liq × 1.0 + (1−f_liq) × 0.6 (SW eff glace vs liquide).
     },
     SOLVER: {
         TOL_MIN_WM2: {

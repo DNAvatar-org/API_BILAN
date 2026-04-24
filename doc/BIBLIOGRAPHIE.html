@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bibliographie — Bilan Radiatif</title>
+    <!--
+        ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
+        Copyright 2025 DNAvatar.org - Arnaud Maignan — Apache 2.0 + Commons Clause.
+
+        Convention (façon LaTeX .bib rendu web) :
+        - Chaque <article class="ref"> = une entrée bibliographique
+        - id = clé BibTeX (AuthorYEAR[letter])         → ancres permanentes #gough1981
+        - data-tags = thèmes séparés par espaces       → filtrage JS ultérieur
+        - data-used-in = chemin relatif du fichier qui cite la réf → traçabilité code
+
+        AMORCE v0.1.0 — Claude Opus
+        À compléter par Sonnet : compléter DOI, résumés, ajouter sections manquantes.
+        Conserver strictement l'ordre alphabétique par clé à l'intérieur de chaque section.
+    -->
+    <style>
+        body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #222; }
+        h1 { border-bottom: 2px solid #333; }
+        h2 { margin-top: 2em; border-bottom: 1px solid #bbb; color: #444; }
+        article.ref { margin: 1em 0; padding: 0.5em 0.75em; border-left: 3px solid #8aa; background: #f6f8f9; }
+        article.ref:target { background: #fff3b0; border-left-color: #c90; }
+        .ref .cite-key { font-family: "Courier New", monospace; color: #777; font-size: 0.85em; }
+        .ref .title { font-weight: bold; }
+        .ref .authors { font-style: italic; }
+        .ref .venue { color: #555; }
+        .ref .doi a { color: #058; text-decoration: none; }
+        .ref .used-in { font-size: 0.82em; color: #666; margin-top: 0.3em; }
+        .ref .used-in code { background: #eef; padding: 0 3px; border-radius: 2px; }
+        .todo { color: #b00; font-weight: bold; }
+        nav.toc { background: #f0f0f0; padding: 0.6em 1em; border-radius: 4px; }
+        nav.toc a { text-decoration: none; color: #058; }
+    </style>
+</head>
+<body>
+
+<h1>Bibliographie — modèle Bilan Radiatif</h1>
+
+<p>
+    <strong>Source unique</strong> des références scientifiques utilisées dans <code>API_BILAN/</code> et <code>CO2/</code>.
+    Format volontairement proche d'une bib LaTeX (clé stable, ancrage, traçabilité vers les fichiers de code).
+    Les clés <code>id</code> suivent la convention <em>AuteurANNÉE[lettre]</em> (ex. <code>gough1981</code>, <code>hoffman1998a</code>).
+</p>
+
+<nav class="toc">
+    <strong>Sommaire :</strong>
+    <a href="#sec-solar">Luminosité solaire</a> ·
+    <a href="#sec-polar-amp">Amplification polaire (EBM)</a> ·
+    <a href="#sec-snow-ice">Albédo neige &amp; glace</a> ·
+    <a href="#sec-clouds">Nuages &amp; CCN</a> ·
+    <a href="#sec-snowball">Snowball Earth</a> ·
+    <a href="#sec-biosphere">Biosphère &amp; végétation</a> ·
+    <a href="#sec-co2">Cycle du CO₂</a> ·
+    <a href="#sec-orbital">Paramètres orbitaux</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-solar">1. Luminosité solaire (Faint Young Sun)</h2>
+
+<article class="ref" id="gough1981" data-tags="solar faint-sun">
+    <div class="cite-key">[gough1981]</div>
+    <div class="authors">Gough, D. O.</div>
+    <div class="title">Solar interior structure and luminosity variations</div>
+    <div class="venue">Solar Physics, 74:21–34 (1981)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/BF00151270">10.1007/BF00151270</a></div>
+    <div class="used-in">Utilisée dans : <code>API_BILAN/convergence/compute.js</code> (goughLuminosity), <code>API_BILAN/physicsAll.js</code>, <code>API_BILAN/config/configTimeline.js</code> (🔋☀️ par époque)</div>
+</article>
+
+<article class="ref" id="feulner2012" data-tags="solar faint-sun paleoclim">
+    <div class="cite-key">[feulner2012]</div>
+    <div class="authors">Feulner, G.</div>
+    <div class="title">The faint young Sun problem</div>
+    <div class="venue">Reviews of Geophysics, 50:RG2006 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2011RG000375">10.1029/2011RG000375</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet :</span> à citer dans Archéen/Hadéen.</div>
+</article>
+
+<article class="ref" id="koppLean2011" data-tags="solar observation">
+    <div class="cite-key">[koppLean2011]</div>
+    <div class="authors">Kopp, G. &amp; Lean, J. L.</div>
+    <div class="title">A new, lower value of total solar irradiance: Evidence and climate significance</div>
+    <div class="venue">Geophysical Research Letters, 38:L01706 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2010GL045777">10.1029/2010GL045777</a></div>
+    <div class="used-in"><code>REFS_LITTERATURE_ET_TUNING.md</code> (TSI 1361 W/m²)</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-polar-amp">2. Amplification polaire / EBM 0D</h2>
+
+<article class="ref" id="budyko1969" data-tags="ebm polar-amp ice-albedo">
+    <div class="cite-key">[budyko1969]</div>
+    <div class="authors">Budyko, M. I.</div>
+    <div class="title">The effect of solar radiation variations on the climate of the Earth</div>
+    <div class="venue">Tellus, 21(5):611–619 (1969)</div>
+    <div class="doi"><a href="https://doi.org/10.3402/tellusa.v21i5.10109">10.3402/tellusa.v21i5.10109</a></div>
+    <div class="used-in"><code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
+</article>
+
+<article class="ref" id="sellers1969" data-tags="ebm polar-amp">
+    <div class="cite-key">[sellers1969]</div>
+    <div class="authors">Sellers, W. D.</div>
+    <div class="title">A global climatic model based on the energy balance of the Earth-atmosphere system</div>
+    <div class="venue">Journal of Applied Meteorology, 8(3):392–400 (1969)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0450(1969)008%3C0392:AGCMBO%3E2.0.CO;2">10.1175/1520-0450(1969)008&lt;0392:AGCMBO&gt;2.0.CO;2</a></div>
+    <div class="used-in">Pair avec <a href="#budyko1969">[budyko1969]</a> — socle EBM 0D.</div>
+</article>
+
+<article class="ref" id="hollandBitz2003" data-tags="polar-amp gcm">
+    <div class="cite-key">[hollandBitz2003]</div>
+    <div class="authors">Holland, M. M. &amp; Bitz, C. M.</div>
+    <div class="title">Polar amplification of climate change in coupled models</div>
+    <div class="venue">Climate Dynamics, 21:221–232 (2003)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s00382-003-0332-6">10.1007/s00382-003-0332-6</a></div>
+    <div class="used-in">Justification plage ΔT_pôle 1.4–4.5 K/K dans <code>calculations_albedo.js</code></div>
+</article>
+
+<article class="ref" id="ipccAR6WG1" data-tags="polar-amp arctic-amp review">
+    <div class="cite-key">[ipccAR6WG1]</div>
+    <div class="authors">IPCC</div>
+    <div class="title">Climate Change 2021: The Physical Science Basis, Working Group I, Chapter 4 (Future Global Climate)</div>
+    <div class="venue">Cambridge University Press (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1017/9781009157896">10.1017/9781009157896</a></div>
+    <div class="used-in">Arctic Amplification 2–4× modern.</div>
+</article>
+
+<article class="ref" id="pierrehumbert2011" data-tags="ebm textbook paleoclim">
+    <div class="cite-key">[pierrehumbert2011]</div>
+    <div class="authors">Pierrehumbert, R. T.</div>
+    <div class="title">Principles of Planetary Climate</div>
+    <div class="venue">Cambridge University Press, ch. 5 (2011)</div>
+    <div class="doi"><span class="todo">TODO Sonnet : ISBN 9780521865562</span></div>
+    <div class="used-in">Cité en commentaire <code>calculations_albedo.js</code> (Briegleb).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-snow-ice">3. Albédo neige, glace &amp; mer gelée</h2>
+
+<article class="ref" id="briegleb2004" data-tags="sea-ice melt-pond albedo ccsm3">
+    <div class="cite-key">[briegleb2004]</div>
+    <div class="authors">Briegleb, B. P., Bitz, C. M., Hunke, E. C., Lipscomb, W. H., Holland, M. M., Schramm, J. L. &amp; Moritz, R. E.</div>
+    <div class="title">Scientific description of the sea ice component in the Community Climate System Model, Version Three (CCSM3)</div>
+    <div class="venue">NCAR Technical Note NCAR/TN-463+STR, §5 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.5065/D6HH6H1P">10.5065/D6HH6H1P</a></div>
+    <div class="used-in"><code>API_BILAN/albedo/calculations_albedo.js</code> — bloc <em>iceAlbedoMeltProgress01</em></div>
+</article>
+
+<article class="ref" id="warrenWiscombe1980" data-tags="snow albedo pristine">
+    <div class="cite-key">[warrenWiscombe1980]</div>
+    <div class="authors">Warren, S. G. &amp; Wiscombe, W. J.</div>
+    <div class="title">A model for the spectral albedo of snow. II: Snow containing atmospheric aerosols</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 37(12):2734–2745 (1980)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1980)037%3C2734:AMFTSA%3E2.0.CO;2">10.1175/1520-0469(1980)037&lt;2734:AMFTSA&gt;2.0.CO;2</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet :</span> à associer à la discussion « clean snow » Néoprotérozoïque.</div>
+</article>
+
+<article class="ref" id="warren1982" data-tags="snow optical-properties review">
+    <div class="cite-key">[warren1982]</div>
+    <div class="authors">Warren, S. G.</div>
+    <div class="title">Optical properties of snow</div>
+    <div class="venue">Reviews of Geophysics, 20(1):67–89 (1982)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/RG020i001p00067">10.1029/RG020i001p00067</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet</span></div>
+</article>
+
+<article class="ref" id="perovich2002" data-tags="sheba sea-ice albedo field">
+    <div class="cite-key">[perovich2002]</div>
+    <div class="authors">Perovich, D. K., Grenfell, T. C., Light, B. &amp; Hobbs, P. V.</div>
+    <div class="title">Seasonal evolution of the albedo of multiyear Arctic sea ice</div>
+    <div class="venue">Journal of Geophysical Research Oceans, 107(C10):8044 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2000JC000438">10.1029/2000JC000438</a></div>
+    <div class="used-in">SHEBA — valeur α_melt ≈ 0.50 (bloc Briegleb).</div>
+</article>
+
+<article class="ref" id="flanner2007" data-tags="black-carbon snow radiative-forcing">
+    <div class="cite-key">[flanner2007]</div>
+    <div class="authors">Flanner, M. G., Zender, C. S., Randerson, J. T. &amp; Rasch, P. J.</div>
+    <div class="title">Present-day climate forcing and response from black carbon in snow</div>
+    <div class="venue">Journal of Geophysical Research, 112:D11202 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2006JD008003">10.1029/2006JD008003</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet :</span> argument « pas de BC avant combustion anthropique ».</div>
+</article>
+
+<article class="ref" id="takeuchi2002" data-tags="snow algae biological-darkening">
+    <div class="cite-key">[takeuchi2002]</div>
+    <div class="authors">Takeuchi, N.</div>
+    <div class="title">Optical characteristics of cryoconite (surface dust) on glaciers: the relationship between light absorbency and the property of organic matter contained in the cryoconite</div>
+    <div class="venue">Annals of Glaciology, 34:409–414 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/172756402781817743">10.3189/172756402781817743</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet</span></div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-clouds">4. Nuages, microphysique &amp; CCN</h2>
+
+<article class="ref" id="huStamnes1993" data-tags="cloud phase partition">
+    <div class="cite-key">[huStamnes1993]</div>
+    <div class="authors">Hu, Y. X. &amp; Stamnes, K.</div>
+    <div class="title">An accurate parameterization of the radiative properties of water clouds suitable for use in climate models</div>
+    <div class="venue">Journal of Climate, 6(4):728–742 (1993)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0442(1993)006%3C0728:AAPOTR%3E2.0.CO;2">10.1175/1520-0442(1993)006&lt;0728:AAPOTR&gt;2.0.CO;2</a></div>
+    <div class="used-in"><code>calculations_albedo.js</code> — f_liq sur [−40, 0] °C (remplace temp_factor arbitraire).</div>
+</article>
+
+<article class="ref" id="twomey1977" data-tags="ccn indirect-aerosol twomey">
+    <div class="cite-key">[twomey1977]</div>
+    <div class="authors">Twomey, S.</div>
+    <div class="title">The influence of pollution on the shortwave albedo of clouds</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 34(7):1149–1152 (1977)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1977)034%3C1149:TIOPOT%3E2.0.CO;2">10.1175/1520-0469(1977)034&lt;1149:TIOPOT&gt;2.0.CO;2</a></div>
+    <div class="used-in">Couplage CCN-sulfate (<code>HYSTERESIS.ccnSulfateCoupling</code>).</div>
+</article>
+
+<article class="ref" id="sundqvist1989" data-tags="cloud fraction parameterization">
+    <div class="cite-key">[sundqvist1989]</div>
+    <div class="authors">Sundqvist, H., Berge, E. &amp; Kristjánsson, J. E.</div>
+    <div class="title">Condensation and cloud parameterization studies with a mesoscale numerical weather prediction model</div>
+    <div class="venue">Monthly Weather Review, 117(8):1641–1657 (1989)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0493(1989)117%3C1641:CACPSW%3E2.0.CO;2">10.1175/1520-0493(1989)117&lt;1641:CACPSW&gt;2.0.CO;2</a></div>
+    <div class="used-in"><code>model_tuning_biblio.js</code> (CLOUD_FRACTION_INDEX_GAIN).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-snowball">5. Snowball Earth &amp; hystérésis climatique</h2>
+
+<article class="ref" id="hoffman1998a" data-tags="snowball neoproterozoic">
+    <div class="cite-key">[hoffman1998a]</div>
+    <div class="authors">Hoffman, P. F., Kaufman, A. J., Halverson, G. P. &amp; Schrag, D. P.</div>
+    <div class="title">A Neoproterozoic Snowball Earth</div>
+    <div class="venue">Science, 281(5381):1342–1346 (1998)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.281.5381.1342">10.1126/science.281.5381.1342</a></div>
+    <div class="used-in"><code>configTimeline.js</code> (époque ⛄).</div>
+</article>
+
+<article class="ref" id="hoffmanSchrag2002" data-tags="snowball review">
+    <div class="cite-key">[hoffmanSchrag2002]</div>
+    <div class="authors">Hoffman, P. F. &amp; Schrag, D. P.</div>
+    <div class="title">The snowball Earth hypothesis: testing the limits of global change</div>
+    <div class="venue">Terra Nova, 14(3):129–155 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.1046/j.1365-3121.2002.00408.x">10.1046/j.1365-3121.2002.00408.x</a></div>
+</article>
+
+<article class="ref" id="pierrehumbert2005" data-tags="ice-line instability bifurcation">
+    <div class="cite-key">[pierrehumbert2005]</div>
+    <div class="authors">Pierrehumbert, R. T.</div>
+    <div class="title">Climate dynamics of a hard snowball Earth</div>
+    <div class="venue">Journal of Geophysical Research Atmospheres, 110:D01111 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2004JD005162">10.1029/2004JD005162</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet :</span> argumenter bifurcation continue.</div>
+</article>
+
+<article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
+    <div class="cite-key">[voigtAbbot2012]</div>
+    <div class="authors">Voigt, A. &amp; Abbot, D. S.</div>
+    <div class="title">Sea-ice dynamics strongly promote Snowball Earth initiation and destabilize tropical sea-ice margins</div>
+    <div class="venue">Climate of the Past, 8:2079–2092 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-8-2079-2012">10.5194/cp-8-2079-2012</a></div>
+</article>
+
+<article class="ref" id="li2008" data-tags="paleogeography rodinia">
+    <div class="cite-key">[li2008]</div>
+    <div class="authors">Li, Z.-X., Bogdanova, S. V., Collins, A. S., Davidson, A., <em>et al.</em></div>
+    <div class="title">Assembly, configuration, and break-up history of Rodinia: A synthesis</div>
+    <div class="venue">Precambrian Research, 160(1–2):179–210 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.precamres.2007.04.021">10.1016/j.precamres.2007.04.021</a></div>
+    <div class="used-in"><span class="todo">TODO Sonnet :</span> contexte paléogéo ⛄.</div>
+</article>
+
+<article class="ref" id="pierrehumbert2004" data-tags="snowball deglaciation co2-threshold">
+    <div class="cite-key">[pierrehumbert2004]</div>
+    <div class="authors">Pierrehumbert, R. T.</div>
+    <div class="title">High levels of atmospheric carbon dioxide necessary for the termination of global glaciation</div>
+    <div class="venue">Nature, 429:646–649 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature02640">10.1038/nature02640</a></div>
+    <div class="used-in">Seuil déglaciation ×100-1000 vs baseline (hard snowball problem). Commentaire tête <code>scie_hysteresis_search.js</code>.</div>
+</article>
+
+<article class="ref" id="abbotPierrehumbert2010" data-tags="snowball dust ice-albedo deglaciation">
+    <div class="cite-key">[abbotPierrehumbert2010]</div>
+    <div class="authors">Abbot, D. S. &amp; Pierrehumbert, R. T.</div>
+    <div class="title">Mudball: Surface dust and Snowball Earth deglaciation</div>
+    <div class="venue">Journal of Geophysical Research, 115:D03103 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2009JD012007">10.1029/2009JD012007</a></div>
+    <div class="used-in">Poussière sur glace → α 0.62 → 0.45-0.50, abaisse seuil déglaciation à ~10k-30k ppm.</div>
+</article>
+
+<article class="ref" id="voigtMarotzke2010" data-tags="snowball gcm co2-threshold sturtian">
+    <div class="cite-key">[voigtMarotzke2010]</div>
+    <div class="authors">Voigt, A. &amp; Marotzke, J.</div>
+    <div class="title">The transition from the present-day climate to a modern Snowball Earth</div>
+    <div class="venue">Climate Dynamics, 35:887–905 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s00382-009-0633-5">10.1007/s00382-009-0633-5</a></div>
+    <div class="used-in">Seuil snowball GCM ECHAM5 ~100-120 ppm (S/S₀ moderne). Fourchette réf. pour hystérésis 1a.</div>
+</article>
+
+<article class="ref" id="yangPeltierHu2012" data-tags="snowball gcm co2-threshold sturtian">
+    <div class="cite-key">[yangPeltierHu2012]</div>
+    <div class="authors">Yang, J., Peltier, W. R. &amp; Hu, Y.</div>
+    <div class="title">The Initiation of Modern "Soft Snowball" and "Hard Snowball" Climates in CCSM3. Part I &amp; II</div>
+    <div class="venue">Journal of Climate, 25:2711–2736 et 2737–2754 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00189.1">10.1175/JCLI-D-11-00189.1</a></div>
+    <div class="used-in">Seuil snowball GCM CCSM3 ~70-100 ppm (paléogéo Néoprotérozoïque).</div>
+</article>
+
+<article class="ref" id="hornerSnowball2022" data-tags="snowball gcm paleogeography">
+    <div class="cite-key">[hornerSnowball2022]</div>
+    <div class="authors">Hörner, J., Voigt, A. &amp; Braun, J.</div>
+    <div class="title">Snowball Earth initiation and the thermodynamics of sea ice</div>
+    <div class="venue">Climate of the Past, 18:2437–2454 (2022)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-18-2437-2022">10.5194/cp-18-2437-2022</a></div>
+    <div class="used-in">Fourchette élargie 100-300 ppm seuil snowball GCM moderne avec paléogéographie.</div>
+</article>
+
+<article class="ref" id="hoffman2017" data-tags="snowball review">
+    <div class="cite-key">[hoffman2017]</div>
+    <div class="authors">Hoffman, P. F., Abbot, D. S., Ashkenazy, Y., <em>et al.</em></div>
+    <div class="title">Snowball Earth climate dynamics and Cryogenian geology-geobiology</div>
+    <div class="venue">Science Advances, 3(11):e1600983 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/sciadv.1600983">10.1126/sciadv.1600983</a></div>
+    <div class="used-in">Revue complète synthèse Snowball (drawdown, buildup, durée Sturtien 57 Myr).</div>
+</article>
+
+<article class="ref" id="bao2008" data-tags="paleoCO2 proxy neoproterozoic">
+    <div class="cite-key">[bao2008]</div>
+    <div class="authors">Bao, H., Lyons, J. R. &amp; Zhou, C.</div>
+    <div class="title">Triple oxygen isotope evidence for elevated CO₂ levels after a Neoproterozoic glaciation</div>
+    <div class="venue">Nature, 453:504–506 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature06959">10.1038/nature06959</a></div>
+    <div class="used-in">Proxy δ¹⁷O carbonate post-Marinoen → CO₂ 500-2500 ppm pré-snowball. Borne baseline <code>hysteresis 1a</code> 1.0e16 kg.</div>
+</article>
+
+<article class="ref" id="mills2011" data-tags="neoproterozoic weathering drawdown">
+    <div class="cite-key">[mills2011]</div>
+    <div class="authors">Mills, B., Watson, A. J., Goldblatt, C., Boyle, R. &amp; Lenton, T. M.</div>
+    <div class="title">Timing of Neoproterozoic glaciations linked to transport-limited global weathering</div>
+    <div class="venue">Nature Geoscience, 4:861–864 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/ngeo1305">10.1038/ngeo1305</a></div>
+    <div class="used-in">Taux drawdown CO₂ ~1 ppm/kyr, /10 en 5 Myr pré-Sturtien.</div>
+</article>
+
+<article class="ref" id="godderis2017" data-tags="franklin-lip weathering co2 neoproterozoic">
+    <div class="cite-key">[godderis2017]</div>
+    <div class="authors">Goddéris, Y., Le Hir, G., Macouin, M., Donnadieu, Y., Hubert-Théou, L., <em>et al.</em></div>
+    <div class="title">Paleogeographic forcing of the strontium isotopic cycle in the Neoproterozoic</div>
+    <div class="venue">Gondwana Research, 42:151–162 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.gr.2016.09.013">10.1016/j.gr.2016.09.013</a></div>
+    <div class="used-in">Franklin LIP 717 Ma + altération basalte tropical → pompe CO₂ Sturtien.</div>
+</article>
+
+<article class="ref" id="leHir2010" data-tags="snowball recovery weathering">
+    <div class="cite-key">[leHir2010]</div>
+    <div class="authors">Le Hir, G., Donnadieu, Y., Goddéris, Y., Pierrehumbert, R. T., Halverson, G. P., <em>et al.</em></div>
+    <div class="title">The snowball Earth aftermath: Exploring the limits of continental weathering processes</div>
+    <div class="venue">Earth and Planetary Science Letters, 277:453–463 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
+    <div class="used-in">Récupération post-snowball : altération fournit CO₂ sink, durée transition.</div>
+</article>
+
+<article class="ref" id="catlingKasting2017" data-tags="textbook atmospheric-evolution">
+    <div class="cite-key">[catlingKasting2017]</div>
+    <div class="authors">Catling, D. C. &amp; Kasting, J. F.</div>
+    <div class="title">Atmospheric Evolution on Inhabited and Lifeless Worlds</div>
+    <div class="venue">Cambridge University Press (2017), ISBN 978-0521844123</div>
+    <div class="used-in">Outgassing volcanique Protérozoïque ~6e12 mol CO₂/an (ref. moderne). CH₄ post-GOE.</div>
+</article>
+
+<article class="ref" id="lyons2014" data-tags="oxygen history goe neoproterozoic">
+    <div class="cite-key">[lyons2014]</div>
+    <div class="authors">Lyons, T. W., Reinhard, C. T. &amp; Planavsky, N. J.</div>
+    <div class="title">The rise of oxygen in Earth's early ocean and atmosphere</div>
+    <div class="venue">Nature, 506:307–315 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature13068">10.1038/nature13068</a></div>
+    <div class="used-in">Synthèse O₂ atm histoire — Sturtien 0.1-1 % PAL. Borne <code>⚖️🫁</code> hysteresis 1a.</div>
+</article>
+
+<article class="ref" id="planavsky2014" data-tags="oxygen proterozoic proxies">
+    <div class="cite-key">[planavsky2014]</div>
+    <div class="authors">Planavsky, N. J., Reinhard, C. T., Wang, X., <em>et al.</em></div>
+    <div class="title">Low Mid-Proterozoic atmospheric oxygen levels and the delayed rise of animals</div>
+    <div class="venue">Science, 346(6209):635–638 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1258410">10.1126/science.1258410</a></div>
+    <div class="used-in">O₂ Mésoprotérozoïque / pré-NOE < 1 % PAL. Confirmation borne basse Sturtien.</div>
+</article>
+
+<article class="ref" id="kasting2005" data-tags="methane archean proterozoic">
+    <div class="cite-key">[kasting2005]</div>
+    <div class="authors">Kasting, J. F.</div>
+    <div class="title">Methane and climate during the Precambrian era</div>
+    <div class="venue">Precambrian Research, 137(3-4):119–129 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.precamres.2005.03.002">10.1016/j.precamres.2005.03.002</a></div>
+    <div class="used-in">CH₄ post-GOE 1-30 ppm (atmosphère oxygénée). Borne <code>⚖️🐄</code> hysteresis 1a.</div>
+</article>
+
+<article class="ref" id="daineLenton2016" data-tags="methane proterozoic biogeochemistry">
+    <div class="cite-key">[daineLenton2016]</div>
+    <div class="authors">Daines, S. J. &amp; Lenton, T. M.</div>
+    <div class="title">The effect of widespread early aerobic marine ecosystems on methane cycling and the Great Oxidation</div>
+    <div class="venue">Earth and Planetary Science Letters, 434:42–51 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2015.11.021">10.1016/j.epsl.2015.11.021</a></div>
+    <div class="used-in">CH₄ 1-5 ppm post-GOE dans océan bien oxygéné. Affine <code>⚖️🐄</code> Néoprotérozoïque.</div>
+</article>
+
+<article class="ref" id="sperling2015" data-tags="oxygen neoproterozoic animals">
+    <div class="cite-key">[sperling2015]</div>
+    <div class="authors">Sperling, E. A., Wolock, C. J., Morgan, A. S., Gill, B. C., Kunzmann, M., <em>et al.</em></div>
+    <div class="title">Statistical analysis of iron geochemical data suggests limited late Proterozoic oxygenation</div>
+    <div class="venue">Nature, 523:451–454 (2015)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature14589">10.1038/nature14589</a></div>
+    <div class="used-in">Proxy Fe : O₂ post-GOE et pré-NOE bas (~0.1-1 % PAL). Confirme fourchette Sturtien.</div>
+</article>
+
+<article class="ref" id="olsonCH42016" data-tags="methane proterozoic review">
+    <div class="cite-key">[olsonCH42016]</div>
+    <div class="authors">Olson, S. L., Reinhard, C. T. &amp; Lyons, T. W.</div>
+    <div class="title">Limited role for methane in the mid-Proterozoic greenhouse</div>
+    <div class="venue">PNAS, 113(41):11447–11452 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1608549113">10.1073/pnas.1608549113</a></div>
+    <div class="used-in">CH₄ Mésoprotérozoïque contraint < 10 ppm. Affine borne sup. Néoprotérozoïque.</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-biosphere">6. Biosphère, végétation &amp; albédo terrestre</h2>
+
+<!-- TODO Sonnet : compléter cette section (Scheffer, Berner GEOCARB, Kleidon…). -->
+<article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
+    <div class="cite-key">[beerling2007]</div>
+    <div class="authors">Beerling, D. J.</div>
+    <div class="title">The Emerald Planet: How plants changed Earth's history</div>
+    <div class="venue">Oxford University Press (2007)</div>
+    <div class="doi"><span class="todo">TODO Sonnet : ISBN</span></div>
+    <div class="used-in"><code>configTimeline.js</code> (<code>'🌱'</code> par époque).</div>
+</article>
+
+<article class="ref" id="charlson1987" data-tags="claw dms ccn marine biosphere aerosol">
+    <div class="cite-key">[charlson1987]</div>
+    <div class="authors">Charlson, R. J., Lovelock, J. E., Andreae, M. O. &amp; Warren, S. G.</div>
+    <div class="title">Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate</div>
+    <div class="venue">Nature, 326:655–661 (1987)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/326655a0">10.1038/326655a0</a></div>
+    <div class="used-in">Hypothèse princeps CLAW. <code>calculations_albedo.js</code> (gate <code>EPOCH['🧫']</code> × sulfate_boost). <code>configTimeline.js</code> (<code>'🧫'</code> par époque).</div>
+</article>
+
+<article class="ref" id="andreaeCrutzen1997" data-tags="claw dms sulfate ccn atmospheric-chemistry">
+    <div class="cite-key">[andreaeCrutzen1997]</div>
+    <div class="authors">Andreae, M. O. &amp; Crutzen, P. J.</div>
+    <div class="title">Atmospheric aerosols: Biogeochemical sources and role in atmospheric chemistry</div>
+    <div class="venue">Science, 276(5315):1052–1058 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.276.5315.1052">10.1126/science.276.5315.1052</a></div>
+    <div class="used-in">Justification paramétrisation DMS→CCN (chaîne oxydation atmosphérique). <code>calculations_albedo.js</code>.</div>
+</article>
+
+<article class="ref" id="quinnBates2011" data-tags="claw dms ccn marine-aerosol critique">
+    <div class="cite-key">[quinnBates2011]</div>
+    <div class="authors">Quinn, P. K. &amp; Bates, T. S.</div>
+    <div class="title">The case against climate regulation via oceanic phytoplankton sulphur emissions</div>
+    <div class="venue">Nature, 480:51–56 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature10580">10.1038/nature10580</a></div>
+    <div class="used-in">Critique d'amplitude de CLAW (justifie <em>gate</em> et non multiplicateur dominant). <code>calculations_albedo.js</code>.</div>
+</article>
+
+<article class="ref" id="kloster2006" data-tags="dms model ccn earth-system-model">
+    <div class="cite-key">[kloster2006]</div>
+    <div class="authors">Kloster, S., Feichter, J., Maier-Reimer, E., Six, K. D., Stier, P. &amp; Wetzel, P.</div>
+    <div class="title">DMS cycle in the marine ocean-atmosphere system — a global model study</div>
+    <div class="venue">Biogeosciences, 3(1):29–51 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/bg-3-29-2006">10.5194/bg-3-29-2006</a></div>
+    <div class="used-in">Modèle couplé DMS océan-atmo ; justification flux ppt paléo (ordre grandeur <code>'🧫'</code>).</div>
+</article>
+
+<article class="ref" id="woodhouse2010" data-tags="dms sensitivity ccn model">
+    <div class="cite-key">[woodhouse2010]</div>
+    <div class="authors">Woodhouse, M. T., Carslaw, K. S., Mann, G. W., Vallina, S. M., Vogt, M., Halloran, P. R. &amp; Boucher, O.</div>
+    <div class="title">Low sensitivity of cloud condensation nuclei to changes in the sea-air flux of dimethyl-sulphide</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 10:7545–7559 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-10-7545-2010">10.5194/acp-10-7545-2010</a></div>
+    <div class="used-in">Sensibilité CCN aux variations DMS (quantifie le <em>levier</em> du gate <code>'🧫'</code>).</div>
+</article>
+
+<article class="ref" id="falkowski2004" data-tags="plankton evolution phytoplankton paleo">
+    <div class="cite-key">[falkowski2004]</div>
+    <div class="authors">Falkowski, P. G., Katz, M. E., Knoll, A. H., Quigg, A., Raven, J. A., Schofield, O. &amp; Taylor, F. J. R.</div>
+    <div class="title">The evolution of modern eukaryotic phytoplankton</div>
+    <div class="venue">Science, 305(5682):354–360 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1095964">10.1126/science.1095964</a></div>
+    <div class="used-in">Chronologie émergence dinoflagellés / coccolithophoridés / diatomées → valeurs paléo <code>'🧫'</code> Méso→Cénozoïque.</div>
+</article>
+
+<article class="ref" id="knoll2003" data-tags="paleo life-history evolution marine">
+    <div class="cite-key">[knoll2003]</div>
+    <div class="authors">Knoll, A. H.</div>
+    <div class="title">Life on a Young Planet: The First Three Billion Years of Evolution on Earth</div>
+    <div class="venue">Princeton University Press (2003)</div>
+    <div class="doi"><span class="todo">TODO Sonnet : ISBN 9780691120294</span></div>
+    <div class="used-in">Justification <code>'🧫' ≈ 0.05</code> pour 🦠 Archéen et ⛄ Snowball (procaryotes dominants, eucaryotes marginaux).</div>
+</article>
+
+<article class="ref" id="knollFollows2016" data-tags="plankton paleo marine biogeochemistry">
+    <div class="cite-key">[knollFollows2016]</div>
+    <div class="authors">Knoll, A. H. &amp; Follows, M. J.</div>
+    <div class="title">A bottom-up perspective on ecosystem change in Mesozoic oceans</div>
+    <div class="venue">Proc. R. Soc. B, 283:20161755 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1098/rspb.2016.1755">10.1098/rspb.2016.1755</a></div>
+    <div class="used-in">Transition Méso→Cénozoïque du phytoplancton → plateau <code>'🧫' = 1.0</code> après 🦕.</div>
+</article>
+
+<article class="ref" id="vallinaSimo2007" data-tags="dms ccn solar-radiation marine">
+    <div class="cite-key">[vallinaSimo2007]</div>
+    <div class="authors">Vallina, S. M. &amp; Simó, R.</div>
+    <div class="title">Strong relationship between DMS and the solar radiation dose over the global surface ocean</div>
+    <div class="venue">Science, 315(5811):506–508 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1133680">10.1126/science.1133680</a></div>
+    <div class="used-in">Corrélation DMS ↔ dose UV (argument pour couplage climatique CLAW actif à latitudes tropicales).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-co2">7. Cycle CO₂ &amp; partition océan/atmosphère</h2>
+
+<article class="ref" id="zeebeWolfGladrow2001" data-tags="co2 ocean henry carbonate">
+    <div class="cite-key">[zeebeWolfGladrow2001]</div>
+    <div class="authors">Zeebe, R. E. &amp; Wolf-Gladrow, D.</div>
+    <div class="title">CO₂ in Seawater: Equilibrium, Kinetics, Isotopes</div>
+    <div class="venue">Elsevier Oceanography Series, vol. 65 (2001)</div>
+    <div class="doi"><span class="todo">TODO Sonnet : ISBN 9780444509468</span></div>
+    <div class="used-in"><code>model_tuning_biblio.js</code> (HYST_CO2_OCEAN_EFF).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-orbital">8. Paramètres orbitaux (obliquité, Milankovitch)</h2>
+
+<article class="ref" id="laskar1993" data-tags="obliquity moon chaos">
+    <div class="cite-key">[laskar1993]</div>
+    <div class="authors">Laskar, J., Joutel, F. &amp; Robutel, P.</div>
+    <div class="title">Stabilization of the Earth's obliquity by the Moon</div>
+    <div class="venue">Nature, 361:615–617 (1993)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/361615a0">10.1038/361615a0</a></div>
+    <div class="used-in"><code>configTimeline.js</code> (clé <code>'⚾'</code> obliquité par époque).</div>
+</article>
+
+<article class="ref" id="williams1993" data-tags="obliquity paleoclim high-oblique">
+    <div class="cite-key">[williams1993]</div>
+    <div class="authors">Williams, G. E.</div>
+    <div class="title">History of the Earth's obliquity</div>
+    <div class="venue">Earth-Science Reviews, 34(1):1–45 (1993)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0012-8252(93)90004-Q">10.1016/0012-8252(93)90004-Q</a></div>
+    <div class="used-in">Hypothèse high-obliquity Archéen (modulation amp polaire via ⚾).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ▁▂▃▄▅▆▇ FIN DE L'AMORCE — Sonnet, à toi ▇▆▅▄▃▂▁                           -->
+<!--                                                                          -->
+<!-- Priorités pour Sonnet :                                                  -->
+<!--   1. Compléter §6 (Biosphère) — Beerling, Kleidon, Berner GEOCARB.       -->
+<!--   2. Ajouter §9 « Observations modernes » (CERES, MODIS, NOAA, GISS).    -->
+<!--   3. Résoudre tous les <span class="todo">TODO</span>.                   -->
+<!--   4. Vérifier chaque DOI (script : voir CO2/doc/API/…).                  -->
+<!--   5. Optionnel : export .bib à partir de ce HTML (script build).         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+</body>
+</html>

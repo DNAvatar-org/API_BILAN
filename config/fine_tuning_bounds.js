@@ -97,18 +97,8 @@ window.FINE_TUNING_BOUNDS = {
             effect: 'negative',
             biblio_ref: 'SULFATE_BOOST_MAX'
         },
-        {
-            group: 'CLOUD_SW',
-            key: 'TEMP_FACTOR_REF_K',
-            min: 282,
-            max: 294,
-            default: 288,
-            unit: 'K',
-            note: 'référence thermique nuages SW',
-            source: 'Reference climat moderne (~15C)',
-            effect: 'mixed',
-            biblio_ref: 'TEMP_FACTOR_REF_K'
-        },
+        // TEMP_FACTOR_REF_K retiré : remplacé dans calculations_albedo.js par la
+        // partition de phase Hu & Stamnes (1993). Plus de borne arbitraire sur T.
         {
             group: 'RADIATIVE',
             key: 'H2O_EDS_SCALE',

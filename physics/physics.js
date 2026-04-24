@@ -310,7 +310,10 @@ EARTH.CH4_HAZE_RATIO_THRESHOLD = 0.1;
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
-    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18
+    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18,
+    // ❄️ = neige propre profonde (T_polaire ≤ −30 °C) — Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 ;
+    // Warren (1982) Rev. Geophys. 20:67. Plage pristine snow 0.80–0.90 ; 0.85 = médiane broadband.
+    '🪩🍰❄️': 0.85
 };
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========

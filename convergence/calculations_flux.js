@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.94
-// Date: [April 23, 2026]
+// Version 1.2.95
+// Date: [April 24, 2026]
 // Logs:
+// - v1.2.95: verrous glace d'époque supprimés (user: "virer le verrou tout le temps"). initForConfig ne pose plus STATE.iceEpochFixedWaterState / iceEpochFixedAlbedoState / iceEpochFixedState. Les reset à null sont conservés (état propre pour lecteurs UI legacy api.js / sync_panels.js — ils afficheront simplement "n/a"). Le blend dt 🍰💧🧊 est désormais piloté à chaque pas par calculations_albedo.js v1.2.53 (facteur CONFIG_COMPUTE.iceBlendRelaxation01, défaut 1.0). ice_fixed_value continue d'être calculé pour le diagnostic [ice-nolock].
 // - v1.2.94: (doc-only relais) physics.js v2.0.15 — ice_tf passe à 3 zones (pol+mid+trop, Σf=1.0). ICE_FORMULA_MAX_FRACTION devient 1.0 (artefact 0.46 supprimé), donc `ICE_FORMULA_MAX_FRACTION * ice_temp_factor` (ligne 341) reste no-op. Aucun changement de logique flux.
 // - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
 // - v1.2.92: (obliquité) plumbing EPOCH['⚾'] → EARTH.computeIceTempFactor(opts.obliquity_deg) pour ice_formula_epoch ; même contrat que albedo v1.2.49 / h2o v1.0.21.
@@ -309,10 +310,16 @@ function initForConfig() {
     }
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     // T° sol : on ne modifie pas DATA['🧮']['🧮🌡️'] ici (calcul flux avec T cst ; modifiée uniquement en sortie de boucles).
+    // v1.2.68 : verrou glace d'époque supprimé (user: "virer le verrou tout le temps").
+    //           Le blend dt se ré-évalue à chaque pas dans calculations_albedo.js v1.2.54
+    //           sous contrôle CONFIG_COMPUTE.iceInertiaFactor01 (exp : tau_eff = tau × factor,
+    //           fraction_fonte = 1 − exp(−dt/tau_eff)). On continue à remettre
+    //           les champs à null pour garder un état propre si d'anciens lecteurs UI (api.js,
+    //           sync_panels.js) testent encore leur présence → ils afficheront "n/a" (inoffensif).
     STATE.iceDurationBlendState = null;
-    STATE.iceEpochFixedState = null; // legacy
-    STATE.iceEpochFixedWaterState = null;
-    STATE.iceEpochFixedAlbedoState = null;
+    STATE.iceEpochFixedState = null;          // legacy (plus posé)
+    STATE.iceEpochFixedWaterState = null;     // plus posé (verrou supprimé)
+    STATE.iceEpochFixedAlbedoState = null;    // plus posé (verrou supprimé)
     ATM.calculateAtmosphereComposition();
     ATM.calculatePressureAtm();
     if (ALBEDO.calculateGeologySurfaces) ALBEDO.calculateGeologySurfaces();
@@ -348,17 +355,12 @@ function initForConfig() {
         : ice_data_continuity;
     const albedo_ice_raw = DATA['🪩']['🍰🪩🧊'];
     const albedo_ice_effective = Math.max(0, albedo_ice_raw);
-    STATE.iceEpochFixedWaterState = {
-        epochId: DATA['📜']['🗿'],
-        value: Math.max(0, Math.min(ice_surface_cap, ice_fixed_value))
-    };
-    STATE.iceEpochFixedAlbedoState = {
-        epochId: DATA['📜']['🗿'],
-        value: albedo_ice_effective
-    };
-    STATE.iceEpochFixedState = STATE.iceEpochFixedWaterState; // compat
+    // v1.2.68 : verrou glace supprimé (user: "virer le verrou tout le temps"). Plus de set de
+    //           STATE.iceEpochFixedWaterState / iceEpochFixedAlbedoState / iceEpochFixedState.
+    //           Le blend dt de calculations_albedo.js v1.2.53 pilote désormais 🍰💧🧊 à chaque pas.
+    //           ice_fixed_value / albedo_ice_effective restent calculés pour le diagnostic.
     if (CONFIG_COMPUTE.logIceFixedDiagnostic) {
-        console.log('[ice-lock] epoch=' + DATA['📜']['🗿']
+        console.log('[ice-nolock v1.2.68] epoch=' + DATA['📜']['🗿']
             + ' DATA_raw=' + DATA['💧']['🍰💧🧊'].toFixed(3)
             + ' DATA_effective=' + ice_data_continuity.toFixed(3)
             + ' ALBEDO_raw=' + albedo_ice_raw.toFixed(3)
@@ -367,9 +369,9 @@ function initForConfig() {
             + ' EPOCH_formula=' + ice_formula_epoch.toFixed(3)
             + ' highlands=' + Math.max(0, DATA['🗻']['🍰🗻🏔']).toFixed(3)
             + ' atm_water=' + (hasAtmWaterSupport ? '1' : '0')
-            + ' selected_water=' + STATE.iceEpochFixedWaterState.value.toFixed(3)
-            + ' selected_albedo=' + STATE.iceEpochFixedAlbedoState.value.toFixed(3)
-            + ' source=' + ((OVERRIDES.useEpochIceFixed === true && OVERRIDES['⛄'] != null && Number.isFinite(OVERRIDES['⛄'])) ? 'OVERRIDES' : 'DATA'));
+            + ' ice_fixed_value=' + Math.max(0, Math.min(ice_surface_cap, ice_fixed_value)).toFixed(3)
+            + ' source=' + ((OVERRIDES.useEpochIceFixed === true && OVERRIDES['⛄'] != null && Number.isFinite(OVERRIDES['⛄'])) ? 'OVERRIDES' : 'DATA')
+            + ' inertia=' + (CONFIG_COMPUTE.iceInertiaFactor01 != null ? CONFIG_COMPUTE.iceInertiaFactor01.toFixed(2) : 'n/a'));
     }
     // Premier run : pas de delta → 1e9 donne bins=100 ; run suivant : delta du run précédent
     DATA['🧮']['🔬🌈'] = getBinsFromDelta((DATA['🧲'] && DATA['🧲']['🔺🧲'] != null) ? DATA['🧲']['🔺🧲'] : 1e9);

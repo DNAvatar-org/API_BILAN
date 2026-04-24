@@ -56,7 +56,8 @@
             SULFATE_BOOST_SCALE: 700, SULFATE_BOOST_MAX: 0.45,
             MODERN_REF_O2: 0.21, MODERN_REF_FOREST: 0.03,
             PRESSURE_FACTOR_MAX: 1.2, OXIDATION_BASE: 0.3, OXIDATION_O2_GAIN: 4.0,
-            TEMP_FACTOR_MIN: 0.6, TEMP_FACTOR_MAX: 1.3, TEMP_FACTOR_REF_K: 294,
+            // TEMP_FACTOR_* supprimés (v1.1.1) : remplacés par la partition de phase
+            // Hu & Stamnes (1993) codée en dur dans calculations_albedo.js (calib stable).
             OPTICAL_EFF_BASE: 1.20, OPTICAL_EFF_CCN_GAIN: 0.60,
             OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
             CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
@@ -79,13 +80,23 @@
             epsilonPpm: 1,
             convergencePpmMass: 1,
             brutalDeltaT_C: 3,
-            scanCo2MassFactor: 0.9,
+            // scanCo2MassFactor : ratio ×fac par pas scan. 0.5 → CO₂ /2 par pas (agressif, peu de pas pour traverser
+            //   la zone bi-stable 1280→128 ppm). Ancien défaut 0.9 trop lent (22 pas pour atteindre 128 ppm).
+            scanCo2MassFactor: 0.5,
+            // scanFailRatio : plancher de la plage de scan en fraction de ⚖️🏭₀. 0.1 = stop si ⚖️🏭 < 10 % du baseline.
+            //   Motivation : fourchette seuil snowball GCM 100-300 ppm = 8-24 % de 1280 ppm baseline Sturtien.
+            //   Ancien code "½·⚖️🏭₀" (50 %) s'arrêtait 4× trop haut (640 ppm) avant d'atteindre la zone bi-stable.
+            //   Références : Voigt & Marotzke 2010 ECHAM5 ; Voigt & Abbot 2012 ; Yang et al. 2012 CCSM3 ;
+            //   Hörner et al. 2022 Clim. Past 18:2437. En mode positif (saut chaud), miroir = 1/scanFailRatio.
+            scanFailRatio: 0.1,
             maxDichoSteps: 30,
             warmBranchHint_C: -5,
             coldBranchHint_C: -20,
             // Couplage CCN-CO₂ : ⚖️✈ = baseline × (x0/xNew)^ccnSulfateCoupling à chaque pas du scan.
             // 0 = désactivé ; 0.5 = racine carrée (softer) ; 1 = inverse linéaire.
             ccnSulfateCoupling: 0.5
+            // polarAmplificationK : source de vérité = CONFIG_COMPUTE.polarAmplificationK (= EARTH.POLAR_AMP_POL_K).
+            // Pas d'override par époque : modulation physique via ⚾ obliquité (Laskar/Williams 1993).
         },
 
         // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).

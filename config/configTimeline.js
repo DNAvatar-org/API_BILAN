@@ -1,8 +1,22 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.24
-// Date: [April 23, 2026]
+// Version 1.4.29
+// Date: [April 24, 2026]
 // logs :
+// - v1.4.29: Correction config hysteresis 1a (Sturtienne) confrontée à la littérature Néoprotérozoïque.
+//   ⚖️🐄 CH₄ : 1.0e14 kg (35 ppm, borne sup. extrême) → 2.0e13 kg (7 ppm, milieu fourchette post-GOE
+//   1-30 ppm ; Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
+//   ⚖️🫁 O₂ : 1.5e16 kg (1.3 % PAL) → 5.0e15 kg (0.4 % PAL, cœur fourchette 0.1-1 % PAL pré-NOE ;
+//   Lyons et al. 2014 Nature 506:307 ; Planavsky et al. 2014 Science 346:635 ; Sperling 2015).
+//   ⚖️🏭 CO₂ : INCHANGÉ à 1.0e16 kg (1280 ppm) = baseline warm branch pré-snowball, fourchette lit.
+//   1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 Nature 453:504 ; Hoffman 2017 Sci Adv 3:e1600983).
+//   NB important : 1280 ppm N'EST PAS le seuil de bifurcation. Le seuil GCM est à 100-300 ppm
+//   (Voigt & Marotzke 2010 ; Voigt & Abbot 2012 ; Yang et al. 2012 ; Hörner et al. 2022). C'est la
+//   recherche hystérésis qui descend jusque-là en scannant le CO₂.
+// - v1.4.28: rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 + passage en forme EXPONENTIELLE dans calculations_albedo.js v1.2.54. Nouveau contrat : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Sémantique : factor=1.0 → temporalité géologique standard ; factor>1 → plus d'inertie (relaxation plus lente) ; factor<1 → moins d'inertie (conv. plus rapide vers glace_equilibre) ; factor=0 → équilibre instantané. Avantages vs forme linéaire : (1) toujours borné [0,1) sans clamp, (2) semantique physique claire (constante de temps), (3) additif aux exp cascades (half-life). Cf. flux v1.2.96, h2o v1.0.24.
+// - v1.4.27: ajout CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) — facteur de relaxation appliqué au blend dt de la glace dans calculations_albedo.js v1.2.53. 0.0 = blend off (glace reste à DATA courant), 0.5 = amortissement Picard, 1.0 = temporalité brute (duree_ans/tauGlaceAns). Introduit lors de la suppression du verrou STATE.iceEpochFixedWaterState pour permettre de calibrer la temporalité sans désactiver le couplage. Cf. flux v1.2.95, h2o v1.0.23.
+// - v1.4.26: fix 📱 Aujourd'hui — ajout '🌱': 0.31 manquant (oubli v1.4.21 Task #9). Bug : EPOCH['🌱']=undefined → forest_potential=NaN → forest_coverage=NaN → weighted_albedo=NaN → crash [calculateAlbedo] 🍰🪩📿 non fini. ⚫ Corps noir n'a pas non plus '🌱' mais est protégé par ternaire (DATA['📜']['🗿'] === '⚫') ? 0 : forest_potential, donc safe. Fix signalé par Zorba sur setEpoch(2000).
+// - v1.4.25: EPOCH['🧫'] biosphère MARINE (gate CLAW DMS-CCN) ajouté aux 19 époques — symétrique de 🌱 terrestre. Valeurs : ⚫/🔥=0 (abiotique), 🦠=0.05, 🪸=0.1, ☃=0.05, ⛄=0.05 (océan gelé, critique pour sortie Snowball), ⛈=0.1, 🪼=0.5, 🍄=0.7, 💀=0.3 (effondrement anoxique), 🦕→📱=1.0. Couple avec calculations_albedo.js v1.2.49 sulfate_boost × EPOCH['🧫']. Réfs : Charlson-Lovelock-Andreae-Warren 1987 Nature 326:655 (CLAW), Knoll 2003, Falkowski 2004 Science 305:354, Quinn & Bates 2011 Nature 480:51.
 // - v1.4.24: baryByGroupDefault — littéral retiré ; assignation unique dans initDATA.js v1.3.1 depuis window.DEFAULT.TUNING.baryByGroup (évite doublon 25 % vs ATM 15 % au bench).
 // - v1.4.23: bornes per-epoch structurées '🔒' pour la jauge bary d'hystérésis (Step 2). Schéma : '🔒'[mass_key] = { min, max, cools }. Sources : CSV GRILLE LITTÉRATURE (haut de fichier) + références paléo. Priorité Step 2 : 🦠 Archéen (CSV [50k,150k]ppm CO₂ etc.), ⛄ Plein Snowball (CSV [300,1500]ppm CO₂, [0.1,10]ppm CH₄), 📱 Aujourd'hui (RCP pré-industriel → RCP8.5). Les autres époques utiliseront un fallback multiplicatif global dans Step 3 (scie_hysteresis_bary.js). 'cools' : direction dans laquelle la bary refroidit ('min' pour GES, 'max' pour sulfates). Pas de changement logique moteur, juste lecture par l'algo hystérésis.
 // - v1.4.22: Archéen 🦠 — CO₂ CAP au max bench [50k,150k] mol ppm : '⚖️🏭' 10.62e18 → 2.75e18 kg (~150k mol ppm). '⚖️🫧' recalculé 1.2700e19 kg. Bornes acceptables annotées en commentaires pour chaque clé de masse (CO₂/CH₄/H₂O/N₂/O₂/sulfates) avec repère Archéen bench + PAL. Bloc doc obliquité ⚾ étendu : plages physiques [0°, 90°] (Laskar 1993 sans Lune, Williams 1993 45–70°, Milankovitch 22–24.5°, seuil 54° basse-lat). Pas de changement logique, uniquement valeurs + doc.
@@ -190,7 +204,10 @@ const timeline = [
             '🎇': {
                 '⏩': '🔥' // Transition vers Hadéen
             }
-        }
+        },
+        // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
+        // ⚫ Corps noir : pas d'océan, pas d'atmosphère, pas de vie → gate = 0 (tautologie).
+        '🧫': 0.0
     },
     {// Hadéen
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
@@ -243,7 +260,10 @@ const timeline = [
                 '🔺⏳': 100,       // durée d'un tic en Ma (météorites)
             }
         },
-        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
+        // 🔥 Hadéen : océan de magma à ~2500 K, pas de vie → pas de DMS → gate = 0.
+        '🧫': 0.0
     },
     {// Archéen
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
@@ -334,7 +354,11 @@ const timeline = [
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
-        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        // 🧫 : 🦠 Archéen — océans anoxiques dominés par cyanobactéries procaryotes
+        // (pas d'eucaryotes marins, DMSP producteurs quasi-absents). Knoll 2003, Falkowski 2004.
+        // Tapis microbiens côtiers → flux DMS minimal (~5% moderne).
+        '🧫': 0.05
     },
     {// Protérozoïque
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
@@ -368,7 +392,11 @@ const timeline = [
             '🌋': { '🔺🍰⚽': 0.02 },
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
         },
-        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        // 🧫 : 🪸 Protérozoïque — post-GOE, premiers eucaryotes marins (acritarches ~1.8 Ga),
+        // algues rouges ~1.2 Ga. Diversification lente, encore dominés par procaryotes.
+        // Flux DMS ~10% moderne (avant radiation des phytoplanctons modernes).
+        '🧫': 0.1
     },
     // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
@@ -388,14 +416,27 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
         '⚖️🫧': 5.15e18,
-        // CO₂ réglable ici, en partant chaud. Par défaut: même valeur que ⛄.
+        // CO₂ pré-snowball branche chaude. 1.0e16 kg = 1280 ppm (conv. via ⚖️💨=5.125e18 kg, M_air/M_CO2=0.659).
+        // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
+        // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
+        // c'est la recherche hystérésis (scie_hysteresis_search.js) qui descend jusque-là, pas ce baseline.
         '⚖️🏭': 1.0e16,
-        '⚖️🐄': 1.0e14,
+        // CH₄ : 2.0e13 kg = 7 ppm. Post-GOE (après 2.4 Ga) l'atmosphère oxygénée détruit le CH₄ rapidement.
+        // Fourchette lit. Néoprotérozoïque : 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
+        // Corrigé v1.4.29 : était 1.0e14 kg (35 ppm, trop haut, borne sup. extrême).
+        '⚖️🐄': 2.0e13,
+        // H₂O : océan Protérozoïque ≈ 1.2-1.4e21 kg (Pope et al. 2012). Inchangé.
         '⚖️💧': 1.2e21,
-        '⚖️🫁': 1.5e16,
+        // O₂ : 5.0e15 kg = 0.09 % atm ≈ 0.4 % PAL. Cœur fourchette Sturtien : 0.1-1 % PAL
+        // (Lyons et al. 2014 ; Planavsky et al. 2014 ; Sperling 2015). Pré-NOE (Neoproterozoic Oxygenation Event).
+        // Corrigé v1.4.29 : était 1.5e16 kg (1.3 % PAL, borne sup. extrême).
+        '⚖️🫁': 5.0e15,
         //'⚖️✈': 8.0e15,
         '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
-        '🌱': 0.0
+        '🌱': 0.0,
+        // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
+        // faibles émissions DMS (même ordre que ⛄). ~5% moderne.
+        '🧫': 0.05
     },
     // ⛄ = Plein Snowball (720–690 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma)
     // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
@@ -425,6 +466,13 @@ const timeline = [
         '⚖️🐄': 1.0e14,
         '⚖️💧': 1.2e21,
         '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
+        // ⚖️✈ = stock sulfate atmosphérique (régime stationnaire source/puits, τ_wash ≈ 1 semaine).
+        // Sources actives pendant ⛄ : volcanisme d'arc continu + dégazage rifts Rodinia (750→600 Ma :
+        //   Franklin LIP ~717 Ma, Irkutsk, Gunbarrel — Macdonald et al. 2017 Nat. Geosci. 10:358).
+        // Source ÉTEINTE : pathway DMS marin (ocean gelé → plancton marginal, gaté par EPOCH['🧫']=0.05).
+        // Baseline ~1e12 kg cohérent avec 🛖 Holocène (volcanique sans DMS). Pulses LIP peuvent ×10-100
+        // ponctuellement mais on prend l'équilibre moyen pour la navigation normale (hors scan hyst).
+        '⚖️✈': 1.0e12,
         // 🔒 Bornes hystérésis Plein Snowball — CSV « Plein_Snowball » [300,1500]ppm CO₂, [0.1,10]ppm CH₄, [0.01,0.5]% H₂O vap.
         //    Refs : Hoffman et al. 1998 (CO₂ entrée ~100–1000 ppm, sortie ~100k ppm), Pierrehumbert 2011 (CH₄ ppm résiduel), Hoffman & Schrag 2002.
         //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.
@@ -439,7 +487,19 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
         },
-        '🌱': 0.0  // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
+        // 🌱 = facteur biosphère terrestre (fraction max des terres pouvant porter de la végétation).
+        // ⛄ Néoprotérozoïque (−735 Ma) : tapis microbiens côtiers + algues marines uniquement,
+        // pas de plantes vasculaires (apparition Ordovicien ~−470 Ma). Valeur ε=0.02 pour
+        // représenter une fine croûte biologique terrestre (cyanobactéries/lichens primitifs).
+        '🌱': 0.02,
+        // 🧫 = facteur biosphère MARINE — symétrique de 🌱 pour le gate CLAW (DMS-CCN).
+        // ⛄ Plein Snowball (−735→−690 Ma) : océan global gelé sous banquise kilométrique,
+        // photosynthèse marine quasi-éteinte (pas de lumière sous glace). Seules des oasis de
+        // lumière (fractures, fusions côtières) préservent un plancton résiduel. Knoll 2003.
+        // Le DMS marin s'effondre, découplant la boucle CLAW — crucial pour la sortie du
+        // snowball (pas de CCN biogénique → moins de nuages → moins d'albédo → réchauffement).
+        // Valeur ε=0.05 : DMS quasi-éteint, seul reste le sulfate volcanique direct.
+        '🧫': 0.05
     },
     // hysteresis 1b = Sortie Marinoen (690–600 Ma) : déglaciation brutale, hyper-greenhouse, pluies acides.
     // Branche chaude post-Snowball, le scan hystérésis cherche le seuil de sortie (CO₂↑ → saut T).
@@ -466,7 +526,10 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 90 },
         },
-        '🌱': 0.0
+        '🌱': 0.0,
+        // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
+        // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
+        '🧫': 0.1
     },
     // Paléozoïque scindé (v1.4.0) : 🪼 marin 600→420 + 🍄 terrestre 420→280 + 💀 P/T 280→250.
     // Ordre chronologique : … Protérozoïque → ☃/⛄/⛈ Snowball → 🪼 → 🍄 → 💀 → Mésozoïque …
@@ -492,7 +555,11 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 180 },
         },
-        '🌱': 0.0  // Avant -420 Ma : végétation terrestre absente/marginale
+        '🌱': 0.0, // Avant -420 Ma : végétation terrestre absente/marginale
+        // 🧫 : 🪼 Paléozoïque marin (600→420 Ma) — explosion cambrienne, radiation des
+        // phytoplanctons modernes (acritarches puis dinoflagellés). Boucle CLAW progressivement
+        // active. Falkowski 2004 Science 305:354. ~50% moderne.
+        '🧫': 0.5
     },
     {// Paléozoïque terrestre 🍄
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
@@ -516,7 +583,11 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 140 },
         },
-        '🌱': 0.31  // Après -400 Ma : forêt potentielle ~31 % terres
+        '🌱': 0.31, // Après -400 Ma : forêt potentielle ~31 % terres
+        // 🧫 : 🍄 Paléozoïque terrestre (420→280 Ma) — Dévonien/Carbonifère,
+        // diversification marine avancée, coccolithophoridés pas encore installés.
+        // Flux DMS élevé mais pas encore saturé. ~70% moderne.
+        '🧫': 0.7
     },
     {// Limite P/T 💀 (extinction massive, pas hystérésis)
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
@@ -540,7 +611,11 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
         },
-        '🌱': 0.25
+        '🌱': 0.25,
+        // 🧫 : 💀 Limite P/T (280→250 Ma) — extinction massive marine (~96% espèces),
+        // anoxie océanique (Canfield state), effondrement du plancton. ~30% moderne
+        // (suppression partielle de CLAW pendant la crise).
+        '🧫': 0.3
     },
     {// Mésozoïque 🦕
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
@@ -575,7 +650,10 @@ const timeline = [
             }, // Événement 50 Ma
             '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🦕 Mésozoïque (250→66 Ma) — radiation coccolithophoridés (Emiliania précurseurs),
+        // dinoflagellés, diatomées émergentes (fin Crétacé). Boucle CLAW pleinement installée.
+        '🧫': 1.0
     },
     {// Cénozoïque 🦤
         '📅': '🦤', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
@@ -603,7 +681,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🦤 Cénozoïque (66→50 Ma) — phytoplancton moderne installé, CLAW active.
+        '🧫': 1.0
     },
     {// Éocène 🐊
         '📅': '🐊', // Éocène (50–35 Ma), pic thermique / CO₂ élevé (ordre PETM) ; puis décroissance (altération silicates, Himalaya)
@@ -631,7 +711,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🐊 Éocène (50→35 Ma) — PETM, CLAW moderne.
+        '🧫': 1.0
     },
     {// hysteresis 2 (Eocène–Oligocène ~35–33 Ma — bascule calotte Antarctique, Oi-1)
         '📅': 'hysteresis 2', // id stable (logo affichage 🐧 ; ex ⛰ prélude glaciaire)
@@ -660,7 +742,10 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 2 },
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
+        // phytoplancton pleinement installé.
+        '🧫': 1.0
     },
     // Grande Coupure → Miocène/Pliocène (33–2 Ma) : calotte Antarctique stable, puis glace Nord vers 3 Ma
     {// 🏔 Grande Coupure / Miocène–Pliocène
@@ -688,7 +773,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🏔 Grande Coupure / Miocène–Pliocène — CLAW moderne active.
+        '🧫': 1.0
     },
     // Quaternaire (2 Ma → 10 ka) : cycles glaciaires/interglaciaires, LGM (~20 ka), Milankovitch
     {// Quaternaire 🦣
@@ -715,7 +802,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.25 },
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🦣 Quaternaire — CLAW moderne, cycles Milankovitch.
+        '🧫': 1.0
     },
     // Holocène (10 ka → 1800) : interglaciaire, agriculture, stabilité climatique pré-industrielle
     {// Holocène 🛖
@@ -743,7 +832,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.002 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
+        '🧫': 1.0
     },
     // Industriel (1800 → 2000) : révolution industrielle, CO₂ 280 → 370 ppm, début signal anthropique
     {// Industriel 🚂
@@ -769,7 +860,9 @@ const timeline = [
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000
         },
-        '🌱': 0.31
+        '🌱': 0.31,
+        // 🧫 : 🚂 Industriel — CLAW moderne + début SO₂ anthropique (le vrai boost sulfate arrive via anthro_factor).
+        '🧫': 1.0
     },
     {// Aujourd'hui 📱
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
@@ -827,7 +920,13 @@ const timeline = [
                 '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
-        }
+        },
+        // 🌱 : 📱 Aujourd'hui — biosphère terrestre moderne (forêts potentielles ~31% des terres).
+        // Réfs : Bonan 2008 Science 320:1444, AR6 WG1 Ch.5 (Carbon Sinks), FAO FRA 2020.
+        '🌱': 0.31,
+        // 🧫 : 📱 Aujourd'hui — CLAW moderne + sulfate anthropique (SO₂ industriel → CCN).
+        // Réfs : Charlson 1987 (CLAW), Twomey 1977, Quinn & Bates 2011, Woodhouse 2010.
+        '🧫': 1.0
     }
 ];
 
@@ -911,6 +1010,16 @@ window.CONFIG_COMPUTE.climateSpinupAtmMassRefKg = 1e18; // [OBS/CALIB]
 window.CONFIG_COMPUTE.climateSpinupWaterMassRefKg = 1e20; // [OBS/CALIB]
 // Temps caractéristique fonte calotte pour l'héritage glaciaire (ans)
 window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB]
+// Facteur d'inertie glace (multiplieur du temps caractéristique, applicable au blend dt — calculations_albedo.js).
+// Forme exponentielle (v1.4.28) : tau_eff = tauGlaceAns × iceInertiaFactor01
+//                                  fraction_fonte = 1 − exp(−duree_ans / tau_eff)
+//   • 1.0 = tau_eff = tauGlaceAns (temporalité géologique standard)
+//   • >1 = plus d'inertie (fonte/formation plus lente, tau_eff rallongé)
+//   • <1 = moins d'inertie (converge plus vite vers glace_equilibre(T))
+//   • 0.0 = tau_eff = 0 → fraction_fonte = 1 (équilibre instantané, blend désactivé)
+// Introduit en v1.2.53 (lin) puis v1.4.28 (exp) — suppression du verrou STATE.iceEpochFixedWaterState,
+// permet de calibrer l'inertie sans brutalement retirer le couplage dt. Renommé depuis iceBlendRelaxation01.
+window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)

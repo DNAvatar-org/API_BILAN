@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.22
-// Date: [April 23, 2026]
+// Version 1.0.23
+// Date: [April 24, 2026]
 // logs :
+// - v1.0.23: verrou lockIceInSolver supprimé (user: "virer le verrou tout le temps"). Plus de branche `if (lockIceInSolver)` figeant 🍰💧🧊/🍰💧🌊 en Search/Dicho : la glace suit désormais 🧮🌡️ à chaque pas (même branches qu'en Init). Conséquence : le feedback T→glace opère dans le scan hystérésis ⛄ (fix figeage 🍰💧🧊=0.006). Le pilotage temporalité millénaire est assuré en amont par calculations_albedo.js v1.2.53 (blend dt via CONFIG_COMPUTE.iceBlendRelaxation01).
 // - v1.0.22: (doc-only relais) physics.js v2.0.15 — EARTH.computeIceTempFactor intègre désormais 3 zones (pol+mid+trop). h2o utilise uniquement `_iceTF_h2o.tf_pol` (cap calottes polaires 10%), inchangé. Le passage à 3 zones n'affecte donc pas ce module. Bloc gel océan (T < T_FREEZE) toujours géré ici.
 // - v1.0.21: (obsolète marker v1.0.20 remplaçait en place)
 // - v1.0.20: polar_ice_fraction_climate UNIFIÉ avec albedo v1.2.48 / flux v1.2.91 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT_pol (EARTH.POLAR_AMP_POL_K). Remplace l'ancien seuil T_NO_POLAR_ICE_K = 293 K (seuil GLOBAL traité à tort comme seuil LOCAL). Bloc gel océan (T < T_FREEZE) inchangé. Pas d'override par époque.
@@ -301,15 +302,14 @@ function calculateWaterPartition() {
     // À 1 atm : -2°C, à 2 atm : ~-3°C (approximation linéaire)
     const T_freeze_adjusted = EARTH.T_FREEZE_SEAWATER_K - (pressure_atm - 1) * 1.0; // -1°C par atm supplémentaire
     
-    const phase = DATA['🧮']['🧮⚧'];
-    const fixedIceState = STATE.iceEpochFixedWaterState || STATE.iceEpochFixedState;
-    const lockIceInSolver = (phase === 'Search' || phase === 'Dicho') && fixedIceState && fixedIceState.epochId === DATA['📜']['🗿'];
-    // Search/Dicho : glace figée à l'échelle époque (millénaires), vapeur/nuages restent dynamiques (jours).
-    if (lockIceInSolver) {
-        const fixed_ice_fraction = Math.max(0, Math.min(remaining_after_vapor, fixedIceState.value));
-        DATA['💧']['🍰💧🧊'] = fixed_ice_fraction;
-        DATA['💧']['🍰💧🌊'] = Math.max(0, remaining_after_vapor - fixed_ice_fraction);
-    } else if (DATA['🧮']['🧮🌡️'] < T_freeze_adjusted) {
+    // v1.0.23 : verrou glace d'époque supprimé (user: "virer le verrou tout le temps").
+    //           Plus de lockIceInSolver — la glace suit 🧮🌡️ à chaque pas, comme en Init, ce
+    //           qui permet au feedback T→glace d'opérer dans le scan hystérésis ⛄.
+    //           Le blend dt (échelle millénaire) est géré en amont par calculations_albedo.js
+    //           v1.2.54 via CONFIG_COMPUTE.iceInertiaFactor01 (exp : tau_eff = tau × factor,
+    //           fraction_fonte = 1 − exp(−dt/tau_eff)).
+    const lockIceInSolver = false; // [v1.0.23] conservé pour compat transition v1.0.22
+    if (DATA['🧮']['🧮🌡️'] < T_freeze_adjusted) {
         // Si température < point de congélation ajusté : toute l'eau restante est glace
         DATA['💧']['🍰💧🧊'] = remaining_after_vapor;
         DATA['💧']['🍰💧🌊'] = 0;
