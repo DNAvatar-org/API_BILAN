@@ -5,9 +5,11 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.1
-// Date: [April 23, 2026]
+// Version 1.3.3
+// Date: [April 25, 2026]
 // Logs:
+// - v1.3.3: DEFAULT.TUNING.RADIATIVE.factorTropopause (interpolé FINE_TUNING_BOUNDS SCIENCE) — source unique lue par ATM.calculateTropopauseHeight ; CONFIG_COMPUTE.radiativeTropopauseExtensionFactor retiré.
+// - v1.3.2: window.DEBUG_SYNC_PANELS / DEBUG_CONVERGENCE_BINS / DEBUG_TIMELINE_HIDDEN = false (source unique, évite rester true après session debug)
 // - v1.3.1: CONFIG_COMPUTE.baryByGroupDefault = copie profonde de DEFAULT.TUNING.baryByGroup après init DATA['🎚️'] — ref unique utilisateur (plus de littéral dupliqué dans configTimeline qui écrasait CLOUD_SW/SCIENCE vs ATM au bench).
 // - v1.3.0: création window.UI_STATE (flags UI) + window.RUNTIME_STATE (état d'exécution live). Regroupe les dizaines de window.minuscule épars (waterVaporEnabled, methaneEnabled, calculationConverged, fps, plotData, currentEpochName, spectralConverged, h2oVaporPercent…) sous deux namespaces source unique. Initialisation au tout début du boot (avant loader_panels charge les consommateurs).
 // - v1.2.0: retrait bloc SOLVER de DEFAULT.TUNING (+ plus de DATA['🎚️'].SOLVER) → source unique SOLVER = window.CONFIG_COMPUTE (configTimeline.js clés tolMinWm2/maxSearchStepK/maxSearchStepLargeK/largeDeltaFactor/deltaTAccelerationDays/firstSearchStepCapK). DATA['🎚️'] = clone(DEFAULT.TUNING) = baryByGroup/CLOUD_SW/HYSTERESIS/RADIATIVE uniquement.
@@ -46,7 +48,7 @@
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
-        baryByGroup: { ATM: 15, CLOUD_SW: 15, SCIENCE: 15, HYSTERESIS: 100 },
+        baryByGroup: { ATM: 20, CLOUD_SW: 20, SCIENCE: 20, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {
@@ -101,8 +103,10 @@
 
         // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).
         // Propagé vers EARTH.H2O_EDS_SCALE par tuning.js/syncRadiativeConfig.
+        // factorTropopause : × hauteur radiative effective (ATM.calculateTropopauseHeight), même jauge ATM que H2O_EDS.
         RADIATIVE: {
-            H2O_EDS_SCALE: 0.80
+            H2O_EDS_SCALE: 0.80,
+            factorTropopause: 1.03
         }
     };
 
@@ -173,6 +177,10 @@
     window.UI_STATE.savedH2O = 0;
     window.UI_STATE.FPSalert = 25;     // seuil sous lequel updateFluxLabels est skippé
     window.UI_STATE.debugAPI = false;
+
+    window.DEBUG_SYNC_PANELS = false;
+    window.DEBUG_CONVERGENCE_BINS = false;
+    window.DEBUG_TIMELINE_HIDDEN = false;
 
     // ============================================================================
     // window.RUNTIME_STATE — état live d'exécution (calculs en cours, mesures, caches).

@@ -1,8 +1,11 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.37
-// Date: [April 24, 2026]
+// Version 1.4.39
+// Date: [April 25, 2026]
 // logs :
+// - v1.4.39: Bench littérature — Sturtienne warm branch [5,20]°C au lieu de [-50,10].
+//   Archéen resserré [15,45]°C. 🌡️🧮 des époques bench recentrés sur le milieu des plages T.
+// - v1.4.38: Extension tropopause radiative → DATA['🎚️'].RADIATIVE.factorTropopause (fine-tuning SCIENCE, FINE_TUNING_BOUNDS). Retrait CONFIG_COMPUTE.radiativeTropopauseExtensionFactor.
 // - v1.4.37: Remplace le test tropopause WMO direct par une hauteur radiative effective héritée de RT/Mg,
 //   multipliée par CONFIG_COMPUTE.radiativeTropopauseExtensionFactor=1.03. Objectif : tester une
 //   transition radiative progressive au-dessus de la hauteur d'échelle sans surchauffer le modèle.
@@ -143,10 +146,10 @@
 // Époque,T_init_°C,CO2_ppm,CH4_ppm,H2O_vap_mol_%,Albedo_🪩
 // Corps_noir,[-19, -17],[0, 1],[0, 0.1],[0, 0.01],[0.29, 0.31]
 // Hadéen,[2000, 2500],[100000, 500000],[10, 100],[10, 20],[0.15, 0.35]
-// Archéen,[10, 60],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
-//   → T surface : enveloppe bench très large (early Archean ~4 Ga peu contraint en T exacte) ; ne pas lire « entre 10 et 60 °C » comme une incertitude expérimentale fine. Ajustements futurs : resserrer les bornes ici + ligne CSV Archéen + BENCH_LIT 🦠 + bloc commentaire objet Archéen (timeline[]).
+// Archéen,[15, 45],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
+//   → T surface : plage large mais moins fourre-tout pour early Archean (~4 Ga ; eau liquide probable mais contraintes exactes débattues).
 // Protérozoïque,[5, 20],[5000, 20000],[50, 500],[0.5, 1.5],[0.25, 0.35]
-// Sturtienne,[-50, 10],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
+// Sturtienne,[5, 20],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
 // Plein_Snowball,[-60, -20],[300, 1500],[0.1, 10],[0.01, 0.5],[0.80, 0.90]
 // Sortie_Marinoen,[20, 50],[2000, 10000],[10, 100],[2.0, 5.0],[0.15, 0.25]
 // Paléozoïque_marin,[15, 25],[1500, 5000],[5, 20],[1.0, 2.5],[0.20, 0.25]
@@ -196,8 +199,8 @@ const timeline = [
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
         '◀': 4.5e9, // Fin
-        // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → ~255,2 K
-        '🌡️🧮': 255.2,
+        // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → 255.15 K
+        '🌡️🧮': 255.15,
         '🧲🔬': 0.3,
         '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '🔋🌕': 0, // core_temperature (Pas de noyau en K)
@@ -248,8 +251,8 @@ const timeline = [
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
         '▶': 4.5e9,
         '◀': 4.0e9,
-        // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C ; T conv légèrement basse → +22 K amorce. 🔋🌕 / 🧲🌕 : scénario magma déjà fort — pas besoin d’augmenter le noyau pour rester dans la plage litt.
-        '🌡️🧮': 2545.15,
+        // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C → 2523.15 K.
+        '🌡️🧮': 2523.15,
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         '🔋🌕': 1.23e21, // core_power_watts (Puissance géothermique totale calculée depuis 🧲🌕 = 2 MW/m² et R = 7008.1 km)
@@ -309,14 +312,14 @@ const timeline = [
         //
         // --- FOURCHETTES TOLÉRABLES (bench / litt. synthèse) — DUPLICATA de la ligne CSV « Archéen » dans la GRILLE du haut de ce fichier ---
         // Même objet litt. que doc/epoch_bench.html → BENCH_LIT_BY_EPOCH_ID['🦠'] (clé \u{1F9A0}). Toute modification : les 3 endroits ensemble.
-        //   T °C surface   : [10, 60]     — enveloppe large (repère tableau bench), pas une fourchette physique serrée.
+        //   T °C surface   : [15, 45]     — enveloppe large early Archean, resserrée vs ancien [10,60].
         //   CO₂ ppm          : [50000, 150000]
         //   CH₄ ppm          : [1000, 10000]
         //   H₂O vap. mol %   : [0.5, 3.0]
         //   Albédo effectif 🪩 : [0.20, 0.30] (colonne CSV « Albedo », pas une clé TIMELINE séparée)
         //
-        // 🌡️🧮 : milieu mathématique de [10,60] °C → ~35 °C au-dessus de 273.15 → ~318 K (~45 °C). Amorce solveur uniquement ; T convergée peut sortir de [10,60].
-        '🌡️🧮': 318.15,
+        // 🌡️🧮 : milieu mathématique de [15,45] °C → 30 °C → 303.15 K. Amorce solveur uniquement ; T convergée peut sortir de la plage.
+        '🌡️🧮': 303.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
@@ -405,8 +408,8 @@ const timeline = [
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
         '▶': 2.5e9,
         '◀': 750e6,
-        // 🌡️🧮 : Protérozoïque — rehausser amorce (T conv basse vs [5,20]°C CSV)
-        '🌡️🧮': 290.65,
+        // 🌡️🧮 : milieu grille CSV Protérozoïque [5,20]°C → 285.65 K.
+        '🌡️🧮': 285.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
         '🔋🌕': 1.0e14, // core_power_watts (Puissance géothermique totale ~100 TW)
@@ -445,13 +448,13 @@ const timeline = [
     },
     // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
-    // Ici 🌡️🧮 = amorce solveur sur branche encore tiède (≈290 K), pas le seuil ni la T finale après chute.
+    // Ici 🌡️🧮 = amorce solveur au milieu de la branche chaude [5,20]°C, pas le seuil ni la T finale après chute.
     {//hysteresis 1a (entrée Sturtienne — bascule albédo↓)
         '📅': 'hysteresis 1a', // id stable (renommé v1.4.0 ; logo affichage ☃)
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 750e6,
         '◀': 720e6,
-        '🌡️🧮': 290,
+        '🌡️🧮': 285.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '🔋🌕': 8.0e13,
@@ -497,8 +500,8 @@ const timeline = [
         // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
         '▶': 720e6,
         '◀': 690e6,
-        // 🌡️🧮 : Plein Snowball — branche froide issue du seuil hysteresis 1a (−62.78 °C).
-        '🌡️🧮': 210.37,
+        // 🌡️🧮 : milieu grille CSV Plein Snowball [-60,-20]°C → 233.15 K.
+        '🌡️🧮': 233.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
         '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
@@ -565,7 +568,7 @@ const timeline = [
         hidden: true,
         '▶': 690e6,
         '◀': 600e6,
-        '🌡️🧮': 312.15, // Sortie Marinoen [20,50]°C — amorce branche chaude + légère hausse (bench)
+        '🌡️🧮': 308.15, // Sortie Marinoen [20,50]°C — milieu bench
         '🧲🔬': 0.01,
         '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
         '🔋🌕': 7.5e13,
@@ -599,8 +602,8 @@ const timeline = [
         '📅': '🪼', // Paléozoïque marin (600–420 Ma) — explosion cambrienne, Hirnantienne
         '▶': 600e6,
         '◀': 420e6,
-        // 🌡️🧮 : Paléozoïque marin — T conv un peu haute vs [15,25]°C → amorce plus froide
-        '🌡️🧮': 288.5,
+        // 🌡️🧮 : milieu grille CSV Paléozoïque marin [15,25]°C → 293.15 K.
+        '🌡️🧮': 293.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
         '🔋🌕': 6.5e13,
@@ -630,8 +633,8 @@ const timeline = [
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
         '▶': 420e6,
         '◀': 280e6,
-        // 🌡️🧮 : Paléozoïque terrestre — T conv un peu haute vs [15,25]°C → amorce plus froide
-        '🌡️🧮': 289.5,
+        // 🌡️🧮 : milieu grille CSV Paléozoïque terrestre [15,25]°C → 293.15 K.
+        '🌡️🧮': 293.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
         '🔋🌕': 6.0e13,
@@ -663,8 +666,8 @@ const timeline = [
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
         '▶': 280e6,
         '◀': 250e6,
-        // 🌡️🧮 : pic d'extinction ~301 K (28°C), anoxie + trapps sibériens
-        '🌡️🧮': 298,
+        // 🌡️🧮 : milieu grille CSV Limite P/T [20,32]°C → 299.15 K.
+        '🌡️🧮': 299.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
         '🔋🌕': 6.0e13,
@@ -698,8 +701,8 @@ const timeline = [
         '⛄': 0,
         '▶': 250e6,
         '◀': 66e6,
-        // 🌡️🧮 : ~295–305 K (lit. Mésozoïque) — 25 °C
-        '🌡️🧮': 298,
+        // 🌡️🧮 : milieu grille CSV Mésozoïque [20,30]°C → 298.15 K.
+        '🌡️🧮': 298.15,
         '🧲🔬': 0.1,
         '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
         '🔋🌕': 6.0e13, // core_power_watts (Puissance géothermique totale ~60 TW)
@@ -738,7 +741,7 @@ const timeline = [
         '▶': 66e6,
         '◀': 50e6,
         '⛄': 0,
-        '🌡️🧮': 290,
+        '🌡️🧮': 290.15,
         '🧲🔬': 0.1,
         '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
         '🔋🌕': 5.0e13,
@@ -771,7 +774,7 @@ const timeline = [
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,
-        '🌡️🧮': 299.5,
+        '🌡️🧮': 297.15,
         '🧲🔬': 0.1,
         '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
         '🔋🌕': 5.0e13,
@@ -875,7 +878,7 @@ const timeline = [
         '⛄': 0.11,
         '▶': 2e6,
         '◀': 10e3,
-        '🌡️🧮': 287,
+        '🌡️🧮': 286.15,
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -907,8 +910,8 @@ const timeline = [
         '⛄': 0.105,
         '▶': 10e3,
         '◀': 1800,
-        // 🌡️🧮 : Holocène — T conv basse vs [13,15]°C → amorce un peu plus chaude
-        '🌡️🧮': 288.65,
+        // 🌡️🧮 : milieu grille CSV Holocène [13,15]°C → 287.15 K.
+        '🌡️🧮': 287.15,
         '🧲🔬': 0.03,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -938,7 +941,7 @@ const timeline = [
         '📅': '🚂',
         '▶': 1800,
         '◀': 2000,
-        '🌡️🧮': 287,
+        '🌡️🧮': 287.15,
         '🧲🔬': 0.01,
         '🔋☀️': 3.828e26,
         '🔋🌕': 4.6e13,
@@ -967,8 +970,8 @@ const timeline = [
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
-        // 🌡️🧮 : ~288.8 K (record chaud 2025) — 15.6 °C
-        '🌡️🧮': 288.3, // 288.3 K (~15.1°C) — an 2000 [OBS] NASA GISS
+        // 🌡️🧮 : milieu grille CSV Aujourd'hui [14.5,15.5]°C → 288.15 K.
+        '🌡️🧮': 288.15,
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -1132,9 +1135,7 @@ window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB
 window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
-// Hauteur radiative effective : base RT/Mg (hauteur d'échelle), étendue pour représenter une transition
-// radiative progressive au-dessus de la coupure stricte. 1.0 = héritage ; 1.03 ≈ retour 2000 vers 15.4°C.
-window.CONFIG_COMPUTE.radiativeTropopauseExtensionFactor = 1.03;    // [OBS/CALIB]
+// Extension tropopause radiative (× RT/Mg) : source unique DATA['🎚️'].RADIATIVE.factorTropopause (tuning.js).
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]

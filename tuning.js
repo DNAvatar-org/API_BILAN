@@ -3,9 +3,10 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.0.14
-// Date: 2026-04-22
+// Version 1.0.15
+// Date: 2026-04-25
 // Logs:
+// - v1.0.15: syncRadiativeConfig — commentaire RADIATIVE.factorTropopause (ATM, pas EARTH).
 // - v1.0.14: ATM obligatoire (crash-first). Suppression des fallbacks CLOUD_SW/SCIENCE quand ATM absent/invalide ; throw explicite.
 // - v1.0.13: bary ATM source unique (🎚️.baryByGroup.ATM). CLOUD_SW et SCIENCE sont forcés à la même valeur ATM dans applyBaryGroup/fillData/applyTuningPayload.
 // - v1.0.12: expositions regroupées sous nouveau namespace window.TUNING (applyTuningPayload, fillDataTuningFromBary). Doublons window.foo retirés. Consommateurs migrés : api.js, ui/main.js, sync_panels.js, API_BILAN/doc/epoch_bench.html.
@@ -56,6 +57,7 @@
     /**
      * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
      * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
+     * factorTropopause : lu par ATM.calculateTropopauseHeight (pas de miroir EARTH).
      */
     function syncRadiativeConfig() {
         window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;

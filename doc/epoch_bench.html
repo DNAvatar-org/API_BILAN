@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.20 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.39 — Archéen [15,45]°C ; Sturtienne [5,20]°C.
+  Version 1.0.19 — 2026-04-25 : ?debugBench=1 → window.DEBUG_BENCH_LOG + DEBUG.setTopic('bench') ; benchLogRun (fin d’époque + synthèse) → _logs/bench.txt.
   Version 1.0.18 — 2026-04-23 : benchSyncBaryFromConfigCompute copie aussi ATM ; SOLVER seulement si défini dans baryByGroupDefault (initDATA v1.3.1 = ref unique % avec CONFIG miroir).
   Version 1.0.17 — 2026-04-23 : bench parle ET écoute. benchEmitTuningToParent sur oninput (run:false) → visu/scie/hysteresis reçoivent la jauge bench live. benchSyncFineTuningSlidersFromBary (update slider+span seulement, même pattern que scie) dans le listener sync:tuning pour éviter rebuild DOM pendant l'écho (casserait le drag). Fallback rebuild si sliders absents.
   Version 1.0.16 — 2026-04-23 : benchApplyFineTuningAtmUnified → set ATM dans baryByGroup (fix: fillDataTuningFromBary/normalizeAtmBary lisait l'ancien ATM et réécrasait CLOUD_SW/SCIENCE → slider sans effet). Ajout listener postMessage 'sync:tuning' pour sync depuis visu via sync_panels.js.
@@ -246,6 +248,10 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
             window.UI_STATE = window.UI_STATE || {};
             window.UI_STATE.debugAPI = true;
         }
+        if (q.get('debugBench') === 'true' || q.get('debugBench') === '1') {
+            window.DEBUG_BENCH_LOG = true;
+            window.DEBUG.setTopic('bench');
+        }
     } catch (e) { }
 })();
 window.__EPOCH_BENCH_PAGE__ = true;
@@ -451,6 +457,13 @@ window.SYNC_STATE = window.SYNC_STATE || {
     epochId: '\u26ab', animEnabled: false, ticTime: 0, calculationInProgress: false
 };
 window.ABORT_COMPUTE = false;
+
+/** Logs fichier _logs/bench.txt si ?debugBench=1 (DEBUG.setTopic déjà appliqué au chargement). */
+function benchLogFile(msg) {
+    if (!window.DEBUG_BENCH_LOG) return;
+    window.DEBUG.log(msg);
+}
+
 if (!window.displayConvergence) window.displayConvergence = function () {};
 if (!window.epochName) {
     window.epochName = function (id) {
@@ -485,10 +498,10 @@ var BENCH_M_ATM_REF_KG = 5.148e18;
 var BENCH_LIT_BY_EPOCH_ID = {
     '\u26ab': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
     '\u{1F525}': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
-    /* 🦠 Archéen : milieu ligne CSV Archéen ; plage T volontairement large — voir note configTimeline.js */
-    '\u{1F9A0}': { tC: [10, 60], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
+    /* 🦠 Archéen : plage T large mais resserrée ; voir note configTimeline.js */
+    '\u{1F9A0}': { tC: [15, 45], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
     '\u{1FAB8}': { tC: [5, 20], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
-    'hysteresis 1a': { tC: [-50, 10], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
+    'hysteresis 1a': { tC: [5, 20], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
     '\u26c4': { tC: [-60, -20], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
     'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
     '\u{1FABC}': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
@@ -1006,6 +1019,8 @@ async function runAllEpochs() {
 
     progressLabel.textContent = '0 / ' + timeline.length + ' epochs';
 
+    benchLogFile('[benchRun@start] ' + JSON.stringify({ nEpochs: timeline.length, t: Date.now() }));
+
     var currentStep = null;
     var lastStep = null;
     var initStep = null;
@@ -1141,6 +1156,17 @@ async function runAllEpochs() {
             + ' lambda_range.len=' + lrLen
             + ' z_range.len=' + zrLen);
         updateRow(epochId, initStep, lastStep, finalStatus, tEpochInitC, epoch, radPathCopy, convAtmSnap);
+
+        benchLogFile('[benchRun@epochDone] ' + JSON.stringify({
+            epochId: String(epochId),
+            finalStatus: String(finalStatus),
+            ms: Date.now() - tEp,
+            tSeedC: tEpochInitC,
+            tFinC: (lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C))
+                ? lastStep.temperature_C
+                : null,
+            radPathLen: radPathCopy.length
+        }));
     }
 
     var elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -1151,6 +1177,11 @@ async function runAllEpochs() {
     document.getElementById('footer-info').textContent =
         'Rapport g\u00e9n\u00e9r\u00e9 le ' + new Date().toLocaleString('fr-FR')
         + ' \u2014 ' + timeline.length + ' \u00e9poques en ' + elapsed + 's';
+
+    benchLogFile('[benchRun@done] ' + JSON.stringify({
+        nEpochs: timeline.length,
+        elapsed_s: Number(elapsed)
+    }));
 }
 
 window.__BENCH_FT__ = {
@@ -1216,7 +1247,10 @@ if (ok) {
     var dbgHint = window.UI_STATE.debugAPI
         ? ' \u2014 debugAPI : groupes [API_BILAN] calcul'
         : ' \u2014 ?debugAPI=true pour logs calcul group\u00e9s';
-    footer.textContent = 'Pr\u00eat \u2014 ' + window.TIMELINE.length + ' \u00e9poques charg\u00e9es' + dbgHint;
+    var benchDbg = window.DEBUG_BENCH_LOG
+        ? ' \u2014 debugBench \u2192 _logs/bench.txt (relancer le bench)'
+        : ' \u2014 ?debugBench=1 pour _logs/bench.txt';
+    footer.textContent = 'Pr\u00eat \u2014 ' + window.TIMELINE.length + ' \u00e9poques charg\u00e9es' + dbgHint + benchDbg;
     document.getElementById('btn-run').disabled = false;
 } else {
     footer.textContent = '\u274c Ressources manquantes (DATA=' + !!window.DATA

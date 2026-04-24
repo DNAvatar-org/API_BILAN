@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.97
-// Date: [April 24, 2026]
+// Version 1.2.98
+// Date: [April 25, 2026]
 // Logs:
+// - v1.2.98: Init eau/nuages — cycleDeLeau applique partition CO₂ + composition ATM AVANT H2O,
+//            sinon ATM.calculateAtmosphereComposition remettait 🍰🫧💧=0 après H2O. Avant flux Init,
+//            recalcul albédo après refresh H2O Search pour aligner Init avec le 1er pas Search sans cap solver.
 // - v1.2.97: Seed océan CO₂ multiplié par CONFIG_COMPUTE.co2OceanPartitionFactor01. 1 = comportement
 //            v1.2.96 ; 0 = test off strict sans mémoire ⚖️🌊🏭 au démarrage.
 // - v1.2.96: SEED ocean CO₂ à l'équilibre Henry analytique dans initForConfig (après ATM.calculatePressureAtm).
@@ -473,17 +476,6 @@ async function cycleDeLeau(isFirst) {
     const COMPUTE = window.COMPUTE;
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
     const H2O = window.H2O;
-    // 🔒 Premier cycle : utiliser la même logique que la 1re itération Search (vapeur potentielle, pas d'itération précip)
-    // Sinon Init → calculateH2OParametersWithIteration converge vers 🍰🫧💧=0 → ☁️=0, 🍰🪩⛅=0 ; Search → vapeur potentielle → ☁️>0
-    const phasePrev = DATA['🧮']['🧮⚧'];
-    if (isFirst && phasePrev === 'Init') {
-        DATA['🧮']['🧮⚧'] = 'Search';
-    }
-    H2O.calculateH2OParameters();
-    if (isFirst && phasePrev === 'Init') {
-        DATA['🧮']['🧮⚧'] = phasePrev;
-    }
-    
     // ---> INJECTION CYCLE DU CARBONE (Pompe Océanique) <---
     if (window.CO2 && window.CO2.calculateCO2Partition) {
         var _co2Changed = window.CO2.calculateCO2Partition();
@@ -496,6 +488,17 @@ async function cycleDeLeau(isFirst) {
         }
         window.ATM.calculateAtmosphereComposition();
         window.ATM.calculatePressureAtm();
+    }
+
+    // 🔒 Premier cycle : utiliser la même logique que la 1re itération Search (vapeur potentielle, pas d'itération précip).
+    // Ordre important : calculateAtmosphereComposition() remet 🍰🫧💧 à 0 ; H2O doit donc passer après la composition ATM.
+    const phasePrev = DATA['🧮']['🧮⚧'];
+    if (isFirst && phasePrev === 'Init') {
+        DATA['🧮']['🧮⚧'] = 'Search';
+    }
+    H2O.calculateH2OParameters();
+    if (isFirst && phasePrev === 'Init') {
+        DATA['🧮']['🧮⚧'] = phasePrev;
     }
     
     if (window.ABORT_COMPUTE) return { changed: false };
@@ -669,6 +672,8 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮⚧'] = 'Search';
     H2O._lastH2OParamsCache = null;
     H2O.calculateH2OParameters();
+    window.COMPUTE.getEnabledStates();
+    window.ALBEDO.calculateAlbedo();
     DATA['🧮']['🧮⚧'] = phaseBeforeFirstFlux;
 
     const T_input_K = DATA['🧮']['🧮🌡️'];

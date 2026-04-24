@@ -1,8 +1,9 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.7
-// Date: [April 18, 2026] [19:10 UTC+1]
+// Version 1.3.8
+// Date: [April 25, 2026] [14:00 UTC+1]
 // logs :
+// - v1.3.8: RADIATIVE.factorTropopause (baryGroup SCIENCE) — 0 % → 1,05 ; 100 % → 1,0 ; défaut doc 1,03 (~40 % ATM avec cette pente). Hauteur radiative RT/Mg × facteur (calculations_atm).
 // - v1.3.7: retrait des 4 targets group:'SOLVER' (TOL_MIN_WM2, MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR) : plus de bary SOLVER, calibration statique via window.TUNING.SOLVER (source unique).
 // - v1.3.6: groupe RADIATIVE + cible H2O_EDS_SCALE (multiplicateur κ_H₂O global) — diagnostic : EDS H2O ~145 W/m² @ 0.92 vs ~75 W/m² litt. (Schmidt 2010). baryGroup SCIENCE ; min=1.00 max=0.60 volontaire (bary 100 % → valeur basse → T basse, convention projet).
 // - v1.3.5: retrait cible FIRST_SEARCH_STEP_CAP_K (interp. jauge 0–100 % → min/max faussait le défaut ; plafond = DATA['🎚️'].SOLVER optionnel, défaut 0 hors configsAll)
@@ -111,6 +112,19 @@ window.FINE_TUNING_BOUNDS = {
             source: 'Schmidt 2010 (attribution EDS H₂O ≈ 50 % de 155 W/m² ≈ 75 W/m²) ; Held & Soden 2006 (CC feedback 6–8 %/K) ; plage ~0.6–1.0 couvre les incertitudes continuum/overlap.',
             effect: 'positive',
             biblio_ref: 'H2O_EDS_SCALE'
+        },
+        {
+            group: 'RADIATIVE',
+            key: 'factorTropopause',
+            baryGroup: 'SCIENCE',
+            min: 1.05,
+            max: 1.0,
+            default: 1.03,
+            unit: 'ratio',
+            note: 'extension hauteur tropopause radiative (× échelle RT/Mg). 0 % jauge = facteur haut (couche troposphère étendue) ; 100 % = facteur bas (coupe plus courte).',
+            source: 'Incertitude coupure effective vs WMO ; ancien CONFIG 1,03 ; plage [1,0 ; 1,05] flou scientifique.',
+            effect: 'mixed',
+            biblio_ref: 'FACTOR_TROPOPAUSE_RT'
         },
         {
             group: 'HYSTERESIS',
