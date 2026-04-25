@@ -5,9 +5,12 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.3
+// Version 1.3.6
 // Date: [April 25, 2026]
 // Logs:
+// - v1.3.6: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 13 % (calage utilisateur flou) ; miroir CONFIG_COMPUTE.baryByGroupDefault.
+// - v1.3.5: RADIATIVE.factorTropopause = 1,0261 (aligné CONFIG_COMPUTE.radiativeFactorTropopauseFixed, hors bary).
+// - v1.3.4: doc RADIATIVE.factorTropopause — plage FINE_TUNING resserrée 1,03–1,00 (v1.3.9) ; défaut numérique 1,03 inchangé.
 // - v1.3.3: DEFAULT.TUNING.RADIATIVE.factorTropopause (interpolé FINE_TUNING_BOUNDS SCIENCE) — source unique lue par ATM.calculateTropopauseHeight ; CONFIG_COMPUTE.radiativeTropopauseExtensionFactor retiré.
 // - v1.3.2: window.DEBUG_SYNC_PANELS / DEBUG_CONVERGENCE_BINS / DEBUG_TIMELINE_HIDDEN = false (source unique, évite rester true après session debug)
 // - v1.3.1: CONFIG_COMPUTE.baryByGroupDefault = copie profonde de DEFAULT.TUNING.baryByGroup après init DATA['🎚️'] — ref unique utilisateur (plus de littéral dupliqué dans configTimeline qui écrasait CLOUD_SW/SCIENCE vs ATM au bench).
@@ -48,7 +51,7 @@
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
-        baryByGroup: { ATM: 20, CLOUD_SW: 20, SCIENCE: 20, HYSTERESIS: 100 },
+        baryByGroup: { ATM: 13, CLOUD_SW: 13, SCIENCE: 13, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {
@@ -97,8 +100,9 @@
             // Couplage CCN-CO₂ : ⚖️✈ = baseline × (x0/xNew)^ccnSulfateCoupling à chaque pas du scan.
             // 0 = désactivé ; 0.5 = racine carrée (softer) ; 1 = inverse linéaire.
             ccnSulfateCoupling: 0.5
-            // polarAmplificationK : source de vérité = CONFIG_COMPUTE.polarAmplificationK (= EARTH.POLAR_AMP_POL_K).
-            // Pas d'override par époque : modulation physique via ⚾ obliquité (Laskar/Williams 1993).
+            // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
+            // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
+            // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
         },
 
         // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).
@@ -106,7 +110,7 @@
         // factorTropopause : × hauteur radiative effective (ATM.calculateTropopauseHeight), même jauge ATM que H2O_EDS.
         RADIATIVE: {
             H2O_EDS_SCALE: 0.80,
-            factorTropopause: 1.03
+            factorTropopause: 1.0261
         }
     };
 

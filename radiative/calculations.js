@@ -1,8 +1,13 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.3.2
+// Version 1.3.5
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.3.5: miroir debugMirrorConfigLogToFile('logEdsDiagnostic', …) des lignes DIAG CO2 / workers / performDichotomy → _logs/eds.txt
+// - v1.3.4: workers dispatch/done + début performDichotomy + max-iter — logs uniquement si CONFIG_COMPUTE.logEdsDiagnostic
+//   (évite console sur chaque calculateFluxForT0 quand debugAPI/UI_STATE est false).
+// - v1.3.3: calculateFluxForT0 — throw si intégrale OLR (total_flux) non finie + index du 1er bin NaN/λ
+//   (même T solaire/entrant finis — cause typique: chaîne P(z)/n_air ou workers ; ATM v1.2.3 factorTropopause).
 // - v1.3.2: temperatureAtZ revient au gradient effectif historique (EPOCH.lapse_rate ou −g/Cp).
 //   Le test 0.0065 global refroidissait 2000 en réduisant l'absorption via airNumberDensityAtZ.
 // - v1.3.1: Gradient troposphérique lu depuis CONFIG_COMPUTE.troposphericLapseRateKPerM afin d'aligner
@@ -90,6 +95,70 @@ function waterVaporFractionAtZ(z) {
     // H_vap = R·T²/(L·Γ) — voir physics.js v2.0.12.
     const H_H2O = window.PHYS.computeH2OScaleHeight();
     return DATA['💧']['🍰🫧💧'] * Math.exp(-z / H_H2O);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// MT_CKD H₂O continuum (Mlawer et al. 2012 JQSRT v3.5 — paramétrique simplifié)
+// ════════════════════════════════════════════════════════════════════════════
+// PWV (Precipitable Water Vapor) [kg/m²] : intégrale de la densité massique H₂O.
+//   ∫ ρ_H₂O(z) dz = ∫ n_air(z) × r(z) × M_H₂O / N_A dz
+// Avec n_air(z) = n_0·exp(-z/H_air) et r(z) = r_0·exp(-z/H_H₂O) :
+//   PWV = n_0 × r_0 × M_H₂O × k_B / R_GAS × H_eff   où H_eff = 1/(1/H_air + 1/H_H₂O)
+// (k_B / R_GAS = 1/N_A ; on exprime sans Avogadro explicite)
+function computePWV() {
+    const DATA = window.DATA;
+    const CONST = window.CONST;
+    const r0 = DATA['💧'] && DATA['💧']['🍰🫧💧'];
+    if (!Number.isFinite(r0) || r0 <= 0) return 0;
+    const T = DATA['🧮'] && DATA['🧮']['🧮🌡️'];
+    if (!Number.isFinite(T) || T <= 0) return 0;
+    const M_air = (DATA['🫧'] && Number.isFinite(DATA['🫧']['🧪']) && DATA['🫧']['🧪'] > 0)
+        ? DATA['🫧']['🧪'] : 0.02897;
+    const epoch_idx = DATA['📜'] && DATA['📜']['👉'];
+    const g = (window.TIMELINE && epoch_idx != null && window.TIMELINE[epoch_idx])
+        ? window.TIMELINE[epoch_idx]['🍎'] : 9.81;
+    const H_air = (CONST.R_GAS * T) / (M_air * g);
+    const H_H2O = window.PHYS.computeH2OScaleHeight();
+    if (!Number.isFinite(H_air) || H_air <= 0 || !Number.isFinite(H_H2O) || H_H2O <= 0) return 0;
+    const H_eff = 1 / (1 / H_air + 1 / H_H2O);
+    const n_air_0 = window.ATM.airNumberDensityAtZ(0);
+    if (!Number.isFinite(n_air_0) || n_air_0 <= 0) return 0;
+    // column [molec/m²] = n_air_0 × r_0 × H_eff ; mass [kg/m²] = column × M_H₂O / N_A ; N_A = R_GAS / k_B
+    const PWV = n_air_0 * r0 * CONST.M_H2O * CONST.BOLTZMANN_KB * H_eff / CONST.R_GAS;
+    return Math.max(0, PWV);
+}
+
+// MT_CKD continuum trap [W/m²] — Mlawer et al. 2012 JQSRT v3.5, forme paramétrique.
+// trap = SCALE × PWV[g/cm²]² × (T_REF/T)^EXP × (P_total/P_ref)
+//   - PWV² : self-broadening dominant (continuum self-mediated, fenêtre 8–12 µm)
+//   - (T_REF/T)^4.25 : dépendance T moments dipolaires liés (Mlawer 2012)
+//   - P_ratio : foreign-broadening linéaire en P, normalisé 1 atm
+// Désactivé par défaut (EARTH.MT_CKD_ENABLED = false). Calibration : voir physics.js.
+function computeMtCkdContinuumTrap() {
+    const EARTH = window.EARTH;
+    if (!EARTH || !EARTH.MT_CKD_ENABLED) return 0;
+    const DATA = window.DATA;
+    const T = DATA['🧮'] && DATA['🧮']['🧮🌡️'];
+    if (!Number.isFinite(T) || T <= 0) return 0;
+    const PWV_kg_m2 = computePWV();
+    const PWV_g_cm2 = PWV_kg_m2 / 10;  // 1 kg/m² ≡ 0.1 g/cm²
+    if (!(PWV_g_cm2 > 0)) return 0;
+    const P_atm_Pa = window.ATM.pressureAtZ(0);
+    const P_ref = (window.CONV && window.CONV.STANDARD_ATMOSPHERE_PA) || 101325;
+    const P_ratio = (Number.isFinite(P_atm_Pa) && P_atm_Pa > 0) ? P_atm_Pa / P_ref : 1;
+    const T_factor = Math.pow(EARTH.MT_CKD_T_REF_K / T, EARTH.MT_CKD_T_EXPONENT);
+    const SCALE = Number.isFinite(EARTH.MT_CKD_SCALE) ? EARTH.MT_CKD_SCALE : 1.71;
+    const trap = SCALE * PWV_g_cm2 * PWV_g_cm2 * T_factor * P_ratio;
+    // Borne anti-emballement : aux T extrêmes (Hadéen 500 K + PWV énorme), PWV² peut diverger.
+    // 80 W/m² ≈ 5× valeur Terre moderne, marge confortable.
+    return Math.max(0, Math.min(80, trap));
+}
+
+// Exposer pour debug, plot, sync_panels.
+if (typeof window !== 'undefined') {
+    window.RADIATIVE = window.RADIATIVE || {};
+    window.RADIATIVE.computePWV = computePWV;
+    window.RADIATIVE.computeMtCkdContinuumTrap = computeMtCkdContinuumTrap;
 }
 
 // ============================================================================
@@ -443,10 +512,21 @@ async function calculateFluxForT0() {
         }
         const kappa_co2_modele = sigma_co2_max_modele * n_co2_surface;
         const ratio_modele_theorie = kappa_co2_theorique > 0 ? (kappa_co2_modele / kappa_co2_theorique) : 0;
-        console.log('[DIAG CO2] kappa_max modèle @15µm : ' + kappa_co2_modele.toExponential(3) + ' m⁻¹');
-        console.log('[DIAG CO2] kappa_max théorique @15µm : ' + kappa_co2_theorique.toExponential(3) + ' m⁻¹');
-        console.log('[DIAG CO2] ratio modèle/théorie : ' + ratio_modele_theorie.toFixed(3));
-        console.log('[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)');
+        const mK1 = '[DIAG CO2] kappa_max modèle @15µm : ' + kappa_co2_modele.toExponential(3) + ' m⁻¹';
+        const mK2 = '[DIAG CO2] kappa_max théorique @15µm : ' + kappa_co2_theorique.toExponential(3) + ' m⁻¹';
+        const mK3 = '[DIAG CO2] ratio modèle/théorie : ' + ratio_modele_theorie.toFixed(3);
+        const mK4 = '[DIAG CO2] bins dans bande 13-17µm : ' + diag_co2.length + ' (sur ' + lambda_range.length + ' total)';
+        console.log(mK1);
+        console.log(mK2);
+        console.log(mK3);
+        console.log(mK4);
+        if (typeof window.debugMirrorConfigLogToFile === 'function') {
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', 'console.table diag_co2 (rows=' + diag_co2.length + ')');
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK1);
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK2);
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK3);
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK4);
+        }
     }
 
     // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
@@ -489,7 +569,11 @@ async function calculateFluxForT0() {
         throw new Error('[calculateFluxForT0] spectralWorkerPool absent ou non-ready. Vérifier chargement API_BILAN/workers/worker_pool.js dans le loader.');
     }
     {
-        console.log('⚙️ [workers] dispatch ' + lambda_range.length + ' bins × ' + z_range.length + ' layers → ' + window.spectralWorkerPool.nWorkers + ' workers');
+        if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+            const mWd = '⚙️ [workers] dispatch ' + lambda_range.length + ' bins × ' + z_range.length + ' layers → ' + window.spectralWorkerPool.nWorkers + ' workers';
+            console.log(mWd);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logEdsDiagnostic', mWd);
+        }
         const nL = lambda_range.length;
         const nZ = z_range.length;
         const layers_w = [];
@@ -531,23 +615,54 @@ async function calculateFluxForT0() {
                 }
             }
         }
-        console.log('⚙️ [workers] done OLR=' + OLR_w.toFixed(2) + ' W/m²');
+        if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+            const mWo = '⚙️ [workers] done OLR=' + OLR_w.toFixed(2) + ' W/m²';
+            console.log(mWo);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logEdsDiagnostic', mWo);
+        }
         // resultBuf non référencé après ici → GC peut collecter le Transferable
     }
 
 
     // flux_in contient le flux au sommet après propagation complète (OLR)
     if (!flux_in || flux_in.length === 0) throw new Error('[calculateFluxForT0] flux_in vide ou invalide après boucle');
-    const total_flux = flux_in.reduce((sum, val) => sum + val, 0);
+    const total_flux_HITRAN = flux_in.reduce((sum, val) => sum + val, 0);
+    if (!Number.isFinite(total_flux_HITRAN)) {
+        let jNaN = -1;
+        for (let j = 0; j < flux_in.length; j++) {
+            if (Number.isNaN(flux_in[j])) { jNaN = j; break; }
+        }
+        const lamS = (jNaN >= 0 && lambda_range[jNaN] != null) ? (' lam_m=' + lambda_range[jNaN]) : '';
+        throw new Error('[calculateFluxForT0] OLR (somme des bins) non fini — intégrale=' + total_flux_HITRAN
+            + (jNaN >= 0 ? ' (1er bin NaN j=' + jNaN + lamS + ')' : ''));
+    }
+    // ─── MT_CKD H₂O continuum (Mlawer 2012) ────────────────────────────────────
+    // Additif au piégeage HITRAN line-by-line. Capture l'absorption résiduelle dans la fenêtre
+    // 8–12 µm où les lignes HITRAN saturent peu mais où le continuum self+foreign-broadening
+    // de H₂O contribue ~10–15 W/m² sur Terre moderne. Formule paramétrique calibrée :
+    //   trap ≈ SCALE × PWV[g/cm²]² × (T_ref/T)^4.25 × (P/P_ref)
+    // Off par défaut. EARTH.MT_CKD_ENABLED dans physics.js v2.0.16+. Voir physics.js pour calibration.
+    const mtCkdTrap = computeMtCkdContinuumTrap();
+    const total_flux = Math.max(0, total_flux_HITRAN - mtCkdTrap);
+    // ───────────────────────────────────────────────────────────────────────────
     const earth_flux_total = earth_flux.reduce((sum, val) => sum + val, 0);
     const EDS = earth_flux_total - total_flux;
-    const sum_blocked = sum_blocked_CO2 + sum_blocked_H2O + sum_blocked_CH4 + sum_blocked_clouds;
-    // pct ∈ [0, 1] : répartition relative des contributions bloquées (gaz + nuages marginaux).
+    const sum_blocked_continuum = mtCkdTrap;
+    // Le continuum MT_CKD est physiquement de la vapeur d'eau (self+foreign broadening) :
+    // il est compté dans H2O pour l'attribution downstream (🧲📛💧). HITRAN_pct/Continuum_pct
+    // exposés pour diagnostic. Σ(CO2,H2O,CH4,Clouds) = 1 par construction.
+    const sum_blocked_H2O_total = sum_blocked_H2O + sum_blocked_continuum;
+    const sum_blocked = sum_blocked_CO2 + sum_blocked_H2O_total + sum_blocked_CH4 + sum_blocked_clouds;
     const pct = (v) => (sum_blocked > 1e-20 && Number.isFinite(v)) ? v / sum_blocked : 0;
     const eds_breakdown = {
         EDS_Wm2: EDS,
         CO2: { pct: pct(sum_blocked_CO2) },
-        H2O: { pct: pct(sum_blocked_H2O) },
+        H2O: {
+            pct: pct(sum_blocked_H2O_total),
+            HITRAN_pct: pct(sum_blocked_H2O),
+            Continuum_pct: pct(sum_blocked_continuum),
+            Continuum_Wm2: mtCkdTrap
+        },
         CH4: { pct: pct(sum_blocked_CH4) },
         Clouds: { pct: pct(sum_blocked_clouds) }
     };
@@ -1218,9 +1333,16 @@ async function simulateRadiativeTransfer() {
                 let old_T0 = T0_initial;
                 let previousT0_for_convergence = null; // T0 précédente pour vérifier la convergence en température
 
-                // 🔒 LOG : Début de la convergence
-                console.log(`🚀 [performDichotomy] Début convergence - T0_initial = ${T0_initial.toFixed(2)}K (${(T0_initial - CONST.KELVIN_TO_CELSIUS).toFixed(2)}°C)`);
-                console.log(`🚀 [performDichotomy] DATA['🧮']['🧮🌡️'] avant = ${DATA['🧮']['🧮🌡️'].toFixed(2)}K`);
+                if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+                    const mPd1 = `🚀 [performDichotomy] Début convergence - T0_initial = ${T0_initial.toFixed(2)}K (${(T0_initial - CONST.KELVIN_TO_CELSIUS).toFixed(2)}°C)`;
+                    const mPd2 = `🚀 [performDichotomy] DATA['🧮']['🧮🌡️'] avant = ${DATA['🧮']['🧮🌡️'].toFixed(2)}K`;
+                    console.log(mPd1);
+                    console.log(mPd2);
+                    if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                        window.debugMirrorConfigLogToFile('logEdsDiagnostic', mPd1);
+                        window.debugMirrorConfigLogToFile('logEdsDiagnostic', mPd2);
+                    }
+                }
 
                 const iterate = async () => {
                     // Vérifier si annulé avant chaque itération
@@ -1611,8 +1733,10 @@ async function simulateRadiativeTransfer() {
                     
                     if (iter > 20 || converged_by_flux_final || converged_by_temp_final) {
                         // Condition de sortie atteinte
-                        if (iter > 20) {
-                            console.log('[calculations.js] ⚠️ Maximum d\'itérations atteint (20)');
+                        if (iter > 20 && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+                            const mMi = '[calculations.js] ⚠️ Maximum d\'itérations atteint (20)';
+                            console.log(mMi);
+                            if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logEdsDiagnostic', mMi);
                         } else if (converged_by_temp_final && !converged_by_flux_final) {
                         } else {
                         }

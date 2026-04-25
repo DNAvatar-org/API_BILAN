@@ -1,8 +1,12 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.54
-// Date: [April 24, 2026]
+// Version 1.2.57
+// Date: [April 25, 2026]
 // logs :
+// - v1.2.57: miroir debugMirrorConfigLogToFile pour logIceFractionDiagnostic / logCloudProxyDiagnostic → _logs/iceFraction.txt, cloudProxy.txt
+// - v1.2.56: pdTrace SEA_ICE_BLEND — même garde que logIceFractionDiagnostic (défaut false config v1.4.52) ; évite 🔍
+//   [alb] à chaque calculateAlbedo quand les longs messages 🧊 sont déjà off.
+// - v1.2.55: retrait HYSTERESIS.active / freezePolarIceDuringSearch / rampe solver du calcul de glace. La rétroaction glace-albédo suit désormais directement T dans tous les onglets ; l'hystérésis reste un pilote de scan, pas une physique spéciale.
 // - v1.2.54: passage fraction_fonte LINÉAIRE → EXPONENTIELLE. Nouvelle formule : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 (cohérence sémantique : facteur multiplieur du temps caractéristique). Avantages : (1) intrinsèquement ∈ [0,1) (pas de clamp arbitraire qui écrête à 1 quand duree_ans dépasse tau × factor), (2) sémantique physique claire (half-life = ln(2) × tau_eff), (3) composable (cascades exp). factor=1.0 standard ; factor=0 → tau_eff=0 → fraction_fonte=1 (équilibre instantané, cas limite safe). Cf. configTimeline.js v1.4.28.
 // - v1.2.53: verrou STATE.iceEpochFixedWaterState supprimé (user: "doit sauter", "virer le verrou tout le temps"). Le blend dt se ré-évalue désormais à CHAQUE pas (plus de garde epochId). T source = DATA['🧮']['🧮🌡️'] (T courante solver) au lieu de EPOCH['🌡️🧮'] (seed config) → feedback T→glace opérationnel dans scan hystérésis ⛄. Nouveau paramètre CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) pour calibrer la temporalité sans désactiver brutalement le couplage (0.0 = blend off, 0.5 = amortissement Picard). STATE.iceEpochFixedState / iceDurationBlendState ne sont plus posés ici. Fix bug ⛄ : 🍰💧🧊 figé à 0.006 pendant tout le scan CO₂ à cause de calcGlaceEquilibre(T_seed=290K) verrouillé une fois. Ref : Hoffman & Schrag 2002 + Pierrehumbert 2005 (feedback glace-albédo doit suivre T dans la branche froide de la bifurcation).
 // - v1.2.52: fix NaN cascade sulfate_boost — EPOCH['🧫'] sorti hors Math.min pour éviter 0×Infinity=NaN quand '⚖️🫧'=0 (⚫ Corps noir : pas d'atmosphère → 🍰🫧✈=⚖️✈/⚖️🫧=Infinity). Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity×0) = NaN (cascade via ccn_proxy → cloud_fraction → final_albedo). Nouveau : sulfate_boost = 1 + 🧫 × Math.min(MAX, 🍰🫧✈ × SCALE). Gate biosphère marine appliqué au *boost* (enhancement > 1.0), physiquement équivalent quand 🍰🫧✈ fini. Fix signalé par Zorba sur epoch-click setEpoch (main.js:2485).
@@ -238,9 +242,13 @@ function calculateAlbedo() {
         // Même logique que ice_temp_factor ci-dessous, mais utilisée pour blend héritage glaciaire (pas l'albédo instantané).
         // Régime 1 (T_K >= T_freeze) : calottes polaires ; max ~10% surface (highlands).
         //   Rampe linéaire pondérée par l'amplification polaire → seuil global T_thresh_pol = T_FREEZE + dT_pol.
+        //   dT_pol lu depuis EPOCH['🥶'].dT_pol (source unique, configTimeline.js). Crash si manquant.
         // Régime 2 (T_K <  T_freeze) : océan gèle → jusqu'à 90% surface en glace de mer, rampe sur 20 K.
         if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
-            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + EARTH.POLAR_AMP_POL_K;
+            if (!EPOCH || !EPOCH['🥶'] || !Number.isFinite(Number(EPOCH['🥶'].dT_pol))) {
+                throw new Error("[calcGlaceEquilibre] EPOCH['🥶'].dT_pol requis (configTimeline.js). Pas de fallback.");
+            }
+            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + Number(EPOCH['🥶'].dT_pol);
             const stock_factor = Math.max(0, Math.min(1, (T_thresh_pol - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K));
             return Math.max(0, Math.min(1, 0.1 * stock_factor));
         }
@@ -332,9 +340,24 @@ function calculateAlbedo() {
     // ─────────────────────────────────────────────────────────────────────────────
     // Obliquité ε : lue sur l'objet epoch ('⚾'), sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
     const _epochObliquity = (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) ? Number(EPOCH['⚾']) : undefined;
+    // EPOCH['🥶'] : SOURCE UNIQUE des paramètres ice per-époque (Williams 1993 EPSL 117:377 —
+    // gradient méridien Précambrien réduit ; arrangement continental low-mid lat. Vaalbara
+    // 2.5 Ga, Rodinia 1.0 Ga). Champs : dT_pol, dT_mid, dT_trop (requis ; throw si manquant).
+    // amp_pol/amp_mid/amp_trop optionnels (défaut = obliquity-scaled). Pas de fallback EARTH.*
+    const _epochIce = (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') ? EPOCH['🥶'] : null;
+    const _iceOpts = {};
+    if (_epochObliquity !== undefined) _iceOpts.obliquity_deg = _epochObliquity;
+    if (_epochIce) {
+        if (Number.isFinite(Number(_epochIce.dT_pol)))   _iceOpts.dT_pol   = Number(_epochIce.dT_pol);
+        if (Number.isFinite(Number(_epochIce.dT_mid)))   _iceOpts.dT_mid   = Number(_epochIce.dT_mid);
+        if (Number.isFinite(Number(_epochIce.dT_trop)))  _iceOpts.dT_trop  = Number(_epochIce.dT_trop);
+        if (Number.isFinite(Number(_epochIce.amp_pol)))  _iceOpts.amp_pol  = Number(_epochIce.amp_pol);
+        if (Number.isFinite(Number(_epochIce.amp_mid)))  _iceOpts.amp_mid  = Number(_epochIce.amp_mid);
+        if (Number.isFinite(Number(_epochIce.amp_trop))) _iceOpts.amp_trop = Number(_epochIce.amp_trop);
+    }
     const _iceTF = EARTH.computeIceTempFactor(
         DATA['🧮']['🧮🌡️'],
-        _epochObliquity !== undefined ? { obliquity_deg: _epochObliquity } : undefined
+        Object.keys(_iceOpts).length > 0 ? _iceOpts : undefined
     );
     const ice_temp_factor = _iceTF.ice_tf;
     const ice_tf_pol = _iceTF.tf_pol;
@@ -375,33 +398,8 @@ function calculateAlbedo() {
     }
     const iceAfterSeaIceMerge = ice_fraction_target;
 
-    if (!STATE.iceCoverageRampState || STATE.iceCoverageRampState.epochId !== DATA['📜']['🗿']) {
-        STATE.iceCoverageRampState = { epochId: DATA['📜']['🗿'], value: ice_fraction_target };
-    }
-    const isConvergencePhase = (DATA['🧮']['🧮⚧'] === 'Search' || DATA['🧮']['🧮⚧'] === 'Dicho');
-    // v1.2.53 : verrou albédo glace (iceEpochFixedAlbedoState) supprimé — plus posé par initForConfig.
-    //           hasEpochIceLock reste défini pour préserver le flow des gardes ci-dessous (!hasEpochIceLock),
-    //           mais vaut toujours false → dead code du bloc `if (hasEpochIceLock && !hystUnlockIce)`.
-    const albedoFixedState = null;
-    const hasEpochIceLock = false;
-    // Scan CO₂ hystérésis : la glace doit suivre T (rétroaction albédo), sinon T ne peut pas chuter de ΔT_brut en un pas.
-    const hystUnlockIce = typeof window !== 'undefined' && window.HYSTERESIS && window.HYSTERESIS.active;
     DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    const freezeIceDuringSearch = CONFIG_COMPUTE.freezePolarIceDuringSearch !== false;
-    const waterPass = (DATA['🧮'] && DATA['🧮']['🧮🔄🌊'] != null) ? DATA['🧮']['🧮🔄🌊'] : 0;
-    const lock = STATE.iceCoverageLock;
-    if (!hasEpochIceLock && freezeIceDuringSearch && !hystUnlockIce && isConvergencePhase && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿']) {
-        DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, lock.value));
-    }
-    if (isConvergencePhase && !hystUnlockIce && DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampIters) && !hasEpochIceLock && !(freezeIceDuringSearch && waterPass === 0 && lock && lock.epochId === DATA['📜']['🗿'])) {
-        const prevIce = STATE.iceCoverageRampState.value;
-        const deltaIce = ice_fraction_target - prevIce;
-        const rampStepActive = DATA['🧮']['🧮🔄☀️'] < Math.max(0, CONFIG_COMPUTE.iceCoverageRampEarlyIters) ? Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStepEarly) : Math.max(0, CONFIG_COMPUTE.iceCoverageRampMaxStep);
-        const deltaIceClamped = Math.max(-rampStepActive, Math.min(rampStepActive, deltaIce));
-        DATA['🪩']['🍰🪩🧊'] = Math.max(0, Math.min(ice_cap_surface, prevIce + deltaIceClamped));
-    }
-    STATE.iceCoverageRampState.value = DATA['🪩']['🍰🪩🧊'];
-    const iceAfterLocksRamp = DATA['🪩']['🍰🪩🧊'];
+    const iceAfterDynamicFeedback = DATA['🪩']['🍰🪩🧊'];
     
     // 🔒 volcano_coverage déjà calculé plus haut (ligne ~200)
     
@@ -505,21 +503,21 @@ function calculateAlbedo() {
                 ice_surface = Math.max(0, Math.min(1.0 - volcano_surface, ice_surface + missing));
             }
         }
-        if (typeof window.pdTrace === 'function') {
+        if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
             const STATE = window.STATE;
             const lock = (STATE && STATE.iceEpochFixedAlbedoState && STATE.iceEpochFixedAlbedoState.epochId === DATA['📜']['🗿'])
                 ? STATE.iceEpochFixedAlbedoState.value
                 : null;
-            window.pdTrace(
-                'alb',
-                'calculations_albedo.js',
-                'SEA_ICE_BLEND f=' + seaIceFrac.toFixed(3)
-                    + ' rangeK=' + seaIceRangeK
-                    + ' ep=' + DATA['📜']['🗿']
-                    + ' phase=' + DATA['🧮']['🧮⚧']
-                    + ' T_K=' + T_K.toFixed(2)
-                    + ' lockA=' + (lock == null ? 'null' : Number(lock).toExponential(3))
-            );
+            const mSea = 'SEA_ICE_BLEND f=' + seaIceFrac.toFixed(3)
+                + ' rangeK=' + seaIceRangeK
+                + ' ep=' + DATA['📜']['🗿']
+                + ' phase=' + DATA['🧮']['🧮⚧']
+                + ' T_K=' + T_K.toFixed(2)
+                + ' lockA=' + (lock == null ? 'null' : Number(lock).toExponential(3));
+            if (typeof window.pdTrace === 'function') window.pdTrace('alb', 'calculations_albedo.js', mSea);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
+            }
         }
     }
     const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
@@ -562,11 +560,13 @@ function calculateAlbedo() {
             + ' ICEmax*factor=' + iceProdBare.toFixed(4)
             + ' | cap=' + ice_cap_surface.toFixed(4) + ' hydro=' + hydrosphere_surface_support.toFixed(4) + ' highland=' + DATA['🗻']['🍰🗻🏔'].toFixed(4)
             + ' | polarTarget=' + icePolarFormulaTarget.toFixed(4) + ' mergeSea=' + iceAfterSeaIceMerge.toFixed(4)
-            + ' | afterLocks=' + iceAfterLocksRamp.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
-            + ' | hystUnlock=' + (hystUnlockIce ? '1' : '0') + ' epochIceLock=' + (hasEpochIceLock ? '1' : '0')
-            + ' wPass=' + waterPass + ' solI=' + solI;
+            + ' | iceDynamic=' + iceAfterDynamicFeedback.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
+            + ' | feedback=common solI=' + solI;
         if (typeof window.pdTrace === 'function') window.pdTrace('calculateAlbedo', 'calculations_albedo.js', msg);
         else console.log(msg);
+        if (typeof window.debugMirrorConfigLogToFile === 'function') {
+            window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
+        }
     }
 
     // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
@@ -590,13 +590,15 @@ function calculateAlbedo() {
     //   T_pol ≥ 0 °C        : bare ice + melt ponds → α_melt = 0.50 (SHEBA, CICE default).
     // Feedback positif : T↓ → α↑ → T↓↓ (rétroaction glace-albédo, pilier du snowball Pierrehumbert 2005).
     //
-    // Amplification polaire Budyko-Sellers (EBM 0D) : T_polaire = T_globale − polarAmplificationK.
-    // Source de vérité GLOBALE : CONFIG_COMPUTE.polarAmplificationK (= EARTH.POLAR_AMP_POL_K, 20 K Earth-modern).
-    // Pas d'override par époque (faire de la physique, pas du patch) — modulation par obliquité ⚾ uniquement,
-    // via computeIceTempFactor dans physics.js (Laskar 1993, Williams 1993 EPSL 117:377).
+    // Amplification polaire Budyko-Sellers (EBM 0D) : T_polaire = T_globale − dT_pol.
+    // SOURCE UNIQUE : EPOCH['🥶'].dT_pol (configTimeline.js per-époque). Crash si manquant.
+    // v1.2.51 : remplace CONFIG_COMPUTE.polarAmplificationK (suppression défaut global → per-époque).
     // Réf : Budyko (1969) Tellus 21:611, Sellers (1969) J. Appl. Meteor. 8:392 ; AR6 WG1 Ch.4 Arctic Amp ;
-    // Holland & Bitz (2003) Clim. Dyn. 21:221 ; Pierrehumbert 2011 ch.5.
-    const T_polar_K = DATA['🧮']['🧮🌡️'] - window.CONFIG_COMPUTE.polarAmplificationK;
+    // Holland & Bitz (2003) Clim. Dyn. 21:221 ; Pierrehumbert 2011 ch.5 ; Williams 1993 EPSL 117:377.
+    if (!EPOCH || !EPOCH['🥶'] || !Number.isFinite(Number(EPOCH['🥶'].dT_pol))) {
+        throw new Error("[calculateAlbedo] EPOCH['🥶'].dT_pol requis (configTimeline.js). Pas de fallback.");
+    }
+    const T_polar_K = DATA['🧮']['🧮🌡️'] - Number(EPOCH['🥶'].dT_pol);
     const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];                 // ~0.70 (sea ice saisonnière, CCSM3)
     const iceAlbedoSnowDeep = albedo_coeff['🪩🍰❄️'];             // ~0.85 (neige propre Gardner-Sharp 2010)
     const iceAlbedoMelt = 0.50;                                   // bare ice + melt ponds (SHEBA)
@@ -776,7 +778,7 @@ function calculateAlbedo() {
         window._hystDiag.cloudOptEff = cloud_optical_efficiency;
         window._hystDiag.cloudFraction = cloud_fraction;
         if (CONFIG_COMPUTE.logCloudProxyDiagnostic) {
-            console.log('[cloud-proxy] epoch=' + DATA['📜']['🗿']
+            const mCloud = '[cloud-proxy] epoch=' + DATA['📜']['🗿']
                 + ' T_C=' + CONST.K2C(DATA['🧮']['🧮🌡️']).toFixed(2)
                 + ' cloud_idx=' + cloud_index.toFixed(3)
                 + ' o2=' + DATA['🫧']['🍰🫧🫁'].toFixed(3)
@@ -791,7 +793,11 @@ function calculateAlbedo() {
                 + ' oxy=' + oxidation_factor.toFixed(3)
                 + ' temp=' + temp_factor.toFixed(3)
                 + ' opt=' + cloud_optical_efficiency.toFixed(3)
-                + ' cloud_frac=' + cloud_fraction.toFixed(3));
+                + ' cloud_frac=' + cloud_fraction.toFixed(3);
+            console.log(mCloud);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logCloudProxyDiagnostic', mCloud);
+            }
         }
         
         // Stocker la couverture nuageuse dans DATA['🪩']

@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.23
-// Date: [April 24, 2026]
+// Version 1.0.24
+// Date: [April 25, 2026]
 // logs :
+// - v1.0.24: miroir debugMirrorConfigLogToFile — logIrisDiagnostic → iris.txt, logEdsDiagnostic (cap H2O) → eds.txt
 // - v1.0.23: verrou lockIceInSolver supprimé (user: "virer le verrou tout le temps"). Plus de branche `if (lockIceInSolver)` figeant 🍰💧🧊/🍰💧🌊 en Search/Dicho : la glace suit désormais 🧮🌡️ à chaque pas (même branches qu'en Init). Conséquence : le feedback T→glace opère dans le scan hystérésis ⛄ (fix figeage 🍰💧🧊=0.006). Le pilotage temporalité millénaire est assuré en amont par calculations_albedo.js v1.2.53 (blend dt via CONFIG_COMPUTE.iceBlendRelaxation01).
 // - v1.0.22: (doc-only relais) physics.js v2.0.15 — EARTH.computeIceTempFactor intègre désormais 3 zones (pol+mid+trop). h2o utilise uniquement `_iceTF_h2o.tf_pol` (cap calottes polaires 10%), inchangé. Le passage à 3 zones n'affecte donc pas ce module. Bloc gel océan (T < T_FREEZE) toujours géré ici.
 // - v1.0.21: (obsolète marker v1.0.20 remplaçait en place)
@@ -210,9 +211,21 @@ function calculateWaterPartition() {
     // Cap à 10 % (fraction massique d'eau piégée en calottes polaires).
     const _EPOCH_h2o = window.TIMELINE && window.TIMELINE[DATA['📜'] && DATA['📜']['👉']];
     const _epochObliquity_h2o = (_EPOCH_h2o && Number.isFinite(Number(_EPOCH_h2o['⚾']))) ? Number(_EPOCH_h2o['⚾']) : undefined;
+    // EPOCH['🥶'] : override per-époque des paramètres ice (cf. calculations_albedo.js v1.2.50).
+    const _epochIce_h2o = (_EPOCH_h2o && _EPOCH_h2o['🥶'] && typeof _EPOCH_h2o['🥶'] === 'object') ? _EPOCH_h2o['🥶'] : null;
+    const _iceOpts_h2o = {};
+    if (_epochObliquity_h2o !== undefined) _iceOpts_h2o.obliquity_deg = _epochObliquity_h2o;
+    if (_epochIce_h2o) {
+        if (Number.isFinite(Number(_epochIce_h2o.dT_pol)))   _iceOpts_h2o.dT_pol   = Number(_epochIce_h2o.dT_pol);
+        if (Number.isFinite(Number(_epochIce_h2o.dT_mid)))   _iceOpts_h2o.dT_mid   = Number(_epochIce_h2o.dT_mid);
+        if (Number.isFinite(Number(_epochIce_h2o.dT_trop)))  _iceOpts_h2o.dT_trop  = Number(_epochIce_h2o.dT_trop);
+        if (Number.isFinite(Number(_epochIce_h2o.amp_pol)))  _iceOpts_h2o.amp_pol  = Number(_epochIce_h2o.amp_pol);
+        if (Number.isFinite(Number(_epochIce_h2o.amp_mid)))  _iceOpts_h2o.amp_mid  = Number(_epochIce_h2o.amp_mid);
+        if (Number.isFinite(Number(_epochIce_h2o.amp_trop))) _iceOpts_h2o.amp_trop = Number(_epochIce_h2o.amp_trop);
+    }
     const _iceTF_h2o = EARTH.computeIceTempFactor(
         DATA['🧮']['🧮🌡️'],
-        _epochObliquity_h2o !== undefined ? { obliquity_deg: _epochObliquity_h2o } : undefined
+        Object.keys(_iceOpts_h2o).length > 0 ? _iceOpts_h2o : undefined
     );
     const has_polar_ice = _iceTF_h2o.tf_pol > 0;
     const polar_ice_fraction_climate = 0.10 * _iceTF_h2o.tf_pol;
@@ -627,15 +640,30 @@ H2O.calculateH2OParameters = function () {
     const iris_factor = Math.max(EARTH.IRIS_FACTOR_MIN, iris_factor_raw);
     vapor_result = vapor_result / iris_factor;
     if (window.CONFIG_COMPUTE.logIrisDiagnostic) {
-        console.log('[Iris] T=' + (T - CONST.KELVIN_TO_CELSIUS).toFixed(1)
+        const mIris = '[Iris] T=' + (T - CONST.KELVIN_TO_CELSIUS).toFixed(1)
             + 'C iris_factor=' + iris_factor.toFixed(3)
-            + ' vapor=' + vapor_result.toFixed(5));
+            + ' vapor=' + vapor_result.toFixed(5);
+        console.log(mIris);
+        if (typeof window.debugMirrorConfigLogToFile === 'function') {
+            window.debugMirrorConfigLogToFile('logIrisDiagnostic', mIris);
+        }
     }
     // Log cap vapeur (bruyant) : ne log que si logEdsDiagnostic est activé.
     if (vapor_raw > c_c_max && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
         const T_C = T - CONST.KELVIN_TO_CELSIUS;
-        if (typeof window !== 'undefined' && typeof window.pdTrace === 'function') window.pdTrace('calculateH2OParameters', 'calculations_h2o.js', 'H2O cap @' + T_C.toFixed(1) + '°C');
-        else console.log('[cycle] H2O cap @' + T_C.toFixed(1) + '°C');
+        const mCap = 'H2O cap @' + T_C.toFixed(1) + '°C';
+        if (typeof window !== 'undefined' && typeof window.pdTrace === 'function') {
+            window.pdTrace('calculateH2OParameters', 'calculations_h2o.js', mCap);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logEdsDiagnostic', mCap);
+            }
+        } else {
+            const line = '[cycle] ' + mCap;
+            console.log(line);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logEdsDiagnostic', line);
+            }
+        }
     }
     DATA['💧']['🍰🫧💧'] = vapor_result;
 

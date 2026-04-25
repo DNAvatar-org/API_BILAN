@@ -119,13 +119,14 @@ EARTH.T_ICE_TRANSITION_RANGE_K = 20;
 //   2) circulation atmosphérique/océanique (transport de chaleur méridien, ~5 PW Terre moderne)
 //   3) rétroaction glace-albédo (déjà modélisée en aval)
 //   4) épaisseur de l'atmosphère (Archéen P_atm ≠ moderne → transport différent)
-// Pour l'instant : constantes Terre-moderne pour toutes les époques. À discuter avant d'introduire ε dans le calcul.
-EARTH.POLAR_AMP_POL_K = 20;                                    // écart global→pôle annuel moyen (Terre 2025 ; 🏷️ CALIB observationnelle)
-EARTH.POLAR_AMP_MID_K = 5;                                     // écart global→mi-lat annuel moyen (Terre 2025)
-// Zone tropicale (0°–30°) : plus chaude que la moyenne globale → dT_trop NÉGATIF par convention.
-//   T_trop = T_glob − dT_trop  →  avec dT_trop = −5 K, T_trop = T_glob + 5 K (tropical ~5 K plus chaud)
-// Réfs Terre-moderne : ΔT_trop ≈ −5 K (Peixoto & Oort 1992 ch.7 ; IPCC AR6 WG1 fig 4.18)
-EARTH.POLAR_AMP_TROP_K = -5;                                   // écart global→tropical (Terre 2025, NÉGATIF = plus chaud)
+// ─── Pas de constantes EARTH.POLAR_AMP_*_K ─────────────────────────────────────
+// Source unique = configTimeline.js, EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop }.
+// computeIceTempFactor() throw si opts.dT_pol/dT_mid/dT_trop manquants. Crash-first cohérent
+// avec "Règle regle-data-territoire : lecture directe, pas de fallback".
+// Réfs Terre-moderne pour info (📱 EPOCH = { dT_pol: 20, dT_mid: 5, dT_trop: -5 }) :
+//   POLAR_AMP_POL_K  = +20 K (gradient tropiques→pôles ~40 K réel, amplification polaire Arctique observée ~2×)
+//   POLAR_AMP_MID_K  = +5 K  (gradient tropiques→mi-lat ~10 K réel)
+//   POLAR_AMP_TROP_K = -5 K  (tropical ~5 K plus chaud que moyenne globale ; Peixoto & Oort 1992 ch.7)
 // Fractions surface par zone, géométrie sphérique (sin φ₂ − sin φ₁ sur 2 hémisphères) :
 //   Pol (60°–90°)  = 1 − sin 60°  = 0.134
 //   Mid (30°–60°)  = sin 60° − sin 30° = 0.366
@@ -199,12 +200,20 @@ EARTH.computeIceTempFactor = function (T_glob_K, opts) {
               : (Number.isFinite(Number(cc.midlatZoneFraction))   ? Number(cc.midlatZoneFraction)   : EARTH.MIDLAT_ZONE_FRAC);
     var f_trop = Number.isFinite(Number(opts.f_trop)) ? Number(opts.f_trop)
               : (Number.isFinite(Number(cc.tropicalZoneFraction)) ? Number(cc.tropicalZoneFraction) : EARTH.TROPICAL_ZONE_FRAC);
-    var dT_pol = Number.isFinite(Number(opts.dT_pol)) ? Number(opts.dT_pol)
-              : (Number.isFinite(Number(cc.polarAmplificationK))    ? Number(cc.polarAmplificationK)    : EARTH.POLAR_AMP_POL_K);
-    var dT_mid = Number.isFinite(Number(opts.dT_mid)) ? Number(opts.dT_mid)
-              : (Number.isFinite(Number(cc.midlatAmplificationK))   ? Number(cc.midlatAmplificationK)   : EARTH.POLAR_AMP_MID_K);
-    var dT_trop = Number.isFinite(Number(opts.dT_trop)) ? Number(opts.dT_trop)
-              : (Number.isFinite(Number(cc.tropicalAmplificationK)) ? Number(cc.tropicalAmplificationK) : EARTH.POLAR_AMP_TROP_K);
+    // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'].
+    // Pas de fallback — crash-first cohérent avec "Règle regle-data-territoire".
+    if (!Number.isFinite(Number(opts.dT_pol))) {
+        throw new Error("[computeIceTempFactor] opts.dT_pol requis (lu depuis EPOCH['🥶'].dT_pol). Pas de fallback.");
+    }
+    if (!Number.isFinite(Number(opts.dT_mid))) {
+        throw new Error("[computeIceTempFactor] opts.dT_mid requis (lu depuis EPOCH['🥶'].dT_mid). Pas de fallback.");
+    }
+    if (!Number.isFinite(Number(opts.dT_trop))) {
+        throw new Error("[computeIceTempFactor] opts.dT_trop requis (lu depuis EPOCH['🥶'].dT_trop). Pas de fallback.");
+    }
+    var dT_pol  = Number(opts.dT_pol);
+    var dT_mid  = Number(opts.dT_mid);
+    var dT_trop = Number(opts.dT_trop);
     // Obliquité : opts > CONFIG_COMPUTE global > EARTH default.
     var obliquity_deg = Number.isFinite(Number(opts.obliquity_deg)) ? Number(opts.obliquity_deg)
               : (Number.isFinite(Number(cc.obliquityDeg)) ? Number(cc.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT);
@@ -305,6 +314,30 @@ EARTH.CH4_EDS_SCALE = 1.0;
 // Seuil Haqq-Misra 2008 : 0.1. NB : modèles plus récents (Arney et al. 2016) suggèrent plutôt 0.2.
 // Actuellement INFORMATIF UNIQUEMENT — non-lu par le worker spectral. Hook futur pour SW haze.
 EARTH.CH4_HAZE_RATIO_THRESHOLD = 0.1;
+
+// ─── MT_CKD H₂O continuum (Mlawer et al. 2012 JQSRT v3.5 — paramétrique simplifié) ─
+// Le continuum self-broadening + foreign-broadening de H₂O dans la fenêtre 8–12 µm
+// (et secondairement 4–6 µm) ajoute un piégeage IR additionnel à HITRAN line-by-line.
+// Forme paramétrique : trap [W/m²] = SCALE × PWV[g/cm²]² × (T_REF/T)^EXP × (P_total/P_ref)
+//   - PWV² : continuum self-broadening dominant (Clough et al. 1989)
+//   - (T_REF/T)^4.25 : dépendance T des moments dipolaires H₂O liés (Mlawer 2012)
+//   - P_total/P_ref : foreign-broadening (linéaire en P, ratio normalisé à 1 atm)
+// Calibration : sur Terre moderne (T=288 K, PWV≈2.5 g/cm²=25 kg/m², P=1 bar) → trap ≈ 12 W/m²
+//   ⇒ SCALE = 12 / (2.5² × (296/288)^4.25 × 1) ≈ 1.71
+// Refs :
+//   - Clough, Kneizys & Davies 1989 Atm. Res. 23:229 (foundational continuum theory)
+//   - Mlawer et al. 2012 JQSRT 119:65 (MT_CKD v3.5 specifications)
+//   - Schmidt et al. 2010 JGR 115:D20106 (attribution EDS H₂O ~75 W/m² Terre moderne)
+// EARTH.MT_CKD_ENABLED = false : OPT-IN. Pour activer :
+//   1. EARTH.MT_CKD_ENABLED = true (ce fichier)
+//   2. Run bench 📱 2025 — T_conv sera trop chaud (≈ +1.5°C de dérive attendue, soit ~16.5°C)
+//   3. Baisser H2O_EDS_SCALE (jauge Science via fine_tuning_bounds) jusqu'à T_moderne ≈ 15°C
+//      Estimation : 0.948 → ~0.80 (réduit EDS HITRAN de 12 W/m² pour compenser MT_CKD apporté)
+//   4. Run bench Proté/Archéen, vérifier que la branche chaude existe maintenant
+EARTH.MT_CKD_ENABLED = false;
+EARTH.MT_CKD_SCALE = 1.71;
+EARTH.MT_CKD_T_REF_K = 296;
+EARTH.MT_CKD_T_EXPONENT = 4.25;
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;

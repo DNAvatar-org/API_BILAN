@@ -1,8 +1,35 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.39
+// Version 1.4.61
 // Date: [April 25, 2026]
 // logs :
+// - v1.4.61: ⛄ — 🌡️🧮 + ⚖️🏭 = pas dicho **chaud** (📿=4, T≈−2,9 °C, 4,621e14 kg) ; v1.4.60 (210 K + 4,58e14 froid) corrigé.
+// - v1.4.60: ⛄ (Plein Snowball) — masses + 🌡️🧮 + 🗻 + 🌱/🧫/🌊🏭 + 🔒 segment hyst1a↔⛄ alignés sur le dernier pas froid dicho hyst 1a (≈📿🧮=8, T_conv≈−62,8 °C, SUCCESS) ; export TIMELINE copié depuis l’onglet hyst (scie_hyst_repro_state v1.1)
+// - v1.4.59: CONFIG_COMPUTE.logReproComparableState — une ligne [REPRO] (snapshot JSON) après convergence, alignée hyst / epoch (scie_hyst_repro_state.js)
+// - v1.4.58: retrait ×1.1 sur TIMELINE (v1.4.57) — marge R&D hyst 1a uniquement dans scie_hysteresis_search
+//   + co2MaxFactor sur createBaryAdapter (scie_hysteresis_bary), pas dans configTimeline.
+// - v1.4.56: hysteresis 1a — bloc 🔒 (min=⛄, max=1a) pour ⚖️🏭/🐄/💨/🫁/💧/✈ : createBaryAdapter
+//   co-évolue toutes les masses au dicho, pas seul le CO₂ (defaultCo2Adapter). Aligné fiches ⛄ (524–560) et 1a (499–512).
+// - v1.4.55: miroir _logs/ — chaque log* → fichier dédié (eds.txt, iceFraction.txt, …) via window.debugMirrorConfigLogToFile ; hyst+epoch activables en même temps (logs_to_server v1.1.6)
+// - v1.4.54: logHystPanelToFile + logEpochCompareToFile (défaut false) — miroir _logs/hyst|epoch.txt via logs_to_server (sans ?debug=, pas de reset fichier au F5)
+// - v1.4.53: logCo2PartitionDiagnostic — pdTrace load/NO-OP/APPLY dans calculations_co2.js (défaut false) ;
+//   commentaire TIMELINE hysteresis 1a : 🌡️🧮 = graine du bouton hyst (ligne id), distincte de la fiche Sturtienne 🪸.
+// - v1.4.52: logs diagnostics (glace, cloud-proxy, Iris, co2 atmos) — défaut false (console silencieuse) ; activer à la
+//   main dans la console si besoin (CONFIG_COMPUTE.logIceFractionDiagnostic = true, etc.).
+// - v1.4.51: radiativeFactorTropopauseFixed=1,0261 — calage hors jauge SCIENCE (tuning v1.0.18) ; 1,03+min(1,0−1,03)×0,13. null = (futur) recoller au bary.
+// - v1.4.50: useFactorTropopause = true par défaut (extension jauge réactivée) ; plage FINE_TUNING 1,03–1,00 (v1.3.9) pour limiter l’effet.
+// - v1.4.49: CONFIG_COMPUTE.useFactorTropopause (défaut false) — désactive l'extension jauge (DATA['🎚️'].RADIATIVE.factorTropopause) sur la hauteur radiative ; ATM v1.2.1.
+// - v1.4.48: retrait des leviers freezePolarIceDuringSearch / iceCoverageRamp*. La glace est calculée directement dans albedo v1.2.55 pour tous les onglets ; l'hystérésis ne change plus la physique.
+// - v1.4.47: freezePolarIceDuringSearch=false — aucun verrou glace en run direct ; même rétroaction glace libre que l'hystérésis.
+// - v1.4.46: Masses contractuelles explicites pour compute.js crash-first : ajout ⚖️💨/⚖️✈ manquants sur les époques qui dépendaient du résiduel/fallback.
+// - v1.4.45: hysteresis 1b — ajoute ⚖️✈ explicite (proxy sulfates) pour supprimer le zéro caché de getMasses.
+// - v1.4.44: Protérozoïque — garde plage bench [0,15] mais remet 🌡️🧮=285.65 K (12.5°C) branche chaude ; le milieu strict 7.5°C déclenchait la branche snowball.
+// - v1.4.43: Retrait gardes Number.isFinite sur constantes CONFIG_COMPUTE globales (assignations directes).
+//   climateSpinupCycles = 1 direct. Plages T bench/commentaires : Sturtienne [5,15], Plein Snowball [-60,-50],
+//   Limite P/T [21,32], Mésozoïque [21,31] ; 🌡️🧮 recentrés.
+// - v1.4.42: Protérozoïque (début 2.5 Ga) bench [0,15]°C, 🌡️🧮=280.65 K ; l'époque interpole ensuite vers Sturtienne via la timeline.
+// - v1.4.41: Archéen bench [5,25]°C (plage tempérée froide/modérée à 4 Ga), 🌡️🧮=288.15 K.
+// - v1.4.40: Archéen — essai "moyenne des fourchettes" sur les bornes 🔒 : CO₂, CH₄, N₂, O₂, sulfates, H₂O hydrosphère ; ⚖️🫧 recalculé.
 // - v1.4.39: Bench littérature — Sturtienne warm branch [5,20]°C au lieu de [-50,10].
 //   Archéen resserré [15,45]°C. 🌡️🧮 des époques bench recentrés sur le milieu des plages T.
 // - v1.4.38: Extension tropopause radiative → DATA['🎚️'].RADIATIVE.factorTropopause (fine-tuning SCIENCE, FINE_TUNING_BOUNDS). Retrait CONFIG_COMPUTE.radiativeTropopauseExtensionFactor.
@@ -146,16 +173,16 @@
 // Époque,T_init_°C,CO2_ppm,CH4_ppm,H2O_vap_mol_%,Albedo_🪩
 // Corps_noir,[-19, -17],[0, 1],[0, 0.1],[0, 0.01],[0.29, 0.31]
 // Hadéen,[2000, 2500],[100000, 500000],[10, 100],[10, 20],[0.15, 0.35]
-// Archéen,[15, 45],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
-//   → T surface : plage large mais moins fourre-tout pour early Archean (~4 Ga ; eau liquide probable mais contraintes exactes débattues).
-// Protérozoïque,[5, 20],[5000, 20000],[50, 500],[0.5, 1.5],[0.25, 0.35]
-// Sturtienne,[5, 20],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
-// Plein_Snowball,[-60, -20],[300, 1500],[0.1, 10],[0.01, 0.5],[0.80, 0.90]
+// Archéen,[5, 25],[50000, 150000],[1000, 10000],[0.5, 3.0],[0.20, 0.30]
+//   → T surface : plage tempérée froide/modérée à ~4 Ga ; eau liquide probable mais contraintes exactes très débattues.
+// Protérozoïque,[0, 15],[5000, 20000],[50, 500],[0.5, 1.5],[0.25, 0.35]
+// Sturtienne,[5, 15],[500, 2000],[10, 50],[0.1, 1.0],[0.60, 0.85]
+// Plein_Snowball,[-60, -50],[300, 1500],[0.1, 10],[0.01, 0.5],[0.80, 0.90]
 // Sortie_Marinoen,[20, 50],[2000, 10000],[10, 100],[2.0, 5.0],[0.15, 0.25]
 // Paléozoïque_marin,[15, 25],[1500, 5000],[5, 20],[1.0, 2.5],[0.20, 0.25]
 // Paléozoïque_terre,[15, 25],[500, 3000],[5, 20],[1.0, 2.0],[0.20, 0.23]
-// Limite_P/T,[20, 32],[1500, 4000],[20, 100],[1.5, 3.5],[0.18, 0.22]
-// Mésozoïque,[20, 30],[1000, 2500],[10, 30],[1.5, 3.0],[0.18, 0.22]
+// Limite_P/T,[21, 32],[1500, 4000],[20, 100],[1.5, 3.5],[0.18, 0.22]
+// Mésozoïque,[21, 31],[1000, 2500],[10, 30],[1.5, 3.0],[0.18, 0.22]
 // Cénozoïque,[12, 22],[400, 1000],[1, 5],[0.8, 1.5],[0.22, 0.28]
 // Éocène,[20, 28],[800, 1500],[1, 5],[1.2, 2.5],[0.20, 0.25]
 // Oligocène,[12, 18],[400, 700],[1, 2],[0.8, 1.2],[0.25, 0.30]
@@ -201,6 +228,8 @@ const timeline = [
         '◀': 4.5e9, // Fin
         // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → 255.15 K
         '🌡️🧮': 255.15,
+        // 🥶 : valeurs Terre-moderne nominales — pas d'atmosphère donc ice_tf inactif sur le radiatif.
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.3,
         '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '🔋🌕': 0, // core_temperature (Pas de noyau en K)
@@ -228,6 +257,8 @@ const timeline = [
         '⚖️🐄': 0, // ch4_kg (Quantité de CH4 en kg)
         '⚖️💧': 0, // h2o_kg (Quantité totale d'eau en kg)
         '⚖️🫁': 0, // o2_kg (Quantité de O2 en kg)
+        '⚖️✈': 0, // sulfates proxy (donnée explicite, pas de fallback)
+        '⚖️💨': 0, // n2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
         // Événements interactifs (météorites uniquement Corps noir + Hadéen) ; 💫 = bouton timeline (logo)
@@ -253,6 +284,8 @@ const timeline = [
         '◀': 4.0e9,
         // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C → 2523.15 K.
         '🌡️🧮': 2523.15,
+        // 🥶 : T_glob >> T_freeze, ice_tf=0 quoi qu'il en soit. Valeurs nominales modernes.
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         '🔋🌕': 1.23e21, // core_power_watts (Puissance géothermique totale calculée depuis 🧲🌕 = 2 MW/m² et R = 7008.1 km)
@@ -276,6 +309,8 @@ const timeline = [
         '⚖️🐄': 5.0e15, // ch4_kg (~1000 ppm)
         '⚖️💧': 2.1e20, // h2o_kg (~15% de 1.4e21 kg)
         '⚖️🫁': 0, // o2_kg
+        '⚖️✈': 0,
+        '⚖️💨': 5.29495e20,
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
         magma_coverage: 1.0, // Spécifique Hadéen - TODO: trouver logo combo
@@ -312,14 +347,14 @@ const timeline = [
         //
         // --- FOURCHETTES TOLÉRABLES (bench / litt. synthèse) — DUPLICATA de la ligne CSV « Archéen » dans la GRILLE du haut de ce fichier ---
         // Même objet litt. que doc/epoch_bench.html → BENCH_LIT_BY_EPOCH_ID['🦠'] (clé \u{1F9A0}). Toute modification : les 3 endroits ensemble.
-        //   T °C surface   : [15, 45]     — enveloppe large early Archean, resserrée vs ancien [10,60].
+        //   T °C surface   : [5, 25]      — tempéré froid/modéré à ~4 Ga ; hypothèse chaude >30°C gardée R&D.
         //   CO₂ ppm          : [50000, 150000]
         //   CH₄ ppm          : [1000, 10000]
         //   H₂O vap. mol %   : [0.5, 3.0]
         //   Albédo effectif 🪩 : [0.20, 0.30] (colonne CSV « Albedo », pas une clé TIMELINE séparée)
         //
-        // 🌡️🧮 : milieu mathématique de [15,45] °C → 30 °C → 303.15 K. Amorce solveur uniquement ; T convergée peut sortir de la plage.
-        '🌡️🧮': 303.15,
+        // 🌡️🧮 : milieu mathématique de [5,25] °C → 15 °C → 288.15 K. Amorce solveur uniquement ; T convergée peut sortir de la plage.
+        '🌡️🧮': 288.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
@@ -358,16 +393,24 @@ const timeline = [
         // ppm calculés par epoch_bench.html (ligne 544) : ppm_molaire = mass_frac × (M_air / M_gaz) × 1e6.
         // Repère rapide pour ajuster les masses (N₂ ≈ 9.918e18 dominant) : CO₂ 150k mol ppm ⇒ ≈ 2.75e18 kg ; CO₂ 50k mol ppm ⇒ ≈ 0.80e18 kg ; CH₄ 10k mol ppm ⇒ ≈ 6.7e16 kg ; CH₄ 1k mol ppm ⇒ ≈ 6.5e15 kg.
         //
-        // ─── CAP MAX ACCEPTABLE (v1.4.22) ───────────────────────────────────────
-        // CO₂ précédemment à 10.62e18 kg → ~400–900k mol ppm (très au-dessus de [50k,150k]).
-        // Ramené au MAX acceptable 150k mol ppm ≈ 2.75e18 kg, conformément à la grille CSV Archéen.
-        // Pour regagner de la T° perdue : chercher ailleurs (CH₄ physique Haqq-Misra 2008 ; obliquité ; albédo couches chaudes).
-        '⚖️🏭': 2.75e18, // co2_kg — CAP MAX bench CO₂ [50000, 150000] mol ppm ; cible 150k ppm. Plage : 0.80e18 (50k) → 2.75e18 (150k).
-        '⚖️🐄': 3.25e16, // ch4_kg — bench CH₄ [1000, 10000] mol ppm ; valeur ≈ 4.8k mol ppm (milieu plage). Plage : 6.5e15 (1k) → 6.7e16 (10k).
-        '⚖️💧': 1.8e21, // h2o_kg inventaire hydrosphère (océan…) — PAS la colonne CSV « H₂O vap. mol % » (celle-ci = vapeur atmosphérique dynamique [0.5,3.0]% gérée par calculations_h2o). ~129% PAL océan (earthTotalWaterMassKg=1.4e21). Plage raisonnable [0.8e21, 2.5e21].
-        '⚖️🫁': 0, // o2_kg — prébiotique (Archéen pré-GOE). Pas de plage ppm bench. Plage acceptable [0, 1e16] (traces biosphère anoxygénique pré-2.4 Ga).
-        '⚖️💨': 9.918e18, // n2_kg — masse atmos. N₂ ~1–2× PAL (Marty 2013). PAL N₂ ≈ 4e18 kg → valeur ≈ 2.5× PAL (haut fourchette). Plage acceptable [4e18, 10e18] (1×PAL → 2.5×PAL).
-        '⚖️✈': 0, // proxy_sulfates — pré-industriel, pas d'émissions anthropiques. Plage acceptable [0, 1e15] (volcanisme explosif ponctuel).
+        // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50).
+        // Faint sun 74% à 4 Ga + obliquité ⚾=45° (Williams 1993 EPSL 117:377). Polar amp réduite :
+        // gradient méridien Archéen probablement plus faible que Terre moderne (transport zonal
+        // amplifié par circulation atmosphérique dense, océans peu profonds). Pas de continents
+        // élevés (relief modéré) → moins d'effet hauteur sur T_pol.
+        // dT_pol 20→10K, dT_mid 5→2K. Plus aggressif que Proté car faint sun plus dur.
+        '🥶': { dT_pol: 10, dT_mid: 2, dT_trop: -5 },
+        // ─── ESSAI MOYENNE DES FOURCHETTES (v1.4.40) ───────────────────────────
+        // Valeurs au milieu des bornes 🔒 ci-dessous pour tester le banc sans extrêmes.
+        // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
+        // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
+        // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
+        '⚖️🏭': 2.082e18, // co2_kg — 150k ppm (max CSV [50k,150k]). Était 1.775e18 (132k ppm).
+        '⚖️🐄': 5.06e16,  // ch4_kg — 10k ppm  (max CSV [1k,10k]).   Était 3.675e16 (6700 ppm).
+        '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
+        '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
+        '⚖️💨': 7.0e18, // n2_kg — moyenne plage 🔒 [4.0e18, 1.0e19].
+        '⚖️✈': 5.0e14, // proxy_sulfates — moyenne plage 🔒 [0, 1.0e15] (refroidissant).
         // 🔒 Bornes hystérésis Archéen — cf. schéma commentaire global "🔒 SCHÉMA BORNES HYSTÉRÉSIS" + CSV « Archéen » [50k,150k]ppm CO₂, [1k,10k]ppm CH₄.
         //    Refs : Sleep & Zahnle 2001 (CO₂ 0.2–10 bar), Haqq-Misra 2008 (CH₄ ≤10k ppm ; haze si CH₄/CO₂ > 0.1), Som 2012/2016 (N₂ paléo 0.7–2.2 atm), Marty 2013 (N₂ Archéen ≈1–2× PAL).
         '🔒': {
@@ -378,7 +421,7 @@ const timeline = [
             '⚖️🫁': { min: 0,       max: 1.0e16,  cools: 'min' }, // O₂ : pré-GOE (traces seulement)
             '⚖️💧': { min: 0.8e21,  max: 2.5e21,  cools: 'min' }, // H₂O hydrosphère : ~57% → ~179% PAL
         },
-        '⚖️🫧': 1.2700e19, // N₂ + CO₂ + CH₄ = 9.918e18 + 2.75e18 + 3.25e16. Recalculer si une masse change.
+        '⚖️🫧': 9.138e18, // Somme sèche v1.4.50 = N₂ + CO₂ + CH₄ + O₂ + sulfates (CO₂/CH₄ au max CSV).
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -408,7 +451,8 @@ const timeline = [
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
         '▶': 2.5e9,
         '◀': 750e6,
-        // 🌡️🧮 : milieu grille CSV Protérozoïque [5,20]°C → 285.65 K.
+        // 🌡️🧮 : graine branche chaude Protérozoïque (12.5°C) dans la plage [0,15]°C.
+        // Le milieu strict 7.5°C accroche la branche snowball (albédo glace) et ne représente pas le point chaud stable.
         '🌡️🧮': 285.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
@@ -424,12 +468,25 @@ const timeline = [
             '🍰🗻🌍': 0.17  // Terres basses (17% - continents émergents)
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.15e18, // Masse atmosphère (~1 bar). Lit. 2.7 Ga: pression possiblement <0.5 bar.
+        // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50, _flux v1.2.93, _h2o v1.0.23).
+        // Justification : faint sun 82% à 2.5 Ga + arrangement continental low-mid latitude
+        // (Vaalbara, fragments cratoniques pré-Kenorland). Pas de calotte continentale polaire massive
+        // — Williams 1993 EPSL 117:377 (gradient méridien Précambrien réduit possible).
+        // dT_pol 20→10K : T_pol_proxy = T_glob - 10K (au lieu de -20K). À T_glob=12.5°C → T_pol=2.5°C.
+        // dT_mid  5→3K : pareil pour mi-latitude.
+        // Effet : tf_pol passe de 0.68 à 0.35 ; ice_tf de 0.20 à 0.15 ; Sabs gagne ~+10 W/m² uniquement Proté.
+        '🥶': { dT_pol: 10, dT_mid: 3, dT_trop: -5 },
+        '⚖️🫧': 5.195e18, // Masse atmosphère (~1 bar). Lit. 2.7 Ga: pression possiblement <0.5 bar.
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
-        '⚖️🏭': 5.0e16,  // co2_kg — léger + vs 4.7e16 (bench)
-        '⚖️🐄': 3.0e14,  // ch4_kg — léger + vs 2.85e14 (bench)
+        // v1.4.50 (2026-04-25): bump CO₂ 5e16→9.47e16 (6216→12000 ppm) et CH₄ 3e14→7.2e14 (102→250 ppm)
+        // pour récupérer ~+13 W/m² de forçage GES manquant à 12.5°C (branche chaude).
+        // Toujours dans CSV bench [5000,20000] CO₂ et [50,500] CH₄ (litt. paléosols + Wordsworth/Pierrehumbert 2013).
+        '⚖️🏭': 9.47e16,  // co2_kg — 12000 ppm (était 5.0e16 = 6216 ppm)
+        '⚖️🐄': 7.20e14,  // ch4_kg — 250 ppm (était 3.0e14 = 102 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
+        '⚖️✈': 0,
+        '⚖️💨': 5.0847e18,
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -448,13 +505,18 @@ const timeline = [
     },
     // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
-    // Ici 🌡️🧮 = amorce solveur au milieu de la branche chaude [5,20]°C, pas le seuil ni la T finale après chute.
+    // Ici 🌡️🧮 = amorce solveur au milieu de la branche chaude [5,15]°C, pas le seuil ni la T finale après chute.
     {//hysteresis 1a (entrée Sturtienne — bascule albédo↓)
         '📅': 'hysteresis 1a', // id stable (renommé v1.4.0 ; logo affichage ☃)
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 750e6,
         '◀': 720e6,
-        '🌡️🧮': 285.65,
+        // 🌡️🧮 : graine solveur hyst (id stable `hysteresis 1a` — ligne TIMELINE dédiée, hidden: true).
+        // L’onglet / carte « Sturtienne » (🪸) est une autre entrée : modifier son 🌡️🧮 ne règle pas la graine du bouton hyst.
+        // Ici 283.15 K = 10 °C (milieu CSV) ; T_conv après 1er bilan ≠ cette valeur (équilibre radiatif).
+        '🌡️🧮': 283.15,
+        // 🥶 : transition Sturtienne, conditions Néoprotérozoïque tardif similaires à 🪸 (faint sun 93%).
+        '🥶': { dT_pol: 10, dT_mid: 3, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '🔋🌕': 8.0e13,
@@ -468,7 +530,7 @@ const timeline = [
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
         // c'est la recherche hystérésis (scie_hysteresis_search.js) qui descend jusque-là, pas ce baseline.
-        '⚖️🏭': 2.0e15,
+        '⚖️🏭': 4.801e+14,//'⚖️🏭': 8.594e+14,
         // CH₄ : 2.0e13 kg = 7 ppm. Post-GOE (après 2.4 Ga) l'atmosphère oxygénée détruit le CH₄ rapidement.
         // Fourchette lit. Néoprotérozoïque : 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         // Corrigé v1.4.29 : était 1.0e14 kg (35 ppm, trop haut, borne sup. extrême).
@@ -482,6 +544,7 @@ const timeline = [
         // ⚖️✈ : baseline sulfate volcanique explicite, identique au démarrage du scan hystérésis.
         // Rend le run direct contractuel sans fallback côté calcul.
         '⚖️✈': 1.0e12,
+        '⚖️💨': 5.142979e18,
         '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
@@ -491,76 +554,96 @@ const timeline = [
         // continentales tropicales aux intempéries (Godderis et al. 2003, Donnadieu et al. 2004 Nature).
         // Franklin LIP (717 Ma) : basaltes frais très altérables (Macdonald 2010 Science 327:1241).
         // Pierrehumbert 2004 "deglaciation problem" : drawdown CO₂ × 3-5 vs moderne.
-        '🌊🏭': 0.5
+        '🌊🏭': 0.5,
+        // 🔒 Segment contractuel hyst 1a ↔ fiche ⛄ (scie_hysteresis_bary v1.0.0) : min = extrémité froide
+        // (⛄ 524–560), max = branche chaude 1a (lignes ci-dessus). createBaryAdapter uniquement si 🔒.⚖️🏭.
+        // Sans ce bloc, seul CO₂ varie au scan/dicho — CH₄ etc. restent en baseline 1a, ce qui mélange états
+        // incompatibles près du seuil (T saute ±60 °C à ⚖️🏭 presque identique).
+        '🔒': {
+            '⚖️🏭': { min: 7.923e+14, max: 8.594e+14, cools: 'min' },
+            '⚖️🐄': { min: 1.0e+14, max: 2.0e+13, cools: 'min' },
+            '⚖️💨': { min: 5.132968982e18, max: 5.142979e18, cools: 'min' },
+            '⚖️🫁': { min: 1.5e+16, max: 5.0e+15, cools: 'min' },
+            '⚖️💧': { min: 1.2e+21, max: 1.2e+21, cools: 'min' },
+            '⚖️✈': { min: 1.0e+12, max: 1.018e+12, cools: 'max' }
+        }
     },
     // ⛄ = Plein Snowball (720–690 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma)
     // Réfs : Hoffman et al. 1998 (Science), Pierrehumbert 2011, Hoffman & Schrag 2002
-    {// Plein Snowball
-        '📅': '⛄', // Plein Snowball (720–690 Ma) — Snowball Earth, plateau froid
-        // Pas de forçage ⛄ : la physique (T < T_freeze → gel océan) produit le snowball
-        '▶': 720e6,
-        '◀': 690e6,
-        // 🌡️🧮 : milieu grille CSV Plein Snowball [-60,-20]°C → 233.15 K.
-        '🌡️🧮': 233.15,
-        '🧲🔬': 0.01,
-        '🔋☀️': 3.592e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.75/4.57) = 93.8% — NE PAS MODIFIER
-        '🔋🌕': 8.0e13, // core_power_watts (~80 TW, Néoprotérozoïque)
-        '📐': 6371,
-        '🍎': 9.81,
-        '📏🌊': 3.6, // Profondeur océans (Néoprotérozoïque)
-        '🐚': 1.0,
-        '🗻': {
-            '🍰🗻🌊': 0.73,
-            '🍰🗻🏔': 0.15,
-            '🍰🗻🌍': 0.12
-        },
-        '⚖️🫧': 5.15e18,
-        // CO₂ branche froide trouvée par hysteresis 1a : seuil ≈239 ppm (1.930e15 kg).
-        // Pendant ⛄, l'accumulation volcanique remonte ensuite vers le seuil de sortie (hysteresis 1b).
-        '⚖️🏭': 1.930e+15,
-        '⚖️🐄': 1.0e14,
-        '⚖️💧': 1.2e21,
-        '⚖️🫁': 1.5e16,  // o2_kg (faible, post-GOE mais pré-explosion cambrienne)
-        // ⚖️✈ = stock sulfate atmosphérique (régime stationnaire source/puits, τ_wash ≈ 1 semaine).
-        // Sources actives pendant ⛄ : volcanisme d'arc continu + dégazage rifts Rodinia (750→600 Ma :
-        //   Franklin LIP ~717 Ma, Irkutsk, Gunbarrel — Macdonald et al. 2017 Nat. Geosci. 10:358).
-        // Source ÉTEINTE : pathway DMS marin (ocean gelé → plancton marginal, gaté par EPOCH['🧫']=0.05).
-        // Baseline ~1e12 kg cohérent avec 🛖 Holocène (volcanique sans DMS). Pulses LIP peuvent ×10-100
-        // ponctuellement mais on prend l'équilibre moyen pour la navigation normale (hors scan hyst).
-        '⚖️✈': 1.018e12,
-        // 🔒 Bornes hystérésis Plein Snowball — CSV « Plein_Snowball » [300,1500]ppm CO₂, [0.1,10]ppm CH₄, [0.01,0.5]% H₂O vap.
-        //    Refs : Hoffman et al. 1998 (CO₂ entrée ~100–1000 ppm, sortie ~100k ppm), Pierrehumbert 2011 (CH₄ ppm résiduel), Hoffman & Schrag 2002.
-        //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.
-        '🔒': {
-            '⚖️🏭': { min: 2.35e15, max: 1.17e16, cools: 'min' }, // CO₂ : CSV [300,1500] ppm
-            '⚖️🐄': { min: 2.84e11, max: 2.84e13, cools: 'min' }, // CH₄ : CSV [0.1,10] ppm
-            '⚖️💨': { min: 3.0e18,  max: 5.0e18,  cools: 'min' }, // N₂  : post-GOE, proche modern
-            '⚖️✈': { min: 0,       max: 5.0e14,  cools: 'max' }, // sulfates : volcanisme neoprotérozoïque
-            '⚖️🫁': { min: 5.0e17,  max: 2.0e18,  cools: 'min' }, // O₂ : post-GOE ~5–20% modern
-            '⚖️💧': { min: 1.0e21,  max: 1.4e21,  cools: 'min' }, // H₂O hydrosphère (eau piégée dans glace)
-        },
-        '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
-        },
-        // 🌱 = facteur biosphère terrestre (fraction max des terres pouvant porter de la végétation).
-        // ⛄ Néoprotérozoïque (−735 Ma) : tapis microbiens côtiers + algues marines uniquement,
-        // pas de plantes vasculaires (apparition Ordovicien ~−470 Ma). Valeur ε=0.02 pour
-        // représenter une fine croûte biologique terrestre (cyanobactéries/lichens primitifs).
-        '🌱': 0.02,
-        // 🧫 = facteur biosphère MARINE — symétrique de 🌱 pour le gate CLAW (DMS-CCN).
-        // ⛄ Plein Snowball (−735→−690 Ma) : océan global gelé sous banquise kilométrique,
-        // photosynthèse marine quasi-éteinte (pas de lumière sous glace). Seules des oasis de
-        // lumière (fractures, fusions côtières) préservent un plancton résiduel. Knoll 2003.
-        // Le DMS marin s'effondre, découplant la boucle CLAW — crucial pour la sortie du
-        // snowball (pas de CCN biogénique → moins de nuages → moins d'albédo → réchauffement).
-        // Valeur ε=0.05 : DMS quasi-éteint, seul reste le sulfate volcanique direct.
-        '🧫': 0.05,
-        // 🌊🏭 : pompe Urey COUPÉE. Banquise kilométrique isole atmosphère de l'océan
-        // (Hoffman & Schrag 2002, Pierrehumbert 2004/2005) : Henry physiquement bloqué.
-        // Altération silicatée continentale ~0 (terres enneigées). Seul le CO₂ volcanique s'accumule
-        // → deglaciation problem : CO₂ doit atteindre ~100 000 ppm sur ~10 Ma (Higgins & Schrag 2003).
-        '🌊🏭': 0.0
+    // v1.4.61 : 🌡️🧮 + ⚖️🏭 = pas dicho **chaud** hyst1a (ex. ligne journal 📿=4, phase=dicho, T_conv≈−2,9 °C,
+    // 4,621e14 kg) : c’est l’amorce qui sert à voir la bifurcation, pas l’attractif à −60 °C (📿=8) ni 210 K.
+    // v1.4.60 (210 K + 4,58e14) = erreur sémantique. Masses d’appoint : [REPRO] @ ce pas (SYNC bouton ⛄).
+    // Remplacement entrée TIMELINE Plein Snowball (⛄) — généré depuis l’état courant (DATA).
+// Époque active (📜.🗿) au moment de l’export : hysteresis 1a.
+// Coller dans API_BILAN/config/configTimeline.js : remplacer l'objet entier { '📅': '⛄', … } par ce bloc, puis recharger.
+
+{
+    "📅": "⛄",
+    "▶": 720000000,
+    "◀": 690000000,
+    "🌡️🧮": 270.0,
+    "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
+    "🧲🔬": 0.01,
+    "🔋☀️": 3.592e+26,
+    "🔋🌕": 80000000000000,
+    "📐": 6371,
+    "🍎": 9.81,
+    "📏🌊": 3.6,
+    "🐚": 1,
+    "🗻": {
+        "🍰🗻🌊": 0.75,
+        "🍰🗻🏔": 0.08,
+        "🍰🗻🌍": 0.17
     },
+    "⚖️🫧": 5150000000000000000,
+    "⚖️🏭": 457970390625000.06,
+    "⚖️🐄": 100000000000000,
+    "⚖️💧": 1.2e+21,
+    "⚖️🫁": 15000000000000000,
+    "⚖️✈": 1018000000000,
+    "⚖️💨": 5132968982000000000,
+    "🔒": {
+        "⚖️🏭": {
+            "min": 792300000000000,
+            "max": 859400000000000,
+            "cools": "min"
+        },
+        "⚖️🐄": {
+            "min": 100000000000000,
+            "max": 20000000000000,
+            "cools": "min"
+        },
+        "⚖️💨": {
+            "min": 5132968982000000000,
+            "max": 5142979000000000000,
+            "cools": "min"
+        },
+        "⚖️🫁": {
+            "min": 15000000000000000,
+            "max": 5000000000000000,
+            "cools": "min"
+        },
+        "⚖️💧": {
+            "min": 1.2e+21,
+            "max": 1.2e+21,
+            "cools": "min"
+        },
+        "⚖️✈": {
+            "min": 1000000000000,
+            "max": 1018000000000,
+            "cools": "max"
+        }
+    },
+    "🕰": {
+        "💫": {
+            "🔺🌡️💫": 0,
+            "🔺⏳": 30
+        }
+    },
+    "🌱": 0,
+    "🧫": 0.05,
+    "🌊🏭": 0.5
+},
     // hysteresis 1b = Sortie Marinoen (690–600 Ma) : déglaciation brutale, hyper-greenhouse, pluies acides.
     // Branche chaude post-Snowball, le scan hystérésis cherche le seuil de sortie (CO₂↑ → saut T).
     {//hysteresis 1b (sortie Marinoen — hyst ↑)
@@ -569,6 +652,8 @@ const timeline = [
         '▶': 690e6,
         '◀': 600e6,
         '🌡️🧮': 308.15, // Sortie Marinoen [20,50]°C — milieu bench
+        // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
+        '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
         '🔋🌕': 7.5e13,
@@ -583,6 +668,8 @@ const timeline = [
         '⚖️🐄': 4.5e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 5.107454e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 90 },
         },
@@ -604,6 +691,9 @@ const timeline = [
         '◀': 420e6,
         // 🌡️🧮 : milieu grille CSV Paléozoïque marin [15,25]°C → 293.15 K.
         '🌡️🧮': 293.15,
+        // 🥶 : Cambrien/Hirnantien, continents éparpillés en cours de regroupement (Gondwana en formation).
+        // Gradient méridien légèrement inférieur à la Terre moderne (Scotese 2021 paleotemperature).
+        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
         '🔋🌕': 6.5e13,
@@ -617,6 +707,8 @@ const timeline = [
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e17,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.986169e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 180 },
         },
@@ -635,6 +727,8 @@ const timeline = [
         '◀': 280e6,
         // 🌡️🧮 : milieu grille CSV Paléozoïque terrestre [15,25]°C → 293.15 K.
         '🌡️🧮': 293.15,
+        // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
         '🔋🌕': 6.0e13,
@@ -648,6 +742,8 @@ const timeline = [
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 2.0e17,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.942569e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 140 },
         },
@@ -666,8 +762,11 @@ const timeline = [
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
         '▶': 280e6,
         '◀': 250e6,
-        // 🌡️🧮 : milieu grille CSV Limite P/T [20,32]°C → 299.15 K.
-        '🌡️🧮': 299.15,
+        // 🌡️🧮 : milieu grille CSV Limite P/T [21,32]°C → 299.65 K.
+        '🌡️🧮': 299.65,
+        // 🥶 : hyperthermie P/T (Trapps sibériens, anoxie). Gradient méridien réduit par CO₂ massif.
+        // Joachimski 2012 : SST tropicales 36°C+ + polaires plus chaudes que Karoo → dT_pol modéré.
+        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
         '🔋🌕': 6.0e13,
@@ -681,6 +780,8 @@ const timeline = [
         '⚖️🐄': 8e13,   // CH4 élevé (anoxie, clathrates)
         '⚖️💧': 1.35e21,
         '⚖️🫁': 1.5e17, // O2 en chute (anoxie)
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.984919e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
         },
@@ -701,8 +802,11 @@ const timeline = [
         '⛄': 0,
         '▶': 250e6,
         '◀': 66e6,
-        // 🌡️🧮 : milieu grille CSV Mésozoïque [20,30]°C → 298.15 K.
-        '🌡️🧮': 298.15,
+        // 🌡️🧮 : milieu grille CSV Mésozoïque [21,31]°C → 299.15 K.
+        '🌡️🧮': 299.15,
+        // 🥶 : serre chaude Crétacé (Hudson 2010, Huber & Caballero 2011), polar T très chaud
+        // → "equability problem" Pierrehumbert : gradient méridien fortement réduit. dT_pol=15K.
+        '🥶': { dT_pol: 15, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
         '🔋🌕': 6.0e13, // core_power_watts (Puissance géothermique totale ~60 TW)
@@ -720,6 +824,8 @@ const timeline = [
         '⚖️🐄': 4.12e13,
         '⚖️💧': 1.33e21,
         '⚖️🫁': 0,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 5.1370828e18,
         '🕰': {
             '💫': {
                 '🔺🌡️💫': -2,
@@ -742,6 +848,8 @@ const timeline = [
         '◀': 50e6,
         '⛄': 0,
         '🌡️🧮': 290.15,
+        // 🥶 : Paléocène/début Éocène, post K-Pg, plus chaud que moderne, gradient méridien réduit.
+        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
         '🔋🌕': 5.0e13,
@@ -759,6 +867,8 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.063495395e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
         },
@@ -775,6 +885,8 @@ const timeline = [
         '◀': 35e6,
         '⛄': 0,
         '🌡️🧮': 297.15,
+        // 🥶 : PETM Éocène, pic thermique, gradient méridien faible (Sluijs 2008, polaires 17°C+ été).
+        '🥶': { dT_pol: 16, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
         '🔋🌕': 5.0e13,
@@ -792,6 +904,8 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.059095395e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
         },
@@ -812,6 +926,8 @@ const timeline = [
         '◀': 33e6,
         '⛄': 0.02,
         '🌡️🧮': 289,
+        // 🥶 : transition Eocène/Oligocène (Oi-1), bascule calotte Antarctique, gradient en cours de renforcement.
+        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.08,
         '🔋☀️': 3.816e26, // 🔒 Gough @ 0.035 Ga
         '🔋🌕': 4.85e13,
@@ -829,6 +945,8 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
+        '⚖️✈': 1.0e12,
+        '⚖️💨': 4.063345395e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 2 },
         },
@@ -848,6 +966,8 @@ const timeline = [
         '▶': 33e6,
         '◀': 2e6,
         '🌡️🧮': 288.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
+        // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -879,6 +999,8 @@ const timeline = [
         '▶': 2e6,
         '◀': 10e3,
         '🌡️🧮': 286.15,
+        // 🥶 : Quaternaire glaciations, gradient méridien moderne (calottes nord+sud).
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -912,6 +1034,8 @@ const timeline = [
         '◀': 1800,
         // 🌡️🧮 : milieu grille CSV Holocène [13,15]°C → 287.15 K.
         '🌡️🧮': 287.15,
+        // 🥶 : Holocène, valeurs Terre-moderne (référence calibration ERA5/Peixoto&Oort 1992).
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.03,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
         '🔋🌕': 4.6e13,
@@ -942,6 +1066,8 @@ const timeline = [
         '▶': 1800,
         '◀': 2000,
         '🌡️🧮': 287.15,
+        // 🥶 : Industrielle, valeurs Terre-moderne.
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.828e26,
         '🔋🌕': 4.6e13,
@@ -972,6 +1098,8 @@ const timeline = [
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
         // 🌡️🧮 : milieu grille CSV Aujourd'hui [14.5,15.5]°C → 288.15 K.
         '🌡️🧮': 288.15,
+        // 🥶 : Aujourd'hui, valeurs Terre-moderne (calibration target 15°C).
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
@@ -1056,22 +1184,15 @@ window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 // Flag de test pompe CO₂ océan : 1 = actif, 0 = coupé (seed océan inclus), >1 = amplification volontaire.
 window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01))) {
-    window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
-}
-// ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.20 ────────────
-// SOURCE DE VÉRITÉ : physics.js (EARTH.POLAR_AMP_POL_K, EARTH.POLAR_AMP_MID_K, EARTH.POLAR_ZONE_FRAC, EARTH.MIDLAT_ZONE_FRAC).
-// Les calculs (albedo/flux/h2o) lisent CONFIG_COMPUTE.* en priorité → fallback EARTH.*
-// Les défauts ci-dessous sont alignés sur EARTH.* (ne pas y toucher sauf pour tests de sensibilité).
-//
-// 🏷️ TUNING — valeurs Earth-modern (Budyko 1969, Sellers 1969, IPCC AR6 WG1 ch.7) :
-//   dT_pol = 20 K (gradient global→pôle) ; dT_mid = 5 K (gradient global→mi-lat)
-// 🏷️ FLOU SCIENTIFIQUE — dépendance obliquité ε (ACTIVÉE via '⚾'), P_atm, transport méridien.
-// Ces constantes sont GLOBALES à toutes les époques : pas d'override par époque (faire de la physique, pas du patch).
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.polarZoneFraction)))    window.CONFIG_COMPUTE.polarZoneFraction   = 0.13;  // ~60°–90° les 2 pôles
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatZoneFraction)))   window.CONFIG_COMPUTE.midlatZoneFraction  = 0.37;  // ~30°–60° les 2 hémisphères
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.polarAmplificationK)))  window.CONFIG_COMPUTE.polarAmplificationK = 20;    // aligné EARTH.POLAR_AMP_POL_K (override expérimental uniquement)
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatAmplificationK))) window.CONFIG_COMPUTE.midlatAmplificationK = 5;    // aligné EARTH.POLAR_AMP_MID_K (override expérimental uniquement)
+window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
+// ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.51 ────────────
+// SOURCE UNIQUE dT_* : configTimeline.js EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop }.
+// Lue par EARTH.computeIceTempFactor(opts) via les 3 call-sites albedo/flux/h2o (crash si absent).
+// CONFIG_COMPUTE.polarAmplificationK / midlatAmplificationK SUPPRIMÉS v1.4.51 — dead code après
+// migration vers EPOCH['🥶'] (cf. albedo v1.2.51, flux v1.2.93, h2o v1.0.23).
+// Géométrie sphérique conservée ici (POLAR/MIDLAT/TROPICAL_ZONE_FRAC) car non per-époque.
+window.CONFIG_COMPUTE.polarZoneFraction = 0.13;       // ~60°–90° les 2 pôles
+window.CONFIG_COMPUTE.midlatZoneFraction = 0.37;      // ~30°–60° les 2 hémisphères
 // ⚾ OBLIQUITÉ AXIALE ε (degrés). Défaut Terre 2025 = 23.44° (= EARTH.OBLIQUITY_DEG_REF).
 // Par époque : clé '⚾' sur l'objet epoch écrase ce défaut (ex. Archéen ε ~ 45–70° hyp. Williams 1993).
 // Effet : amp_z_eff = SEASONAL_AMP_z_K × sin(ε)/sin(23.44°) dans EARTH.computeIceTempFactor.
@@ -1095,7 +1216,7 @@ if (!Number.isFinite(Number(window.CONFIG_COMPUTE.midlatAmplificationK))) window
 // --- POURQUOI PAS ! --- Tester ε = 54° (seuil Williams), ε = 35° (intermédiaire), ε = 0° (neutre
 // saison) pour isoler l'effet de la saisonnalité vs moyennes annuelles. Combinable avec CO₂/CH₄
 // pour voir si la saisonnalité "suffit" ou si la physique radiative reste le vrai goulot.
-if (!Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)))         window.CONFIG_COMPUTE.obliquityDeg       = 23.44; // 🏷️ OBS/CALIB (IAU 2009) — plage acceptée [0°, 90°] (voir bloc ci-dessus)
+window.CONFIG_COMPUTE.obliquityDeg = 23.44;           // 🏷️ OBS/CALIB (IAU 2009) — plage acceptée [0°, 90°] (voir bloc ci-dessus)
 
 // Valeurs par défaut des jauges fine-tuning (% ) : source unique window.DEFAULT.TUNING.baryByGroup (initDATA.js v1.3.1
 // copie ici dans CONFIG_COMPUTE.baryByGroupDefault après DATA['🎚️']). Ne pas dupliquer de littéraux dans ce fichier.
@@ -1135,7 +1256,10 @@ window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB
 window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
-// Extension tropopause radiative (× RT/Mg) : source unique DATA['🎚️'].RADIATIVE.factorTropopause (tuning.js).
+// factorTropopause : si radiativeFactorTropopauseFixed != null, valeur fixe (hors bary) écrite par tuning.js. Sinon (null) cible FINE_TUNING.
+window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed = 1.0261;       // [OBS/CALIB] ratio × RT/Mg, calage 13 % SCIENCE sans coupler les 4 cibles. null = rétablir interpolation bary.
+// Extension tropopause : DATA['🎚️'].RADIATIVE.factorTropopause. false = ×1.
+window.CONFIG_COMPUTE.useFactorTropopause = true;                    // [OBS/CALIB] true = × factorTropopause (ATM.calculateTropopauseHeight) ; false = échelle RT/Mg seule.
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
@@ -1149,17 +1273,11 @@ window.CONFIG_COMPUTE.cycleTolAlbedo = 1e-4;                       // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolVapor = 1e-6;                        // [EQ/NUM]
 // Spin-up climatologique avant solver radiatif (cycles eau/albédo avant convergence). Confirmé >= 0 entier.
 // v1.4.17 : réduit 8→1 (les 8 palliaient le bug H2O=0 à Init, désormais corrigé par calculateH2OParameters() avant calculateFluxForT0()).
-window.CONFIG_COMPUTE.climateSpinupCycles = Math.max(0, Math.floor(1)); // [EQ/NUM]
+window.CONFIG_COMPUTE.climateSpinupCycles = 1;                         // [EQ/NUM]
 // Cycles eau/albédo par pas radiatif (1 = même résultat visu/scie 16.4°C 2025 ; 2 = visu peut dériver albédo → 15.2°C)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep = 1;             // [EQ/NUM]
 // Cycles eau/albédo à l'Init uniquement (T fixe)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit = 1;              // [EQ/NUM]
-// Rampe glace en convergence : step nominal et step renforcé sur les premières itérations Search
-window.CONFIG_COMPUTE.freezePolarIceDuringSearch = true;               // [EQ/NUM] true = stabilise le run direct ; hystérésis déverrouille via HYSTERESIS.active.
-window.CONFIG_COMPUTE.iceCoverageRampMaxStep = 0.004;              // [EQ/NUM]
-window.CONFIG_COMPUTE.iceCoverageRampEarlyIters = 10;              // [EQ/NUM]
-window.CONFIG_COMPUTE.iceCoverageRampMaxStepEarly = 0.001;         // [EQ/NUM]
-
 // Catégorie à part : overrides debug/patch (pas dans CONFIG_COMPUTE).
 window.OVERRIDES = window.OVERRIDES || {};
 // Désactivé par défaut :
@@ -1197,11 +1315,18 @@ window.CONFIG_COMPUTE.spectralEdsSunStackLiftPx = 26;
 window.CONFIG_COMPUTE.spectralBandLogoImgPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoEmojiPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoImgPxByEmoji = {};
-// Logs diagnostics
-window.CONFIG_COMPUTE.logIceFixedDiagnostic = true;
+// Logs diagnostics (défaut false — éviter spam console / ralentissement ; true pour debug ponctuel)
+window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
 // true : une ligne par calculateAlbedo (T, mer gelée, facteur polaire, cibles, verrous hyst, 🍰🪩🧊 après normalisation surfaces)
-window.CONFIG_COMPUTE.logIceFractionDiagnostic = true;
-window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = true;
-window.CONFIG_COMPUTE.logCloudProxyDiagnostic = true;
-window.CONFIG_COMPUTE.logIrisDiagnostic = true;
+window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
+window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
+window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
+window.CONFIG_COMPUTE.logIrisDiagnostic = false;
+// pdTrace Henry (CO₂ océan-atmosphère) : load / NO-OP / APPLY
+window.CONFIG_COMPUTE.logCo2PartitionDiagnostic = false;
+// Fichiers _logs/ (post /_log) : true = miroir panneau hyst (appendLog) → hyst.txt ; true = blocs epoch compare → epoch.txt. Pas de ?debug= requis ; setTopic(…, { reset: false }).
+window.CONFIG_COMPUTE.logHystPanelToFile = true;
+window.CONFIG_COMPUTE.logEpochCompareToFile = true;
+// Instantané JSON [REPRO] (masses, atmos, surfaces, 🎚️, ligne TIMELINE, hyst) — miroir hyst + epoch, diff entre parcours
+window.CONFIG_COMPUTE.logReproComparableState = true;
 
