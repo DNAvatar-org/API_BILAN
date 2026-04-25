@@ -1,8 +1,15 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.2.0
+// Version 1.2.5
 // Date: [April 25, 2026]
 // logs :
+// - v1.2.5: miroir debugMirrorConfigLogToFile('logCo2RadiativeDiagnostic', …) → _logs/co2Rad.txt
+// - v1.2.4: factorTropopause — si DATA[🎚️] non fini, reprise CONFIG_COMPUTE.radiativeFactorTropopauseFixed (sinon 1), pas throw
+//   (pages scie/hyst fillDataTuningFromBary sans tuning.js corrigées v1.0.11 — baryByGroup.RADIATIVE absent).
+// - v1.2.3: calculateTropopauseHeight — throw si useFactorTropopause et factorTropopause absent/non fini (Number(undefined)
+//   → f=NaN → z_trop NaN, OLR NaN, bench/hyst "sortant_olr=NaN"). Même contrat explicite sur g (TIMELINE[👉].🍎) et 🫧.🧪.
+// - v1.2.2: doc useFactorTropopause — défaut config true (FINE_TUNING 1,03–1,00) ; false = hauteur = échelle RT/Mg × 1.
+// - v1.2.1: calculateTropopauseHeight — CONFIG_COMPUTE.useFactorTropopause (défaut false) : si false, pas de × factorTropopause (patch jauge) ; hauteur = échelle RT/Mg seule.
 // - v1.2.0: calculateTropopauseHeight lit DATA['🎚️'].RADIATIVE.factorTropopause (FINE_TUNING_BOUNDS SCIENCE / tuning.js).
 // - v1.1.9: calculateTropopauseHeight = hauteur radiative effective RT/Mg × facteur d'extension (ex-CONFIG 1,03).
 //   Ce n'est pas la tropopause WMO stricte ; c'est la coupure thermique effective du modèle spectral 0D/1D.
@@ -212,10 +219,13 @@ function calculateAtmosphereComposition() {
         const P = DATA['⚖️'] || {};
         const mCo2 = isFinite(P['⚖️🏭']) ? P['⚖️🏭'] : 0;
         const frac = Number(DATA['🫧']['🍰🫧🏭']);
-        console.log('🔎 DIAG CO2:',
-            '⚖️🏭=', mCo2.toExponential(3),
-            '🍰🫧🏭=', (Number.isFinite(frac) ? frac.toExponential(6) : String(frac)),
-            'ppm=', (Number.isFinite(frac) ? (frac * 1e6).toFixed(1) : 'n/a'));
+        const mAtm = '🔎 DIAG CO2: ⚖️🏭= ' + mCo2.toExponential(3)
+            + ' 🍰🫧🏭= ' + (Number.isFinite(frac) ? frac.toExponential(6) : String(frac))
+            + ' ppm= ' + (Number.isFinite(frac) ? (frac * 1e6).toFixed(1) : 'n/a');
+        console.log(mAtm);
+        if (typeof window.debugMirrorConfigLogToFile === 'function') {
+            window.debugMirrorConfigLogToFile('logCo2RadiativeDiagnostic', mAtm);
+        }
     }
 
     return true;
@@ -239,11 +249,41 @@ function updateAtmosphereHeightFromCurrentT() {
 function calculateTropopauseHeight() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const idx = DATA['📜']['👉'];
+    const EPOCH = window.TIMELINE[idx];
     const atm_mass = (DATA['⚖️'] && DATA['⚖️']['⚖️🫧']) ? DATA['⚖️']['⚖️🫧'] : 0;
     if (atm_mass <= 0) return 0;
-    const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
-    return scale_height_m * Number(DATA['🎚️'].RADIATIVE.factorTropopause);
+    if (!EPOCH) {
+        throw new Error('[calculateTropopauseHeight] TIMELINE[' + idx + '] absent (📜.👉 incohérent)');
+    }
+    const g0 = EPOCH['🍎'];
+    if (typeof g0 !== 'number' || !Number.isFinite(g0) || g0 <= 0) {
+        throw new Error('[calculateTropopauseHeight] TIMELINE[' + idx + '].🍎 requis (fini, >0) — reçu ' + g0 + ' (époque ' + EPOCH['📅'] + ')');
+    }
+    const mMu = DATA['🫧']['🧪'];
+    if (typeof mMu !== 'number' || !Number.isFinite(mMu) || mMu <= 0) {
+        throw new Error('[calculateTropopauseHeight] 🫧.🧪 (masse molaire air) requise, finie >0 — reçu ' + mMu + ' (lancer calculateAtmosphereComposition / initForConfig d’abord)');
+    }
+    const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (mMu * g0);
+    if (!Number.isFinite(scale_height_m) || scale_height_m < 0) {
+        throw new Error('[calculateTropopauseHeight] échelle RT/Mg non finie — T=' + DATA['🧮']['🧮🌡️'] + ' mMu=' + mMu + ' g=' + g0);
+    }
+    const cc = window.CONFIG_COMPUTE;
+    let f = 1;
+    if (cc && cc.useFactorTropopause === true) {
+        const o = DATA['🎚️'] && DATA['🎚️'].RADIATIVE;
+        let v = o && o.factorTropopause;
+        if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) {
+            v = (cc.radiativeFactorTropopauseFixed != null && Number.isFinite(cc.radiativeFactorTropopauseFixed))
+                ? cc.radiativeFactorTropopauseFixed : 1;
+        }
+        f = v;
+    }
+    const h = scale_height_m * f;
+    if (!Number.isFinite(h) || h < 0) {
+        throw new Error('[calculateTropopauseHeight] hauteur effective non finie (scale_m=' + scale_height_m + ' f=' + f + ')');
+    }
+    return h;
 }
 
 function pressureAtZ(z) {

@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.23 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.43 — Sturtienne [5,15], Snowball [-60,-50], P/T [21,32], Méso [21,31].
+  Version 1.0.22 — 2026-04-25 : BENCH_LIT Protérozoïque [0,15]°C (début 2.5 Ga, configTimeline v1.4.42).
+  Version 1.0.21 — 2026-04-25 : BENCH_LIT Archéen [5,25]°C (configTimeline v1.4.41).
   Version 1.0.20 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.39 — Archéen [15,45]°C ; Sturtienne [5,20]°C.
   Version 1.0.19 — 2026-04-25 : ?debugBench=1 → window.DEBUG_BENCH_LOG + DEBUG.setTopic('bench') ; benchLogRun (fin d’époque + synthèse) → _logs/bench.txt.
   Version 1.0.18 — 2026-04-23 : benchSyncBaryFromConfigCompute copie aussi ATM ; SOLVER seulement si défini dans baryByGroupDefault (initDATA v1.3.1 = ref unique % avec CONFIG miroir).
@@ -498,16 +501,16 @@ var BENCH_M_ATM_REF_KG = 5.148e18;
 var BENCH_LIT_BY_EPOCH_ID = {
     '\u26ab': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
     '\u{1F525}': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
-    /* 🦠 Archéen : plage T large mais resserrée ; voir note configTimeline.js */
-    '\u{1F9A0}': { tC: [15, 45], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
-    '\u{1FAB8}': { tC: [5, 20], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
-    'hysteresis 1a': { tC: [5, 20], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
-    '\u26c4': { tC: [-60, -20], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
+    /* 🦠 Archéen : plage tempérée froide/modérée ; voir note configTimeline.js */
+    '\u{1F9A0}': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
+    '\u{1FAB8}': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
+    'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
+    '\u26c4': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
     'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
     '\u{1FABC}': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
     '\u{1F344}': { tC: [15, 25], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
-    '\u{1F480}': { tC: [20, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
-    '\u{1F995}': { tC: [20, 30], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
+    '\u{1F480}': { tC: [21, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
+    '\u{1F995}': { tC: [21, 31], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
     '\u{1F9A4}': { tC: [12, 22], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
     '\u{1F40A}': { tC: [20, 28], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
     '\u{1F3D4}': { tC: [12, 18], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
@@ -914,6 +917,7 @@ function statusHtml(s) {
     if (!s) return '<span class="status-run">\u23f3 calcul\u2026</span>';
     if (s === 'converged') return '<span class="status-ok">\u2705 converged</span>';
     if (s === 'max_iter')  return '<span class="status-warn">\u26a0\ufe0f max_iter</span>';
+    if (s === 'oscillation') return '<span class="status-warn">\u21c4 oscillation (yoyo)</span>';
     if (s === 'crash' || (typeof s === 'string' && s.indexOf('crash:') === 0)) {
         return '<span class="status-err">\u274c ' + String(s) + '</span>';
     }

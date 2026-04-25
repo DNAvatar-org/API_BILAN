@@ -490,7 +490,6 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '🌋': { '🔺🍰⚽': 0.02 },
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
         },
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -530,7 +529,7 @@ const timeline = [
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
         // c'est la recherche hystérésis (scie_hysteresis_search.js) qui descend jusque-là, pas ce baseline.
-        '⚖️🏭': 4.801e+14,//'⚖️🏭': 8.594e+14,
+        '⚖️🏭': 4.801e14,//'⚖️🏭': 8.594e+14,
         // CH₄ : 2.0e13 kg = 7 ppm. Post-GOE (après 2.4 Ga) l'atmosphère oxygénée détruit le CH₄ rapidement.
         // Fourchette lit. Néoprotérozoïque : 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         // Corrigé v1.4.29 : était 1.0e14 kg (35 ppm, trop haut, borne sup. extrême).
@@ -545,7 +544,7 @@ const timeline = [
         // Rend le run direct contractuel sans fallback côté calcul.
         '⚖️✈': 1.0e12,
         '⚖️💨': 5.142979e18,
-        '🕰': { '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 } },
+        '🕰': { '🌋': { '🔺🍰⚽': 0.02, '🔺⏳': 30 }},
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
         // faibles émissions DMS (même ordre que ⛄). ~5% moderne.
@@ -577,15 +576,15 @@ const timeline = [
 // Époque active (📜.🗿) au moment de l’export : hysteresis 1a.
 // Coller dans API_BILAN/config/configTimeline.js : remplacer l'objet entier { '📅': '⛄', … } par ce bloc, puis recharger.
 
-{
+{//"⛄"
     "📅": "⛄",
-    "▶": 720000000,
-    "◀": 690000000,
+    "▶": 72e7,
+    "◀": 69e7,
     "🌡️🧮": 270.0,
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
-    "🔋☀️": 3.592e+26,
-    "🔋🌕": 80000000000000,
+    "🔋☀️": 3.592e26,
+    "🔋🌕": 8e13,
     "📐": 6371,
     "🍎": 9.81,
     "📏🌊": 3.6,
@@ -595,10 +594,10 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🫧": 5150000000000000000,
-    "⚖️🏭": 457970390625000.06,
-    "⚖️🐄": 100000000000000,
-    "⚖️💧": 1.2e+21,
+    "⚖️🫧": 515e16,
+    "⚖️🏭": 45.797e13,
+    "⚖️🐄": 2e13,
+    "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     "⚖️✈": 1018000000000,
     "⚖️💨": 5132968982000000000,

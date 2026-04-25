@@ -3,9 +3,12 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.0.15
+// Version 1.0.18
 // Date: 2026-04-25
 // Logs:
+// - v1.0.18: RADIATIVE.factorTropopause — si CONFIG_COMPUTE.radiativeFactorTropopauseFixed != null, valeur fixe (hors bary SCIENCE) ; sinon interp. comme avant via atmPct.
+// - v1.0.17: doc factorTropopause — useFactorTropopause défaut true (config v1.4.50).
+// - v1.0.16: doc syncRadiativeConfig — factorTropopause appliqué seulement si CONFIG_COMPUTE.useFactorTropopause (ATM v1.2.1).
 // - v1.0.15: syncRadiativeConfig — commentaire RADIATIVE.factorTropopause (ATM, pas EARTH).
 // - v1.0.14: ATM obligatoire (crash-first). Suppression des fallbacks CLOUD_SW/SCIENCE quand ATM absent/invalide ; throw explicite.
 // - v1.0.13: bary ATM source unique (🎚️.baryByGroup.ATM). CLOUD_SW et SCIENCE sont forcés à la même valeur ATM dans applyBaryGroup/fillData/applyTuningPayload.
@@ -57,7 +60,7 @@
     /**
      * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
      * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
-     * factorTropopause : lu par ATM.calculateTropopauseHeight (pas de miroir EARTH).
+     * factorTropopause : lu par ATM.calculateTropopauseHeight si CONFIG_COMPUTE.useFactorTropopause===true (défaut true ; sinon multiplicateur 1).
      */
     function syncRadiativeConfig() {
         window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;
@@ -106,6 +109,12 @@
                 if (!T[ts.group]) T[ts.group] = {};
                 T[ts.group][ts.key] = interpolate(ts, pct);
             }
+            var bnds = window.FINE_TUNING_BOUNDS;
+            if (bnds && bnds.targets) applyRadiativeFactorTropopauseAtm(T, pct, bnds);
+            else if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed != null) {
+                if (!T.RADIATIVE) T.RADIATIVE = {};
+                T.RADIATIVE.factorTropopause = window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed;
+            }
             syncRadiativeConfig();
             return;
         }
@@ -120,8 +129,25 @@
 
     /**
      * Remplissage complet DATA['🎚️'].CLOUD_SW / .HYSTERESIS / .RADIATIVE depuis baryByGroup.
-     * Parcourt toutes les targets de FINE_TUNING_BOUNDS et interpole selon le baryGroup effectif.
+     * RADIATIVE.factorTropopause : fixe si CONFIG_COMPUTE.radiativeFactorTropopauseFixed, sinon interpolation sur atmPct (même jauge qu’ATM/SCIENCE).
      */
+    function applyRadiativeFactorTropopauseAtm(T, atmPct, bounds) {
+        if (!T.RADIATIVE) T.RADIATIVE = {};
+        var cc = window.CONFIG_COMPUTE;
+        if (cc && cc.radiativeFactorTropopauseFixed != null) {
+            T.RADIATIVE.factorTropopause = cc.radiativeFactorTropopauseFixed;
+            return;
+        }
+        for (var k = 0; k < bounds.targets.length; k++) {
+            var tR = bounds.targets[k];
+            if (tR.group === 'RADIATIVE' && tR.key === 'factorTropopause') {
+                var pct0 = clampPercent(requireFinitePercent(atmPct, 'baryByGroup.ATM+SCIENCE (factorTropopause)'));
+                T.RADIATIVE.factorTropopause = interpolate(tR, pct0);
+                return;
+            }
+        }
+    }
+
     function fillDataTuningFromBary() {
         var T = window.DATA['🎚️'];
         var bg = T.baryByGroup;
@@ -130,12 +156,14 @@
         if (!bounds || !bounds.targets) return;
         for (var i = 0; i < bounds.targets.length; i++) {
             var target = bounds.targets[i];
+            if (target.group === 'RADIATIVE' && target.key === 'factorTropopause') continue;
             var baryKey = target.baryGroup || target.group;
             var pctRaw = (baryKey === 'CLOUD_SW' || baryKey === 'SCIENCE') ? atmPct : bg[baryKey];
             var pct = clampPercent(requireFinitePercent(pctRaw, 'baryByGroup.' + baryKey));
             if (!T[target.group]) T[target.group] = {};
             T[target.group][target.key] = interpolate(target, pct);
         }
+        applyRadiativeFactorTropopauseAtm(T, atmPct, bounds);
         syncRadiativeConfig();
     }
 

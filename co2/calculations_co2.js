@@ -1,12 +1,15 @@
 // ============================================================================
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: En français, dans l'architecture, je suis le module de partition CO₂ (atmosphère ↔ océan) appelé par le cycle principal.
-// Version 1.2.1
+// Version 1.2.3
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
-// Date: [April 24, 2026]
+// Date: [April 25, 2026]
 // Logs:
+// - v1.2.3: miroir debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', …) (load, NO-OP, APPLY) → _logs/co2Partition.txt
+// - v1.2.2: pdTrace load / NO-OP / APPLY — uniquement si CONFIG_COMPUTE.logCo2PartitionDiagnostic === true
+//   (défaut false, configTimeline v1.4.53) ; évite spam console par pas Henry.
 // - v1.2.1: Ajout CONFIG_COMPUTE.co2OceanPartitionFactor01 comme multiplicateur contractuel de la
 //           partition CO₂ océan-atmosphère. 1 = comportement v1.2.0 ; 0 = test off strict via eff=0.
 // - v1.2.0: POMPE TOUJOURS ACTIVE (bench = visu). NO-OPs HYSTERESIS.active / co2OceanPartitionInRadiativeConvergence RETIRÉS.
@@ -29,9 +32,12 @@
 // - Make ratio_ref configurable (CONFIG_COMPUTE.co2OceanRatioRef)
 // ============================================================================
 
-// Log de chargement (permet de vérifier si l'inclusion du module change l'ordre ou overwrite des globals).
-// Crash-first: pdTrace() doit exister côté visu_ (chargé via static/debug.js).
-if (typeof window.pdTrace === 'function') window.pdTrace('load', 'calculations_co2.js', 'module loaded');
+// Log de chargement optionnel (ordre d'inclusion des scripts).
+if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2PartitionDiagnostic === true) {
+    const mLoad = 'load calculations_co2.js module loaded';
+    if (typeof window.pdTrace === 'function') window.pdTrace('load', 'calculations_co2.js', mLoad);
+    if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mLoad);
+}
 
 function calculateCO2Partition() {
     const DATA = window.DATA;
@@ -84,18 +90,20 @@ function calculateCO2Partition() {
     // Sinon, le simple "passage" dans la fonction peut créer une mémoire (⚖️🌊🏭) qui diverge entre visu_ et search.
     // v1.2.0 : eff peut être 0 via epochPumpFactor=0 (⚫ 🔥 🦠 ⛄) OU via base=0 (jauge fermée).
     if (effPump01 <= 0) {
-        if (typeof window.pdTrace === 'function') window.pdTrace(
-            'co2',
-            'calculations_co2.js',
-            'NO-OP eff=' + effPump01.toFixed(3)
+        if (CC.logCo2PartitionDiagnostic === true) {
+            const mNoop = 'NO-OP eff=' + effPump01.toFixed(3)
                 + ' base=' + effPumpBase.toFixed(3)
                 + ' epoch×=' + epochPumpFactor.toFixed(2)
                 + ' pump=' + pump01.toFixed(3)
                 + ' scale=' + scale01.toFixed(3)
                 + ' factor=' + partitionFactor01.toFixed(3)
                 + ' ep=' + epochId
-                + ' hasOceanWater=' + (hasOceanWater ? 1 : 0)
-        );
+                + ' hasOceanWater=' + (hasOceanWater ? 1 : 0);
+            if (typeof window.pdTrace === 'function') window.pdTrace('co2', 'calculations_co2.js', mNoop);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mNoop);
+            }
+        }
         return true;
     }
 
@@ -132,10 +140,8 @@ function calculateCO2Partition() {
         // IMPORTANT : On signale à l'UI et logique la proportion marine
         DATA['🌊']['⚖️🌊🏭'] = total_carbon_mass - new_mass_atm;
 
-        if (typeof window.pdTrace === 'function') window.pdTrace(
-            'co2',
-            'calculations_co2.js',
-            'APPLY eff=' + effPump01.toFixed(3)
+        if (CC.logCo2PartitionDiagnostic === true) {
+            const mApply = 'APPLY eff=' + effPump01.toFixed(3)
                 + ' base=' + effPumpBase.toFixed(3)
                 + ' epoch×=' + epochPumpFactor.toFixed(2)
                 + ' pump=' + pump01.toFixed(3)
@@ -145,8 +151,12 @@ function calculateCO2Partition() {
                 + ' T_K=' + T_curr.toFixed(2)
                 + ' ratio_T=' + ratio_T.toExponential(3)
                 + ' CO2_atm ' + old_mass_atm.toExponential(3) + '→' + new_mass_atm.toExponential(3)
-                + ' CO2_ocean=' + DATA['🌊']['⚖️🌊🏭'].toExponential(3)
-        );
+                + ' CO2_ocean=' + DATA['🌊']['⚖️🌊🏭'].toExponential(3);
+            if (typeof window.pdTrace === 'function') window.pdTrace('co2', 'calculations_co2.js', mApply);
+            if (typeof window.debugMirrorConfigLogToFile === 'function') {
+                window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mApply);
+            }
+        }
     }
 
     return true;
