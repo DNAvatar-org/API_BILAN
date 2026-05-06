@@ -1,8 +1,12 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.61
-// Date: [April 25, 2026]
+// Version 1.4.65
+// Date: [April 26, 2026]
 // logs :
+// - v1.4.65: 🕰.order — ⚫ séquence ☄️/💫/🎇 explicite + 💫 tic ; hysteresis 1a order ['🌋'] (SKIP masqué côté events).
+// - v1.4.64: ⛄ voile — racine 🔺🍰⚽ = impulsion entrée (−2 % soleil équivalent) ; 🍰⚽ uniquement dans 🕰.💫 (remise 📜 au clic 💫, events.js).
+// - v1.4.63: ⛄ — impulsion voile : 🔺🍰⚽ (entrée tic 0) + 🍰⚽ base (0) au même niveau que 📅 ; plus sous 🕰.💫 (compute.js lit EPOCH['🔺🍰⚽']).
+// - v1.4.62: ⛄ 🕰.💫.🔺🍰⚽ — impulsion voile SW à l’entrée (0.02) ; retirée au 1er tic (compute.js v1.0.14), pas dans events.js.
 // - v1.4.61: ⛄ — 🌡️🧮 + ⚖️🏭 = pas dicho **chaud** (📿=4, T≈−2,9 °C, 4,621e14 kg) ; v1.4.60 (210 K + 4,58e14 froid) corrigé.
 // - v1.4.60: ⛄ (Plein Snowball) — masses + 🌡️🧮 + 🗻 + 🌱/🧫/🌊🏭 + 🔒 segment hyst1a↔⛄ alignés sur le dernier pas froid dicho hyst 1a (≈📿🧮=8, T_conv≈−62,8 °C, SUCCESS) ; export TIMELINE copié depuis l’onglet hyst (scie_hyst_repro_state v1.1)
 // - v1.4.59: CONFIG_COMPUTE.logReproComparableState — une ligne [REPRO] (snapshot JSON) après convergence, alignée hyst / epoch (scie_hyst_repro_state.js)
@@ -261,15 +265,21 @@ const timeline = [
         '⚖️💨': 0, // n2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
-        // Événements interactifs (météorites uniquement Corps noir + Hadéen) ; 💫 = bouton timeline (logo)
+        // Événements interactifs : 🕰.order définit l’ordre des boutons (events.js) ; repli organigramme ACTION_BY_DATE si absent ailleurs.
         '🕰': {
+            'order': ['☄️', '💫', '☄️', '💫', '🎇'],
             '☄️': {
                 '🔺⚖️💧☄️': 3.2e17, // water_added_kg (~+10% d'albedo en ⚫ froid avec la formule actuelle)
                 '🔺⏳': 100,
             },
+            '💫': {
+                '🔺🌡️💫': 0,
+                '🔺⏳': 100,
+            },
             '🎇': {
-                '⏩': '🔥' // Transition vers Hadéen
-            }
+                '⏩': '🔥', // Transition vers Hadéen
+                '🔺⏳': 100,
+            },
         },
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
         // ⚫ Corps noir : pas d'océan, pas d'atmosphère, pas de vie → gate = 0 (tautologie).
@@ -544,7 +554,10 @@ const timeline = [
         // Rend le run direct contractuel sans fallback côté calcul.
         '⚖️✈': 1.0e12,
         '⚖️💨': 5.142979e18,
-        '🕰': { '🌋': { '🔺🍰⚽': 0.02, '🔺⏳': 30 }},
+        '🕰': {
+            'order': ['🌋'],
+            '🌋': { '🔺🍰⚽': 0.02, '🔺⏳': 30 },
+        },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
         // faibles émissions DMS (même ordre que ⛄). ~5% moderne.
@@ -578,6 +591,8 @@ const timeline = [
 
 {//"⛄"
     "📅": "⛄",
+    // Voile : racine 🔺🍰⚽ = impulsion à 📿💫===0 (compute) ; 🕰.💫.🍰⚽ = valeur 📜🔺🍰⚽ après chaque clic 💫 (events).
+    "🔺🍰⚽": 0.02,
     "▶": 72e7,
     "◀": 69e7,
     "🌡️🧮": 270.0,
@@ -636,7 +651,8 @@ const timeline = [
     "🕰": {
         "💫": {
             "🔺🌡️💫": 0,
-            "🔺⏳": 30
+            "🔺⏳": 30,
+            "🍰⚽": 0
         }
     },
     "🌱": 0,

@@ -1,9 +1,15 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.13
-// Date: [April 25, 2026]
+// Version 1.0.17
+// Date: [April 26, 2026]
 // logs :
+// - v1.0.17: getMasses/getEpochDateConfig — ignorer la clé 🕰.order (liste d’actions UI) lors des itérations sur les tics.
+// - v1.0.16: voile — impulsion seulement EPOCH['🔺🍰⚽'] (racine) à 📿💫===0 ; remise 📜🔺🍰⚽ au clic 💫 via 🕰.💫.🍰⚽ dans events.js.
+// - v1.0.15: impulsion voile — lire EPOCH['🔺🍰⚽'] (racine TIMELINE, même niveau que 📅), plus 🕰.💫.🔺🍰⚽.
+// - v1.0.14: getEpochDateConfig — impulsion voile TIMELINE : si 🕰.💫 définit la clé 🔺🍰⚽ (fraction 0–1),
+//   pose 📜🔺🍰⚽ à l’entrée (📿💫=0, une fois par « salve » tic 0) puis retire ce montant au premier tic (📿💫≥1) ;
+//   état interne 📜._veilTimelinePulseActive ; reset sur transition auto d’époque.
 // - v1.0.13: getEpochDateConfig — log 🏭📊 (console) retiré ; window._co2ProfileLog reste pour inspection manuelle
 //   (évite I/O console à chaque pas temps quand le profil est actif).
 // - v1.0.12: getEpochDateConfig — après bary, si 🕰['◀'] remplace un groupe par un out partiel, DATA['📅'] peut
@@ -105,7 +111,7 @@ function getMasses() {
         let deltaMassesTics = 0;
         if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
             for (const tk of Object.keys(EPOCH['🕰'])) {
-                if (tk === '🔀' || tk === '◀') continue;
+                if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
                 const cfg = EPOCH['🕰'][tk];
                 if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                     const cnt = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
@@ -151,7 +157,7 @@ function getEpochDateConfig() {
     let deltaYearsFromTics = 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
         for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀') continue;
+            if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
             const cfg = EPOCH['🕰'][tk];
             if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                 const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
@@ -171,6 +177,7 @@ function getEpochDateConfig() {
         DATA['📜']['👉'] = epochIndex + 1;
         DATA['📜']['📿💫'] = 0;
         DATA['📜']['📿☄️'] = 0;
+        DATA['📜']['_veilTimelinePulseActive'] = false;
         epochId = nextEpoch['📅'];
         epochIndex = epochIndex + 1;
         EPOCH = nextEpoch;
@@ -201,12 +208,25 @@ function getEpochDateConfig() {
     DATA['📜']['👉'] = epochIndex;
     DATA['📜']['🗿'] = epochId;
 
+    // Impulsion voile (racine TIMELINE) : EPOCH['🔺🍰⚽'] → 📜🔺🍰⚽ une fois à 📿💫===0 ; remise au clic 💫 : 🕰.💫.🍰⚽ (events.js).
+    if (Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')) {
+        const pulseVal = Number(EPOCH['🔺🍰⚽']);
+        const ticN = DATA['📜']['📿💫'];
+        const pulseActive = DATA['📜']['_veilTimelinePulseActive'] === true;
+        if (ticN === 0 && !pulseActive) {
+            DATA['📜']['🔺🍰⚽'] = pulseVal;
+            DATA['📜']['_veilTimelinePulseActive'] = true;
+        }
+    } else {
+        DATA['📜']['_veilTimelinePulseActive'] = false;
+    }
+
     // Rayon effectif : base EPOCH['📐'] + somme des deltas 🔺📐 par tic (générique ; ignorer 🕰['🔀'] et 🕰['◀'])
     const baseRadiusKm = EPOCH['📐'];
     let deltaRadiusKm = 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
         for (const ticKey of Object.keys(EPOCH['🕰'])) {
-            if (ticKey === '🔀' || ticKey === '◀') continue;
+            if (ticKey === '🔀' || ticKey === '◀' || ticKey === 'order') continue;
             const ticCfg = EPOCH['🕰'][ticKey];
             if (ticCfg && typeof ticCfg['🔺📐'] === 'number' && Number.isFinite(ticCfg['🔺📐'])) {
                 const count = (DATA['📜']['📿' + ticKey] != null && Number.isFinite(DATA['📜']['📿' + ticKey])) ? DATA['📜']['📿' + ticKey] : 0;
@@ -226,7 +246,7 @@ function getEpochDateConfig() {
     if (interpolKeys && interpolEnd) {
         let refDeltaMa = 0;
         for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀') continue;
+            if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
             const cfg = EPOCH['🕰'][tk];
             if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                 refDeltaMa = cfg['🔺⏳'];
