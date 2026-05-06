@@ -674,7 +674,7 @@ function calculateAlbedo() {
     //
     // Les nuages saturent vite : au-delà d'un certain seuil d'humidité, c'est l'optique — pas l'eau — qui limite leur effet
     let cloud_fraction = 0;
-    if (DATA['🔘']['🔘💧📛'] && DATA['💧']['🍰🫧💧'] > 0) {
+    if (DATA['💧']['🍰🫧💧'] > 0) {
         // 🔒 calculateCloudFormationIndex() a déjà été appelé plus haut (ligne ~262)
         // On réutilise DATA['🪩']['☁️'] déjà calculé
         const cloud_index = DATA['🪩']['☁️'];
@@ -855,10 +855,6 @@ function calculateCloudCoverage() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     
-    if (!DATA['🔘']['🔘💧📛']) {
-        return 0;
-    }
-
     // 🔒 REFONTE : calculateCloudCoverage() est maintenant DEPRECATED
     // Utiliser calculateCloudFormationIndex() + 🍰🪩⛅ = C_max × ☁️ à la place
     // Cette fonction est conservée pour compatibilité. Calculs en K (DATA officiel).

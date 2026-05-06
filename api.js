@@ -88,7 +88,6 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     if (config.animEnabled !== undefined && SYNC_STATE) SYNC_STATE.animEnabled = config.animEnabled;
     if (config.ticTime !== undefined && SYNC_STATE) SYNC_STATE.ticTime = config.ticTime;
     if (config.tuning) window.TUNING.applyTuningPayload(config.tuning);
-    window.COMPUTE.getEnabledStates();
     window.COMPUTE.getMasses();
     if (config.animEnabled === false) {
         DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];

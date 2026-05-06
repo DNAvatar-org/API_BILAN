@@ -89,7 +89,6 @@ function crossSectionH2O(wavelength) {
 
 function waterVaporFractionAtZ(z) {
     const DATA = window.DATA;
-    if (!DATA['🔘']['🔘💧📛']) return 0;
 
     // 🔒 Ne pas appeler calculateWaterPartition ici : appelé une fois par le caller (calculateH2OParameters avant calculateFluxForT0)
     // H_vap = R·T²/(L·Γ) — voir physics.js v2.0.12.
@@ -175,7 +174,6 @@ function crossSectionCH4(wavelength) {
 
 function methaneFractionAtZ(z) {
     const DATA = window.DATA;
-    if (!DATA['🔘']['🔘🐄📛']) return 0;
     if (!DATA['🫧']['🍰🫧🐄']) return 0;
     return DATA['🫧']['🍰🫧🐄'];
 }
@@ -968,10 +966,10 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     //   → C'est l'effet de serre : la surface est plus chaude que ce que le flux émis vers l'espace suggère
     //   → La différence (temp_surface - effective_temperature) mesure l'intensité de l'effet de serre
     // 
-    const h2o_enabled = DATA['🔘']['🔘💧📛'];
+    const h2o_enabled = true;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const geo_flux = EPOCH['🧲🌕'];
-    const ch4_enabled = DATA['🔘']['🔘🐄📛'];
+    const ch4_enabled = true;
     const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
 
     // ⚠️ CAS PARTICULIER : Corps noir (pas d'atmosphère, albedo = 0)
@@ -1133,7 +1131,7 @@ async function simulateRadiativeTransfer() {
     const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
     
     const t0_config = EPOCH['🌡️🧮'];
-    const animEnabled = DATA['🔘']['🔘🎞'];
+    const animEnabled = window.SYNC_STATE.animEnabled;
     // En mode anim : partir de la T0 actuelle du modèle (DATA = source unique, pas plotData)
     // En mode normal : partir de la T0 de référence de l'époque
     const baseTemp = animEnabled ? DATA['🧮']['🧮🌡️'] : t0_config;
@@ -1595,7 +1593,7 @@ async function simulateRadiativeTransfer() {
                             return;
                         }
                         // Recalculer delta_equilibre avec la nouvelle T0
-                        const solar_flux_absorbed_new = calculateSolarFluxAbsorbed(T0_current, DATA['🔘']['🔘💧📛'], geo_flux);
+                        const solar_flux_absorbed_new = calculateSolarFluxAbsorbed(T0_current, true, geo_flux);
                         const total_flux_in_new = solar_flux_absorbed_new + (geo_flux || 0);
                         delta_equilibre = final_result.total_flux - total_flux_in_new;
                         // Recalculer tolerance_current avec la nouvelle T0
@@ -1619,7 +1617,7 @@ async function simulateRadiativeTransfer() {
                             return;
                         }
                         // Recalculer delta_equilibre avec la nouvelle T0
-                        const solar_flux_absorbed_new = calculateSolarFluxAbsorbed(T0_current, DATA['🔘']['🔘💧📛'], geo_flux);
+                        const solar_flux_absorbed_new = calculateSolarFluxAbsorbed(T0_current, true, geo_flux);
                         const total_flux_in_new = solar_flux_absorbed_new + (geo_flux || 0);
                         delta_equilibre = final_result.total_flux - total_flux_in_new;
                         // Recalculer tolerance_current avec la nouvelle T0

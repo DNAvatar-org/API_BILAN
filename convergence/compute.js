@@ -57,23 +57,8 @@
 
 //Récupère les états activés (utilise DATA directement)
 function getEnabledStates() {
-    // Utiliser DATA directement (pas de paramètres)
-    const DATA = window.DATA;
-
-    // Source unique : organigramme flux-button-cell (cell-co2, cell-methane, cell-h2o, cell-albedo-btn)
-    const co2Cell = document.getElementById('cell-co2');
-    const ch4Cell = document.getElementById('cell-methane');
-    const h2oCell = document.getElementById('cell-h2o');
-    const albedoCell = document.getElementById('cell-albedo-btn');
-
-    DATA['🔘']['🔘💧📛'] = h2oCell ? h2oCell.classList.contains('checked') : true;
-    DATA['🔘']['🔘🐄📛'] = ch4Cell ? ch4Cell.classList.contains('checked') : true;
-    DATA['🔘']['🔘🏭📛'] = co2Cell ? co2Cell.classList.contains('checked') : true;
-    DATA['🔘']['🔘🪩'] = albedoCell ? albedoCell.classList.contains('checked') : true;
-    // Anim : source de vérité = DATA (bouton animation est normal, pas on/off)
-    DATA['🔘']['🔘🎞'] = DATA['🔘']['🔘🎞'] != null ? DATA['🔘']['🔘🎞'] : false;
-    
-    // Retourner true car DATA a été modifié
+    // API_BILAN ne pilote plus d'états toggle.
+    // Les modules CO2/CH4/H2O/ALBEDO sont toujours actifs.
     return true;
 }
 

@@ -270,7 +270,7 @@ function calculateT0() {
     // En mode anim : partir toujours de la T0 actuelle du modèle, même si previous est vide (nouveau run).
     // previous est réinitialisé à [] à chaque epoch (sync_panels.js:237), donc !isNewRun
     // était toujours false au premier calcul — le mode anim ne fonctionnait jamais.
-    if (DATA['🔘']['🔘🎞']) {
+    if (window.SYNC_STATE.animEnabled) {
         DATA['🧮']['🧮🌡️🚩'] = DATA['🧮']['🧮🌡️']; // anim : garder T0 actuel
     } else {
         const ticRaw = DATA['📜']['📿💫'];
@@ -283,7 +283,7 @@ function calculateT0() {
 
     if (!Number.isFinite(DATA['🧮']['🧮🌡️🚩']) || DATA['🧮']['🧮🌡️🚩'] <= 0) {
         console.error(`📛 [calculateT0] ❌ T0=${DATA['🧮']['🧮🌡️🚩']}`
-            + ` | 🔘🎞=${DATA['🔘']['🔘🎞']}`
+            + ` | animEnabled=${window.SYNC_STATE.animEnabled}`
             + ` | 📅🌡️🧮=${DATA['📅'] && DATA['📅']['🌡️🧮']}`
             + ` | 📅=${JSON.stringify(DATA['📅'] && Object.keys(DATA['📅']).slice(0,5))}`
             + ` | 📜🔺🌡️💫=${DATA['📜']['🔺🌡️💫']} 📜📿💫=${DATA['📜']['📿💫']}`
@@ -310,8 +310,8 @@ function calculateT0() {
     DATA['📛'] = null; // breakdown EDS par gaz (tau_i/tau dans calculateFluxForT0)
 
     // IMPORTANT: On met toujours à jour DATA['🧮']['🧮🌡️'] avec la valeur calculée
-    // Si animation activée (🔘🎞 = true) : T0_base a été lu depuis DATA['🧮']['🧮🌡️'] (ligne 43)
-    // Si animation désactivée (🔘🎞 = false) : T0 = DATA['📅']['🌡️🧮'] + adjustment (ligne 47)
+    // Si animation activée : T0_base est lu depuis DATA['🧮']['🧮🌡️'].
+    // Si animation désactivée : T0 = DATA['📅']['🌡️🧮'] + adjustment.
     // On doit mettre à jour DATA['🧮']['🧮🌡️'] pour que la convergence utilise cette nouvelle valeur
     // Pour la convergence, c'est TOUJOURS DATA['🧮']['🧮🌡️'] qui est utilisé
     DATA['🧮']['🧮🌡️'] = DATA['🧮']['🧮🌡️🚩'];
@@ -403,7 +403,6 @@ function initForConfig() {
     H2O._lastH2OParamsCache = null;
     H2O.calculateH2OParameters();
     if (phasePrev === 'Init') DATA['🧮']['🧮⚧'] = phasePrev;
-    COMPUTE.getEnabledStates();
     ALBEDO.calculateAlbedo();
     // Verrou glaciaire pour tout le solver de cette époque
     const hasAtmWaterSupport = (DATA['⚖️'] && DATA['⚖️']['⚖️🫧'] > 0 && DATA['⚖️']['⚖️💧'] > 0);
@@ -571,7 +570,6 @@ async function cycleDeLeau(isFirst) {
     }
     
     if (window.ABORT_COMPUTE) return { changed: false };
-    COMPUTE.getEnabledStates();
     // Premier cycle : pas de calculatePrecipitationFeedback (comme la 1re itération Search)
     if (!isFirst) window.H2O.calculatePrecipitationFeedback();
     ALBEDO.calculateAlbedo();
@@ -750,7 +748,6 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮⚧'] = 'Search';
     H2O._lastH2OParamsCache = null;
     H2O.calculateH2OParameters();
-    window.COMPUTE.getEnabledStates();
     window.ALBEDO.calculateAlbedo();
     DATA['🧮']['🧮⚧'] = phaseBeforeFirstFlux;
 
@@ -882,7 +879,6 @@ async function computeRadiativeTransfer(callback, options) {
         const maxWaterAlbedo = CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep;
         if (maxWaterAlbedo <= 1) {
             window.H2O.calculateH2OParameters();
-            window.COMPUTE.getEnabledStates();
             window.ALBEDO.calculateAlbedo();
             if (DATA['🧮']['🧮🔄🪩'] == null) DATA['🧮']['🧮🔄🪩'] = DATA['🧮']['🧮🔄🌊'];
             const T_C_oneStep = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
@@ -1168,7 +1164,6 @@ async function computeRadiativeTransfer(callback, options) {
             const T_crossing_C = T_next_K - CONST.KELVIN_TO_CELSIUS;
             DATA['🧮']['🧮🔄☀️']++;
             window.H2O.calculateH2OParameters();
-            window.COMPUTE.getEnabledStates();
             window.ALBEDO.calculateAlbedo();
             await window.calculateFluxForT0();
             window.RADIATIVE.calculateRadiativeCapacities();
@@ -1339,7 +1334,7 @@ async function computeRadiativeTransfer(callback, options) {
 
         var payload = { iteration: DATA['🧮']['🧮🔄☀️'] - 1, T0: DATA['🧮']['🧮🌡️'], total_flux: spectral_result.total_flux, phase: phaseForStep };
         if (callback) callback('cycleCalcul', payload);
-        var showSteps = DATA['🔘']['🔘🎞'] && window.isVisuPanelActive();
+        var showSteps = window.SYNC_STATE.animEnabled && window.isVisuPanelActive();
         if (showSteps) {
             /*
              * ================================================================
