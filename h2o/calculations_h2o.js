@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.24
-// Date: [April 25, 2026]
+// Version 1.0.27
+// Date: [May 06, 2026]
 // logs :
+// - v1.0.27: époque ⚫ (Corps noir) — toujours branche sans atmosphère (TIMELINE ⚖️🫧=0) même si DATA['⚖️']['⚖️🫧'] résiduel >0 ; évite 🍰💧🧊 ~74 % « climat » au premier rendu.
+// - v1.0.26: ⚖️🫧=0 — après partition, RUNTIME.h2oIceFractionFromCalculation = 🍰💧🧊 (aligné affichage / globe ; évite fraction climat résiduelle).
+// - v1.0.25: ⚖️🫧=0 + eau météorites + T<0°C — 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) (CONFIG_COMPUTE) ; fini 🍰💧🧊=1 d’un coup.
 // - v1.0.24: miroir debugMirrorConfigLogToFile — logIrisDiagnostic → iris.txt, logEdsDiagnostic (cap H2O) → eds.txt
 // - v1.0.23: verrou lockIceInSolver supprimé (user: "virer le verrou tout le temps"). Plus de branche `if (lockIceInSolver)` figeant 🍰💧🧊/🍰💧🌊 en Search/Dicho : la glace suit désormais 🧮🌡️ à chaque pas (même branches qu'en Init). Conséquence : le feedback T→glace opère dans le scan hystérésis ⛄ (fix figeage 🍰💧🧊=0.006). Le pilotage temporalité millénaire est assuré en amont par calculations_albedo.js v1.2.53 (blend dt via CONFIG_COMPUTE.iceBlendRelaxation01).
 // - v1.0.22: (doc-only relais) physics.js v2.0.15 — EARTH.computeIceTempFactor intègre désormais 3 zones (pol+mid+trop). h2o utilise uniquement `_iceTF_h2o.tf_pol` (cap calottes polaires 10%), inchangé. Le passage à 3 zones n'affecte donc pas ce module. Bloc gel océan (T < T_FREEZE) toujours géré ici.
@@ -141,22 +144,33 @@ function calculateWaterPartition() {
     const STATE = window.STATE;
     const ALBEDO = window.ALBEDO;
 
-    if (DATA['⚖️']['⚖️🫧'] == 0) {
+    // ⚫ TIMELINE : pas d’atmosphère. Si ⚖️🫧 n’est pas encore resynchronisé (résidu d’époque précédente),
+    // le test ⚖️🫧==0 seul laissait passer la branche « atmosphère complète » → 🍰💧🧊 ~70–75 % à froid.
+    const epochIdH2o = DATA['📜'] && DATA['📜']['🗿'];
+    const isCorpsNoirTimeline = epochIdH2o === '⚫';
+    const atmMassKg = DATA['⚖️'] && DATA['⚖️']['⚖️🫧'];
+    if (!atmMassKg || atmMassKg === 0 || isCorpsNoirTimeline) {
         DATA['💧']['🍰🧮🌧'] = 0;
         DATA['💧']['🍰🫧💧'] = 0;
         if (DATA['⚖️']['⚖️💧'] <= 0) {
             DATA['💧']['🍰💧🧊'] = 0;
             DATA['💧']['🍰💧🌊'] = 0;
+            window.RUNTIME_STATE.h2oIceFractionFromCalculation = DATA['💧']['🍰💧🧊'];
             return true;
-        }else
-        // Corps noir (ou sans atmosphère) avec eau météorites : toute l'eau en glace si T < 0°C, sinon océan (didactique)
+        } else
+        // Corps noir (ou sans atmosphère) avec eau météorites : glace si T < 0°C, stock borné + lié à ⚖️💧 (didactique)
         if (DATA['🧮']['🧮🌡️'] < CONST.T0_WATER) {
-            DATA['💧']['🍰💧🧊'] = 1;
-            DATA['💧']['🍰💧🌊'] = 0;
+            const M_ref = window.CONFIG_COMPUTE.earthTotalWaterMassKg;
+            const cap = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01;
+            const perPAL = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL;
+            const pal = M_ref > 0 ? DATA['⚖️']['⚖️💧'] / M_ref : 0;
+            DATA['💧']['🍰💧🧊'] = Math.min(cap, pal * perPAL);
+            DATA['💧']['🍰💧🌊'] = Math.max(0, 1 - DATA['💧']['🍰💧🧊']);
         } else {
             DATA['💧']['🍰💧🧊'] = 0;
             DATA['💧']['🍰💧🌊'] = 1;
         }
+        window.RUNTIME_STATE.h2oIceFractionFromCalculation = DATA['💧']['🍰💧🧊'];
         return true;
     }
     

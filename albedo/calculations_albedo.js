@@ -1,8 +1,9 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.57
-// Date: [April 25, 2026]
+// Version 1.2.58
+// Date: [May 06, 2026]
 // logs :
+// - v1.2.58: blend 🍰💧🧊 ← calcGlaceEquilibre uniquement si atm+hydro (⚖️🫧>0, ⚖️💧>0) et époque ≠ ⚫ — sinon écrasait la partition H₂O (~72 % à 255 K pour Corps noir sans eau).
 // - v1.2.57: miroir debugMirrorConfigLogToFile pour logIceFractionDiagnostic / logCloudProxyDiagnostic → _logs/iceFraction.txt, cloudProxy.txt
 // - v1.2.56: pdTrace SEA_ICE_BLEND — même garde que logIceFractionDiagnostic (défaut false config v1.4.52) ; évite 🔍
 //   [alb] à chaque calculateAlbedo quand les longs messages 🧊 sont déjà off.
@@ -270,7 +271,16 @@ function calculateAlbedo() {
     const fraction_fonte = (tau_eff > 0) ? (1 - Math.exp(-duree_ans / tau_eff)) : 1;
     const T_for_equil = (Number.isFinite(DATA['🧮']['🧮🌡️']) && DATA['🧮']['🧮🌡️'] > 0) ? DATA['🧮']['🧮🌡️'] : EPOCH['🌡️🧮'];
     const glace_equilibre = calcGlaceEquilibre(T_for_equil);
-    DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, DATA['💧']['🍰💧🧊'] * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
+    // calcGlaceEquilibre modélise mer/océan gelé (→ ~0,72 à T≈255 K). Sans atmosphère ou sans eau, ou en ⚫,
+    // la partition vapeur/glace/liquide est portée par calculations_h2o.calculateWaterPartition uniquement.
+    const _epochIdAlb = DATA['📜'] && DATA['📜']['🗿'];
+    const applyIceStockBlend =
+        _epochIdAlb !== '⚫' &&
+        DATA['⚖️']['⚖️🫧'] > 0 &&
+        DATA['⚖️']['⚖️💧'] > 0;
+    if (applyIceStockBlend) {
+        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, DATA['💧']['🍰💧🧊'] * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
+    }
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
     ALBEDO.calculateGeologySurfaces();
     

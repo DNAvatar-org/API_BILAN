@@ -1,8 +1,11 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.65
-// Date: [April 26, 2026]
+// Version 1.4.68
+// Date: [May 06, 2026]
 // logs :
+// - v1.4.68: 🛖 Holocène — ▶ = −10000 (10 ka BP affiché −10000 sur la frise ; physique inchangée via timelineDeltaYearsToStartMa).
+// - v1.4.67: CONFIG_COMPUTE.logAlbedoUiDiagnostic — miroir logs/albedoUi.txt (POST /_log) + window.__ALBEDO_UI_LOG ; debug % glace panneau Corps noir.
+// - v1.4.66: CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01 / noAtmosphereMeteoriteIcePerPAL — glace ⚫ (sans atm) bornée + liée à ⚖️💧 (h2o v1.0.25).
 // - v1.4.65: 🕰.order — ⚫ séquence ☄️/💫/🎇 explicite + 💫 tic ; hysteresis 1a order ['🌋'] (SKIP masqué côté events).
 // - v1.4.64: ⛄ voile — racine 🔺🍰⚽ = impulsion entrée (−2 % soleil équivalent) ; 🍰⚽ uniquement dans 🕰.💫 (remise 📜 au clic 💫, events.js).
 // - v1.4.63: ⛄ — impulsion voile : 🔺🍰⚽ (entrée tic 0) + 🍰⚽ base (0) au même niveau que 📅 ; plus sous 🕰.💫 (compute.js lit EPOCH['🔺🍰⚽']).
@@ -1045,7 +1048,7 @@ const timeline = [
     {// Holocène 🛖
         '📅': '🛖',
         '⛄': 0.105,
-        '▶': 10e3,
+        '▶': -10000,
         '◀': 1800,
         // 🌡️🧮 : milieu grille CSV Holocène [13,15]°C → 287.15 K.
         '🌡️🧮': 287.15,
@@ -1278,6 +1281,9 @@ window.CONFIG_COMPUTE.useFactorTropopause = true;                    // [OBS/CAL
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
+// Sans atmosphère (⚫) : stock glace didactique 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) — pas 100 % d’un coup.
+window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01 = 0.1;         // plafond 10 % de l’inventaire « phase glace »
+window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL = 100;        // × fraction PAL eau (~1 clic ☄️ → ~2–3 %)
 
 // ===================== [EQ/NUM] =====================
 window.CONFIG_COMPUTE.maxRadiatifIters = 101;                      // [EQ/NUM]
@@ -1342,6 +1348,8 @@ window.CONFIG_COMPUTE.logCo2PartitionDiagnostic = false;
 // Fichiers _logs/ (post /_log) : true = miroir panneau hyst (appendLog) → hyst.txt ; true = blocs epoch compare → epoch.txt. Pas de ?debug= requis ; setTopic(…, { reset: false }).
 window.CONFIG_COMPUTE.logHystPanelToFile = true;
 window.CONFIG_COMPUTE.logEpochCompareToFile = true;
+// Panneau organigramme (breakdown albedo_percents, Corps noir vs surfaces 🪩) → bilan_radiatif/logs/albedoUi.txt si serveur tools/server.py v1.3+ ; sinon window.__ALBEDO_UI_LOG
+window.CONFIG_COMPUTE.logAlbedoUiDiagnostic = true;
 // Instantané JSON [REPRO] (masses, atmos, surfaces, 🎚️, ligne TIMELINE, hyst) — miroir hyst + epoch, diff entre parcours
 window.CONFIG_COMPUTE.logReproComparableState = true;
 
