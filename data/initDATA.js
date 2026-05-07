@@ -5,9 +5,10 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.6
-// Date: [April 25, 2026]
+// Version 1.3.7
+// Date: [May 07, 2026]
 // Logs:
+// - v1.3.7: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 45 % (flou scientifique / jauge titre visu).
 // - v1.3.6: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 13 % (calage utilisateur flou) ; miroir CONFIG_COMPUTE.baryByGroupDefault.
 // - v1.3.5: RADIATIVE.factorTropopause = 1,0261 (aligné CONFIG_COMPUTE.radiativeFactorTropopauseFixed, hors bary).
 // - v1.3.4: doc RADIATIVE.factorTropopause — plage FINE_TUNING resserrée 1,03–1,00 (v1.3.9) ; défaut numérique 1,03 inchangé.
@@ -50,8 +51,8 @@
     window.DEFAULT = window.DEFAULT || {};
 
     window.DEFAULT.TUNING = {
-        // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9).
-        baryByGroup: { ATM: 13, CLOUD_SW: 13, SCIENCE: 13, HYSTERESIS: 100 },
+        // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9) — flou scientifique (titre visu).
+        baryByGroup: { ATM: 45, CLOUD_SW: 45, SCIENCE: 45, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {

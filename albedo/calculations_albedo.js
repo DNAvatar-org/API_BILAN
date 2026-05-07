@@ -1,8 +1,24 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.58
-// Date: [May 06, 2026]
+// Version 1.2.59
+// Date: [May 07, 2026]
 // logs :
+// - v1.2.59: blend dt invariant aux itérations Search/Dicho + couplage masse↔surface optique de glace.
+//   PROBLÈME (cas 1800 → 21°C en 33 iter) : (a) le blend dt sur 🍰💧🧊 (ligne 282) lisait DATA['💧']['🍰💧🧊']
+//   *courant* à chaque appel — appliqué N=33 fois, le τ effectif passait de 50 000 ans (config) à ~1 500 ans,
+//   incohérent avec Marshall & Clark 2002 GRL 29(24):2214 (τ continental ~10⁴–10⁵ ans) ; (b) 🍰🪩🧊 (surface
+//   optique, ligne 411) écrasé directement par ice_temp_factor pur-en-T, sans inertie : reculait 3.6× plus
+//   vite que la masse (🍰💧🧊), ce qui viole la chaleur latente de fusion (Hansen et al. 2013 Phil. Trans.
+//   R. Soc. A 371:20120294 — séparation feedbacks rapides vapeur/clouds vs lents calotte).
+//   FIX : (1) snapshot ANCRÉ SUR EPOCH['🌡️🧮'] (T seed config) à chaque 🧮⚧ === 'Init' — repère
+//   calibration-stable, indépendant du parcours utilisateur (clic timeline vs bench séquentiel donnaient
+//   des résultats différents si le snapshot lisait DATA leaké de l'époque précédente). Le blend lit FROM
+//   snapshot pendant Search/Dicho → résultat invariant au nombre d'itérations numériques. (2) 🍰🪩🧊
+//   blendée avec même fraction_fonte que 🍰💧🧊 — la surface optique ne peut pas reculer plus vite que
+//   la masse ne fond. ⛄ scan hystérésis : feedback T→glace via le terme cible glace_equilibre(T_courant)
+//   du blend (Pierrehumbert 2005), snapshot reste ancré T_seed. Réfs : Pierrehumbert 2005 JGR 110:D01111 (feedback glace-albédo
+//   doit suivre T dans la branche froide), Marshall & Clark 2002 GRL (τ géologique calotte), Hansen et al.
+//   2013 PTRSA (séparation timescales).
 // - v1.2.58: blend 🍰💧🧊 ← calcGlaceEquilibre uniquement si atm+hydro (⚖️🫧>0, ⚖️💧>0) et époque ≠ ⚫ — sinon écrasait la partition H₂O (~72 % à 255 K pour Corps noir sans eau).
 // - v1.2.57: miroir debugMirrorConfigLogToFile pour logIceFractionDiagnostic / logCloudProxyDiagnostic → _logs/iceFraction.txt, cloudProxy.txt
 // - v1.2.56: pdTrace SEA_ICE_BLEND — même garde que logIceFractionDiagnostic (défaut false config v1.4.52) ; évite 🔍
@@ -278,8 +294,45 @@ function calculateAlbedo() {
         _epochIdAlb !== '⚫' &&
         DATA['⚖️']['⚖️🫧'] > 0 &&
         DATA['⚖️']['⚖️💧'] > 0;
+    // v1.2.59 — Snapshot pré-Search ANCRÉ SUR LA T SEED DE L'ÉPOQUE (EPOCH['🌡️🧮']), pas sur l'état leaké
+    // de DATA (qui dépend de l'ordre d'arrivée : clic timeline vs bench séquentiel → calibration cassée).
+    // Le snapshot représente "état glace que l'époque hériterait si elle démarrait à sa T config" — repère
+    // calibration-stable, indépendant du parcours utilisateur. Le blend lit FROM snapshot pendant Search/
+    // Dicho ; N appels successifs donnent le MÊME résultat à T courante donnée. Donc fraction_fonte =
+    // 1 - exp(-duree_ans/tau_eff) représente bien le pas géologique (◀-▶ ans), pas un pas numérique.
+    // Pour le scan hystérésis ⛄, chaque pas CO₂ remet 🧮⚧='Init' → snapshot reste = glace_eq(T_seed) ;
+    // le feedback T→glace dans la branche froide (Pierrehumbert 2005 JGR 110:D01111) opère via la cible
+    // glace_equilibre(T_courant) dans le terme de droite du blend.
+    const phaseAlb = DATA['🧮'] && DATA['🧮']['🧮⚧'];
+    if (phaseAlb === 'Init') {
+        const T_seed_K = (EPOCH && Number.isFinite(EPOCH['🌡️🧮'])) ? EPOCH['🌡️🧮'] : DATA['🧮']['🧮🌡️'];
+        STATE._iceMassSnapshotPreSearch01 = calcGlaceEquilibre(T_seed_K);
+        // Pour 🍰🪩🧊 : recalcule l'équilibre surface à T_seed via la même formule que ligne ~411
+        // (EARTH.ICE_FORMULA_MAX_FRACTION × ice_temp_factor at T_seed), capé par ice_cap_surface
+        // calculé localement (highlands ∪ hydrosphère). Évalué ici parce que ice_cap_surface n'est
+        // pas encore connu — recalcul léger inline.
+        const _surfArea = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+        const _hydroSupportSeed = Math.max(0, Math.min(0.9, ((DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _surfArea) / 10));
+        const _iceCapSeed = Math.max(DATA['🗻']['🍰🗻🏔'], _hydroSupportSeed);
+        // Reconstruction locale des opts ice (mêmes règles que ligne ~358 plus bas) — _iceOpts n'est pas
+        // encore défini à ce point dans la fonction.
+        const _iceOptsSeed = {};
+        if (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) _iceOptsSeed.obliquity_deg = Number(EPOCH['⚾']);
+        if (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') {
+            const _ei = EPOCH['🥶'];
+            if (Number.isFinite(Number(_ei.dT_pol)))   _iceOptsSeed.dT_pol   = Number(_ei.dT_pol);
+            if (Number.isFinite(Number(_ei.dT_mid)))   _iceOptsSeed.dT_mid   = Number(_ei.dT_mid);
+            if (Number.isFinite(Number(_ei.dT_trop)))  _iceOptsSeed.dT_trop  = Number(_ei.dT_trop);
+            if (Number.isFinite(Number(_ei.amp_pol)))  _iceOptsSeed.amp_pol  = Number(_ei.amp_pol);
+            if (Number.isFinite(Number(_ei.amp_mid)))  _iceOptsSeed.amp_mid  = Number(_ei.amp_mid);
+            if (Number.isFinite(Number(_ei.amp_trop))) _iceOptsSeed.amp_trop = Number(_ei.amp_trop);
+        }
+        const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, Object.keys(_iceOptsSeed).length > 0 ? _iceOptsSeed : undefined);
+        STATE._iceSurfSnapshotPreSearch01 = Math.min(_iceCapSeed, EARTH.ICE_FORMULA_MAX_FRACTION * _iceTfSeed.ice_tf);
+    }
+    const iceMassSnap = Number.isFinite(STATE._iceMassSnapshotPreSearch01) ? STATE._iceMassSnapshotPreSearch01 : DATA['💧']['🍰💧🧊'];
     if (applyIceStockBlend) {
-        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, DATA['💧']['🍰💧🧊'] * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
+        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, iceMassSnap * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
     }
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
     ALBEDO.calculateGeologySurfaces();
@@ -396,7 +449,19 @@ function calculateAlbedo() {
     const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
     let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
     let ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
-    let ice_fraction_target = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+    // v1.2.59 — équilibre asymptotique de la surface optique à T courante (formule pure-en-T inchangée),
+    // mais on blend depuis snapshot pré-Search (cf. plus haut). Couplage masse↔surface : la surface ne peut
+    // reculer plus vite que la masse fond (chaleur latente de fusion ~3.34×10⁵ J/kg).
+    // Réf : Hansen et al. 2013 PTRSA 371:20120294 — séparation feedbacks rapides (vapeur, clouds) vs lents
+    // (calottes), avec τ_calotte ~ 10⁴–10⁵ ans (Marshall & Clark 2002 GRL 29(24):2214). En l'absence de
+    // snapshot (premier appel ou hors blend), on retombe sur l'équilibre instantané (rétro-compat).
+    const ice_fraction_equilibre = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
+    const iceSurfSnap = (STATE._iceSurfSnapshotPreSearch01 !== null && Number.isFinite(STATE._iceSurfSnapshotPreSearch01))
+        ? STATE._iceSurfSnapshotPreSearch01
+        : null;
+    let ice_fraction_target = (applyIceStockBlend && iceSurfSnap !== null)
+        ? Math.max(0, Math.min(ice_cap_surface, iceSurfSnap * (1 - fraction_fonte) + ice_fraction_equilibre * fraction_fonte))
+        : ice_fraction_equilibre;
     const icePolarFormulaTarget = ice_fraction_target;
 
     // Mer gelée (lissé) : augmente le support/target de glace de manière progressive en fonction de seaIceFrac.
