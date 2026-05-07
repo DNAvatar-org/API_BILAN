@@ -1,10 +1,13 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Pas de DOM/rendu.
-// Version 1.0.7
+// Version 1.0.8
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: 2025-02-25
 // Logs:
+// - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses (lecture pure DATA/STATE,
+//   pas de calcul). api.runDiag(epochId) → run + snapshot. Usage console : await api.runDiag('🚂').
+//   Permet comparaison parcours visu vs bench séquentiel pour calibration sans inspection DOM.
 // - v1.0.7: debugAPI (?debugAPI=true ou window.UI_STATE.debugAPI) → console.groupCollapsed sur run + fin ProcessFinished / erreur
 // - v1.0.6: snapshot PRE_INIT/POST_INIT via pdTrace (pas pd)
 // - v1.0.1 FUNC_API_BILAN, const MAJ en tête ; dossier renommé API_BILAN
@@ -184,6 +187,80 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
         }
         apiDebugCloseRun();
         throw e;
+    });
+};
+
+/**
+ * Instantané plat de l'état de calibration (T, glace, snapshots, déséquilibre radiatif, traps).
+ * À appeler après convergence pour comparer parcours visu vs bench, ou pour calibration.
+ * Ne fait AUCUN calcul — juste lit DATA / STATE / TIMELINE / CONFIG_COMPUTE. Donc gratuit.
+ *
+ * @returns {object} payload diagnostique stable, JSON-friendly.
+ */
+BilanRadiatifAPI.prototype.snapshot = function () {
+    const D = window.DATA || {};
+    const S = window.STATE || {};
+    const TL = window.TIMELINE || [];
+    const CC = window.CONFIG_COMPUTE || {};
+    const idx = (D['📜'] && D['📜']['👉']) | 0;
+    const EP = TL[idx] || {};
+    const T_K = D['🧮'] && D['🧮']['🧮🌡️'];
+    const T_seed_K = EP['🌡️🧮'];
+    const duree_ans = (Number.isFinite(EP['▶']) && Number.isFinite(EP['◀'])) ? Math.abs(EP['▶'] - EP['◀']) : null;
+    const tau_eff = (Number.isFinite(CC.tauGlaceAns) ? CC.tauGlaceAns : 0)
+                  * (Number.isFinite(CC.iceInertiaFactor01) ? CC.iceInertiaFactor01 : 1);
+    const fraction_fonte = (tau_eff > 0 && duree_ans !== null) ? (1 - Math.exp(-duree_ans / tau_eff)) : null;
+    return {
+        epochId: D['📜'] && D['📜']['🗿'],
+        epochIdx: idx,
+        phase: D['🧮'] && D['🧮']['🧮⚧'],
+        status: D['🧮'] && D['🧮']['🧮🛑'],
+        T_C: Number.isFinite(T_K) ? T_K - 273.15 : null,
+        T_seed_C: Number.isFinite(T_seed_K) ? T_seed_K - 273.15 : null,
+        duree_ans,
+        tau_eff,
+        fraction_fonte,
+        ice: {
+            mass_now: D['💧'] && D['💧']['🍰💧🧊'],
+            surf_now: D['🪩'] && D['🪩']['🍰🪩🧊'],
+            mass_snap: S._iceMassSnapshotPreSearch01,
+            surf_snap: S._iceSurfSnapshotPreSearch01
+        },
+        albedo: {
+            planetary: D['🪩'] && D['🪩']['🍰🪩📿'],
+            cloud_cover: D['🪩'] && D['🪩']['🍰🪩⛅']
+        },
+        flux: {
+            solar_in: D['🧲'] && D['🧲']['🧲☀️🔽'],
+            olr_out: D['🧲'] && D['🧲']['🧲🌈🔼'],
+            delta: D['🧲'] && D['🧲']['🔺🧲']
+        },
+        traps: D['📛'] ? {
+            total: D['📛']['🧲📛'],
+            co2: D['📛']['🧲📛🏭'],
+            h2o: D['📛']['🧲📛💧'],
+            ch4: D['📛']['🧲📛🐄'],
+            cloud: D['📛']['🧲📛⛅']
+        } : null,
+        masses: {
+            atm: D['⚖️'] && D['⚖️']['⚖️🫧'],
+            co2: D['⚖️'] && D['⚖️']['⚖️🏭'],
+            ch4: D['⚖️'] && D['⚖️']['⚖️🐄'],
+            h2o: D['⚖️'] && D['⚖️']['⚖️💧']
+        }
+    };
+};
+
+/**
+ * Run + snapshot consolidé. Pour usage console : `await api.runDiag('🚂').then(console.table)`.
+ *
+ * @param {string} epochId
+ * @returns {Promise<object>} { snapshot, result }
+ */
+BilanRadiatifAPI.prototype.runDiag = function (epochId) {
+    const self = this;
+    return self.run({ epochId, animEnabled: false }).then(function (result) {
+        return { snapshot: self.snapshot(), result: result };
     });
 };
 

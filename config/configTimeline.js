@@ -1350,6 +1350,14 @@ window.CONFIG_COMPUTE.logHystPanelToFile = true;
 window.CONFIG_COMPUTE.logEpochCompareToFile = true;
 // Panneau organigramme (breakdown albedo_percents, Corps noir vs surfaces 🪩) → bilan_radiatif/logs/albedoUi.txt si serveur tools/server.py v1.3+ ; sinon window.__ALBEDO_UI_LOG
 window.CONFIG_COMPUTE.logAlbedoUiDiagnostic = true;
+// v1.2.59 albedo : snapshot pré-Search 🍰💧🧊/🍰🪩🧊 + blend dt + cible glace_equilibre — permet
+// comparaison parcours visu vs bench séquentiel (calibration). _logs/iceSnapshot.txt.
+window.CONFIG_COMPUTE.logIceSnapshotDiagnostic = true;
+// 1 ligne synthétique par époque pendant un run bench multi-époques. Reset au démarrage du run
+// (epoch_bench.html via window.logBenchReset()). _logs/bench.txt.
+window.CONFIG_COMPUTE.logBenchPerEpoch = true;
+// Notes R&D libres écrites par l'agent (window.logRnD). Reset à chaque F5 (wipeAll). _logs/rnd.txt.
+window.CONFIG_COMPUTE.logRnDNotes = true;
 // Instantané JSON [REPRO] (masses, atmos, surfaces, 🎚️, ligne TIMELINE, hyst) — miroir hyst + epoch, diff entre parcours
 window.CONFIG_COMPUTE.logReproComparableState = true;
 

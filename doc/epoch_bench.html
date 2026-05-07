@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.25 — 2026-05-07 : Skip en cellule (petit ⏭) à la place du 📋 pendant le calcul ; 📋 copie seulement une fois l'époque terminée.
+  Version 1.0.24 — 2026-05-07 : Bouton « Passer l'époque » pendant le run — window.ABORT_COMPUTE (calculations_flux.js) ; ligne tableau statut abort.
   Version 1.0.23 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.43 — Sturtienne [5,15], Snowball [-60,-50], P/T [21,32], Méso [21,31].
   Version 1.0.22 — 2026-04-25 : BENCH_LIT Protérozoïque [0,15]°C (début 2.5 Ga, configTimeline v1.4.42).
   Version 1.0.21 — 2026-04-25 : BENCH_LIT Archéen [5,25]°C (configTimeline v1.4.41).
@@ -188,6 +190,25 @@ td.cell-icon {
 }
 .btn-copy-row:hover { color: #c5e8ff; background: rgba(80, 120, 160, 0.2); }
 
+/* Skip : même emplacement que 📋, uniquement sur la ligne « running » */
+.btn-skip-epoch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  min-height: 1.35rem;
+  padding: 0 3px;
+  font-size: 11px;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  background: #3a3018;
+  color: #e8c868;
+  border: 1px solid #7a6820;
+  border-radius: 3px;
+}
+.btn-skip-epoch:hover { background: #4c4020; color: #f5e090; }
+
 details { margin: 0; }
 details summary { cursor: pointer; color: #555; font-size: 11px; list-style: none; }
 details summary::-webkit-details-marker { display: none; }
@@ -282,7 +303,7 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
 <table>
   <thead>
     <tr>
-      <th class="cell-icon" title="Copier la ligne">📋</th>
+      <th class="cell-icon" title="Pendant le calcul : passer l'époque. Terminé : copier la ligne.">⏭/📋</th>
       <th class="col-epoch">Époque</th>
       <th class="num fit" title="Ligne 1 : T\u2080 solveur (\u00b0C). Ligne 2 : fourchette litt\u00e9rature CSV [Tmin,Tmax] (configTimeline).">T init</th>
       <th class="num fit">T FIN</th>
@@ -939,7 +960,7 @@ function createRow(epoch) {
     tr.id = 'row-' + safeId;
     tr.className = 'running';
     tr.innerHTML =
-      '<td class="cell-icon"><button type="button" class="btn-copy-row" data-copy-row="' + safeId + '" title="Copier la ligne" aria-label="Copier la ligne">\u{1F4CB}</button></td>' +
+      '<td class="cell-icon"><button type="button" class="btn-skip-epoch" title="Passer cette \u00e9poque (interrompt le calcul, \u00e9quivalent ABORT_COMPUTE)" aria-label="Passer cette \u00e9poque">\u23ed\ufe0f</button></td>' +
       '<td class="col-epoch">' +
         '<div class="epoch-cell">' +
           '<span class="epoch-logo">' + displayLogo + '</span>' +
@@ -995,8 +1016,14 @@ function updateRow(id, initStep, lastStep, status, tEpochInitC, epoch, radTPath,
     if (dFin && lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C)
         && typeof tEpochInitC === 'number' && isFinite(tEpochInitC)) {
         dFin.innerHTML = fmtDelta(lastStep.temperature_C - tEpochInitC);
-    } else if (dFin) {
+    } else     if (dFin) {
         dFin.innerHTML = '<span class="val-na">\u2014</span>';
+    }
+
+    var iconTd = tr.querySelector('td.cell-icon');
+    if (iconTd) {
+        iconTd.innerHTML =
+            '<button type="button" class="btn-copy-row" data-copy-row="' + safeId + '" title="Copier la ligne" aria-label="Copier la ligne">\u{1F4CB}</button>';
     }
 
     var copyParts = [];
@@ -1025,16 +1052,31 @@ async function runAllEpochs() {
 
     benchLogFile('[benchRun@start] ' + JSON.stringify({ nEpochs: timeline.length, t: Date.now() }));
 
+    // _logs/bench.txt — 1 ligne par époque, écrite après chaque api.run() (cf. fin de boucle).
+    // Reset du fichier au démarrage du run pour ne pas mélanger les sessions de calibration.
+    if (typeof window.logBenchReset === 'function') window.logBenchReset();
+    if (typeof window.logBenchEpoch === 'function') {
+        window.logBenchEpoch('# bench run start ' + new Date().toISOString() + '  nEpochs=' + timeline.length);
+        window.logBenchEpoch('# columns: epochId | T_seed_C | T_conv_C | dT_C | delta_INIT_Wm2 | delta_FINAL_Wm2 | albedo_INIT | albedo_FIN | iceSurf_INIT | iceSurf_FIN | trapH2O_INIT | trapH2O_FIN | path');
+    }
+
     var currentStep = null;
     var lastStep = null;
     var initStep = null;
     var finalStatus = null;
     var benchRadPathRef = { path: [] };
 
+    var initSnapshot = null; // capture api.snapshot() au phase Init pour bench.txt
     function onEvent(event, payload) {
         if (event === 'convergenceStep') {
             if (payload.phase === 'Init' && payload.innerIter === -1 && !initStep) {
                 initStep = payload;
+                // Snapshot IMM\u00c9DIAT \u00e0 T_seed (avant toute it\u00e9ration Search/Dicho) \u2014 c'est ce point qui doit
+                // matcher visu pour que la calibration soit d\u00e9terministe. Si bench et visu divergent ici,
+                // la cause n'est pas le solveur mais l'\u00e9tat pr\u00e9-Search.
+                try {
+                    if (api && typeof api.snapshot === 'function') initSnapshot = api.snapshot();
+                } catch (_) { initSnapshot = null; }
                 if (typeof payload.temperature_C === 'number' && isFinite(payload.temperature_C)) {
                     benchRadPathRef.path.push(payload.temperature_C);
                 }
@@ -1171,6 +1213,36 @@ async function runAllEpochs() {
                 : null,
             radPathLen: radPathCopy.length
         }));
+
+        // _logs/bench.txt : 1 ligne par époque comparant état INIT (T_seed, avant Search) vs FINAL (post-conv).
+        // Diff visu vs bench : si initSnapshot.flux.delta diverge alors que ice/T sont identiques, la cause
+        // n'est pas glace — chercher trapH2O / albedo / cloud / vapeur dans la diff.
+        if (typeof window.logBenchEpoch === 'function' && api && typeof api.snapshot === 'function') {
+            try {
+                var snFin = api.snapshot();
+                var snIni = initSnapshot; // capturé au phase Init via onEvent
+                var f = function (v, p) { return (v == null || !isFinite(v)) ? '?' : v.toFixed(p); };
+                var dT = (snFin.T_C != null && snFin.T_seed_C != null) ? (snFin.T_C - snFin.T_seed_C) : null;
+                var pathStr = radPathCopy.map(function (x) { return (x == null || !isFinite(x)) ? '?' : x.toFixed(2); }).join('→');
+                window.logBenchEpoch(
+                    String(epochId)
+                    + ' | ' + f(snFin.T_seed_C, 3)
+                    + ' | ' + f(snFin.T_C, 3)
+                    + ' | ' + f(dT, 3)
+                    + ' | ' + f(snIni && snIni.flux && snIni.flux.delta, 3)
+                    + ' | ' + f(snFin.flux && snFin.flux.delta, 3)
+                    + ' | ' + f(snIni && snIni.albedo && snIni.albedo.planetary, 4)
+                    + ' | ' + f(snFin.albedo && snFin.albedo.planetary, 4)
+                    + ' | ' + f(snIni && snIni.ice && snIni.ice.surf_now, 5)
+                    + ' | ' + f(snFin.ice && snFin.ice.surf_now, 5)
+                    + ' | ' + f(snIni && snIni.traps && snIni.traps.h2o, 2)
+                    + ' | ' + f(snFin.traps && snFin.traps.h2o, 2)
+                    + ' | ' + pathStr
+                );
+            } catch (e) {
+                window.logBenchEpoch(String(epochId) + ' | LOG_ERROR | ' + (e && e.message ? e.message : String(e)));
+            }
+        }
     }
 
     var elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -1270,6 +1342,12 @@ document.getElementById('btn-run').addEventListener('click', function () {
 document.getElementById('results-body').addEventListener('click', function (ev) {
     var t = ev.target;
     if (!t || !t.closest) return;
+    var skipEl = t.closest('.btn-skip-epoch');
+    if (skipEl) {
+        window.ABORT_COMPUTE = true;
+        console.log('[bench] ABORT_COMPUTE demand\u00e9 \u2014 fin de l\u2019\u00e9poque en cours, passage \u00e0 la suivante au prochain tick du solveur');
+        return;
+    }
     var btn = t.closest('.btn-copy-row');
     if (!btn) return;
     var sid = btn.getAttribute('data-copy-row');

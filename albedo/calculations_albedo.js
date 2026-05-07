@@ -304,6 +304,38 @@ function calculateAlbedo() {
     // le feedback T→glace dans la branche froide (Pierrehumbert 2005 JGR 110:D01111) opère via la cible
     // glace_equilibre(T_courant) dans le terme de droite du blend.
     const phaseAlb = DATA['🧮'] && DATA['🧮']['🧮⚧'];
+    // Logger glace : appelé en phase Init (snapshot frais) + à chaque Search/Dicho (suivi convergence).
+    // Activé via CONFIG_COMPUTE.logIceSnapshotDiagnostic → _logs/iceSnapshot.txt.
+    function _logIceSnap(tag) {
+        if (typeof window === 'undefined' || typeof window.debugMirrorConfigLogToFile !== 'function') return;
+        const ep = (DATA['📜'] && DATA['📜']['🗿']) || '?';
+        const T_C = Number.isFinite(DATA['🧮']['🧮🌡️']) ? (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3) : 'NaN';
+        const T_seed_C = (EPOCH && Number.isFinite(EPOCH['🌡️🧮'])) ? (EPOCH['🌡️🧮'] - 273.15).toFixed(3) : 'NaN';
+        const fmtN = (v, p) => (Number.isFinite(v) ? v.toFixed(p ?? 5) : String(v));
+        // Élargi v1.2.59 : on capture aussi vapeur, albedo total, clouds, trap, et flux Δ pour diagnostiquer
+        // les divergences bench vs visu À INPUT GLACE IDENTIQUE (cas 1800/2000 calibration mismatch).
+        const line = '[iceSnap] ' + tag
+            + ' ep=' + ep
+            + ' phase=' + phaseAlb
+            + ' T_C=' + T_C
+            + ' T_seed_C=' + T_seed_C
+            + ' duree_ans=' + duree_ans.toFixed(0)
+            + ' tau_eff=' + tau_eff.toFixed(0)
+            + ' frac_fonte=' + fmtN(fraction_fonte, 6)
+            + ' iceMassSnap=' + fmtN(STATE._iceMassSnapshotPreSearch01, 5)
+            + ' iceSurfSnap=' + fmtN(STATE._iceSurfSnapshotPreSearch01, 5)
+            + ' iceMassNow=' + fmtN(DATA['💧'] && DATA['💧']['🍰💧🧊'], 5)
+            + ' iceSurfNow=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩🧊'], 5)
+            + ' glaceEqCur=' + fmtN(glace_equilibre, 5)
+            + ' vapMass=' + fmtN(DATA['💧'] && DATA['💧']['🍰🫧💧'], 6)
+            + ' alb=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩📿'], 4)
+            + ' cloud=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩⛅'], 4)
+            + ' trapTot=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛'], 2)
+            + ' trapH2O=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛💧'], 2)
+            + ' trapCO2=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛🏭'], 2)
+            + ' fluxDelta=' + fmtN(DATA['🧲'] && DATA['🧲']['🔺🧲'], 3);
+        window.debugMirrorConfigLogToFile('logIceSnapshotDiagnostic', line);
+    }
     if (phaseAlb === 'Init') {
         const T_seed_K = (EPOCH && Number.isFinite(EPOCH['🌡️🧮'])) ? EPOCH['🌡️🧮'] : DATA['🧮']['🧮🌡️'];
         STATE._iceMassSnapshotPreSearch01 = calcGlaceEquilibre(T_seed_K);
@@ -329,11 +361,13 @@ function calculateAlbedo() {
         }
         const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, Object.keys(_iceOptsSeed).length > 0 ? _iceOptsSeed : undefined);
         STATE._iceSurfSnapshotPreSearch01 = Math.min(_iceCapSeed, EARTH.ICE_FORMULA_MAX_FRACTION * _iceTfSeed.ice_tf);
+        _logIceSnap('SNAPSHOT_RESET');
     }
     const iceMassSnap = Number.isFinite(STATE._iceMassSnapshotPreSearch01) ? STATE._iceMassSnapshotPreSearch01 : DATA['💧']['🍰💧🧊'];
     if (applyIceStockBlend) {
         DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, iceMassSnap * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
     }
+    if (phaseAlb !== 'Init') _logIceSnap('BLEND_APPLY');
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
     ALBEDO.calculateGeologySurfaces();
     
@@ -923,6 +957,30 @@ function calculateAlbedo() {
     window._hystDiag.finalAlbedo = final_albedo;
     window._hystDiag.blackbodyFactor = blackbody_factor;
     window._hystDiag.aEff = A_eff;
+    // v1.2.59 — Log POST_CALC : valeurs RÉELLEMENT produites par calculateAlbedo.
+    // Diff visu vs bench à T identique pour tracer le composant qui leak (cloud, biomes, voile).
+    if (typeof window !== 'undefined' && typeof window.debugMirrorConfigLogToFile === 'function') {
+        const _ep = (DATA['📜'] && DATA['📜']['🗿']) || '?';
+        const _ph = (DATA['🧮'] && DATA['🧮']['🧮⚧']) || '?';
+        const _T_C = Number.isFinite(DATA['🧮']['🧮🌡️']) ? (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3) : 'NaN';
+        const _f = (v, p) => (Number.isFinite(v) ? v.toFixed(p ?? 5) : String(v));
+        window.debugMirrorConfigLogToFile('logIceSnapshotDiagnostic',
+            '[iceSnap] POST_CALC ep=' + _ep + ' phase=' + _ph + ' T_C=' + _T_C
+            + ' alb=' + _f(A_eff, 4)
+            + ' weighted=' + _f(weighted_albedo, 4)
+            + ' final=' + _f(final_albedo, 4)
+            + ' bbFactor=' + _f(blackbody_factor, 4)
+            + ' cloud=' + _f(cloud_fraction, 4)
+            + ' cloudIdx=' + _f(DATA['🪩'] && DATA['🪩']['☁️'], 4)
+            + ' ice=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🧊'], 5)
+            + ' ocean=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌊'], 4)
+            + ' forest=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌳'], 4)
+            + ' desert=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🏜️'], 4)
+            + ' land=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌍'], 4)
+            + ' veil=' + _f(DATA['🪩'] && DATA['🪩']['🍰⚽'], 4)
+            + ' ccnTw=' + _f(DATA['🪩'] && DATA['🪩']['ccnTwomey'], 4)
+        );
+    }
     return A_eff;
 }
 

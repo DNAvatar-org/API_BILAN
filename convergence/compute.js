@@ -1,9 +1,13 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.17
-// Date: [April 26, 2026]
+// Version 1.0.18
+// Date: [May 07, 2026]
 // logs :
+// - v1.0.18: voile cross-époque — fix leak 📜🔺🍰⚽ : si la nouvelle époque n'a pas la clé 🔺🍰⚽,
+//   on reset 📜🔺🍰⚽=0 (pas seulement _veilTimelinePulseActive). Bug bench : ⛄ (snowball) posait 0.02
+//   et toutes les époques suivantes héritaient → albédo +1.45 % → 📱 convergeait à 12.4 °C au lieu de 15
+//   en bench (vs visu OK car parcours single-epoch). Cf. _logs/iceSnapshot.txt POST_CALC veil=0.02 leak.
 // - v1.0.17: getMasses/getEpochDateConfig — ignorer la clé 🕰.order (liste d’actions UI) lors des itérations sur les tics.
 // - v1.0.16: voile — impulsion seulement EPOCH['🔺🍰⚽'] (racine) à 📿💫===0 ; remise 📜🔺🍰⚽ au clic 💫 via 🕰.💫.🍰⚽ dans events.js.
 // - v1.0.15: impulsion voile — lire EPOCH['🔺🍰⚽'] (racine TIMELINE, même niveau que 📅), plus 🕰.💫.🔺🍰⚽.
@@ -194,6 +198,11 @@ function getEpochDateConfig() {
     DATA['📜']['🗿'] = epochId;
 
     // Impulsion voile (racine TIMELINE) : EPOCH['🔺🍰⚽'] → 📜🔺🍰⚽ une fois à 📿💫===0 ; remise au clic 💫 : 🕰.💫.🍰⚽ (events.js).
+    // v1.0.17 — bug fix bench : si la nouvelle époque N'A PAS de clé 🔺🍰⚽, on reset la VALEUR cumulative
+    // 📜🔺🍰⚽ à 0 (et pas seulement le flag _veilTimelinePulseActive). Sinon le pulse 0.02 posé par ⛄
+    // (hyst snowball) persistait sur toutes les époques suivantes en bench séquentiel → albédo +1.45 %
+    // → calibration cassée vs visu (single click = pas de pulse hérité). Cf. _logs/iceSnapshot.txt
+    // POST_CALC ep=📱 phase=Init : alb 0.3019 (bench) vs 0.288 (visu).
     if (Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')) {
         const pulseVal = Number(EPOCH['🔺🍰⚽']);
         const ticN = DATA['📜']['📿💫'];
@@ -204,6 +213,7 @@ function getEpochDateConfig() {
         }
     } else {
         DATA['📜']['_veilTimelinePulseActive'] = false;
+        DATA['📜']['🔺🍰⚽'] = 0; // pas de pulse sur cette époque → on efface le résiduel cross-époque.
     }
 
     // Rayon effectif : base EPOCH['📐'] + somme des deltas 🔺📐 par tic (générique ; ignorer 🕰['🔀'] et 🕰['◀'])
