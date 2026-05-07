@@ -1,8 +1,10 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.3.5
+// Version 1.3.7
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.3.7: maxDichotomyIterations — lecture sécurisée (nombre fini > 0) ; si absent/NaN → 30 (iter >= undefined ne stoppe jamais).
+// - v1.3.6: plafond dichotomie T0 — CONFIG_COMPUTE.maxDichotomyIterations (défaut 30) au lieu de 20 codé en dur (max_iterations + sortie iter).
 // - v1.3.5: miroir debugMirrorConfigLogToFile('logEdsDiagnostic', …) des lignes DIAG CO2 / workers / performDichotomy → _logs/eds.txt
 // - v1.3.4: workers dispatch/done + début performDichotomy + max-iter — logs uniquement si CONFIG_COMPUTE.logEdsDiagnostic
 //   (évite console sur chaque calculateFluxForT0 quand debugAPI/UI_STATE est false).
@@ -1218,8 +1220,9 @@ async function simulateRadiativeTransfer() {
     // Note : La précision est déjà initialisée dans setEpoch (log 🕰 🛠 [setEpoch@main.js] 🎚=0.1° 🔘 selected)
     // Note : La tolérance sera recalculée à chaque itération avec T0_current pour une précision correcte
     const tolerance_base = 4 * STEFAN_BOLTZMANN * Math.pow(T0_initial, 3) * precision_K;
-    
-    const max_iterations = 20;
+    const _md = window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.maxDichotomyIterations;
+    const max_iterations =
+        Number.isFinite(Number(_md)) && Number(_md) > 0 ? Math.floor(Number(_md)) : 30;
     let iteration = 0;
     let result = null;
 
@@ -1729,10 +1732,10 @@ async function simulateRadiativeTransfer() {
                     // Si delta_equilibre est encore élevé, on continue même si la température ne bouge plus
                     const converged_by_temp_final = previousT0_for_convergence !== null && delta_T_final <= precision_K && Math.abs(delta_equilibre) <= tolerance_current * 10; // Seulement si on a une valeur précédente ET que l'équilibre est presque atteint
                     
-                    if (iter > 20 || converged_by_flux_final || converged_by_temp_final) {
+                    if (iter > max_iterations || converged_by_flux_final || converged_by_temp_final) {
                         // Condition de sortie atteinte
-                        if (iter > 20 && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
-                            const mMi = '[calculations.js] ⚠️ Maximum d\'itérations atteint (20)';
+                        if (iter > max_iterations && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+                            const mMi = '[calculations.js] ⚠️ Maximum d\'itérations atteint (' + max_iterations + ')';
                             console.log(mMi);
                             if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logEdsDiagnostic', mMi);
                         } else if (converged_by_temp_final && !converged_by_flux_final) {

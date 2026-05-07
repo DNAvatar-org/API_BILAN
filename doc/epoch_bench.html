@@ -1057,7 +1057,7 @@ async function runAllEpochs() {
     if (typeof window.logBenchReset === 'function') window.logBenchReset();
     if (typeof window.logBenchEpoch === 'function') {
         window.logBenchEpoch('# bench run start ' + new Date().toISOString() + '  nEpochs=' + timeline.length);
-        window.logBenchEpoch('# columns: epochId | T_seed_C | T_conv_C | dT_C | delta_INIT_Wm2 | delta_FINAL_Wm2 | albedo_INIT | albedo_FIN | iceSurf_INIT | iceSurf_FIN | trapH2O_INIT | trapH2O_FIN | path');
+        window.logBenchEpoch('# columns: epochId | T_seed_C | T_conv_C | dT_C | delta_INIT_Wm2 | delta_FINAL_Wm2 | albedo_INIT | albedo_FIN | iceSurf_INIT | iceSurf_FIN | trapTot_INIT | trapCO2_INIT | trapH2O_INIT | trapCH4_INIT | trapTot_FIN | trapH2O_FIN | path');
     }
 
     var currentStep = null;
@@ -1235,7 +1235,11 @@ async function runAllEpochs() {
                     + ' | ' + f(snFin.albedo && snFin.albedo.planetary, 4)
                     + ' | ' + f(snIni && snIni.ice && snIni.ice.surf_now, 5)
                     + ' | ' + f(snFin.ice && snFin.ice.surf_now, 5)
+                    + ' | ' + f(snIni && snIni.traps && snIni.traps.total, 2)
+                    + ' | ' + f(snIni && snIni.traps && snIni.traps.co2, 2)
                     + ' | ' + f(snIni && snIni.traps && snIni.traps.h2o, 2)
+                    + ' | ' + f(snIni && snIni.traps && snIni.traps.ch4, 2)
+                    + ' | ' + f(snFin.traps && snFin.traps.total, 2)
                     + ' | ' + f(snFin.traps && snFin.traps.h2o, 2)
                     + ' | ' + pathStr
                 );

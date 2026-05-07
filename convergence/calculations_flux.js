@@ -1,9 +1,17 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.103
-// Date: [April 25, 2026]
+// Version 1.2.106
+// Date: [May 07, 2026]
 // Logs:
+// - v1.2.106: detectDeltaPeriod2Stall — sur 4 pas, signes strictement alternés et Δ[i]≈Δ[i−2] (hystérésis type
+//   −0,68/+1,79/−0,60/+1,72). Chaîne boucle branchée : hist 🧮🌡️Hist, stagnation T vs n−1/n−2/n−3,
+//   detectOscillationStallOnTrace après trace (plus seulement au max_iter). Fin max_iter utilise le même agrégat.
+//   Ordre : append trace puis oscillation (inclut le pas courant dans le motif n−2).
+// - v1.2.105: oscillation hystérésis — detectMicroHysteresisStall (4 pas : T ±1 °C, Δ alterne, spread modeste) ;
+//   🧮🌡️Hist pour stagnation vs n−2 / n−3 (log ; branchement effectif v1.2.106).
+// - v1.2.104: stagnation T (élargir bracket / inner converged) — comparer T sortie pas au n−1 (🧮🌡️⏮) et
+//   aux sorties n−2 et n−3 (🧮🌡️Hist) pour attraper oscillations 2T/3T où |T−T_{n−1}| > ε mais T revient.
 // - v1.2.103: detectConvergenceLimitCycle — second critère (Plein Snowball / ⛄) : sur 6 pas, étalement Δ
 //   max−min > 12 W/m² (sauts type Briegleb α 37–41 % → pic +11 W/m²) + T sur ≤10 °C + ≥1 flip + |Δ| moyen haut ;
 //   sans ça le yoyo restait classé max_iter alors que c’est une limite cycle évidente.
@@ -252,6 +260,66 @@ function detectConvergenceLimitCycle(tCArr, dWm2Arr, tolWm2) {
     if (rangeT <= 5 && highResidual && flips >= 2) return true;
     // (2) Plage T modérée (ex. ⛄ −2 °C ↔ +0,9 °C) mais Δ oscille fort (Briegleb / glace vs eau ouverte)
     if (rangeT <= 10 && deltaSpread > 12 && flips >= 1 && meanAD > 1) return true;
+    return false;
+}
+
+/** 4 derniers pas : Δ en « période 2 » (Δₙ ≈ Δₙ₋₂, signes alternés) et T sur ≤2 °C — cas albédo 39,3↔39,9 %. */
+function detectDeltaPeriod2Stall(tCArr, dWm2Arr, tolWm2) {
+    if (!dWm2Arr || dWm2Arr.length < 4) return false;
+    const dS = dWm2Arr.slice(-4);
+    for (var i = 0; i < 4; i++) {
+        if (typeof dS[i] !== 'number' || !Number.isFinite(dS[i])) return false;
+    }
+    if (tCArr && tCArr.length >= 4) {
+        const tS = tCArr.slice(-4);
+        for (var it = 0; it < 4; it++) {
+            if (typeof tS[it] !== 'number' || !Number.isFinite(tS[it])) return false;
+        }
+        const tMin = Math.min.apply(null, tS);
+        const tMax = Math.max.apply(null, tS);
+        if (tMax - tMin > 2) return false;
+    }
+    if (dS[0] * dS[1] >= 0 || dS[1] * dS[2] >= 0 || dS[2] * dS[3] >= 0) return false;
+    const tw = (typeof tolWm2 === 'number' && Number.isFinite(tolWm2)) ? tolWm2 : 0.1;
+    const pairEps = Math.max(0.35, 2 * tw);
+    if (Math.abs(dS[0] - dS[2]) > pairEps) return false;
+    if (Math.abs(dS[1] - dS[3]) > pairEps) return false;
+    return true;
+}
+
+/** 4 derniers pas : plateau T (≤1 °C) + Δ change de signe au moins 2× — hystérésis albédo/eau sans dérive T (ex. 2,3↔2,4 °C). */
+function detectMicroHysteresisStall(tCArr, dWm2Arr, tolWm2) {
+    if (!tCArr || !dWm2Arr || tCArr.length < 4 || dWm2Arr.length < 4) return false;
+    const tS = tCArr.slice(-4);
+    const dS = dWm2Arr.slice(-4);
+    for (var i = 0; i < 4; i++) {
+        if (typeof tS[i] !== 'number' || !Number.isFinite(tS[i])) return false;
+        if (typeof dS[i] !== 'number' || !Number.isFinite(dS[i])) return false;
+    }
+    const tMin = Math.min.apply(null, tS);
+    const tMax = Math.max.apply(null, tS);
+    if (tMax - tMin > 1) return false;
+    var flips = 0;
+    for (var k = 1; k < 4; k++) {
+        if (dS[k - 1] * dS[k] < 0) flips++;
+    }
+    if (flips < 2) return false;
+    const tw = (typeof tolWm2 === 'number' && Number.isFinite(tolWm2)) ? tolWm2 : 0.1;
+    const dMin = Math.min.apply(null, dS);
+    const dMax = Math.max.apply(null, dS);
+    const spread = dMax - dMin;
+    var meanAD = 0;
+    for (var j = 0; j < 4; j++) meanAD += Math.abs(dS[j]);
+    meanAD /= 4;
+    return spread <= 10 && meanAD > 2 * tw;
+}
+
+function detectOscillationStallOnTrace(Tosc, tolWm2) {
+    if (!Tosc || !Tosc.t || !Tosc.d) return false;
+    const tw = (typeof tolWm2 === 'number' && Number.isFinite(tolWm2)) ? tolWm2 : 0.1;
+    if (Tosc.d.length >= 4 && detectDeltaPeriod2Stall(Tosc.t, Tosc.d, tw)) return true;
+    if (Tosc.t.length >= 6 && detectConvergenceLimitCycle(Tosc.t, Tosc.d, tw)) return true;
+    if (Tosc.t.length >= 4 && detectMicroHysteresisStall(Tosc.t, Tosc.d, tw)) return true;
     return false;
 }
 
@@ -864,6 +932,7 @@ async function computeRadiativeTransfer(callback, options) {
     DATA['🧮']['🧮🛑'] = null;
     let dichoSameDirCount = 0;
     let lastDichoSign = 0;
+    DATA['🧮']['🧮🌡️Hist'] = [];
     while (DATA['🧮']['🧮🔄☀️'] < maxInnerIters && !innerConverged) {
         if (apiDbg) {
             var dFlux0 = DATA['🧲']['🔺🧲'];
@@ -1266,19 +1335,24 @@ async function computeRadiativeTransfer(callback, options) {
             // Pas de push CycleEau ici : CycleEauCrossing suffit (évite doublon "cycle 2" et T incohérente)
             continue;
         }
-        // Arrêt si T inchangée (milieu bracket = T courante) ET convergé
-        // Tolérance : |T - T_prev| < 0.01 K (éviter 39.3 vs 39.5°C considérés égaux par ===)
+        // Arrêt si T inchangée vs n−1 ou même qu’un retour n−2 / n−3 (🧮🌡️Hist) ; si |Δ|>tol mais motif
+        // d’oscillation (dont Δ≈Δ_{n−2}) → oscillation, sinon élargir le bracket.
         const epsT_K = 0.01;
-        if (Math.abs(DATA['🧮']['🧮🌡️'] - DATA['🧮']['🧮🌡️⏮']) < epsT_K) {
-            if (Math.abs(DATA['🧲']['🔺🧲']) <= DATA['🧮']['🧲🔬']) innerConverged = true;
-            else {
-                // Bloqué sans convergence : élargir le bracket pour pouvoir bouger
-                const mid = (DATA['🧮']['🧮🌡️🔽'] + DATA['🧮']['🧮🌡️🔼']) / 2;
-                const eps = Math.max(0.5, (DATA['🧮']['🧮🌡️🔼'] - DATA['🧮']['🧮🌡️🔽']) * 0.5);
-                if (DATA['🧲']['🔺🧲'] > 0) { DATA['🧮']['🧮🌡️🔽'] = mid; DATA['🧮']['🧮🌡️🔼'] = mid + eps; }
-                else { DATA['🧮']['🧮🌡️🔼'] = mid; DATA['🧮']['🧮🌡️🔽'] = mid - eps; }
-            }
-        }
+        const T_currSt = DATA['🧮']['🧮🌡️'];
+        const T_inSt = DATA['🧮']['🧮🌡️⏮'];
+        const Hst = DATA['🧮']['🧮🌡️Hist'];
+        const nearTK = function (a, b) {
+            return typeof a === 'number' && typeof b === 'number' && Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < epsT_K;
+        };
+        const tStagn = nearTK(T_currSt, T_inSt)
+            || (Array.isArray(Hst) && Hst.length >= 2 && nearTK(T_currSt, Hst[1]))
+            || (Array.isArray(Hst) && Hst.length >= 3 && nearTK(T_currSt, Hst[2]));
+        const tolFluxSt = DATA['🧮']['🧲🔬'];
+        const twStall = (typeof tolFluxSt === 'number' && Number.isFinite(tolFluxSt)) ? tolFluxSt : 0.1;
+        if (!Array.isArray(DATA['🧮']['🧮🌡️Hist'])) DATA['🧮']['🧮🌡️Hist'] = [];
+        const histPush = DATA['🧮']['🧮🌡️Hist'];
+        histPush.unshift(T_currSt);
+        if (histPush.length > 3) histPush.length = 3;
         (function hystTraceOsc_() {
             const tC = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
             const dF = (typeof DATA['🧲']['🔺🧲'] === 'number' && Number.isFinite(DATA['🧲']['🔺🧲'])) ? DATA['🧲']['🔺🧲'] : NaN;
@@ -1287,6 +1361,23 @@ async function computeRadiativeTransfer(callback, options) {
             T.d.push(dF);
             if (T.t.length > 8) { T.t.shift(); T.d.shift(); }
         })();
+        if (tStagn) {
+            const oscNow = detectOscillationStallOnTrace(window._convergenceOscTrace, twStall);
+            if (Math.abs(DATA['🧲']['🔺🧲']) <= DATA['🧮']['🧲🔬']) innerConverged = true;
+            else if (oscNow) {
+                innerConverged = true;
+                DATA['🧮']['🧮🛑'] = 'oscillation';
+            } else {
+                const mid = (DATA['🧮']['🧮🌡️🔽'] + DATA['🧮']['🧮🌡️🔼']) / 2;
+                const eps = Math.max(0.5, (DATA['🧮']['🧮🌡️🔼'] - DATA['🧮']['🧮🌡️🔽']) * 0.5);
+                if (DATA['🧲']['🔺🧲'] > 0) { DATA['🧮']['🧮🌡️🔽'] = mid; DATA['🧮']['🧮🌡️🔼'] = mid + eps; }
+                else { DATA['🧮']['🧮🌡️🔼'] = mid; DATA['🧮']['🧮🌡️🔽'] = mid - eps; }
+            }
+        }
+        if (!innerConverged && detectOscillationStallOnTrace(window._convergenceOscTrace, twStall)) {
+            innerConverged = true;
+            DATA['🧮']['🧮🛑'] = 'oscillation';
+        }
         DATA['🧮']['🧮🔄☀️']++;
 
         // REFACTO : plus de post-step recalc water/albedo/flux/Δ ici.
@@ -1404,8 +1495,8 @@ async function computeRadiativeTransfer(callback, options) {
     if (!DATA['🧮']['🧮🛑']) {
         const Tosc = window._convergenceOscTrace;
         const tw = DATA['🧮']['🧲🔬'];
-        if (!innerConverged && Tosc && Tosc.t && Tosc.d && Tosc.t.length >= 6
-            && detectConvergenceLimitCycle(Tosc.t, Tosc.d, (typeof tw === 'number' && Number.isFinite(tw)) ? tw : 0.1)) {
+        const twEnd = (typeof tw === 'number' && Number.isFinite(tw)) ? tw : 0.1;
+        if (!innerConverged && detectOscillationStallOnTrace(Tosc, twEnd)) {
             DATA['🧮']['🧮🛑'] = 'oscillation';
         } else {
             DATA['🧮']['🧮🛑'] = 'max_iter';

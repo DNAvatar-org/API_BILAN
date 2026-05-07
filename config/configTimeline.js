@@ -1,8 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.69
+// Version 1.4.71
 // Date: [May 07, 2026]
 // logs :
+// - v1.4.71: commentaires maxDichotomyIterations vs maxRadiatifIters — deux boucles distinctes (visu panneau = innerIter+1 → maxRadiatif).
+// - v1.4.70: CONFIG_COMPUTE.maxDichotomyIterations (=30) — plafond itérations solveur T0 (performDichotomy) si bilan pas convergé ; remplace le 20 codé en dur.
 // - v1.4.69: ⚖️🫧 retiré des fiches TIMELINE — masse atmosphère sèche = somme contractuelle dans compute.getMasses (⚖️🏭+🐄+💨+🫁+✈).
 // - v1.4.68: 🛖 Holocène — ▶ = −10000 (10 ka BP affiché −10000 sur la frise ; physique inchangée via timelineDeltaYearsToStartMa).
 // - v1.4.67: CONFIG_COMPUTE.logAlbedoUiDiagnostic — miroir logs/albedoUi.txt (POST /_log) + window.__ALBEDO_UI_LOG ; debug % glace panneau Corps noir.
@@ -1020,7 +1022,7 @@ const timeline = [
         '⚖️✈': 1.2e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.25 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 1.0 },
         },
         '🌱': 0.31,
         // 🧫 : 🦣 Quaternaire — CLAW moderne, cycles Milankovitch.
@@ -1054,7 +1056,7 @@ const timeline = [
         '⚖️✈': 1.0e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.002 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0035 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
@@ -1268,7 +1270,10 @@ window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01 = 0.1;         // plafond 10
 window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL = 100;        // × fraction PAL eau (~1 clic ☄️ → ~2–3 %)
 
 // ===================== [EQ/NUM] =====================
-window.CONFIG_COMPUTE.maxRadiatifIters = 101;                      // [EQ/NUM]
+// — maxDichotomyIterations : boucle EXTERNE uniquement dans simulateRadiativeTransfer → performDichotomy (iterate dans calculations.js) ; chaque pas appelle calculateFluxForT0 une fois.
+// — maxRadiatifIters : boucle INTERNE computeRadiativeTransfer (calculations_flux.js, compteur DATA['🧮']['🧮🔄☀️']) ; le panneau convergence affiche « 🌈 calcul radiatif N » avec N = innerIter+1 → c’est CE plafond qui fixe « 27 » etc.
+window.CONFIG_COMPUTE.maxDichotomyIterations = 10;                 // [EQ/NUM] outer simulateRadiativeTransfer uniquement
+window.CONFIG_COMPUTE.maxRadiatifIters = 101;                      // [EQ/NUM] inner Search/Dicho API (CONVERGE / scie)
 // Plafond T en Search (K). null = pas de plafond (test).
 window.CONFIG_COMPUTE.maxSearchT_K = null;                         // [EQ/NUM]
 // Tolérances cycle eau (changement albedo/vapor pour relancer tour radiatif)
