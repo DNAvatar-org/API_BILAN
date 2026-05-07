@@ -1,10 +1,11 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
-// Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Pas de DOM/rendu.
-// Version 1.0.8
+// Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Badge version : #title-app-version si présent (index après injection fragment).
+// Version 1.0.9
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: 2025-02-25
+// Date: May 07, 2026
 // Logs:
+// - v1.0.9: window.BILAN_VISU_APP_VERSION (semver API) défini ici ; synchro texte span #title-app-version quand le nœud existe.
 // - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses (lecture pure DATA/STATE,
 //   pas de calcul). api.runDiag(epochId) → run + snapshot. Usage console : await api.runDiag('🚂').
 //   Permet comparaison parcours visu vs bench séquentiel pour calibration sans inspection DOM.
@@ -17,6 +18,11 @@
 // - v1.0.5 singleton: new BilanRadiatifAPI / getBilanRadiatifAPI réutilisent la même instance
 
 'use strict';
+
+/** Semver BilanRadiatif / API_BILAN : console, bench, bandeau visu (#title-app-version). */
+window.BILAN_VISU_APP_VERSION = '1.0.8';
+var titleAppVersionEl = document.getElementById('title-app-version');
+if (titleAppVersionEl) titleAppVersionEl.textContent = 'v' + window.BILAN_VISU_APP_VERSION;
 
 if (!window.FUNC_API_BILAN) window.FUNC_API_BILAN = {};
 /**
