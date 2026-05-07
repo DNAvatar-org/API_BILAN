@@ -1,9 +1,11 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.18
+// Version 1.0.19
 // Date: [May 07, 2026]
 // logs :
+// - v1.0.19: ⚖️🫧 = somme sèche (⚖️🏭+⚖️🐄+⚖️💨+⚖️🫁+⚖️✈) dans getMasses — plus de lecture EPOCH['⚖️🫧'] ;
+//   COMPUTE.syncDryAtmosphereMassKg / dryAtmosphereMassKgFromComponents pour alignement runtime (ex. CO₂ océan).
 // - v1.0.18: voile cross-époque — fix leak 📜🔺🍰⚽ : si la nouvelle époque n'a pas la clé 🔺🍰⚽,
 //   on reset 📜🔺🍰⚽=0 (pas seulement _veilTimelinePulseActive). Bug bench : ⛄ (snowball) posait 0.02
 //   et toutes les époques suivantes héritaient → albédo +1.45 % → 📱 convergeait à 12.4 °C au lieu de 15
@@ -66,6 +68,15 @@ function getEnabledStates() {
     return true;
 }
 
+/** Masse atmosphère « air sec » (kg) = somme des réservoirs gazeux contractuels ; ⚖️💧 = hydrosphère (exclu). */
+function dryAtmosphereMassKgFromComponents(o) {
+    return o['⚖️🏭'] + o['⚖️🐄'] + o['⚖️💨'] + o['⚖️🫁'] + o['⚖️✈'];
+}
+
+function syncDryAtmosphereMassKg(state) {
+    state['⚖️🫧'] = dryAtmosphereMassKgFromComponents(state);
+}
+
 //Calcule les masses en tenant compte des événements (meteor, etc.) :: utilise DATA directement
 function getMasses() {
     const DATA = window.DATA;
@@ -122,9 +133,7 @@ function getMasses() {
         base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
     }
 
-    if (!useInterpolated) {
-        base['⚖️🫧'] = EPOCH['⚖️🫧'];
-    }
+    syncDryAtmosphereMassKg(base);
     DATA['⚖️'] = base;
 
     // Retourner true car DATA a été modifié
@@ -384,6 +393,8 @@ var COMPUTE = window.COMPUTE = window.COMPUTE || {};
 COMPUTE.getEpochDateConfig = getEpochDateConfig;
 COMPUTE.getDateConfig = getEpochDateConfig;
 COMPUTE.getMasses = getMasses;
+COMPUTE.dryAtmosphereMassKgFromComponents = dryAtmosphereMassKgFromComponents;
+COMPUTE.syncDryAtmosphereMassKg = syncDryAtmosphereMassKg;
 COMPUTE.getEnabledStates = getEnabledStates;
 COMPUTE.getSoleil = getSoleil;
 COMPUTE.goughLuminosity = goughLuminosity;

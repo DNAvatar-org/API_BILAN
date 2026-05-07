@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.68
-// Date: [May 06, 2026]
+// Version 1.4.69
+// Date: [May 07, 2026]
 // logs :
+// - v1.4.69: ⚖️🫧 retiré des fiches TIMELINE — masse atmosphère sèche = somme contractuelle dans compute.getMasses (⚖️🏭+🐄+💨+🫁+✈).
 // - v1.4.68: 🛖 Holocène — ▶ = −10000 (10 ka BP affiché −10000 sur la frise ; physique inchangée via timelineDeltaYearsToStartMa).
 // - v1.4.67: CONFIG_COMPUTE.logAlbedoUiDiagnostic — miroir logs/albedoUi.txt (POST /_log) + window.__ALBEDO_UI_LOG ; debug % glace panneau Corps noir.
 // - v1.4.66: CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01 / noAtmosphereMeteoriteIcePerPAL — glace ⚫ (sans atm) bornée + liée à ⚖️💧 (h2o v1.0.25).
@@ -245,7 +246,6 @@ const timeline = [
         '🍎': 8.3, // Gravité en m/s²
         '📏🌊': 0.0, // Profondeur moyenne océans en km (valeur par défaut, pas d'eau pour cette époque)
         '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
-        '⚖️🫧': 0, // Masse atmosphère (Pas d'atmosphère)
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
             '🍰🗻🌊': 0.0,  // Surface océanique potentielle (0% - pas d'eau)
@@ -316,7 +316,6 @@ const timeline = [
             '🍰🗻🌍': 0.0   // Terres basses (0% - pas de continents)
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        '⚖️🫧': 5.3e20, // Masse atmosphère (Atmosphère très dense ~100 bar)
         // Simulation parameters - Quantités en kg (pas de ppm/%)
         '⚖️🏭': 5.0e17, // co2_kg (~10% de l'atmosphère moderne)
         '⚖️🐄': 5.0e15, // ch4_kg (~1000 ppm)
@@ -418,7 +417,7 @@ const timeline = [
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
         // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
-        '⚖️🏭': 2.082e18, // co2_kg — 150k ppm (max CSV [50k,150k]). Était 1.775e18 (132k ppm).
+        '⚖️🏭': 2.75e18,//2.082e18, // co2_kg — 150k ppm (max CSV [50k,150k]). Était 1.775e18 (132k ppm).
         '⚖️🐄': 5.06e16,  // ch4_kg — 10k ppm  (max CSV [1k,10k]).   Était 3.675e16 (6700 ppm).
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
@@ -434,7 +433,6 @@ const timeline = [
             '⚖️🫁': { min: 0,       max: 1.0e16,  cools: 'min' }, // O₂ : pré-GOE (traces seulement)
             '⚖️💧': { min: 0.8e21,  max: 2.5e21,  cools: 'min' }, // H₂O hydrosphère : ~57% → ~179% PAL
         },
-        '⚖️🫧': 9.138e18, // Somme sèche v1.4.50 = N₂ + CO₂ + CH₄ + O₂ + sulfates (CO₂/CH₄ au max CSV).
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -446,7 +444,7 @@ const timeline = [
             // 🔒 ☀️ n'est PAS dans 🔀 : luminosité calculée par Gough (1981) depuis la date, pas interpolée linéairement
             '🔀': ['⚖️', '🌕'],
             '◀': {
-                '⚖️': { '⚖️💧': 1.3e21, '⚖️🫧': 5.19e18, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
@@ -489,7 +487,6 @@ const timeline = [
         // dT_mid  5→3K : pareil pour mi-latitude.
         // Effet : tf_pol passe de 0.68 à 0.35 ; ice_tf de 0.20 à 0.15 ; Sabs gagne ~+10 W/m² uniquement Proté.
         '🥶': { dT_pol: 10, dT_mid: 3, dT_trop: -5 },
-        '⚖️🫧': 5.195e18, // Masse atmosphère (~1 bar). Lit. 2.7 Ga: pression possiblement <0.5 bar.
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
         // v1.4.50 (2026-04-25): bump CO₂ 5e16→9.47e16 (6216→12000 ppm) et CH₄ 3e14→7.2e14 (102→250 ppm)
         // pour récupérer ~+13 W/m² de forçage GES manquant à 12.5°C (branche chaude).
@@ -537,7 +534,6 @@ const timeline = [
         '📏🌊': 3.6,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
-        '⚖️🫧': 5.15e18,
         // CO₂ pré-snowball branche chaude. 1.0e16 kg = 1280 ppm (conv. via ⚖️💨=5.125e18 kg, M_air/M_CO2=0.659).
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
@@ -612,7 +608,6 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🫧": 515e16,
     "⚖️🏭": 45.797e13,
     "⚖️🐄": 2e13,
     "⚖️💧": 1.2e21,
@@ -680,7 +675,6 @@ const timeline = [
         '📏🌊': 3.6,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
-        '⚖️🫧': 5.15e18,
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé cause de la déglaciation
         '⚖️🏭': 2.75e16, // co2_kg — léger + (bench Sortie Marinoen)
         '⚖️🐄': 4.5e13,
@@ -720,7 +714,6 @@ const timeline = [
         '📏🌊': 3.6,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 1.38e16, // co2_kg — léger − (bench 🪼)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
@@ -755,7 +748,6 @@ const timeline = [
         '📏🌊': 3.6,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 0.74e16, // co2_kg — léger − (bench 🍄)
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
@@ -793,7 +785,6 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 1.5e16, // co2_kg (~2900 ppm, pic PT)
         '⚖️🐄': 8e13,   // CH4 élevé (anoxie, clathrates)
         '⚖️💧': 1.35e21,
@@ -837,7 +828,6 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 1.2875e16, // co2_kg (~2500 ppm)
         '⚖️🐄': 4.12e13,
         '⚖️💧': 1.33e21,
@@ -880,7 +870,6 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 5.0e15, // co2_kg (~650 ppm)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -917,7 +906,6 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 9.4e15, // co2_kg — léger + (bench 🐊)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -958,7 +946,6 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 5.15e15, // co2_kg (~1000 ppm, avant chute Oi-1)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -994,7 +981,6 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 4.0e15,
         '⚖️🐄': 3.6e12,
         '⚖️💧': 1.4e21,
@@ -1027,7 +1013,6 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 2.191e15,
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -1062,7 +1047,6 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 2.191e15, // ~280 ppm CO2 pré-industriel (Marcott 2013)
         '⚖️🐄': 2.28e12,  // ~800 ppb CH4 pré-industriel
         '⚖️💧': 1.4e21,
@@ -1094,7 +1078,6 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🫧': 5.15e18,
         '⚖️🏭': 2.191e15, // ~280 ppm 1800 (IPCC2021)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -1133,7 +1116,6 @@ const timeline = [
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
-        '⚖️🫧': 5.15e18, // Masse atmosphère (air sec ~1 bar, comme Industriel)
         // Simulation parameters - Quantités en kg
         '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA
         '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
@@ -1165,7 +1147,7 @@ const timeline = [
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
-                '⚖️': { '⚖️💧': 1.4e21, '⚖️🫧': 5.15e18, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },

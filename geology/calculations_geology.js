@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
-// Version 1.0.1
-// Date: [April 18, 2026]
+// Version 1.0.2
+// Date: [May 07, 2026]
 // Logs:
+// - v1.0.2: total_atmosphere_mass_kg — si pas ⚖️🫧 en config, dry sum via COMPUTE.dryAtmosphereMassKgFromComponents(epoch).
 // - v1.0.1: expositions regroupées sous nouveau namespace window.GEOLOGY (getGeologicalPeriodByName, getGeologicalPeriod, getMoltenCrustFactor, getGeologicalEra, calculateGeothermalFlux). Doublons window.foo retirés. Appelants migrés dans physics/climate.js, radiative/calculations.js, organigramme.js, ui/main.js, courbes/plot.js, sync_panels.js, flux_manager.js. Fallbacks inline dans CO2/html/*.html supprimés (dead code : module geology toujours chargé).
 // ============================================================================
 
@@ -68,7 +69,8 @@ function getGeologicalPeriodByName(periodName) {
             geothermal_flux: (typeof epoch.geothermal_flux === 'number') ? epoch.geothermal_flux : epoch['🧲🌕'],
             core_power_watts: (typeof epoch.core_power_watts === 'number') ? epoch.core_power_watts : epoch['🔋🌕'],
             planet_radius: (typeof epoch.planet_radius === 'number') ? epoch.planet_radius : (epoch['📐'] != null ? epoch['📐'] * 1000 : undefined),
-            total_atmosphere_mass_kg: (typeof epoch.total_atmosphere_mass_kg === 'number') ? epoch.total_atmosphere_mass_kg : epoch['⚖️🫧'],
+            total_atmosphere_mass_kg: (typeof epoch.total_atmosphere_mass_kg === 'number') ? epoch.total_atmosphere_mass_kg
+                : (typeof epoch['⚖️🫧'] === 'number' ? epoch['⚖️🫧'] : window.COMPUTE.dryAtmosphereMassKgFromComponents(epoch)),
             gravity: (typeof epoch.gravity === 'number') ? epoch.gravity : epoch['🍎'],
             // FluxManager: solar_intensity est un facteur (1.0 = aujourd'hui)
             solar_intensity: epoch['🔋☀️'] / 3.828e26

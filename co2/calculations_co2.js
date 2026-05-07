@@ -1,12 +1,13 @@
 // ============================================================================
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: En français, dans l'architecture, je suis le module de partition CO₂ (atmosphère ↔ océan) appelé par le cycle principal.
-// Version 1.2.3
+// Version 1.2.4
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 25, 2026]
 // Logs:
+// - v1.2.4: après variation ⚖️🏭 (Henry) → COMPUTE.syncDryAtmosphereMassKg(DATA['⚖️']) — ⚖️🫧 = somme sèche (plus += delta).
 // - v1.2.3: miroir debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', …) (load, NO-OP, APPLY) → _logs/co2Partition.txt
 // - v1.2.2: pdTrace load / NO-OP / APPLY — uniquement si CONFIG_COMPUTE.logCo2PartitionDiagnostic === true
 //   (défaut false, configTimeline v1.4.53) ; évite spam console par pas Henry.
@@ -135,7 +136,7 @@ function calculateCO2Partition() {
         // On met à jour la masse atmosphérique et la masse totale d'air sec
         const old_mass_atm = DATA['⚖️']['⚖️🏭'];
         DATA['⚖️']['⚖️🏭'] = new_mass_atm;
-        DATA['⚖️']['⚖️🫧'] += (new_mass_atm - old_mass_atm);
+        window.COMPUTE.syncDryAtmosphereMassKg(DATA['⚖️']);
 
         // IMPORTANT : On signale à l'UI et logique la proportion marine
         DATA['🌊']['⚖️🌊🏭'] = total_carbon_mass - new_mass_atm;
