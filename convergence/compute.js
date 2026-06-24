@@ -1,9 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.19
+// Version 1.0.22
 // Date: [May 07, 2026]
 // logs :
+// - v1.0.22: boucles sur EPOCH['🕰'] — ignorer la clé baryFromDate (flag booléen, pas un groupe tic) pour éviter accès cfg['🔺⏳'] undefined / biais sur deltaYearsFromTics et cohérence Δ📐.
+// - v1.0.21: bary — 🕰.baryFromDate (interpolation linéaire selon DATA📜📅 / ▶◀) ; 🔀/'📜' merge 📜.🔺🍰⚽ (voile SW le long de l’époque). Impulsion racine 🔺🍰⚽ désactivée si 🔀 inclut 📜 (évite conflit avec rampe).
+// - v1.0.20: getEpochDateConfig — bary 🕰.🔀 inclut '📅' : merge 📅 (Object.assign) pour ne pas écraser l’objet, sync 📜.🌡️🧮←📅 ; maxTics≥2 si ▶−◀ > 1 pas Ma alors que floor donnait 1 (🦣 : bary=0.5 à 1 tic). Autres groupes ⚖️/🌕 : remplacement par out inchangé.
 // - v1.0.19: ⚖️🫧 = somme sèche (⚖️🏭+⚖️🐄+⚖️💨+⚖️🫁+⚖️✈) dans getMasses — plus de lecture EPOCH['⚖️🫧'] ;
 //   COMPUTE.syncDryAtmosphereMassKg / dryAtmosphereMassKgFromComponents pour alignement runtime (ex. CO₂ océan).
 // - v1.0.18: voile cross-époque — fix leak 📜🔺🍰⚽ : si la nouvelle époque n'a pas la clé 🔺🍰⚽,
@@ -111,7 +114,7 @@ function getMasses() {
         let deltaMassesTics = 0;
         if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
             for (const tk of Object.keys(EPOCH['🕰'])) {
-                if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
+                if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
                 const cfg = EPOCH['🕰'][tk];
                 if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                     const cnt = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
@@ -155,7 +158,7 @@ function getEpochDateConfig() {
     let deltaYearsFromTics = 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
         for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
+            if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
             const cfg = EPOCH['🕰'][tk];
             if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                 const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
@@ -212,7 +215,15 @@ function getEpochDateConfig() {
     // (hyst snowball) persistait sur toutes les époques suivantes en bench séquentiel → albédo +1.45 %
     // → calibration cassée vs visu (single click = pas de pulse hérité). Cf. _logs/iceSnapshot.txt
     // POST_CALC ep=📱 phase=Init : alb 0.3019 (bench) vs 0.288 (visu).
-    if (Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')) {
+    const wh0 = EPOCH['🕰'];
+    const hasInterpVeil = wh0 && Array.isArray(wh0['🔀']) && wh0['🔀'].indexOf('📜') !== -1
+        && wh0['◀'] && wh0['◀']['📜'] && typeof wh0['◀']['📜']['🔺🍰⚽'] === 'number'
+        && Number.isFinite(Number(wh0['◀']['📜']['🔺🍰⚽']))
+        && Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')
+        && Number.isFinite(Number(EPOCH['🔺🍰⚽']));
+    if (hasInterpVeil) {
+        DATA['📜']['_veilTimelinePulseActive'] = false;
+    } else if (Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')) {
         const pulseVal = Number(EPOCH['🔺🍰⚽']);
         const ticN = DATA['📜']['📿💫'];
         const pulseActive = DATA['📜']['_veilTimelinePulseActive'] === true;
@@ -230,7 +241,7 @@ function getEpochDateConfig() {
     let deltaRadiusKm = 0;
     if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
         for (const ticKey of Object.keys(EPOCH['🕰'])) {
-            if (ticKey === '🔀' || ticKey === '◀' || ticKey === 'order') continue;
+            if (ticKey === '🔀' || ticKey === '◀' || ticKey === 'order' || ticKey === 'baryFromDate') continue;
             const ticCfg = EPOCH['🕰'][ticKey];
             if (ticCfg && typeof ticCfg['🔺📐'] === 'number' && Number.isFinite(ticCfg['🔺📐'])) {
                 const count = (DATA['📜']['📿' + ticKey] != null && Number.isFinite(DATA['📜']['📿' + ticKey])) ? DATA['📜']['📿' + ticKey] : 0;
@@ -250,7 +261,7 @@ function getEpochDateConfig() {
     if (interpolKeys && interpolEnd) {
         let refDeltaMa = 0;
         for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀' || tk === 'order') continue;
+            if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
             const cfg = EPOCH['🕰'][tk];
             if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
                 refDeltaMa = cfg['🔺⏳'];
@@ -258,9 +269,27 @@ function getEpochDateConfig() {
             }
         }
         const spanYears = Math.max(0, EPOCH['▶'] - EPOCH['◀']);
-        const maxTics = refDeltaMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / refDeltaMa)) : 1;
-        const totalTicsBary = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
-        const bary = Math.max(0, Math.min(1, totalTicsBary / maxTics));
+        let maxTics = refDeltaMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / refDeltaMa)) : 1;
+        const spanOverStep = refDeltaMa > 0 ? (spanYears / 1e6) / refDeltaMa : 0;
+        if (maxTics === 1 && spanOverStep > 1) {
+            maxTics = Math.max(2, Math.ceil(spanOverStep));
+        }
+        let bary;
+        if (EPOCH['🕰'].baryFromDate === true && Number.isFinite(dateYears)) {
+            const a = EPOCH['▶'];
+            const b = EPOCH['◀'];
+            const span = (a != null && b != null) ? Math.abs(a - b) : 0;
+            if (span > 0) {
+                bary = (a < b)
+                    ? Math.max(0, Math.min(1, (dateYears - a) / span))
+                    : Math.max(0, Math.min(1, (a - dateYears) / span));
+            } else {
+                bary = 0;
+            }
+        } else {
+            const totalTicsBary = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
+            bary = Math.max(0, Math.min(1, totalTicsBary / maxTics));
+        }
         DATA['📜']['bary'] = bary;
         for (let i = 0; i < interpolKeys.length; i++) {
             const groupKey = interpolKeys[i];
@@ -278,7 +307,26 @@ function getEpochDateConfig() {
                     out[subkey] = endVal;
                 }
             }
-            DATA[groupKey] = out;
+            if (groupKey === '📅') {
+                const prev = DATA[groupKey];
+                if (prev != null && typeof prev === 'object' && !Array.isArray(prev)) {
+                    DATA[groupKey] = Object.assign({}, prev, out);
+                } else {
+                    DATA[groupKey] = out;
+                }
+            } else if (groupKey === '📜') {
+                const prev = DATA[groupKey];
+                if (prev != null && typeof prev === 'object' && !Array.isArray(prev)) {
+                    DATA[groupKey] = Object.assign({}, prev, out);
+                } else {
+                    DATA[groupKey] = out;
+                }
+            } else {
+                DATA[groupKey] = out;
+            }
+        }
+        if (DATA['📅'] && typeof DATA['📅']['🌡️🧮'] === 'number' && Number.isFinite(DATA['📅']['🌡️🧮'])) {
+            DATA['📜']['🌡️🧮'] = DATA['📅']['🌡️🧮'];
         }
     }
 

@@ -1,8 +1,11 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.71
+// Version 1.4.74
 // Date: [May 07, 2026]
 // logs :
+// - v1.4.74: window.BENCH_LIT_BY_EPOCH_ID défini ici (source unique) — epoch_bench.html lit window au load ; plus de duplicata statique / CSV / cookie pour les repères litt. affichés au bench.
+// - v1.4.73: 🏔 — 🕰.baryFromDate + 🔀 ['📅','📜'] : interpolation 🌡️🧮 + 🔺🍰⚽ (voile) selon date 📜📅 sur 33→2 Ma (compute.js v1.0.21) ; racine 🔺🍰⚽ = début de rampe.
+// - v1.4.72: 🦣 Quaternaire — 🕰.🔀 ['📅'] + ◀📅🌡️🧮 (287.15 K fin frise) pour interpolation graine T le long des tics (compute.js v1.0.20).
 // - v1.4.71: commentaires maxDichotomyIterations vs maxRadiatifIters — deux boucles distinctes (visu panneau = innerIter+1 → maxRadiatif).
 // - v1.4.70: CONFIG_COMPUTE.maxDichotomyIterations (=30) — plafond itérations solveur T0 (performDichotomy) si bilan pas convergé ; remplace le 20 codé en dur.
 // - v1.4.69: ⚖️🫧 retiré des fiches TIMELINE — masse atmosphère sèche = somme contractuelle dans compute.getMasses (⚖️🏭+🐄+💨+🫁+✈).
@@ -173,7 +176,7 @@
 //
 // ---------------------------------------------------------------------------
 // GRILLE LITTÉRATURE (repère / bench) — CSV synthèse ; 🌡️🧮 TIMELINE = amorce solveur (K), pas T finale.
-// Fourchettes dupliquées pour l’UI bench : doc/epoch_bench.html (BENCH_LIT_BY_EPOCH_ID) — resync si cette grille change.
+// Fourchettes litt. bench : window.BENCH_LIT_BY_EPOCH_ID (assigné après window.TIMELINE) ; epoch_bench.html n’embarque plus de copie.
 // Chaque entrée d’époque dans timeline[] reprend en commentaire les mêmes nombres (voir Archéen 🦠 modèle).
 // Colonnes : T_init °C plage ; CO₂ ppm ; CH₄ ppm ; H₂O vapeur mol % (atmosphère) ; albédo 🍰🪩📿.
 // Mapping époques TIMELINE ↔ libellés CSV : ⚫ Corps_noir ; 🔥 Hadéen ; 🦠 Archéen ; 🪸 Protérozoïque ;
@@ -360,7 +363,7 @@ const timeline = [
         '◀': 2.5e9,
         //
         // --- FOURCHETTES TOLÉRABLES (bench / litt. synthèse) — DUPLICATA de la ligne CSV « Archéen » dans la GRILLE du haut de ce fichier ---
-        // Même objet litt. que doc/epoch_bench.html → BENCH_LIT_BY_EPOCH_ID['🦠'] (clé \u{1F9A0}). Toute modification : les 3 endroits ensemble.
+        // Repère litt. Archéen : window.BENCH_LIT_BY_EPOCH_ID['🦠'] ci-dessous + bloc commentaire GRILLE dans ce fichier.
         //   T °C surface   : [5, 25]      — tempéré froid/modéré à ~4 Ga ; hypothèse chaude >30°C gardée R&D.
         //   CO₂ ppm          : [50000, 150000]
         //   CH₄ ppm          : [1000, 10000]
@@ -955,7 +958,7 @@ const timeline = [
         '⚖️✈': 1.0e12,
         '⚖️💨': 4.063345395e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 2 },
+            '⛰': { '🔺🌡️💫': 0, '🔺⏳': 2 },
         },
         '🌱': 0.31,
         // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
@@ -973,6 +976,8 @@ const timeline = [
         '▶': 33e6,
         '◀': 2e6,
         '🌡️🧮': 288.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
+        // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; baryFromDate → ~17 Ma ≈ mi-parcours 33→2 Ma.
+        '🔺🍰⚽': 0.00196,
         // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.05,
@@ -982,15 +987,22 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🏭': 4.0e15,
-        '⚖️🐄': 3.6e12,
+        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
+        '⚖️🏭': 4.513e15,
+        '⚖️🐄': 2.6e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
         '⚖️✈': 1e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 100 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
+            // Interpolation 🔀 en fonction de la date courante 📜📅 (pas du seul compte de tics) — 33 Ma → 2 Ma.
+            'baryFromDate': true,
+            '🔀': ['📅', '📜'],
+            '◀': {
+                '📅': { '🌡️🧮': 286.15 },
+                '📜': { '🔺🍰⚽': 0 },
+            },
         },
         '🌱': 0.31,
         // 🧫 : 🏔 Grande Coupure / Miocène–Pliocène — CLAW moderne active.
@@ -1014,8 +1026,9 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
-        '⚖️🏭': 2.191e15,
+        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19 },
+        //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
+        '⚖️🏭': 3.191e15,
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
@@ -1023,6 +1036,11 @@ const timeline = [
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 1.0 },
+            // Interpolation linéaire 🌡️🧮 (graine solveur) du début 🦣 (2 Ma) vers la borne ◀ de frise (10 ka ; même graine K que 🛖).
+            '🔀': ['📅'],
+            '◀': {
+                '📅': { '🌡️🧮': 287.15 },
+            },
         },
         '🌱': 0.31,
         // 🧫 : 🦣 Quaternaire — CLAW moderne, cycles Milankovitch.
@@ -1048,7 +1066,9 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        //'🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        //'🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
+        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.14, '🍰🗻🌍': 0.17 },
         '⚖️🏭': 2.191e15, // ~280 ppm CO2 pré-industriel (Marcott 2013)
         '⚖️🐄': 2.28e12,  // ~800 ppb CH4 pré-industriel
         '⚖️💧': 1.4e21,
@@ -1056,7 +1076,7 @@ const timeline = [
         '⚖️✈': 1.0e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0035 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.004 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
@@ -1079,7 +1099,8 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
+        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
+        //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
         '⚖️🏭': 2.191e15, // ~280 ppm 1800 (IPCC2021)
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
@@ -1167,6 +1188,33 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
+
+/**
+ * Repères littérature (bench / colonnes T init + CONV ATM dans epoch_bench.html).
+ * Clés = EPOCH['📅'] (identifiants TIMELINE + entrées hysteresis 1a/1b).
+ * Recalculé en mémoire à chaque chargement de ce script — ne pas persister dans CSV ni cookie.
+ * tC = °C surface ; co2/ch4 = ppm molaires ; h2oVap = % molaire vapeur atmosphérique.
+ */
+window.BENCH_LIT_BY_EPOCH_ID = {
+    '⚫': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
+    '🔥': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
+    '🦠': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
+    '🪸': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
+    'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
+    '⛄': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
+    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
+    '🪼': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
+    '🍄': { tC: [15, 25], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
+    '💀': { tC: [21, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
+    '🦕': { tC: [21, 31], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
+    '🦤': { tC: [12, 22], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
+    '🐊': { tC: [20, 28], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
+    '🏔': { tC: [12, 18], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
+    '🦣': { tC: [10, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
+    '🛖': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
+    '🚂': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
+    '📱': { tC: [14.5, 15.5], co2: [415, 425], ch4: [1.8, 1.9], h2oVap: [1.0, 1.2] }
+};
 
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :

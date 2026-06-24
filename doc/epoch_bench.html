@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.26 — 2026-05-07 : BENCH_LIT — source unique window.BENCH_LIT_BY_EPOCH_ID (configTimeline.js v1.4.74) ; supprime l’objet dupliqué ici ; repères bench recalculés en mémoire au load (pas CSV / cookie).
   Version 1.0.25 — 2026-05-07 : Skip en cellule (petit ⏭) à la place du 📋 pendant le calcul ; 📋 copie seulement une fois l'époque terminée.
   Version 1.0.24 — 2026-05-07 : Bouton « Passer l'époque » pendant le run — window.ABORT_COMPUTE (calculations_flux.js) ; ligne tableau statut abort.
   Version 1.0.23 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.43 — Sturtienne [5,15], Snowball [-60,-50], P/T [21,32], Méso [21,31].
@@ -514,32 +515,13 @@ var BENCH_PAL_OCEAN_KG = 1.4e21;
 var BENCH_M_ATM_REF_KG = 5.148e18;
 
 /**
- * Fourchettes littérature (repère bench) — copie de la grille CSV en commentaire dans
- * API_BILAN/config/configTimeline.js (section « GRILLE LITTÉRATURE » + duplicata détaillé sous l’objet TIMELINE Archéen 🦠).
- * Resynchroniser les trois endroits ensemble si une plage bouge.
- * tC = surface °C ; co2/ch4 = ppm molaires ; h2oVap = % molaire vapeur (atmosphère), pas masse océan.
+ * Fourchettes littérature pour le bench : source unique window.BENCH_LIT_BY_EPOCH_ID
+ * (API_BILAN/config/configTimeline.js), réassignée à chaque chargement du script — pas de CSV, pas de cookie.
  */
-var BENCH_LIT_BY_EPOCH_ID = {
-    '\u26ab': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
-    '\u{1F525}': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
-    /* 🦠 Archéen : plage tempérée froide/modérée ; voir note configTimeline.js */
-    '\u{1F9A0}': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
-    '\u{1FAB8}': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
-    'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
-    '\u26c4': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
-    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
-    '\u{1FABC}': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
-    '\u{1F344}': { tC: [15, 25], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
-    '\u{1F480}': { tC: [21, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
-    '\u{1F995}': { tC: [21, 31], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
-    '\u{1F9A4}': { tC: [12, 22], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
-    '\u{1F40A}': { tC: [20, 28], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
-    '\u{1F3D4}': { tC: [12, 18], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
-    '\u{1F9A3}': { tC: [10, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
-    '\u{1F6D6}': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
-    '\u{1F682}': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
-    '\u{1F4F1}': { tC: [14.5, 15.5], co2: [415, 425], ch4: [1.8, 1.9], h2oVap: [1.0, 1.2] }
-};
+var BENCH_LIT_BY_EPOCH_ID = window.BENCH_LIT_BY_EPOCH_ID;
+if (BENCH_LIT_BY_EPOCH_ID == null || typeof BENCH_LIT_BY_EPOCH_ID !== 'object') {
+    throw new Error('[epoch_bench] window.BENCH_LIT_BY_EPOCH_ID manquant — ordre de chargement configTimeline.js requis');
+}
 
 /** Plage litt\u00e9rature CSV : [min,max] avec virgule (m\u00eame r\u00e8gles d\u2019arrondi qu\u2019avant pour bench). */
 function benchLitRangeBracket(lo, hi) {
