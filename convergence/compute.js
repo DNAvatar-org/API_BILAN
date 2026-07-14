@@ -257,7 +257,32 @@ function getEpochDateConfig() {
 
     // Barycentre (📿💫+📿☄️)/maxTics : interpolation des params listés dans 🕰['🔀'] entre epoch (▶) et 🕰['◀']
     const interpolKeys = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) ? EPOCH['🕰']['🔀'] : null;
-    const interpolEnd = EPOCH['🕰'] && EPOCH['🕰']['◀'] && typeof EPOCH['🕰']['◀'] === 'object' ? EPOCH['🕰']['◀'] : null;
+    let interpolEnd = EPOCH['🕰'] && EPOCH['🕰']['◀'] && typeof EPOCH['🕰']['◀'] === 'object' ? EPOCH['🕰']['◀'] : null;
+    // v-2026-07-14 : 🔀 SANS ◀ → cible auto = racine de l'époque suivante TIMELINE[👉+1].
+    // But : rampe DRY sans recopier/désynchroniser un ◀ (cf. Archéen◀ 4.7e16 vs Proté 9.47e16 qui avait divergé).
+    // On ne construit que les groupes listés dans 🔀 ('⚖️' masses, '🌕' noyau), et UNIQUEMENT les sous-clés
+    // présentes aussi dans l'époque courante (sinon startVal=undefined → NaN, ce qui est le comportement voulu _REGLE_JS_CRASH).
+    // Opt-out inchangé : une époque sans 🔀 (Corps noir, hystérésis…) ne rampe pas → arrivée/bifurcation brutale préservée.
+    if (interpolKeys && !interpolEnd) {
+        const nextEp = window.TIMELINE[epochIndex + 1];
+        if (nextEp) {
+            const built = {};
+            for (const groupKey of interpolKeys) {
+                const endObj = {};
+                if (groupKey === '⚖️') {
+                    for (const k of Object.keys(nextEp)) {
+                        if (k.indexOf('⚖️') === 0 && EPOCH[k] != null && typeof nextEp[k] === 'number') endObj[k] = nextEp[k];
+                    }
+                } else if (groupKey === '🌕') {
+                    for (const sk of ['🧲🌕', '🔋🌕']) {
+                        if (typeof nextEp[sk] === 'number' && EPOCH[sk] != null) endObj[sk] = nextEp[sk];
+                    }
+                }
+                if (Object.keys(endObj).length) built[groupKey] = endObj;
+            }
+            if (Object.keys(built).length) interpolEnd = built;
+        }
+    }
     if (interpolKeys && interpolEnd) {
         let refDeltaMa = 0;
         for (const tk of Object.keys(EPOCH['🕰'])) {

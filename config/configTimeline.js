@@ -1,8 +1,36 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.74
-// Date: [May 07, 2026]
+// Version 1.4.77
+// Date: [July 13, 2026]
 // logs :
+// - v1.4.77: hysteresis 1b (Sortie Marinoen) — déglaciation en anim. En animation la T° se propage : après le
+//   snowball (1a bascule froid depuis v1.4.75 dt_pol=20), la frise arrivait sur 1b à ~−57 °C et y restait
+//   coincée. Cause : ⚖️🏭 1b = 2.75e16 (3500 ppm) contredisait son PROPRE commentaire (« hyper-greenhouse
+//   ~80 000 ppm cause de la déglaciation ») — valeur post-drawdown au lieu de la valeur de sortie. 2 fixes :
+//   (1) ⚖️🏭 2.75e16 → 7.0e17 (~80 000 ppm mol = 0.08 bar, cœur fourchette sortie Marinoen 0.01–0.12 bar ;
+//       Pierrehumbert 2004 Nature 429:646, Hoffman 2017 Sci Adv 3:e1600983). Déstabilise la branche froide →
+//       la planète déglace depuis le snowball. Corrige aussi le bench (3500 ppm ne tenait même pas la branche
+//       chaude : seed 35 °C → 23 °C, delta_INIT −31.7). Attendu maintenant : super-greenhouse ~45-50 °C (correct).
+//   (2) 🌊🏭 2.0 → 0 : la pompe Urey/cap-carbonates est un drawdown POST-déglaciation ; active pendant la
+//       tentative de fonte elle aspire le CO₂ censé causer la fonte (à froid, Henry ↑ → atm→océan) = à l'envers.
+//       Coupée. Le drawdown 80k→1k ppm sur ~10 Ma (gate T>0 / tics) = raffinement ultérieur.
+// - v1.4.76: 🦠 Archéen — sortie du snowball spontané (−70 °C, hors cible bench [5,25] °C). 3 leviers, tous
+//   dans les fourchettes littérature :
+//   (1) 🌊🏭 0.05 → 0 : coupe le seed océan CO₂ Henry. co2OceanRatioRef=50 est le ratio DIC/atm MODERNE
+//       (océan tamponné pH 8, Sarmiento & Gruber 2006) ; à 0.19 bar pCO₂ archéen l'océan est acide (pH~5-6),
+//       le vrai ratio s'effondre → le réservoir 50× (1.4e20 kg) est un puits fantôme qui aspire le CO₂ dès que
+//       T baisse (Henry : eau froide = +CO₂ dissous) → amplificateur de refroidissement → snowball. C-cycle
+//       archéen = tamponné carbonates sédimentaires, pas DIC océan (Sleep & Zahnle 2001, déjà cité). Restaure
+//       l'état que le commentaire calculations_flux.js assume déjà (🦠 ⇒ ⚖️🌊🏭=0, régressé par 7894efe).
+//   (2) ⚖️🐄 5.06e16 → 6.7e16 : CH₄ au max CSV bench (10k ppm mol, Haqq-Misra 2008). CH₄/CO₂=0.024 < 0.1
+//       (pas de brume organique). Comble le déficit radiatif résiduel du faint sun 74 %.
+//   (3) ⚖️💨 7.0e18 → 1.0e19 : N₂ au max 🔒 (2.2 atm, Som 2012 / Marty 2013). Élargissement collisionnel
+//       (pressure broadening) des bandes CO₂/CH₄ → +GES. Étape explicitement prévue par le commentaire v1.4.50.
+// - v1.4.75: hysteresis 1a — 🥶 aligné sur ⛄ ({dT_pol:20, dT_mid:5}) : le cycle 1a↔⛄ est la même planète,
+//   le dT_pol:10 (copié de 🪸) décalait le seuil d'engagement glace de 10 K vers le froid → scan hyst incapable
+//   de basculer (bench 2026-07-13 : 1a converge 16.65 °C, ⛄ −62 °C OK, 🦠 runaway OK). ⚖️🏭 restauré 8.594e14
+//   (valeur commentée = 🔒 max, domaine nominal du BaryAdapter) — le 4.801e14 résiduel R&D plaçait x0 (65 ppm)
+//   SOUS le seuil littérature 100-300 ppm : un scan descendant ne peut pas trouver un seuil au-dessus de x0.
 // - v1.4.74: window.BENCH_LIT_BY_EPOCH_ID défini ici (source unique) — epoch_bench.html lit window au load ; plus de duplicata statique / CSV / cookie pour les repères litt. affichés au bench.
 // - v1.4.73: 🏔 — 🕰.baryFromDate + 🔀 ['📅','📜'] : interpolation 🌡️🧮 + 🔺🍰⚽ (voile) selon date 📜📅 sur 33→2 Ma (compute.js v1.0.21) ; racine 🔺🍰⚽ = début de rampe.
 // - v1.4.72: 🦣 Quaternaire — 🕰.🔀 ['📅'] + ◀📅🌡️🧮 (287.15 K fin frise) pour interpolation graine T le long des tics (compute.js v1.0.20).
@@ -423,10 +451,10 @@ const timeline = [
         // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
         '⚖️🏭': 2.75e18,//2.082e18, // co2_kg — 150k ppm (max CSV [50k,150k]). Était 1.775e18 (132k ppm).
-        '⚖️🐄': 5.06e16,  // ch4_kg — 10k ppm  (max CSV [1k,10k]).   Était 3.675e16 (6700 ppm).
+        '⚖️🐄': 6.7e16,  // ch4_kg — 10k ppm mol = max CSV [1k,10k] (v1.4.76 ; était 5.06e16 ≈7550 ppm). CH₄/CO₂=0.024<0.1.
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
-        '⚖️💨': 7.0e18, // n2_kg — moyenne plage 🔒 [4.0e18, 1.0e19].
+        '⚖️💨': 1.0e19, // n2_kg — max 🔒 [4.0e18, 1.0e19] = 2.2 atm (v1.4.76 ; était 7.0e18). Pressure broadening +GES.
         '⚖️✈': 5.0e14, // proxy_sulfates — moyenne plage 🔒 [0, 1.0e15] (refroidissant).
         // 🔒 Bornes hystérésis Archéen — cf. schéma commentaire global "🔒 SCHÉMA BORNES HYSTÉRÉSIS" + CSV « Archéen » [50k,150k]ppm CO₂, [1k,10k]ppm CH₄.
         //    Refs : Sleep & Zahnle 2001 (CO₂ 0.2–10 bar), Haqq-Misra 2008 (CH₄ ≤10k ppm ; haze si CH₄/CO₂ > 0.1), Som 2012/2016 (N₂ paléo 0.7–2.2 atm), Marty 2013 (N₂ Archéen ≈1–2× PAL).
@@ -458,10 +486,13 @@ const timeline = [
         // (pas d'eucaryotes marins, DMSP producteurs quasi-absents). Knoll 2003, Falkowski 2004.
         // Tapis microbiens côtiers → flux DMS minimal (~5% moderne).
         '🧫': 0.05,
-        // 🌊🏭 : pompe Urey très lente. Peu de continents émergés → altération silicatée faible
-        // (Lee et al. 2018, Nature 553:188 — arc-continent collision Urey régulator). CO₂ atm très élevé
-        // (~150 000 ppm bench) tamponné par carbonates sédimentaires Archéens (Sleep & Zahnle 2001).
-        '🌊🏭': 0.05
+        // 🌊🏭 : v1.4.76 → 0 (était 0.05). Coupe le seed océan CO₂ Henry (⚖️🌊🏭 = co2OceanRatioRef × ⚖️🏭).
+        // Le ratio 50 est MODERNE (océan tamponné pH 8, Sarmiento & Gruber 2006) ; à 0.19 bar pCO₂ archéen
+        // l'océan est acide, DIC/pCO₂ ≪ 50 → le réservoir 50× (1.4e20 kg) est un puits fantôme qui aspire le
+        // CO₂ atmosphérique dès que T baisse → amplificateur snowball. C-cycle archéen = tamponné carbonates
+        // sédimentaires (Sleep & Zahnle 2001), pas DIC océan. Peu de continents → altération silicatée faible
+        // (Lee et al. 2018, Nature 553:188). 0 = Urey/Henry éteints, comme l'assume calculations_flux.js (🦠 ⇒ ⚖️🌊🏭=0).
+        '🌊🏭': 0
     },
     {// Protérozoïque
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
@@ -506,7 +537,12 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
+            // v-2026-07-14 : bary ACTIVÉ. 🔀 sans ◀ → cible auto = racine de l'époque suivante (hyst 1a).
+            // Rampe les masses ⚖️ le long de 2500→750 Ma : CO₂ 12000→53 ppm, CH₄ 250→7 ppm, O₂ 1.5e16→5e15, etc.
+            // Avant : pas de 🔀 → masses figées (saut brutal à −750 Ma constaté en visu). Cf. moteur compute.js même date.
+            '🔀': ['⚖️'],
         },
+        // Ancien 🕰 (sans bary) : { '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 } }
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 : 🪸 Protérozoïque — post-GOE, premiers eucaryotes marins (acritarches ~1.8 Ga),
         // algues rouges ~1.2 Ga. Diversification lente, encore dominés par procaryotes.
@@ -529,8 +565,11 @@ const timeline = [
         // L’onglet / carte « Sturtienne » (🪸) est une autre entrée : modifier son 🌡️🧮 ne règle pas la graine du bouton hyst.
         // Ici 283.15 K = 10 °C (milieu CSV) ; T_conv après 1er bilan ≠ cette valeur (équilibre radiatif).
         '🌡️🧮': 283.15,
-        // 🥶 : transition Sturtienne, conditions Néoprotérozoïque tardif similaires à 🪸 (faint sun 93%).
-        '🥶': { dT_pol: 10, dT_mid: 3, dT_trop: -5 },
+        // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
+        // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
+        // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
+        // restait éteinte (ice_eff=0.5 melt, tf_pol≈0.06) et le scan CO₂↓ ne pouvait jamais bifurquer.
+        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '🔋🌕': 8.0e13,
@@ -543,21 +582,30 @@ const timeline = [
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
         // c'est la recherche hystérésis (scie_hysteresis_search.js) qui descend jusque-là, pas ce baseline.
-        '⚖️🏭': 4.801e14,//'⚖️🏭': 8.594e+14,
-        // CH₄ : 2.0e13 kg = 7 ppm. Post-GOE (après 2.4 Ga) l'atmosphère oxygénée détruit le CH₄ rapidement.
-        // Fourchette lit. Néoprotérozoïque : 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
-        // Corrigé v1.4.29 : était 1.0e14 kg (35 ppm, trop haut, borne sup. extrême).
-        '⚖️🐄': 2.0e13,
+        // v1.4.75 : 8.594e14 (106 ppm) restauré = 🔒 max, domaine nominal du BaryAdapter (le 4.801e14
+        // résiduel R&D mettait x0=65 ppm SOUS le seuil littérature 100-300 ppm — introuvable en scan descendant).
+        // Si le 1er pas part déjà en branche froide (FAILED "déjà sur branche") : monter vers 1.0e16 (1280 ppm,
+        // littérature warm branch) ET baisser HYSTERESIS.scanFailRatio 0.1 → ~0.02 (plancher 26 ppm).
+        // v-2026-07-14 : abaissé à 53 ppm pour la DÉMO BISTABILITÉ 1a↔⛄ au seuil.
+        //   C*≈51,5 ppm mesuré par le scan (_logs/hyst.txt : 52,0 ppm→−0,55 °C chaud / 51,1 ppm→−61 °C snowball, 1 ppm d'écart).
+        //   Init posé ~1,5 ppm au-dessus du seuil (converge propre, évite l'oscillation du saddle-node exact).
+        //   ⛄ aligné sur la même valeur → même CO₂, deux branches sélectionnées par la graine 🌡️🧮.
+        //   Anciennes valeurs (calcul hyst TRÈS sensible — ne pas perdre) : 8.594e+14 (106 ppm, =🔒max) ; 4.801e14 (65 ppm R&D).
+        // v-2026-07-14b : le seuil warm de la visu dépend des AUTRES gaz (mesuré : le scan tenait warm à 52 ppm
+        //   parce que la bary co-variait CH₄→35 ppm / O₂→1.5e16 ; à 7 ppm CH₄ la visu tombait en snowball à 53 ppm).
+        //   → on aligne hyst 1a sur le vecteur warm du scan, mais CH₄ borné à 30 ppm (haut litt.) + CO₂ 52→55 ppm en compensation.
+        '⚖️🏭': 4.451e14,//55 ppm  (ancien 4.289e14 = 53 ppm ; 8.594e14 = 106 ppm =🔒max)
+        // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
+        //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
+        '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
         // H₂O : océan Protérozoïque ≈ 1.2-1.4e21 kg (Pope et al. 2012). Inchangé.
         '⚖️💧': 1.2e21,
-        // O₂ : 5.0e15 kg = 0.09 % atm ≈ 0.4 % PAL. Cœur fourchette Sturtien : 0.1-1 % PAL
-        // (Lyons et al. 2014 ; Planavsky et al. 2014 ; Sperling 2015). Pré-NOE (Neoproterozoic Oxygenation Event).
-        // Corrigé v1.4.29 : était 1.5e16 kg (1.3 % PAL, borne sup. extrême).
-        '⚖️🫁': 5.0e15,
-        // ⚖️✈ : baseline sulfate volcanique explicite, identique au démarrage du scan hystérésis.
-        // Rend le run direct contractuel sans fallback côté calcul.
-        '⚖️✈': 1.0e12,
-        '⚖️💨': 5.142979e18,
+        // O₂ : v-2026-07-14b 1.5e16 (aligné vecteur warm scan = serre/nuages suppl. ; 1.3 % PAL, borne haute Sturtien).
+        //   (Lyons et al. 2014 ; Planavsky et al. 2014 ; Sperling 2015). Ancien : 5.0e15 (0.4 % PAL).
+        '⚖️🫁': 1.5e16,
+        // ⚖️✈ : baseline sulfate volcanique. v-2026-07-14b 1.018e12 (aligné vecteur scan ; ancien 1.0e12).
+        '⚖️✈': 1.018e12,
+        '⚖️💨': 5.133e18,//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
         '🕰': {
             'order': ['🌋'],
             '🌋': { '🔺🍰⚽': 0.02, '🔺⏳': 30 },
@@ -576,6 +624,10 @@ const timeline = [
         // Sans ce bloc, seul CO₂ varie au scan/dicho — CH₄ etc. restent en baseline 1a, ce qui mélange états
         // incompatibles près du seuil (T saute ±60 °C à ⚖️🏭 presque identique).
         '🔒': {
+            // NB v-2026-07-14 : init ⚖️🏭 abaissé à 4.289e14 (53 ppm) < min de ce segment.
+            // Segment 🔒 volontairement NON re-centré : bornes = littérature. La concentration
+            // effective au seuil se module par les autres gaz (O₂…), pas en baissant ces bornes.
+            // Le scan n'est pas clampé par 🔒 (il extrapole), donc pas de blocage — juste à savoir.
             '⚖️🏭': { min: 7.923e+14, max: 8.594e+14, cools: 'min' },
             '⚖️🐄': { min: 1.0e+14, max: 2.0e+13, cools: 'min' },
             '⚖️💨': { min: 5.132968982e18, max: 5.142979e18, cools: 'min' },
@@ -613,8 +665,8 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🏭": 45.797e13,
-    "⚖️🐄": 2e13,
+    "⚖️🏭": 4.451e14,// v-2026-07-14b : 55 ppm — MÊME vecteur que hyst 1a (bistabilité : branche froide via graine 🌡️🧮=270 K). Anciens : 4.289e14 (53 ppm), 45.797e13 (56,6 ppm).
+    "⚖️🐄": 8.57e13,// 30 ppm — aligné hyst 1a (v-2026-07-14b ; ancien 2e13 = 7 ppm)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     "⚖️✈": 1018000000000,
@@ -680,8 +732,11 @@ const timeline = [
         '📏🌊': 3.6,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
-        // Hyper-greenhouse post-Marinoen : CO₂ très élevé cause de la déglaciation
-        '⚖️🏭': 2.75e16, // co2_kg — léger + (bench Sortie Marinoen)
+        // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
+        // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
+        // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
+        // bas pour déglacer (anim restait à −57 °C) et ne tenait même pas la branche chaude au bench.
+        '⚖️🏭': 7.0e17, // co2_kg — ~80 000 ppm mol (hyper-greenhouse déglaciation Marinoen)
         '⚖️🐄': 4.5e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
@@ -694,11 +749,12 @@ const timeline = [
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
         // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
         '🧫': 0.1,
-        // 🌊🏭 : pompe Urey CATASTROPHIQUEMENT amplifiée (cap carbonates de couverture Marinoen).
-        // Hyper-greenhouse ~80 000 ppm CO₂ + chaleur tropicale extrême + altération silicates régolithe
-        // glaciaire (roches broyées pendant snowball) → drawdown record ~10 Ma (Higgins & Schrag 2003,
-        // Hoffman et al. 2017 Sci Adv 3:e1600983). CO₂ chute de 80 k à ~1 k ppm en quelques Ma.
-        '🌊🏭': 2.0
+        // 🌊🏭 : v1.4.77 → 0 (était 2.0). La pompe Urey/cap-carbonates est un drawdown POST-déglaciation ;
+        // active pendant la tentative de fonte (T froide → Henry ↑ → CO₂ atm→océan) elle aspire le CO₂ censé
+        // CAUSER la fonte = à l'envers, empêche la déglaciation en anim. Coupée pour laisser 1b déglacer.
+        // Le vrai drawdown cap-carbonates (80 k → ~1 k ppm sur ~10 Ma ; Higgins & Schrag 2003, Hoffman 2017)
+        // = raffinement ultérieur : réactiver la pompe seulement APRÈS déglaciation (gate T>0 ou nb de tics).
+        '🌊🏭': 0
     },
     // Paléozoïque scindé (v1.4.0) : 🪼 marin 600→420 + 🍄 terrestre 420→280 + 💀 P/T 280→250.
     // Ordre chronologique : … Protérozoïque → ☃/⛄/⛈ Snowball → 🪼 → 🍄 → 💀 → Mésozoïque …
