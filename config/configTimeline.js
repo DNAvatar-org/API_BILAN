@@ -594,7 +594,11 @@ const timeline = [
         // v-2026-07-14b : le seuil warm de la visu dépend des AUTRES gaz (mesuré : le scan tenait warm à 52 ppm
         //   parce que la bary co-variait CH₄→35 ppm / O₂→1.5e16 ; à 7 ppm CH₄ la visu tombait en snowball à 53 ppm).
         //   → on aligne hyst 1a sur le vecteur warm du scan, mais CH₄ borné à 30 ppm (haut litt.) + CO₂ 52→55 ppm en compensation.
-        '⚖️🏭': 4.451e14,//55 ppm  (ancien 4.289e14 = 53 ppm ; 8.594e14 = 106 ppm =🔒max)
+        '⚖️🏭': 1.62e15,//200 ppm — v-2026-07-15 : baseline REMONTÉE (55→200) pour que le scan démarre CHAUD au-dessus
+        //   du seuil déclenché par le voile (⚽). Avec 2% de voile, 55 ppm était déjà snowball ("branche froide déjà
+        //   atteinte" → FAILED) : il faut partir plus haut. Le scan descend, le voile fait remonter le seuil vers ~60-100 ppm.
+        //   Ajuster le % de voile (hystStratosphericVeilExtra01) pour caler le seuil à ~100 ppm (littérature Sturtienne).
+        //   Warm branch pré-snowball ~200 ppm = plus physique que 55 (litt. 1000-3000, on reste conservateur). Anciens : 4.451e14 (55 ppm), 4.289e14 (53).
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
