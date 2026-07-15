@@ -709,8 +709,25 @@ function calculateAlbedo() {
     }
     const T_polar_K = DATA['🧮']['🧮🌡️'] - Number(EPOCH['🥶'].dT_pol);
     const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];                 // ~0.70 (sea ice saisonnière, CCSM3)
-    const iceAlbedoSnowDeep = albedo_coeff['🪩🍰❄️'];             // ~0.85 (neige propre Gardner-Sharp 2010)
+    const iceAlbedoSnowDeepClean = albedo_coeff['🪩🍰❄️'];        // ~0.85 (neige propre POLAIRE, Gardner-Sharp 2010)
     const iceAlbedoMelt = 0.50;                                   // bare ice + melt ponds (SHEBA)
+    // ── Modulation par FRACTION de glace (Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010 « Mudball ») ──
+    // La glace polaire est de la neige propre (~0.85). Mais quand la banquise avance vers l'équateur
+    // (snowball global), les tropiques SUBLIMENT (pas d'accumulation de neige) → glace NUE + poussière
+    // continentale/volcanique déposée → bien plus sombre. Pierrehumbert 2005 (JGR, doi:10.1029/2004JD005162) :
+    // glace nue = 0.50 (indép. λ) ; albédo SW glace du snowball de contrôle = 0.60 ; cas « dark ice » (poussière) = 0.50.
+    // Sans ça, le modèle mettait 0.85 sur toute la boule → snowball trop brillant → entrée forcée aux curseurs max
+    // ET déglaciation impossible. On interpole le plateau « neige propre » vers 0.60 quand la fraction glace f → 1.
+    const ICE_ALBEDO_BARE_SNOWBALL = 0.60;   // Pierrehumbert 2005 contrôle (poussière/dark-ice Abbot 2010 → 0.50) — CALIBRABLE
+    // SEUIL d'apparition : la glace nue tropicale (sombre) n'existe que lorsque la banquise atteint les
+    // basses latitudes. Ligne de glace à latitude φ : f = 1 − sin φ ⇒ φ < 30° (tropiques nus) ⇔ f > 0.5.
+    // En dessous (f ≤ F_BARE_ONSET), la glace est de la NEIGE polaire propre (0.85) → PAS d'assombrissement
+    // (sinon on affaiblit à tort la branche chaude d'entrée 1a et le snowball ne se déclenche plus).
+    // Au-dessus, rampe linéaire vers 0.60 quand f → 1 (snowball global, glace équatoriale nue + poussière).
+    const F_BARE_ONSET = 0.50;
+    const f_ice_cover = Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
+    const bareWeight = Math.max(0, (f_ice_cover - F_BARE_ONSET) / (1 - F_BARE_ONSET));  // 0 sous le seuil, →1 au snowball
+    const iceAlbedoSnowDeep = iceAlbedoSnowDeepClean - (iceAlbedoSnowDeepClean - ICE_ALBEDO_BARE_SNOWBALL) * bareWeight;
     let iceAlbedoEff;
     if (T_polar_K <= 263.15) {
         // ≤ −10 °C : neige propre / pristine snow (plateau Gardner-Sharp 2010)

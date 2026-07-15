@@ -248,7 +248,7 @@
     <div class="title">Climate dynamics of a hard snowball Earth</div>
     <div class="venue">Journal of Geophysical Research Atmospheres, 110:D01111 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2004JD005162">10.1029/2004JD005162</a></div>
-    <div class="used-in"><span class="todo">TODO Sonnet :</span> argumenter bifurcation continue.</div>
+    <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Fonde la modulation de l'albédo glace par la <strong>fraction couverte</strong> dans <code>calculations_albedo.js</code> : neige polaire propre (~0.85) tant que f ≤ 0.5, puis rampe vers 0.60 quand f→1 (glace nue tropicale, ligne de glace < 30° ⇔ f > 0.5) [<code>seuil F_BARE_ONSET</code>]. Bifurcation continue.</div>
 </article>
 
 <article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
@@ -277,13 +277,40 @@
     <div class="used-in">Seuil déglaciation ×100-1000 vs baseline (hard snowball problem). Commentaire tête <code>scie_hysteresis_search.js</code>.</div>
 </article>
 
+<article class="ref" id="huYangDingPeltier2011" data-tags="snowball deglaciation co2-threshold CIA pressure-broadening radiative">
+    <div class="cite-key">[huYangDingPeltier2011]</div>
+    <div class="authors">Hu, Y., Yang, J., Ding, F. &amp; Peltier, W. R.</div>
+    <div class="title">Model-dependence of the CO₂ threshold for melting the hard Snowball Earth</div>
+    <div class="venue">Climate of the Past, 7:17–30 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-7-17-2011">10.5194/cp-7-17-2011</a></div>
+    <div class="used-in"><strong>Clé déglaciation.</strong> Sans pressure-broadening ni collision-induced absorption (CIA), seuil CO₂ ≈ 1.0 bar (albédo 0.6) ; avec les deux → 0.38 bar. Rayleigh négligeable (~1 K à 0.4 bar). Motive l'ajout de la CIA CO₂ dans <code>spectral_slice_worker.js</code> et la révision du pressure-broadening haute pression.</div>
+</article>
+
+<article class="ref" id="gruszkaBorysow1997" data-tags="CIA co2 radiative spectroscopy">
+    <div class="cite-key">[gruszkaBorysow1997]</div>
+    <div class="authors">Gruszka, M. &amp; Borysow, A.</div>
+    <div class="title">Roto-translational collision-induced absorption of CO₂ for the atmosphere of Venus at frequencies from 0 to 250 cm⁻¹, temperatures from 200 to 800 K</div>
+    <div class="venue">Icarus, 129(1):172–177 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1006/icar.1997.5773">10.1006/icar.1997.5773</a></div>
+    <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹) — base du continuum de collision manquant à haut CO₂. <span class="todo">À intégrer :</span> <code>spectral_slice_worker.js</code>.</div>
+</article>
+
+<article class="ref" id="wordsworth2010" data-tags="CIA co2 far-line dense-atmosphere radiative">
+    <div class="cite-key">[wordsworth2010]</div>
+    <div class="authors">Wordsworth, R., Forget, F. &amp; Eymet, V.</div>
+    <div class="title">Infrared collision-induced and far-line absorption in dense CO₂ atmospheres</div>
+    <div class="venue">Icarus, 210(2):992–997 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.icarus.2010.06.010">10.1016/j.icarus.2010.06.010</a></div>
+    <div class="used-in">CIA + far-line CO₂ pour atmosphères denses (early Mars, snowball). Méthode de référence pour le continuum CO₂ haute pression. <span class="todo">À intégrer.</span></div>
+</article>
+
 <article class="ref" id="abbotPierrehumbert2010" data-tags="snowball dust ice-albedo deglaciation">
     <div class="cite-key">[abbotPierrehumbert2010]</div>
     <div class="authors">Abbot, D. S. &amp; Pierrehumbert, R. T.</div>
     <div class="title">Mudball: Surface dust and Snowball Earth deglaciation</div>
     <div class="venue">Journal of Geophysical Research, 115:D03103 (2010)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2009JD012007">10.1029/2009JD012007</a></div>
-    <div class="used-in">Poussière sur glace → α 0.62 → 0.45-0.50, abaisse seuil déglaciation à ~10k-30k ppm.</div>
+    <div class="used-in">Poussière/cendres sur glace tropicale → α 0.62 → 0.45-0.50, abaisse le seuil déglaciation. Motive la borne basse (dark-ice) de la modulation de l'albédo glace par la fraction couverte dans <code>calculations_albedo.js</code> (<code>ICE_ALBEDO_BARE_SNOWBALL</code>).</div>
 </article>
 
 <article class="ref" id="marshallClark2002" data-tags="ice-sheet timescale latent-heat continental-ice">
