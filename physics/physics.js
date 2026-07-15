@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.15
-// Date: [April 23, 2026]
+// Version 2.0.16
+// Date: [July 15, 2026]
 // logs :
+// - v2.0.16: EARTH['🪩🍰']['🪩🍰🏊'] = 0.50 — paramètre Briegleb/CCSM3 melt pond (bare ice + ponds, Perovich SHEBA 2002 ; NCAR/TN-463 §5). Consommé par calculations_albedo.js brieglebIceAlbedoLocal().
 // - v2.0.15: computeIceTempFactor passe à 3 zones (polaire/mi-lat/TROPICAL). Ajout EARTH.POLAR_AMP_TROP_K=-5 K (tropical plus chaud que la moyenne globale), EARTH.SEASONAL_AMP_TROP_K=3 K (faible saisonnalité tropicale, Peixoto & Oort 1992 ch.7), EARTH.TROPICAL_ZONE_FRAC=0.50 (0°-30° lat., 2 hémisphères, géométrie sphérique sin(30°)=0.5). ice_tf devient la somme pondérée directe (f_pol×tf_pol + f_mid×tf_mid + f_trop×tf_trop), plus de normalisation par fsum : les 3 zones somment à 1.0 par construction. ICE_FORMULA_MAX_FRACTION passe de 0.46 (artefact Terre-moderne, cf. point 2 review Zorba) à 1.0 (physique correcte, autorise Snowball). Rétro-compat : à T_glob ≥ −4°C, tf_trop=0 → identique à avant avec normalisation ; au-dessous, la rampe tropicale (largeur 6 K) active la bifurcation Budyko-Sellers.
 // - v2.0.14: EARTH.CH4_EDS_SCALE (défaut 1.0) + EARTH.CH4_HAZE_RATIO_THRESHOLD (0.1) ajoutés. CH4_EDS_SCALE parallèle à H2O_EDS_SCALE, tuning fin du line-by-line HITRAN (saturation bandes 3.3/7.7 µm, overlap H2O). CH4_HAZE_RATIO_THRESHOLD = seuil Haqq-Misra 2008 pour formation brume organique (pas encore câblé, hook SW futur).
 // - v2.0.13: EARTH.OBLIQUITY_DEG_REF/DEFAULT (23.44°) + couplage ε dans computeIceTempFactor (amp_pol/amp_mid = SEASONAL_AMP_* × sin(ε)/sin(23.44°)). Plumbing EPOCH['⚾'] dans calculations_{albedo,flux,h2o}.
@@ -308,6 +309,15 @@ EARTH.H2O_EDS_SCALE = 0.60;
 // NB : le seuil haze CH4/CO2 = 0.1 peut être vérifié dans calculateAlbedo (SW) plus tard.
 EARTH.CH4_EDS_SCALE = 1.0;
 
+// ─── Collision-Induced Absorption (CIA) CO₂–CO₂ / CO₂–N₂ ───────────────────────────────────
+// Réfs : Gruszka & Borysow 1997 (Icarus 129:172) ; Wordsworth et al. 2010 (Icarus 210:992) ; Hu et al. 2011.
+// Absorption BINAIRE ∝ n_CO₂·n_total : kappa_CIA = cia_CO2(λ)·(n_CO₂/N_L)·(n_air/N_L)·CIA_CO2_SCALE.
+// Manquait jusqu'ici → la serre CO₂ décroissait à haut CO₂ et le snowball ne pouvait pas déglacer.
+// Unité [m⁻¹ par amagat²]. Ordre de grandeur Gruszka-Borysow (pic far-IR ~1e-6 cm⁻¹/amagat² ≈ 1e-4 m⁻¹/amagat²).
+// Négligeable à bas CO₂ (∝ n_CO₂²) → n'affecte PAS la Terre moderne ni les époques ≤ quelques % CO₂.
+// À CALIBRER (par test) pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6 (Hu et al. 2011). 0 = désactivé.
+EARTH.CIA_CO2_SCALE = 1.0e-4;
+
 // ─── Seuil de brume organique (Haqq-Misra 2008 Fig. 1) ─────────────────────────
 // Rapport molaire CH4/CO2 au-delà duquel le méthane polymérise en Tholin (brume organique)
 // qui absorbe le SW en stratosphère → anti-greenhouse. Au-dessous : pas de brume.
@@ -346,7 +356,9 @@ EARTH['🪩🍰'] = {
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18,
     // ❄️ = neige propre profonde (T_polaire ≤ −30 °C) — Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 ;
     // Warren (1982) Rev. Geophys. 20:67. Plage pristine snow 0.80–0.90 ; 0.85 = médiane broadband.
-    '🪩🍰❄️': 0.85
+    '🪩🍰❄️': 0.85,
+    // 🏊 = bare ice + melt ponds (segment haut Briegleb, T ≥ 0 °C) — Perovich (2002) SHEBA ; Briegleb et al. NCAR/TN-463 §5.
+    '🪩🍰🏊': 0.50
 };
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========

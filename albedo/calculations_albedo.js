@@ -1,8 +1,9 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.59
-// Date: [May 07, 2026]
+// Version 1.2.60
+// Date: [July 15, 2026]
 // logs :
+// - v1.2.60: albédo glace = moyenne zonale EBM 3 zones (f_z·tf_z) via Briegleb(T_local, α_snow_deep_z) — plus de ICE_ALBEDO_BARE_SNOWBALL / F_BARE_ONSET (réglages). Pol/mi-lat : plateau ❄️ ; tropiques : plateau 🧊 (sublimation, pas d'accumulation neige propre — Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010). α_melt depuis EARTH['🪩🍰']['🪩🍰🏊'] (paramètre équation Briegleb).
 // - v1.2.59: blend dt invariant aux itérations Search/Dicho + couplage masse↔surface optique de glace.
 //   PROBLÈME (cas 1800 → 21°C en 33 iter) : (a) le blend dt sur 🍰💧🧊 (ligne 282) lisait DATA['💧']['🍰💧🧊']
 //   *courant* à chaque appel — appliqué N=33 fois, le τ effectif passait de 50 000 ans (config) à ~1 500 ans,
@@ -243,6 +244,23 @@ function calculateCloudFormationIndex() {
 // - "Ice-Albedo Feedback in Climate Models" (approximation simplifiée)
 // - Modèles de rétroaction glace-albedo (Budyko, 1969; Sellers, 1969)
 // - Paramétrisation nuageuse simplifiée pour visualisation pédagogique
+// [EQ] Briegleb et al. (2004) NCAR/TN-463 — α_ice(T_local, α_snow_deep).
+// Seuils Gardner & Sharp (2010) JGR 115:F01009 : −10 / −5 / 0 °C.
+function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff) {
+    const alphaCold = albedo_coeff['🪩🍰🧊'];
+    const alphaMelt = albedo_coeff['🪩🍰🏊'];
+    if (T_local_K <= 263.15) return alphaSnowDeep;
+    if (T_local_K <= 268.15) {
+        const t = (T_local_K - 263.15) / 5.0;
+        return alphaSnowDeep + (alphaCold - alphaSnowDeep) * t;
+    }
+    if (T_local_K < 273.15) {
+        const t = (T_local_K - 268.15) / 5.0;
+        return alphaCold + (alphaMelt - alphaCold) * t;
+    }
+    return alphaMelt;
+}
+
 function calculateAlbedo() {
     const DATA = window.DATA;
     const CONST = window.CONST;
@@ -682,74 +700,47 @@ function calculateAlbedo() {
     // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
     const albedo_coeff = { ...EARTH['🪩🍰'], ...(EPOCH['🪩🍰'] || {}) };
 
-    // [EQ] Briegleb et al. (2004) — melt-pond sea ice albedo, ÉTENDU neige propre.
-    // Réf : Briegleb B.P. et al., "Scientific description of the sea ice component in CCSM3",
-    // NCAR/TN-463+STR, §5 ; Perovich (2002) SHEBA ; AR6 WG1 Annex VI (Cryosphere).
-    // Seuil plateau snow_deep mis à jour de −30°C → −10°C suite à :
-    //   Gardner & Sharp (2010) JGR 115:F01009 — α_fresh=0.84 à T=−10°C, chute linéaire 0.84→0.73 entre
-    //     −10°C et 0°C. Paramétrisation standard CICE/CLM/MPAS-Seaice.
-    //   Flanner & Zender (2006) J. Climate 19:5141 — grain growth rapide > −10°C, lent < −15°C.
-    //   Domine et al. (2008) ACP 8:171 — SSA (specific surface area) de la neige de surface reste
-    //     élevée à T < −15°C, chute rapide à T > −10°C.
-    //   Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 — α pristine snow 0.85-0.90 (sans seuil T strict).
-    // 3 segments (T_polaire croissante) :
-    //   T_pol ≤ −10 °C : neige propre / fine-grain → α_snow_deep = EARTH['🪩🍰']['🪩🍰❄️'] (~0.85).
-    //   −10 < T_pol ≤ −5 °C : métamorphisme thermique actif, α_snow_deep → α_cold (snow→firn).
-    //   −5 < T_pol < 0 °C  : onset melt pond, α_cold → α_melt (Perovich 2002).
-    //   T_pol ≥ 0 °C        : bare ice + melt ponds → α_melt = 0.50 (SHEBA, CICE default).
-    // Feedback positif : T↓ → α↑ → T↓↓ (rétroaction glace-albédo, pilier du snowball Pierrehumbert 2005).
-    //
-    // Amplification polaire Budyko-Sellers (EBM 0D) : T_polaire = T_globale − dT_pol.
-    // SOURCE UNIQUE : EPOCH['🥶'].dT_pol (configTimeline.js per-époque). Crash si manquant.
-    // v1.2.51 : remplace CONFIG_COMPUTE.polarAmplificationK (suppression défaut global → per-époque).
-    // Réf : Budyko (1969) Tellus 21:611, Sellers (1969) J. Appl. Meteor. 8:392 ; AR6 WG1 Ch.4 Arctic Amp ;
-    // Holland & Bitz (2003) Clim. Dyn. 21:221 ; Pierrehumbert 2011 ch.5 ; Williams 1993 EPSL 117:377.
-    if (!EPOCH || !EPOCH['🥶'] || !Number.isFinite(Number(EPOCH['🥶'].dT_pol))) {
-        throw new Error("[calculateAlbedo] EPOCH['🥶'].dT_pol requis (configTimeline.js). Pas de fallback.");
-    }
-    const T_polar_K = DATA['🧮']['🧮🌡️'] - Number(EPOCH['🥶'].dT_pol);
-    const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];                 // ~0.70 (sea ice saisonnière, CCSM3)
-    const iceAlbedoSnowDeepClean = albedo_coeff['🪩🍰❄️'];        // ~0.85 (neige propre POLAIRE, Gardner-Sharp 2010)
-    const iceAlbedoMelt = 0.50;                                   // bare ice + melt ponds (SHEBA)
-    // ── Modulation par FRACTION de glace (Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010 « Mudball ») ──
-    // La glace polaire est de la neige propre (~0.85). Mais quand la banquise avance vers l'équateur
-    // (snowball global), les tropiques SUBLIMENT (pas d'accumulation de neige) → glace NUE + poussière
-    // continentale/volcanique déposée → bien plus sombre. Pierrehumbert 2005 (JGR, doi:10.1029/2004JD005162) :
-    // glace nue = 0.50 (indép. λ) ; albédo SW glace du snowball de contrôle = 0.60 ; cas « dark ice » (poussière) = 0.50.
-    // Sans ça, le modèle mettait 0.85 sur toute la boule → snowball trop brillant → entrée forcée aux curseurs max
-    // ET déglaciation impossible. On interpole le plateau « neige propre » vers 0.60 quand la fraction glace f → 1.
-    const ICE_ALBEDO_BARE_SNOWBALL = 0.60;   // Pierrehumbert 2005 contrôle (poussière/dark-ice Abbot 2010 → 0.50) — CALIBRABLE
-    // SEUIL d'apparition : la glace nue tropicale (sombre) n'existe que lorsque la banquise atteint les
-    // basses latitudes. Ligne de glace à latitude φ : f = 1 − sin φ ⇒ φ < 30° (tropiques nus) ⇔ f > 0.5.
-    // En dessous (f ≤ F_BARE_ONSET), la glace est de la NEIGE polaire propre (0.85) → PAS d'assombrissement
-    // (sinon on affaiblit à tort la branche chaude d'entrée 1a et le snowball ne se déclenche plus).
-    // Au-dessus, rampe linéaire vers 0.60 quand f → 1 (snowball global, glace équatoriale nue + poussière).
-    const F_BARE_ONSET = 0.50;
-    const f_ice_cover = Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
-    const bareWeight = Math.max(0, (f_ice_cover - F_BARE_ONSET) / (1 - F_BARE_ONSET));  // 0 sous le seuil, →1 au snowball
-    const iceAlbedoSnowDeep = iceAlbedoSnowDeepClean - (iceAlbedoSnowDeepClean - ICE_ALBEDO_BARE_SNOWBALL) * bareWeight;
+    // [EQ] Albédo glace zonale — EBM 0D 3 zones × Briegleb (2004) NCAR/TN-463 §5.
+    // T_local_z = T_glob − dT_z (Budyko-Sellers ; EPOCH['🥶'] via computeIceTempFactor).
+    // α_glace = Σ_z (f_z·tf_z·α_Briegleb(T_z, α_snow_deep_z)) / Σ_z (f_z·tf_z).
+    // Pol + mi-lat : α_snow_deep = 🪩🍰❄️ (accumulation neige propre, Gardner & Sharp 2010).
+    // Tropiques : α_snow_deep = 🪩🍰🧊 (sublimation → glace nue / saisonnière, pas de neige pristine ;
+    //   Pierrehumbert 2005 JGR ; Abbot & Pierrehumbert 2010 J. Climate — mudball sans tuning f_ice).
+    const T_glob_K = DATA['🧮']['🧮🌡️'];
+    const T_polar_K = T_glob_K - _iceTF.dT_pol;
+    const T_midlat_K = T_glob_K - _iceTF.dT_mid;
+    const T_tropical_K = T_glob_K - _iceTF.dT_trop;
+    const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];
+    const iceAlbedoSnowDeepPolMid = albedo_coeff['🪩🍰❄️'];
+    const iceAlbedoSnowDeepTrop = albedo_coeff['🪩🍰🧊'];
+    const iceAlbedoMelt = albedo_coeff['🪩🍰🏊'];
+    const w_pol = _iceTF.f_pol * _iceTF.tf_pol;
+    const w_mid = _iceTF.f_mid * _iceTF.tf_mid;
+    const w_trop = _iceTF.f_trop * _iceTF.tf_trop;
+    const w_sum = w_pol + w_mid + w_trop;
+    const iceAlbedoPol = brieglebIceAlbedoLocal(T_polar_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
+    const iceAlbedoMid = brieglebIceAlbedoLocal(T_midlat_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
+    const iceAlbedoTrop = brieglebIceAlbedoLocal(T_tropical_K, iceAlbedoSnowDeepTrop, albedo_coeff);
     let iceAlbedoEff;
-    if (T_polar_K <= 263.15) {
-        // ≤ −10 °C : neige propre / pristine snow (plateau Gardner-Sharp 2010)
-        iceAlbedoEff = iceAlbedoSnowDeep;
-    } else if (T_polar_K <= 268.15) {
-        // −10 → −5 °C : métamorphisme thermique → snow aging
-        const t = (T_polar_K - 263.15) / 5.0;
-        iceAlbedoEff = iceAlbedoSnowDeep + (iceAlbedoCold - iceAlbedoSnowDeep) * t;
-    } else if (T_polar_K < 273.15) {
-        // −5 → 0 °C : melt pond onset (Perovich 2002)
-        const t = (T_polar_K - 268.15) / 5.0;
-        iceAlbedoEff = iceAlbedoCold + (iceAlbedoMelt - iceAlbedoCold) * t;
+    if (w_sum > 0) {
+        iceAlbedoEff = (w_pol * iceAlbedoPol + w_mid * iceAlbedoMid + w_trop * iceAlbedoTrop) / w_sum;
     } else {
-        // ≥ 0 °C : bare ice + melt ponds
-        iceAlbedoEff = iceAlbedoMelt;
+        iceAlbedoEff = iceAlbedoPol;
     }
-    const iceAlbedoMeltProgress01 = Math.max(0, Math.min(1, (T_polar_K - 263.15) / 10.0));  // rétro-compat diag
-    // ── Diagnostic hystérésis (stash) : glace
+    const iceAlbedoSnowDeep = (w_sum > 0)
+        ? (w_pol * iceAlbedoSnowDeepPolMid + w_mid * iceAlbedoSnowDeepPolMid + w_trop * iceAlbedoSnowDeepTrop) / w_sum
+        : iceAlbedoSnowDeepPolMid;
+    const iceAlbedoMeltProgress01 = Math.max(0, Math.min(1, (T_polar_K - 263.15) / 10.0));
     window._hystDiag = window._hystDiag || {};
     window._hystDiag.T_polar_C = T_polar_K - 273.15;
+    window._hystDiag.T_midlat_C = T_midlat_K - 273.15;
+    window._hystDiag.T_tropical_C = T_tropical_K - 273.15;
     window._hystDiag.iceAlbedoCold = iceAlbedoCold;
     window._hystDiag.iceAlbedoSnowDeep = iceAlbedoSnowDeep;
+    window._hystDiag.iceAlbedoPol = iceAlbedoPol;
+    window._hystDiag.iceAlbedoMid = iceAlbedoMid;
+    window._hystDiag.iceAlbedoTrop = iceAlbedoTrop;
+    window._hystDiag.iceAlbedoMelt = iceAlbedoMelt;
     window._hystDiag.iceAlbedoMeltProgress01 = iceAlbedoMeltProgress01;
     window._hystDiag.iceAlbedoEff = iceAlbedoEff;
 

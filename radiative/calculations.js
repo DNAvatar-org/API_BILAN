@@ -74,6 +74,21 @@ function crossSectionCO2(wavelength) {
     return window.HITRAN.crossSectionCO2FromLines(wavelength, T_ref, P_ref);
 }
 
+// ── Collision-Induced Absorption (CIA) CO₂–CO₂ (+ CO₂–N₂) ────────────────────────────────────
+// Réfs : Gruszka & Borysow 1997 (Icarus 129:172) ; Wordsworth et al. 2010 (Icarus 210:992) ; Hu et al. 2011.
+// Absorption BINAIRE ∝ n_CO₂ · n_total (densité²) : au-delà de la saturation des raies, les collisions
+// CO₂–CO₂/CO₂–N₂ créent un continuum qui remplit les FENÊTRES (far-IR roto-translationnel + fenêtre 8–14 µm).
+// C'est CE terme, absent jusqu'ici, qui manquait pour la sortie de snowball (> 0.1 bar CO₂, Hu et al. 2011).
+// Ici : PROFIL normalisé par λ [0..~1.4] ; la magnitude physique est portée par EARTH.CIA_CO2_SCALE
+// (à CALIBRER pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6, Hu 2011). kappa_CIA appliqué
+// dans le worker : cia_CO2[j] · (n_CO₂/N_ref) · (n_air/N_ref) · CIA_CO2_SCALE. Négligeable à bas CO₂ (∝ n_CO₂²).
+function ciaCoeffCO2(wavelength) {
+    const um = wavelength * 1e6;                                   // longueur d'onde en µm
+    const farIR = Math.exp(-Math.pow((um - 90) / 45, 2));         // bande roto-translationnelle (pic ~90 µm ≈ 110 cm⁻¹) — dominante
+    const windowIR = 0.4 * Math.exp(-Math.pow((um - 11) / 4, 2)); // continuum pression-induit, fenêtre 8–14 µm (pic Planck snowball)
+    return farIR + windowIR;
+}
+
 function waterVaporMixingRatio(z, r0_override = null) {
     const DATA = window.DATA;
     const r0 = r0_override !== null ? r0_override : DATA['💧']['🍰🫧💧'];
@@ -479,6 +494,7 @@ async function calculateFluxForT0() {
 
     // ⚡ OPTIMISATION : Précalculer les sections efficaces (dépendent uniquement de λ)
     const cross_section_CO2 = lambda_range.map(lambda => crossSectionCO2(lambda));
+    const cia_CO2 = lambda_range.map(lambda => ciaCoeffCO2(lambda));   // profil CIA CO₂ par λ (Gruszka-Borysow / Wordsworth)
     const cross_section_H2O = lambda_range.map(lambda => crossSectionH2O(lambda));
     const cross_section_CH4 = lambda_range.map(lambda => crossSectionCH4(lambda));
 
@@ -532,6 +548,8 @@ async function calculateFluxForT0() {
     // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
     // Propagé par tuning.js → syncRadiativeConfig(). Ex-recalcul dynamique 0.92·√P_ratio·CO2_factor retiré (double-comptait le pressure broadening déjà dans HITRAN).
     const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
+    // CIA CO₂ : magnitude calibrable (0 = désactivé). Négligeable à bas CO₂ (∝ n_CO₂²), essentiel > 0.1 bar.
+    const cia_co2_scale = (EARTH.CIA_CO2_SCALE != null && Number.isFinite(EARTH.CIA_CO2_SCALE)) ? EARTH.CIA_CO2_SCALE : 0;
     // EARTH.CH4_EDS_SCALE : parallèle à H2O_EDS_SCALE. Défaut 1.0 (line-by-line HITRAN + √(P/P_ref) natif).
     // Pilotable via FINE_TUNING_BOUNDS.RADIATIVE.CH4_EDS_SCALE (si exposé) pour caler sur cible Haqq-Misra 2008.
     const ch4_eds_scale = (EARTH.CH4_EDS_SCALE != null && Number.isFinite(EARTH.CH4_EDS_SCALE)) ? EARTH.CH4_EDS_SCALE : 1.0;
@@ -591,8 +609,8 @@ async function calculateFluxForT0() {
         }
         const { resultBuf, sums } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            cross_section_CO2, cross_section_H2O, cross_section_CH4,
-            earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale,
+            cross_section_CO2, cross_section_H2O, cross_section_CH4, cia_CO2,
+            earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale, cia_co2_scale,
             tau_cloud_per_layer, effective_delta_lambda,
             T_surf: DATA['🧮']['🧮🌡️'],
             constants: { PLANCK_H: CONST.PLANCK_H, SPEED_OF_LIGHT: CONST.SPEED_OF_LIGHT, BOLTZMANN_KB: CONST.BOLTZMANN_KB, MAX_PLANCK_SAFE: CONST.MAX_PLANCK_SAFE }

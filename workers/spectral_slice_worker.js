@@ -50,6 +50,9 @@ function runSlice(p) {
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
     var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+    var cia_CO2 = p.cia_CO2;
+    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var T_surf = p.T_surf;
@@ -78,7 +81,11 @@ function runSlice(p) {
             var kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
             var kappa_CH4_raw = (Number.isFinite(n_CH4) && cross_section_CH4[j] != null) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
             var kappa_CH4 = kappa_CH4_raw * ch4_eds_scale;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
+            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
             var tau_raw = kappa * delta_z_real + tau_cloud_layer;
             var tau = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(Math.max(tau_raw, TAU_EFF_MIN), TAU_EFF_MAX) : 0;
             var transmission = Math.exp(-tau);
@@ -135,6 +142,9 @@ function runSliceShared(p) {
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
     var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+    var cia_CO2 = p.cia_CO2;
+    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var nL = lambda_range.length;        // slice size
@@ -159,7 +169,11 @@ function runSliceShared(p) {
             var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
             var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
             var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
+            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
             var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
             var transmission = Math.exp(-tau);
             var emissivity = 1 - transmission;
@@ -199,6 +213,9 @@ function runSliceTransfer(p) {
     var i_trop = p.i_trop;
     var h2o_eds_scale = p.h2o_eds_scale;
     var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+    var cia_CO2 = p.cia_CO2;
+    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
     var tau_cloud_per_layer = p.tau_cloud_per_layer;
     var effective_delta_lambda = p.effective_delta_lambda;
     var nL = lambda_range.length;
@@ -222,7 +239,11 @@ function runSliceTransfer(p) {
             var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
             var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
             var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4;
+            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
             var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
             var transmission = Math.exp(-tau);
             var emissivity = 1 - transmission;
