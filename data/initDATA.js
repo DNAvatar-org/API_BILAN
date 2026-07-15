@@ -100,7 +100,12 @@
             coldBranchHint_C: -20,
             // Couplage CCN-CO₂ : ⚖️✈ = baseline × (x0/xNew)^ccnSulfateCoupling à chaque pas du scan.
             // 0 = désactivé ; 0.5 = racine carrée (softer) ; 1 = inverse linéaire.
-            ccnSulfateCoupling: 0.5
+            // v-2026-07-14 : 0 par défaut (SYNCHRO test↔visu — sulfates FIXES à la racine pendant le scan).
+            //   Ancien : 0.5 (rifting Rodinia SO₂↑ quand CO₂↓, Hoffman 1998) ; réactiver avec le scan bary R&D.
+            ccnSulfateCoupling: 0,
+            // useBaryAdapter : false = scan CO₂ simple sur masses racine (défaut, reflète la visu) ;
+            //   true = BaryAdapter R&D (co-variation CH₄/O₂/sulfates via 🔒 + marge co2MaxFactor ×1,1 sur 1a).
+            useBaryAdapter: false
             // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
             // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
             // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
