@@ -608,7 +608,14 @@ const timeline = [
         '⚖️💨': 5.133e18,//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
         '🕰': {
             'order': ['🌋'],
-            '🌋': { '🔺🍰⚽': 0.02, '🔺⏳': 30 },
+            // Voile volcanique DÉCLENCHEUR (LIP Franklin, entrée Sturtienne) : assombrit le SW transitoirement
+            // sur PLUSIEURS itérations → la glace s'installe et l'emballement glace-albédo prend, PUIS reste
+            // (hystérésis) même quand le Soleil revient. v-2026-07-15 : renforcé (0.02→0.05 SW ~25× Petit Âge
+            // Glaciaire, échelle LIP admissible pour cette période mal contrainte ; durée 30→120 pour laisser
+            // l'emballement s'installer). À AJUSTER au test : si ça gèle mais DÉGÈLE au retour du Soleil,
+            // ce n'est pas la bistabilité — c'est l'emballement qui est trop faible (→ chantier feedback).
+            // Anciennes valeurs : { '🔺🍰⚽': 0.02, '🔺⏳': 30 }.
+            '🌋': { '🔺🍰⚽': 0.05, '🔺⏳': 120 },
         },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
