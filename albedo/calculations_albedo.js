@@ -3,6 +3,9 @@
 // Version 1.2.60
 // Date: [July 15, 2026]
 // logs :
+// - v1.2.61: FIX moyenne zonale — une zone ne vote QUE si T_locale < gel (elle porte de la glace). Sinon Briegleb
+//   renvoyait α_melt (0.50) pour une glace inexistante → diluait la glace polaire (0.85→0.65), réchauffait la
+//   branche chaude +11 K et tuait la bifurcation 1a. Branche chaude → seule la polaire vote (0.85) ; snowball → 3 zones.
 // - v1.2.60: albédo glace = moyenne zonale EBM 3 zones (f_z·tf_z) via Briegleb(T_local, α_snow_deep_z) — plus de ICE_ALBEDO_BARE_SNOWBALL / F_BARE_ONSET (réglages). Pol/mi-lat : plateau ❄️ ; tropiques : plateau 🧊 (sublimation, pas d'accumulation neige propre — Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010). α_melt depuis EARTH['🪩🍰']['🪩🍰🏊'] (paramètre équation Briegleb).
 // - v1.2.59: blend dt invariant aux itérations Search/Dicho + couplage masse↔surface optique de glace.
 //   PROBLÈME (cas 1800 → 21°C en 33 iter) : (a) le blend dt sur 🍰💧🧊 (ligne 282) lisait DATA['💧']['🍰💧🧊']
@@ -712,11 +715,25 @@ function calculateAlbedo() {
     const T_tropical_K = T_glob_K - _iceTF.dT_trop;
     const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];
     const iceAlbedoSnowDeepPolMid = albedo_coeff['🪩🍰❄️'];
-    const iceAlbedoSnowDeepTrop = albedo_coeff['🪩🍰🧊'];
+    // [FIX v1.2.62] La glace tropicale n'est NUE/sombre que dans un snowball ÉTABLI (sublimation + poussière
+    // sur des Ma). Fraîchement gelée (front d'avancée = entrée 1a), elle est NEIGEUSE comme aux pôles (0.85).
+    // → on interpole le plateau tropical de la neige propre (0.85, glace neuve) vers la glace nue 🪩🍰🧊
+    // (établie) selon la fraction de glace GLOBALE. C'est « la glace ajoutée reste à 0.85 un temps avant
+    // de s'assombrir » : l'assombrissement suit l'ÉTABLISSEMENT du snowball, pas la T° locale (qui donnait
+    // une glace neuve fausse-sombre « melt-pond » et tuait la bifurcation d'entrée).
+    const f_global_ice = Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
+    const iceAlbedoSnowDeepTrop = iceAlbedoSnowDeepPolMid - (iceAlbedoSnowDeepPolMid - albedo_coeff['🪩🍰🧊']) * f_global_ice;
     const iceAlbedoMelt = albedo_coeff['🪩🍰🏊'];
-    const w_pol = _iceTF.f_pol * _iceTF.tf_pol;
-    const w_mid = _iceTF.f_mid * _iceTF.tf_mid;
-    const w_trop = _iceTF.f_trop * _iceTF.tf_trop;
+    // [FIX v1.2.61] Garde : une zone ne vote dans la moyenne d'albédo glace QUE si elle porte réellement
+    // de la glace (T locale < gel). Sinon brieglebIceAlbedoLocal renvoie α_melt (0.50) pour une glace
+    // INEXISTANTE → ça diluait l'albédo de la glace polaire réelle (0.85 → 0.65), réchauffait la branche
+    // chaude de +11 K et tuait la bifurcation 1a. On ne moyenne que la glace PRÉSENTE :
+    //   branche chaude → seule la zone polaire vote (0.85 neige, littérature) ;
+    //   snowball → les 3 zones votent, la tropicale nue (grande surface, plateau bas) fait émerger le ~0.6.
+    // (T_freeze déjà défini plus haut = EARTH.T_FREEZE_SEAWATER_K)
+    const w_pol = (T_polar_K < T_freeze) ? _iceTF.f_pol * _iceTF.tf_pol : 0;
+    const w_mid = (T_midlat_K < T_freeze) ? _iceTF.f_mid * _iceTF.tf_mid : 0;
+    const w_trop = (T_tropical_K < T_freeze) ? _iceTF.f_trop * _iceTF.tf_trop : 0;
     const w_sum = w_pol + w_mid + w_trop;
     const iceAlbedoPol = brieglebIceAlbedoLocal(T_polar_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
     const iceAlbedoMid = brieglebIceAlbedoLocal(T_midlat_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
