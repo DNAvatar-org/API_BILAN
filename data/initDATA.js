@@ -94,7 +94,7 @@
             //   Ancien code "½·⚖️🏭₀" (50 %) s'arrêtait 4× trop haut (640 ppm) avant d'atteindre la zone bi-stable.
             //   Références : Voigt & Marotzke 2010 ECHAM5 ; Voigt & Abbot 2012 ; Yang et al. 2012 CCSM3 ;
             //   Hörner et al. 2022 Clim. Past 18:2437. En mode positif (saut chaud), miroir = 1/scanFailRatio.
-            scanFailRatio: 0.1,
+            scanFailRatio: 0.02,   // v-2026-07-15 : 0.1→0.02. Le seuil d'entrée snowball est descendu (feedback tropical Cursor v2.0.15 engage à −4°C) SOUS l'ancien plancher 10% (~5 ppm) → le scan abandonnait juste avant la bifurcation. 0.02 (plancher ~1 ppm) le laisse atteindre le seuil. Cf. hyst 1a −3,7°C à 7 ppm, tropical à −4°C.
             maxDichoSteps: 30,
             warmBranchHint_C: -5,
             coldBranchHint_C: -20,
