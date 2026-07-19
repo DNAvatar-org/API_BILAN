@@ -223,7 +223,7 @@ function runSliceTransfer(p) {
     // Float32Array local : transféré (zero-copy) après calcul
     var resultBuf = new Float32Array(nZ * nL);
     var flux_in = earth_flux.slice();
-    var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
+    var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
 
     for (var i = 0; i < nZ; i++) {
         var L = layers[i];
@@ -259,6 +259,7 @@ function runSliceTransfer(p) {
                 sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
                 sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
                 sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+                sum_blocked_CIA += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CIA * delta_z_real)));
             }
             resultBuf[i * nL + j] = upval;
             flux_in[j] = upval;
@@ -274,7 +275,8 @@ function runSliceTransfer(p) {
         sum_blocked_CO2: sum_blocked_CO2,
         sum_blocked_H2O: sum_blocked_H2O,
         sum_blocked_CH4: sum_blocked_CH4,
-        sum_blocked_clouds: sum_blocked_clouds
+        sum_blocked_clouds: sum_blocked_clouds,
+        sum_blocked_CIA: sum_blocked_CIA
     }, [resultBuf.buffer]); // Transferable : ownership move, zéro copie
 }
 

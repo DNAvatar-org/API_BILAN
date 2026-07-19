@@ -429,7 +429,7 @@ async function calculateFluxForT0() {
 
     // (flux_init, ychange, YCHANGE_THR initialisés après earth_flux — voir ci-dessous)
     const final_lambda_length = lambda_range.length;
-    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
+    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
 
     // Log du calcul spectral (désactivé pour réduire la taille des logs)
     // console.log(`📊 [calculateFluxForT0@calculations.js] Calcul spectral:`);
@@ -617,6 +617,7 @@ async function calculateFluxForT0() {
         }, nZ, nL);
         sum_blocked_CO2 = sums.CO2; sum_blocked_H2O = sums.H2O;
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
+        sum_blocked_CIA = sums.CIA || 0;   // diagnostic CIA (n'entre PAS dans la normalisation des 3 EDS)
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
         for (let j = 0; j < nL; j++) {
@@ -682,7 +683,14 @@ async function calculateFluxForT0() {
             Continuum_Wm2: mtCkdTrap
         },
         CH4: { pct: pct(sum_blocked_CH4) },
-        Clouds: { pct: pct(sum_blocked_clouds) }
+        Clouds: { pct: pct(sum_blocked_clouds) },
+        // CIA CO₂ : diagnostic SÉPARÉ (ne participe pas à la normalisation ci-dessus, qui reste Σ=1 sur CO2/H2O/CH4/Clouds).
+        // pct_of_co2 = combien la CIA piège vs les raies CO₂ ; Wm2 = watts CIA à la même échelle que 🧲📛🏭.
+        CIA: {
+            pct: pct(sum_blocked_CIA),
+            Wm2: EDS * pct(sum_blocked_CIA),
+            pct_of_co2: (sum_blocked_CO2 > 1e-20) ? (sum_blocked_CIA / sum_blocked_CO2) : 0
+        }
     };
 
     // Log du delta (flux sortant - flux entrant initial)

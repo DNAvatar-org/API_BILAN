@@ -1,0 +1,132 @@
+{
+  "endpoint": "https://dnavatar.org/deploy.php",
+  "_layout": "API_BILAN → www/pages/bilan_radiatif/API_BILAN/. cd API_BILAN && publish [--full]",
+  "git_root": ".",
+  "files_root": ".",
+  "files": [
+    {
+      "src": "albedo/calculations_albedo.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/albedo/calculations_albedo.js"
+    },
+    {
+      "src": "api.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/api.js"
+    },
+    {
+      "src": "atmosphere/calculations_atm.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/atmosphere/calculations_atm.js"
+    },
+    {
+      "src": "callback_stack.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/callback_stack.js"
+    },
+    {
+      "src": "co2/calculations_co2.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/co2/calculations_co2.js"
+    },
+    {
+      "src": "config/configTimeline.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/config/configTimeline.js"
+    },
+    {
+      "src": "config/fine_tuning_bounds.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/config/fine_tuning_bounds.js"
+    },
+    {
+      "src": "config/model_tuning.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/config/model_tuning.js"
+    },
+    {
+      "src": "config/model_tuning_biblio.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/config/model_tuning_biblio.js"
+    },
+    {
+      "src": "configsAll.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/configsAll.js"
+    },
+    {
+      "src": "convergence/calculations_flux.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/convergence/calculations_flux.js"
+    },
+    {
+      "src": "convergence/compute.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/convergence/compute.js"
+    },
+    {
+      "src": "data/hitran_lines_CH4.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_CH4.js"
+    },
+    {
+      "src": "data/hitran_lines_CO2.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_CO2.js"
+    },
+    {
+      "src": "data/hitran_lines_H2O.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_H2O.js"
+    },
+    {
+      "src": "data/initDATA.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/initDATA.js"
+    },
+    {
+      "src": "doc/ALPHABET_ET_DICO.txt",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/ALPHABET_ET_DICO.txt"
+    },
+    {
+      "src": "doc/BIBLIOGRAPHIE.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/BIBLIOGRAPHIE.html"
+    },
+    {
+      "src": "doc/epoch_bench.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/epoch_bench.html"
+    },
+    {
+      "src": "event_bus.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/event_bus.js"
+    },
+    {
+      "src": "geology/calculations_geology.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/geology/calculations_geology.js"
+    },
+    {
+      "src": "h2o/calculations_h2o.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/h2o/calculations_h2o.js"
+    },
+    {
+      "src": "physics/climate.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/physics/climate.js"
+    },
+    {
+      "src": "physics/physics.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/physics/physics.js"
+    },
+    {
+      "src": "radiative/calculations.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/radiative/calculations.js"
+    },
+    {
+      "src": "receiver.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/receiver.js"
+    },
+    {
+      "src": "spectroscopy/hitran.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/spectroscopy/hitran.js"
+    },
+    {
+      "src": "tuning.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/tuning.js"
+    },
+    {
+      "src": "workers/compute_worker.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/workers/compute_worker.js"
+    },
+    {
+      "src": "workers/spectral_slice_worker.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/workers/spectral_slice_worker.js"
+    },
+    {
+      "src": "workers/worker_pool.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/workers/worker_pool.js"
+    }
+  ]
+}

@@ -219,7 +219,10 @@ function buildEdsBreakdown(b) {
         '🧲📛🏭': E * b.CO2.pct,
         '🧲📛💧': E * b.H2O.pct,
         '🧲📛🐄': E * b.CH4.pct,
-        '🧲📛⛅': E * pCloud
+        '🧲📛⛅': E * pCloud,
+        // CIA CO₂ (diagnostic séparé) : 🌫️ = watts CIA, 🍰📛🌫️ = ratio CIA/raies-CO₂
+        '🧲📛🌫️': b.CIA != null ? b.CIA.Wm2 : 0,
+        '🍰📛🌫️': b.CIA != null ? b.CIA.pct_of_co2 : 0
     };
 }
 
@@ -1518,4 +1521,85 @@ CONVERGE.updateConvergenceBounds = updateConvergenceBounds;
 CONVERGE.computeRadiativeTransfer = computeRadiativeTransfer; // async (RAF yield indispensable), callback optionnel, options({renderMode})
 CONVERGE.newDate = newDate;
 CONVERGE.snapshotEdsForConvergence = snapshotEdsForConvergence;
+
+// ── SONDE DIAGNOSTIC : OLR(CO₂) à T FIGÉE (v-2026-07-16) ───────────────────────────────────────
+// But : isoler la réponse RADIATIVE PURE de la boucle de convergence. Sur la branche froide, si l'OLR
+// MONTE quand le CO₂ monte (à T fixe), c'est l'anti-serre (inversion) qui empêche le CO₂ de piloter la
+// déglaciation 1b — le scan CO₂ ne peut alors jamais converger. Réutilise EXACTEMENT les fonctions de la
+// convergence (fidélité totale). Usage : sur la page hystérésis, époque 1b chargée, dans la console :
+//     await probeOLRvsCO2AtFixedT()                 // T = T courante, grille ×[0.1..30] du CO₂ baseline
+//     await probeOLRvsCO2AtFixedT(-17)              // T figée à -17 °C
+//     await probeOLRvsCO2AtFixedT(-17, [1e17,1e18,1e19])   // grille CO₂ explicite (kg)
+async function probeOLRvsCO2AtFixedT(T_C, co2Grid) {
+    const DATA = window.DATA;
+    const K = window.CONST.KELVIN_TO_CELSIUS;
+    const T_K = Number.isFinite(T_C) ? (T_C + K) : DATA['🧮']['🧮🌡️'];
+    // Le CO₂ est piloté via la TIMELINE : getMasses() (appelé par calculateH2OParameters) réécrase DATA['⚖️']
+    // depuis EPOCH['⚖️🏭'] à chaque pas. Écrire dans DATA ne survivrait pas ; on écrit donc dans la config.
+    const epIdx = window.TIMELINE.findIndex(it => it['📅'] === DATA['📜']['🗿']);
+    const EP = epIdx >= 0 ? window.TIMELINE[epIdx] : null;
+    if (!EP) { console.warn('🔭[probe] aucune époque chargée (DATA[📜][🗿] absent de TIMELINE). Charge 1b d\'abord.'); return []; }
+    const epCo2_0 = Number(EP['⚖️🏭']);
+    const co2_0 = (Number.isFinite(epCo2_0) && epCo2_0 > 0) ? epCo2_0 : 1e18;
+    const grid = (Array.isArray(co2Grid) && co2Grid.length)
+        ? co2Grid.slice()
+        : [0.1, 0.3, 1, 3, 10, 30].map(fac => co2_0 * fac);
+    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'] };
+    const pinT = () => { DATA['🧮']['🧮🌡️'] = T_K; DATA['🧮']['🧮🌡️⏮'] = T_K; DATA['🧮']['🧮🌡️🚩'] = T_K; };
+    const f = (v, n) => Number.isFinite(v) ? v.toFixed(n) : '—';
+    const rows = [];
+    console.log('🔭[probe OLR(CO₂)@T] T FIGÉE=' + (T_K - K).toFixed(2) + '°C — ' + grid.length + ' pas CO₂ (réponse radiative pure, branche isolée)');
+    try {
+        for (let i = 0; i < grid.length; i++) {
+            const co2 = grid[i];
+            EP['⚖️🏭'] = co2;                                 // getMasses lira CETTE valeur
+            if (window.COMPUTE && window.COMPUTE.getMasses) window.COMPUTE.getMasses();
+            window.ATM.calculateAtmosphereComposition();
+            pinT();
+            window.ATM.updateAtmosphereHeightFromCurrentT();
+            pinT();
+            window.H2O._lastH2OParamsCache = null;
+            window.H2O.calculateH2OParameters();
+            window.ALBEDO.calculateAlbedo();
+            pinT();
+            await window.calculateFluxForT0();
+            const b = DATA['📊'] && DATA['📊'].eds_breakdown;
+            const OLR = (DATA['📊'] && Number.isFinite(DATA['📊'].total_flux)) ? DATA['📊'].total_flux : NaN;
+            const EDS = b ? b.EDS_Wm2 : NaN;
+            const co2W = b ? EDS * b.CO2.pct : NaN;
+            const h2oW = b ? EDS * b.H2O.pct : NaN;
+            const ciaW = (b && b.CIA) ? b.CIA.Wm2 : NaN;
+            const frac = DATA['🫧']['🍰🫧🏭'];
+            const alb = (DATA['🪩'] && Number.isFinite(DATA['🪩']['🍰🪩📿'])) ? DATA['🪩']['🍰🪩📿'] : NaN;
+            const Sabs = DATA['☀️']['🧲☀️🎱'] * (1 - alb);
+            rows.push({ co2, ppm: frac * 1e6, OLR, EDS, co2W, h2oW, ciaW, Sabs });
+            console.log('🔭  CO₂=' + co2.toExponential(2) + ' kg (' + f(frac * 1e6, 0) + ' ppm) | OLR=' + f(OLR, 2)
+                + ' | EDS=' + f(EDS, 2) + ' [CO₂ ' + f(co2W, 1) + ' · H₂O ' + f(h2oW, 1) + '] | CIA=' + f(ciaW, 1)
+                + ' | Sabs=' + f(Sabs, 1) + ' W/m²');
+        }
+        if (rows.length >= 2) {
+            const dOLR = rows[rows.length - 1].OLR - rows[0].OLR;
+            const verdict = dOLR > 0.5
+                ? '⚠️ OLR MONTE avec le CO₂ (+' + dOLR.toFixed(1) + ' W/m²) → ANTI-SERRE confirmée : le CO₂ REFROIDIT à T fixe. C\'est ça qui bloque 1b.'
+                : dOLR < -0.5
+                    ? '✅ OLR BAISSE avec le CO₂ (' + dOLR.toFixed(1) + ' W/m²) → serre normale : le CO₂ réchauffe. L\'inversion vue au scan vient d\'ailleurs (convergence/albédo/vapeur).'
+                    : '≈ OLR QUASI PLAT (' + dOLR.toFixed(1) + ' W/m²) → CO₂ = levier ~NUL sur cette branche (bandes saturées, fenêtre pas refermée).';
+            console.log('🔭[verdict] ' + verdict);
+        }
+    } finally {
+        // Restauration : rendre à la timeline son CO₂ baseline + re-prep pour laisser DATA cohérent
+        if (EP && Number.isFinite(epCo2_0)) EP['⚖️🏭'] = epCo2_0;
+        if (window.COMPUTE && window.COMPUTE.getMasses) window.COMPUTE.getMasses();
+        DATA['🧮']['🧮🌡️'] = save.T; DATA['🧮']['🧮🌡️⏮'] = save.Tp; DATA['🧮']['🧮🌡️🚩'] = save.Tf;
+        window.ATM.calculateAtmosphereComposition();
+        window.ATM.updateAtmosphereHeightFromCurrentT();
+        window.H2O._lastH2OParamsCache = null;
+        window.H2O.calculateH2OParameters();
+        window.ALBEDO.calculateAlbedo();
+        console.log('🔭[probe] état restauré (CO₂ timeline=' + (Number.isFinite(epCo2_0) ? epCo2_0.toExponential(3) : '?') + ' kg, T=' + (save.T - K).toFixed(2) + '°C)');
+    }
+    return rows;
+}
+window.probeOLRvsCO2AtFixedT = probeOLRvsCO2AtFixedT;
+CONVERGE.probeOLRvsCO2AtFixedT = probeOLRvsCO2AtFixedT;
 

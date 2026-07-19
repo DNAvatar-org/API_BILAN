@@ -216,6 +216,16 @@ function getEpochDateConfig() {
     // → calibration cassée vs visu (single click = pas de pulse hérité). Cf. _logs/iceSnapshot.txt
     // POST_CALC ep=📱 phase=Init : alb 0.3019 (bench) vs 0.288 (visu).
     const wh0 = EPOCH['🕰'];
+    // [FIX voile-action v-2026-07-16] Si l'époque porte une ACTION volcan qui déclare un voile dans 🕰
+    // (🗻 = voile SW entrée / 🌋 = sortie), le voile 📜🔺🍰⚽ est piloté par le CLIC d'action (events.js) et
+    // ne doit PAS être remis à 0 par le compute. Sinon le voile appliqué par l'action était effacé au pas
+    // suivant (1a n'a pas de clé racine 🔺🍰⚽ — voulu : le voile n'apparaît QU'à l'action) → l'entrée snowball
+    // ne se déclenchait jamais (visu 🍰⚽=0 malgré le clic). La protection anti-fuite cross-époque reste active
+    // pour les époques SANS action voile.
+    const hasVeilAction = wh0 && (
+        (wh0['🗻'] && Number.isFinite(Number(wh0['🗻']['🔺🍰⚽']))) ||
+        (wh0['🌋'] && Number.isFinite(Number(wh0['🌋']['🔺🍰⚽'])))
+    );
     const hasInterpVeil = wh0 && Array.isArray(wh0['🔀']) && wh0['🔀'].indexOf('📜') !== -1
         && wh0['◀'] && wh0['◀']['📜'] && typeof wh0['◀']['📜']['🔺🍰⚽'] === 'number'
         && Number.isFinite(Number(wh0['◀']['📜']['🔺🍰⚽']))
@@ -231,9 +241,9 @@ function getEpochDateConfig() {
             DATA['📜']['🔺🍰⚽'] = pulseVal;
             DATA['📜']['_veilTimelinePulseActive'] = true;
         }
-    } else {
+    } else if (!hasVeilAction) {
         DATA['📜']['_veilTimelinePulseActive'] = false;
-        DATA['📜']['🔺🍰⚽'] = 0; // pas de pulse sur cette époque → on efface le résiduel cross-époque.
+        DATA['📜']['🔺🍰⚽'] = 0; // pas de pulse ni d'action voile → on efface le résiduel cross-époque.
     }
 
     // Rayon effectif : base EPOCH['📐'] + somme des deltas 🔺📐 par tic (générique ; ignorer 🕰['🔀'] et 🕰['◀'])

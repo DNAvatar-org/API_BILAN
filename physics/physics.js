@@ -316,7 +316,7 @@ EARTH.CH4_EDS_SCALE = 1.0;
 // Unité [m⁻¹ par amagat²]. Ordre de grandeur Gruszka-Borysow (pic far-IR ~1e-6 cm⁻¹/amagat² ≈ 1e-4 m⁻¹/amagat²).
 // Négligeable à bas CO₂ (∝ n_CO₂²) → n'affecte PAS la Terre moderne ni les époques ≤ quelques % CO₂.
 // À CALIBRER (par test) pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6 (Hu et al. 2011). 0 = désactivé.
-EARTH.CIA_CO2_SCALE = 1.0e-4;
+EARTH.CIA_CO2_SCALE = 1.0e-2;   // v-2026-07-15 : 1e-4→1e-2 (×100) TEST — la serre CO₂ s'inversait encore à 1e-4 (CIA trop faible OU pas branchée). Si ×100 casse l'inversion (EDS CO₂ MONTE avec le CO₂) → calibrer à la baisse. Si ça inverse TOUJOURS → la CIA n'atteint pas le worker (bug de branchement à déboguer).
 
 // ─── Seuil de brume organique (Haqq-Misra 2008 Fig. 1) ─────────────────────────
 // Rapport molaire CH4/CO2 au-delà duquel le méthane polymérise en Tholin (brume organique)

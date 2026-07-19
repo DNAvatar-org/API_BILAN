@@ -54,7 +54,7 @@
         var sliceSize = Math.ceil(nL / nWorkers);
         var doneCount = 0;
         var activeWorkers = 0;
-        var sums = { CO2: 0, H2O: 0, CH4: 0, clouds: 0 };
+        var sums = { CO2: 0, H2O: 0, CH4: 0, clouds: 0, CIA: 0 };
         // Buffer de résultat final (flat, accumulé au fur et à mesure des réponses)
         var resultBuf = new Float32Array(nZ * nL);
 
@@ -80,6 +80,7 @@
                         sums.H2O += msg.sum_blocked_H2O;
                         sums.CH4 += msg.sum_blocked_CH4;
                         sums.clouds += msg.sum_blocked_clouds;
+                        sums.CIA += (msg.sum_blocked_CIA || 0);
                         doneCount++;
                         if (doneCount === activeWorkers) {
                             resolve({ resultBuf: resultBuf, sums: sums });

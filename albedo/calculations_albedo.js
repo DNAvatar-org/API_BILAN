@@ -1,11 +1,14 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.60
+// Version 1.2.63
 // Date: [July 15, 2026]
 // logs :
-// - v1.2.61: FIX moyenne zonale — une zone ne vote QUE si T_locale < gel (elle porte de la glace). Sinon Briegleb
-//   renvoyait α_melt (0.50) pour une glace inexistante → diluait la glace polaire (0.85→0.65), réchauffait la
-//   branche chaude +11 K et tuait la bifurcation 1a. Branche chaude → seule la polaire vote (0.85) ; snowball → 3 zones.
+// - v1.2.63: gate ÉTABLISSEMENT (f_global_ice) sur toute la courbe Briegleb — glace neuve = plateau ❄️
+//   (0.85) quelle que soit T_locale ; aging + melt-pond + assombrissement tropical ne s'activent que
+//   quand le snowball s'établit (Pierrehumbert/Abbot : sublimation + poussière sur des Ma). Corrige le
+//   pas 2 du scan 1a où la mi-lat votait melt-pond (~0.58) sur glace fraîche → ice_eff 0.693 → T↑ malgré CO₂↓.
+// - v1.2.62: plateau tropical ❄️→🧊 lié à f_global_ice (sublimation snowball établi).
+// - v1.2.61: FIX moyenne zonale — une zone ne vote QUE si T_locale < gel
 // - v1.2.60: albédo glace = moyenne zonale EBM 3 zones (f_z·tf_z) via Briegleb(T_local, α_snow_deep_z) — plus de ICE_ALBEDO_BARE_SNOWBALL / F_BARE_ONSET (réglages). Pol/mi-lat : plateau ❄️ ; tropiques : plateau 🧊 (sublimation, pas d'accumulation neige propre — Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010). α_melt depuis EARTH['🪩🍰']['🪩🍰🏊'] (paramètre équation Briegleb).
 // - v1.2.59: blend dt invariant aux itérations Search/Dicho + couplage masse↔surface optique de glace.
 //   PROBLÈME (cas 1800 → 21°C en 33 iter) : (a) le blend dt sur 🍰💧🧊 (ligne 282) lisait DATA['💧']['🍰💧🧊']
@@ -247,9 +250,8 @@ function calculateCloudFormationIndex() {
 // - "Ice-Albedo Feedback in Climate Models" (approximation simplifiée)
 // - Modèles de rétroaction glace-albedo (Budyko, 1969; Sellers, 1969)
 // - Paramétrisation nuageuse simplifiée pour visualisation pédagogique
-// [EQ] Briegleb et al. (2004) NCAR/TN-463 — α_ice(T_local, α_snow_deep).
-// Seuils Gardner & Sharp (2010) JGR 115:F01009 : −10 / −5 / 0 °C.
-function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff) {
+// [EQ] Briegleb mature (NCAR/TN-463) — état établi : aging + melt-pond selon T_locale.
+function brieglebIceAlbedoMature(T_local_K, alphaSnowDeep, albedo_coeff) {
     const alphaCold = albedo_coeff['🪩🍰🧊'];
     const alphaMelt = albedo_coeff['🪩🍰🏊'];
     if (T_local_K <= 263.15) return alphaSnowDeep;
@@ -262,6 +264,14 @@ function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff) {
         return alphaCold + (alphaMelt - alphaCold) * t;
     }
     return alphaMelt;
+}
+
+// Albédo glace zonale : neige fraîche (α_snow_deep) tant que le snowball n'est pas établi ;
+// interpolation vers Briegleb mature quand f_global_ice → 1 (sublimation, melt-pond, glace nue).
+function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establishment01) {
+    const alphaMature = brieglebIceAlbedoMature(T_local_K, alphaSnowDeep, albedo_coeff);
+    const est = Math.max(0, Math.min(1, establishment01));
+    return alphaSnowDeep + (alphaMature - alphaSnowDeep) * est;
 }
 
 function calculateAlbedo() {
@@ -703,6 +713,23 @@ function calculateAlbedo() {
     // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
     const albedo_coeff = { ...EARTH['🪩🍰'], ...(EPOCH['🪩🍰'] || {}) };
 
+    // [MUDBALL v-2026-07-16] Déglaciation 1b : la poussière volcanique (Abbot & Pierrehumbert 2010) assombrit
+    // TOUTE la surface gelée — neige profonde (🪩🍰❄️) ET glace nue (🪩🍰🧊) — pas seulement les tropiques.
+    // Un SEUL scalaire partagé window.CONFIG_COMPUTE.iceMudballAlbedo (null = inactif → 1a & autres époques
+    // intactes, neige pristine 0.85) piloté À L'IDENTIQUE par la jauge (test hystérésis) et la config/event
+    // volcan-poussière (visu) → source unique, pas de divergence scan/visu. On ne fait qu'ASSOMBRIR (min).
+    // Gating 1b : le mudball ne s'applique QU'aux époques de déglaciation (snowball établi, poussière concentrée
+    // par sublimation sur des Ma). Sinon tester/animer 1a assombrirait sa neige fraîche → casserait le gel d'entrée.
+    // Stopgap : détection par nom d'époque. Step 3 (config event volcan-poussière) remplacera par un flag EPOCH dédié.
+    const _epochName = (EPOCH && typeof EPOCH['📅'] === 'string') ? EPOCH['📅'] : '';
+    const _epochAllowsMudball = (EPOCH && EPOCH['🌫️❄️'] === true) || _epochName.indexOf('1b') >= 0;
+    const _mudball = (_epochAllowsMudball && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.iceMudballAlbedo != null
+        && Number.isFinite(window.CONFIG_COMPUTE.iceMudballAlbedo)) ? window.CONFIG_COMPUTE.iceMudballAlbedo : null;
+    if (_mudball != null) {
+        if (albedo_coeff['🪩🍰❄️'] > _mudball) albedo_coeff['🪩🍰❄️'] = _mudball;
+        if (albedo_coeff['🪩🍰🧊'] > _mudball) albedo_coeff['🪩🍰🧊'] = _mudball;
+    }
+
     // [EQ] Albédo glace zonale — EBM 0D 3 zones × Briegleb (2004) NCAR/TN-463 §5.
     // T_local_z = T_glob − dT_z (Budyko-Sellers ; EPOCH['🥶'] via computeIceTempFactor).
     // α_glace = Σ_z (f_z·tf_z·α_Briegleb(T_z, α_snow_deep_z)) / Σ_z (f_z·tf_z).
@@ -735,9 +762,9 @@ function calculateAlbedo() {
     const w_mid = (T_midlat_K < T_freeze) ? _iceTF.f_mid * _iceTF.tf_mid : 0;
     const w_trop = (T_tropical_K < T_freeze) ? _iceTF.f_trop * _iceTF.tf_trop : 0;
     const w_sum = w_pol + w_mid + w_trop;
-    const iceAlbedoPol = brieglebIceAlbedoLocal(T_polar_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
-    const iceAlbedoMid = brieglebIceAlbedoLocal(T_midlat_K, iceAlbedoSnowDeepPolMid, albedo_coeff);
-    const iceAlbedoTrop = brieglebIceAlbedoLocal(T_tropical_K, iceAlbedoSnowDeepTrop, albedo_coeff);
+    const iceAlbedoPol = brieglebIceAlbedoLocal(T_polar_K, iceAlbedoSnowDeepPolMid, albedo_coeff, f_global_ice);
+    const iceAlbedoMid = brieglebIceAlbedoLocal(T_midlat_K, iceAlbedoSnowDeepPolMid, albedo_coeff, f_global_ice);
+    const iceAlbedoTrop = brieglebIceAlbedoLocal(T_tropical_K, iceAlbedoSnowDeepTrop, albedo_coeff, f_global_ice);
     let iceAlbedoEff;
     if (w_sum > 0) {
         iceAlbedoEff = (w_pol * iceAlbedoPol + w_mid * iceAlbedoMid + w_trop * iceAlbedoTrop) / w_sum;
@@ -758,6 +785,7 @@ function calculateAlbedo() {
     window._hystDiag.iceAlbedoMid = iceAlbedoMid;
     window._hystDiag.iceAlbedoTrop = iceAlbedoTrop;
     window._hystDiag.iceAlbedoMelt = iceAlbedoMelt;
+    window._hystDiag.f_global_ice = f_global_ice;
     window._hystDiag.iceAlbedoMeltProgress01 = iceAlbedoMeltProgress01;
     window._hystDiag.iceAlbedoEff = iceAlbedoEff;
 
@@ -942,6 +970,12 @@ function calculateAlbedo() {
 
     // 🔒 FORMULE ALBEDO CORRIGÉE :
     // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🎾,🌊,🌳,🏜️,🧊 }
+    // [DIAG v-2026-07-16] Capture pré-nuage + coeff nuage pour tracer la divergence albédo test vs visu.
+    const _preCloudAlbedo = albedo;
+    const _cloudCoeff = albedo_coeff['🪩🍰⛅'];
+    window._hystDiag = window._hystDiag || {};
+    window._hystDiag.preCloudAlbedo = _preCloudAlbedo;
+    window._hystDiag.cloudCoeff = _cloudCoeff;
     albedo = albedo * (1 - cloud_fraction) + albedo_coeff['🪩🍰⛅'] * cloud_fraction;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
@@ -982,30 +1016,50 @@ function calculateAlbedo() {
     window._hystDiag.finalAlbedo = final_albedo;
     window._hystDiag.blackbodyFactor = blackbody_factor;
     window._hystDiag.aEff = A_eff;
-    // v1.2.59 — Log POST_CALC : valeurs RÉELLEMENT produites par calculateAlbedo.
-    // Diff visu vs bench à T identique pour tracer le composant qui leak (cloud, biomes, voile).
-    if (typeof window !== 'undefined' && typeof window.debugMirrorConfigLogToFile === 'function') {
+    // [PER-TAB LOG v-2026-07-16] logToFile(msg) → écrit dans _logs/<onglet>.txt selon l'onglet ouvert :
+    //   test (hysteresis_compute) → dataTest.txt ; visu (scie_compute) → dataVisu.txt.
+    // serve_site.py accepte tout topic (regex anti-traversal, PAS de whitelist ni de flag). On logue à CHAQUE
+    // appel de calculateAlbedo : entrée de fonction (ligne compacte) + DATA complet. NE PAS SUPPRIMER avant
+    // confirmation user. window.DEBUG.logToTopic(topic,msg) (logs_to_server.js:300) route sans flag.
+    try {
+        const _tab = (function () {
+            try {
+                const h = (window.location && window.location.href) || '';
+                if (h.indexOf('hysteresis') >= 0) return 'dataTest';
+                if (h.indexOf('scie') >= 0) return 'dataVisu';
+                return 'dataOther';
+            } catch (e) { return 'dataOther'; }
+        })();
+        const _logToFile = function (m) {
+            try { if (window.DEBUG && typeof window.DEBUG.logToTopic === 'function') window.DEBUG.logToTopic(_tab, m); } catch (e) {}
+        };
         const _ep = (DATA['📜'] && DATA['📜']['🗿']) || '?';
         const _ph = (DATA['🧮'] && DATA['🧮']['🧮⚧']) || '?';
         const _T_C = Number.isFinite(DATA['🧮']['🧮🌡️']) ? (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3) : 'NaN';
-        const _f = (v, p) => (Number.isFinite(v) ? v.toFixed(p ?? 5) : String(v));
-        window.debugMirrorConfigLogToFile('logIceSnapshotDiagnostic',
-            '[iceSnap] POST_CALC ep=' + _ep + ' phase=' + _ph + ' T_C=' + _T_C
-            + ' alb=' + _f(A_eff, 4)
-            + ' weighted=' + _f(weighted_albedo, 4)
-            + ' final=' + _f(final_albedo, 4)
-            + ' bbFactor=' + _f(blackbody_factor, 4)
-            + ' cloud=' + _f(cloud_fraction, 4)
-            + ' cloudIdx=' + _f(DATA['🪩'] && DATA['🪩']['☁️'], 4)
-            + ' ice=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🧊'], 5)
-            + ' ocean=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌊'], 4)
-            + ' forest=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌳'], 4)
-            + ' desert=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🏜️'], 4)
-            + ' land=' + _f(DATA['🪩'] && DATA['🪩']['🍰🪩🌍'], 4)
-            + ' veil=' + _f(DATA['🪩'] && DATA['🪩']['🍰⚽'], 4)
-            + ' ccnTw=' + _f(DATA['🪩'] && DATA['🪩']['ccnTwomey'], 4)
-        );
-    }
+        const _q = function (x) { return (typeof x === 'number' && Number.isFinite(x)) ? Number(x.toPrecision(6)) : x; };
+        // 1) Entrée de fonction (prouve que calculateAlbedo EST appelé dans cet onglet) + valeurs albédo clés.
+        _logToFile('[FNTRACE] calculateAlbedo tab=' + _tab + ' ep=' + _ep + ' phase=' + _ph + ' T_C=' + _T_C
+            + ' | iceSurf=' + _q(DATA['🪩']['🍰🪩🧊']) + ' ocean=' + _q(DATA['🪩']['🍰🪩🌊']) + ' land=' + _q(DATA['🪩']['🍰🪩🌍'])
+            + ' | iceMass=' + _q(DATA['💧']['🍰💧🧊']) + ' liquid=' + _q(DATA['💧']['🍰💧🌊'])
+            + ' | weighted=' + _q(weighted_albedo) + ' preCloud=' + _q(_preCloudAlbedo) + ' cloudCoeff=' + _q(_cloudCoeff)
+            + ' iceNu=' + _q(albedo_coeff['🪩🍰🧊']) + ' iceSnow=' + _q(albedo_coeff['🪩🍰❄️'])
+            + ' final=' + _q(final_albedo) + ' bbFactor=' + _q(blackbody_factor)
+            + ' cloud=' + _q(cloud_fraction) + ' veil=' + _q(DATA['🪩']['🍰⚽']) + ' A_eff=' + _q(A_eff));
+        // 2) DATA COMPLET (anti-circulaire, gros tableaux spectraux tronqués, nombres à 8 chiffres).
+        const _safeJSON = function (obj) {
+            const seen = new WeakSet();
+            try {
+                return JSON.stringify(obj, function (k, v) {
+                    if (typeof v === 'object' && v !== null) { if (seen.has(v)) return '<circular>'; seen.add(v); }
+                    if (Array.isArray(v) && v.length > 40) return '<array:' + v.length + '>';
+                    if (typeof v === 'number' && Number.isFinite(v)) return Number(v.toPrecision(8));
+                    return v;
+                });
+            } catch (e) { return '<err:' + e.message + '>'; }
+        };
+        _logToFile('[DATA_DUMP] tab=' + _tab + ' ep=' + _ep + ' phase=' + _ph + ' T_C=' + _T_C
+            + ' | DATA=' + _safeJSON(DATA) + ' | EARTH=' + _safeJSON(window.EARTH) + ' | CONFIG_COMPUTE=' + _safeJSON(window.CONFIG_COMPUTE));
+    } catch (e) { /* diag only */ }
     return A_eff;
 }
 

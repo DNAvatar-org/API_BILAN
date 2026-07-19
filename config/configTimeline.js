@@ -564,7 +564,11 @@ const timeline = [
         // 🌡️🧮 : graine solveur hyst (id stable `hysteresis 1a` — ligne TIMELINE dédiée, hidden: true).
         // L’onglet / carte « Sturtienne » (🪸) est une autre entrée : modifier son 🌡️🧮 ne règle pas la graine du bouton hyst.
         // Ici 283.15 K = 10 °C (milieu CSV) ; T_conv après 1er bilan ≠ cette valeur (équilibre radiatif).
-        '🌡️🧮': 283.15,
+        // v-2026-07-16 EXPÉRIENCE : graine mise à 271.15 K (-2 °C) pour reproduire EXACTEMENT les conditions
+        // de la visu ⛄ (même graine, même 100 ppm, même 2 % voile). But : voir si le test oscille aussi depuis
+        // -2 °C (→ c'est la graine) ou atteint quand même -46 °C (→ la graine n'y est pour rien). Restaurer 283.15
+        // après le test. Ancienne valeur : 283.15 (10 °C).
+        '🌡️🧮': 271.15,
         // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
@@ -598,6 +602,13 @@ const timeline = [
         //   à ~112 ppm AVEC 2% de voile. On pose la warm branch JUSTE SOUS (100 ppm, littérature 100-300) : sans
         //   voile = chaud (+0.3°C) ; +2% voile (volcan Franklin) = snowball net (100 < 112 tip). C'est le déclencheur.
         //   (Ancienne baseline scan : 1.62e15 = 200 ppm ; avant : 4.451e14 = 55 ppm.)
+        // ⚖️🏭🔺 = facteur de démarrage du SCAN de recherche (entrée) v-2026-07-16. Le baseline (100 ppm) est
+        //   volontairement JUSTE SOUS le tip → sous voile 2 % il est déjà sur la branche froide (-46 °C = le
+        //   déclencheur qui marche). Mais le scan de bifurcation doit AMORCER au-dessus du tip : ×2 → 200 ppm,
+        //   exactement la baseline qui a trouvé le tip à ~112 ppm. Le point de fonctionnement (visu) reste 100 ppm ;
+        //   seul le scan part plus haut, puis ×0.5 redescend et croise proprement la bifurcation → SUCCESS.
+        '⚖️🏭🔺': 1.0,  // v-2026-07-16 : temporairement 1 (ex-2) pour RETESTER le scan directement à 100 ppm dès le
+        //   step 1 (expérience : step 1 doit tomber à -46°C, prouvant que 100 ppm + voile 2% = snowball sans « élan »).
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
@@ -609,16 +620,15 @@ const timeline = [
         // ⚖️✈ : baseline sulfate volcanique. v-2026-07-14b 1.018e12 (aligné vecteur scan ; ancien 1.0e12).
         '⚖️✈': 1.018e12,
         '⚖️💨': 5.133e18,//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
+        // 1a = SURFUSION (~-2°C). Le bouton volcan 🗻 est un DÉCLENCHEUR ERGONOMIQUE : son tooltip (desc du logo,
+        // "Volcan — voile atmosphérique") annonce à l'utilisateur que le voile arrive, et le clic fait avancer la
+        // frise vers ⛄ (Plein Snowball) où le voile s'applique RÉELLEMENT (clé racine 🔺🍰⚽=0.02 de ⛄).
+        // ⚠️ Choix ASSUMÉ, pas cohérent en interne : le voile n'est PAS dans ce bouton (pas de 🔺🍰⚽ ici), il est
+        // dans la config de ⛄. C'est voulu pour la lisibilité utilisateur (« je clique le volcan → snowball »).
+        // v-2026-07-16.
         '🕰': {
-            'order': ['🌋'],
-            // Voile volcanique DÉCLENCHEUR (LIP Franklin, entrée Sturtienne) : assombrit le SW transitoirement
-            // sur PLUSIEURS itérations → la glace s'installe et l'emballement glace-albédo prend, PUIS reste
-            // (hystérésis) même quand le Soleil revient. v-2026-07-15 : renforcé (0.02→0.05 SW ~25× Petit Âge
-            // Glaciaire, échelle LIP admissible pour cette période mal contrainte ; durée 30→120 pour laisser
-            // l'emballement s'installer). À AJUSTER au test : si ça gèle mais DÉGÈLE au retour du Soleil,
-            // ce n'est pas la bistabilité — c'est l'emballement qui est trop faible (→ chantier feedback).
-            // Anciennes valeurs : { '🔺🍰⚽': 0.02, '🔺⏳': 30 }.
-            '🌋': { '🔺🍰⚽': 0.05, '🔺⏳': 120 },
+            'order': ['🗻'],
+            '🗻': { '🔺⏳': 30 },
         },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
@@ -675,7 +685,7 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🏭": 4.451e14,// v-2026-07-14b : 55 ppm — MÊME vecteur que hyst 1a (bistabilité : branche froide via graine 🌡️🧮=270 K). Anciens : 4.289e14 (53 ppm), 45.797e13 (56,6 ppm).
+    "⚖️🏭": 8.1e14,// 100 ppm — v-2026-07-15b : aligné sur hyst 1a (100 ppm). Même vecteur, branche froide via graine 🌡️🧮=270 K. Anciens : 4.451e14 (55), 4.289e14 (53), 45.797e13 (56,6).
     "⚖️🐄": 8.57e13,// 30 ppm — aligné hyst 1a (v-2026-07-14b ; ancien 2e13 = 7 ppm)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
@@ -746,7 +756,14 @@ const timeline = [
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
         // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
         // bas pour déglacer (anim restait à −57 °C) et ne tenait même pas la branche chaude au bench.
-        '⚖️🏭': 7.0e17, // co2_kg — ~80 000 ppm mol (hyper-greenhouse déglaciation Marinoen)
+        '⚖️🏭': 1.31e18, // co2_kg — ~150 000 ppm mol (~15 %) — v-2026-07-15 : monté de 8% à 15% pour tester la déglaciation (outgassing volcanique sur Ma, plausible ; Gemini/Hu 2011). Ancien : 7.0e17 (~80 000 ppm, 8%). À combiner avec glace poussiéreuse (iceAlbedoCoeff bas, slider manuel).
+        // ⚖️🏭🔝 = plafond du scan CO₂ hystérésis (kg). v-2026-07-16. C'est le régime de déglaciation 1b
+        // (poussière volcanique) qui impose ce plafond, PAS un cas particulier codé dans le scan. Au-delà de
+        // ~16 % CO₂ (~1.31e18 kg) l'OLR du modèle s'INVERSE (ajouter du CO₂ refroidit — artefact CO₂-gaz-majeur,
+        // cf. probeOLRvsCO2AtFixedT) : le scan positif y plongeait et se sabotait (« FAILED » ~51 % = pas
+        // physique). On plafonne au MINIMUM d'OLR ; le levier CO₂ y est de toute façon épuisé, la fin de la
+        // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
+        '⚖️🏭🔝': 1.31e18,
         '⚖️🐄': 4.5e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,

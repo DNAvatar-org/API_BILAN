@@ -5,9 +5,10 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.7
-// Date: [May 07, 2026]
+// Version 1.3.8
+// Date: [July 16, 2026]
 // Logs:
+// - v1.3.8: DATA['🔘'] = { '🔘🎞': false } — init hors KEYS/dico (catégorie 🔘 retirée du dico ; anim reste runtime)
 // - v1.3.7: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 45 % (flou scientifique / jauge titre visu).
 // - v1.3.6: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 13 % (calage utilisateur flou) ; miroir CONFIG_COMPUTE.baryByGroupDefault.
 // - v1.3.5: RADIATIVE.factorTropopause = 1,0261 (aligné CONFIG_COMPUTE.radiativeFactorTropopauseFixed, hors bary).
@@ -129,7 +130,7 @@
         co2OceanScale01:          { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
         co2OceanPumpOverride01:   { min: 0.0,  max: 1.0, default: 1.0, sens_threshold: '➚' },
         co2OceanEffPump01:        { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
-        iceAlbedoCoeff:           { min: 0.50, max: 0.90, default: 0.70, sens_threshold: '➚' }
+        iceAlbedoCoeff:           { min: 0.35, max: 0.90, default: 0.70, sens_threshold: '➚' }   // v-2026-07-15 : min 0.50→0.35 pour atteindre la glace poussiéreuse (mudball Abbot 2010, α~0.40) — déclencheur déglaciation 1b. 0.35 = glace sale extrême.
     };
 
     // ============================================================================
@@ -170,6 +171,9 @@
     // Réservoir océan (cycle CO2) : non présent dans KEYS, on l'initialise ici.
     if (!DATA['🌊']) DATA['🌊'] = {};
     DATA['🌊']['⚖️🌊🏭'] = 0;
+
+    // Flags runtime (anim plot) : hors dico KEYS — 🔘🎞 = false au boot (crash-first : objet toujours présent).
+    DATA['🔘'] = { '🔘🎞': false };
 
     window.DATA = DATA;
 
