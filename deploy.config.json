@@ -1,6 +1,6 @@
 {
-  "endpoint": "https://dnavatar.org/deploy.php",
   "_layout": "API_BILAN → www/pages/bilan_radiatif/API_BILAN/. cd API_BILAN && publish [--full]",
+  "_endpoint": "Hors dépôt : DEPLOY_ENDPOINT, .private/deploy.endpoint ou ~/.dnavatar/deploy.endpoint",
   "git_root": ".",
   "files_root": ".",
   "files": [
