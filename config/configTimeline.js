@@ -1,8 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.80
+// Version 1.4.82
 // Date: [September 17, 2026]
 // logs :
+// - v1.4.82: 🔥 CO₂ 3.5e20 (~270k ppm) + H₂O 6e20 (vapeur 15 %) selon grille litt. ; commentaire T moyenne Hadéen sans sens ; 🦣 commentaire instabilité glace-albédo (Pléistocène).
+// - v1.4.81: compositions ramenées dans la grille litt. : 🦠 CO₂/CH₄ sous les max, 🦣 CO₂ 298 / CH₄ 0,80 ppm (seuil glace), 🏔 CH₄ 1,5 ppm, 🐊 CO₂ ~1380 / CH₄ 3,8 ppm (vers 24 °C) ; 🔥 inchangé (grilles CO₂/T incompatibles, documenté) ; bench 📱 = observations an 2000.
 // - v1.4.80: 📱 🕰 🔺⚖️🏭 ×1000 (kg réels : 850 GtCO₂ = 850e12 kg ; avant 850e9 = 0,85 Gt, sans effet) + refs GCB/SSP.
 // - v1.4.79: logs — logIceSnapshotDiagnostic / logAlbedoUiDiagnostic / logEpochCompareToFile à false (écritures fichier par appel) ; hyst.txt + bench.txt + rnd.txt conservés.
 // - v1.4.78: HYSTÉRÉSIS 1 recalée sur la littérature (après albedo v1.2.64 : Δ(T) sans racines parasites, nuages 2 couches).
@@ -240,7 +242,7 @@
 // Grande_Coupure,[10, 15],[300, 600],[1, 2],[0.7, 1.0],[0.28, 0.32]
 // Quaternaire,[10, 16],[180, 300],[0.4, 0.8],[0.6, 1.0],[0.28, 0.33]
 // Holocène,[13, 15],[260, 285],[0.6, 0.8],[0.8, 1.0],[0.29, 0.31]
-// Aujourd'hui,[14.5, 15.5],[415, 425],[1.8, 1.9],[1.0, 1.2],[0.29, 0.30]
+// Aujourd'hui (an 2000),[14.5, 15.5],[365, 375],[1.70, 1.85],[1.0, 1.2],[0.29, 0.30]
 // ---------------------------------------------------------------------------
 // CONV ATM / humidité (rappel code) :
 // - Profil vapeur : waterVaporFractionAtZ + PHYS.computeH2OScaleHeight() (R·T²/(L·Γ), Clausius-Clapeyron + adiabatique).
@@ -360,9 +362,17 @@ const timeline = [
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Simulation parameters - Quantités en kg (pas de ppm/%)
-        '⚖️🏭': 5.0e17, // co2_kg (~10% de l'atmosphère moderne)
+        // [v1.4.82] T MOYENNE HADÉEN = GRANDEUR SANS SENS PHYSIQUE (ne pas revenir dessus) :
+        //   surface = océan de magma, corps noir très brillant, rayonnement dominé par le flux géothermique (🧲🌕) ;
+        //   une « T moyenne » de 2000–2500 °C dans la littérature n'est pas contraignante. Le bench la dépasse (~2650 °C)
+        //   quand la composition suit la littérature : accepté, la T chute très vite ensuite par rayonnement (tics 💫).
+        //   Priorité donnée à la COMPOSITION (grille CO₂ / H₂O vapeur), pas à la T.
+        // [v1.4.82] CO₂ 5e17 (545 ppm) → 3.5e20 kg ≈ 70 bar ≈ 270 000 ppm mol (milieu grille [100k,500k]).
+        //   Sleep, Zahnle & Neuhoff 2001 PNAS 98:3666 : 40–210 bar CO₂ après l'impact lunaire ; Zahnle et al. 2010 CSH Persp. Biol. 2:a004895.
+        '⚖️🏭': 3.5e20, // co2_kg
         '⚖️🐄': 5.0e15, // ch4_kg (~1000 ppm)
-        '⚖️💧': 2.1e20, // h2o_kg (~15% de 1.4e21 kg)
+        '⚖️💧': 6.0e20, // h2o_kg — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
+        //   tombait à 7 % (dilution). Atmosphère de vapeur post-impact ≈ un océan entier (Zahnle et al. 2010) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
         '⚖️✈': 0,
         '⚖️💨': 5.29495e20,
@@ -460,8 +470,8 @@ const timeline = [
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
         // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
-        '⚖️🏭': 2.75e18,//2.082e18, // co2_kg — 150k ppm (max CSV [50k,150k]). Était 1.775e18 (132k ppm).
-        '⚖️🐄': 6.7e16,  // ch4_kg — 10k ppm mol = max CSV [1k,10k] (v1.4.76 ; était 5.06e16 ≈7550 ppm). CH₄/CO₂=0.024<0.1.
+        '⚖️🏭': 2.6e18, // co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
+        '⚖️🐄': 6.3e16,  // ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
         '⚖️💨': 1.0e19, // n2_kg — max 🔒 [4.0e18, 1.0e19] = 2.2 atm (v1.4.76 ; était 7.0e18). Pressure broadening +GES.
@@ -1021,8 +1031,11 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🏭': 9.4e15, // co2_kg — léger + (bench 🐊)
-        '⚖️🐄': 3.605e12,
+        // [v1.4.81] vers 24 °C (milieu T [20,28], bench 20,9 °C) sans sortir de la grille : CH₄ 1,24 → ~3,8 ppm ([1,5]),
+        //   CO₂ 1182 → ~1380 ppm ([800,1500]) ; sonde : 22 °C environ au mieux sans sortir de la grille. Anagnostou et al. 2016 Nature 533:380 (CO₂ Éocène précoce ~1000–1600 ppm) ;
+        //   Beerling et al. 2011 PNAS 108:9770 (CH₄ Éocène élevé, zones humides).
+        '⚖️🏭': 1.1e16, // co2_kg
+        '⚖️🐄': 1.1e13, // ~3,8 ppm
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
         '⚖️✈': 1.0e12,
@@ -1099,7 +1112,7 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
         '⚖️🏭': 4.513e15,
-        '⚖️🐄': 2.6e12,
+        '⚖️🐄': 4.3e12, // [v1.4.81] 0,92 ppm → ~1,5 ppm (milieu grille [1,2])
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
         '⚖️✈': 1e12,
@@ -1138,8 +1151,17 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19 },
         //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
-        '⚖️🏭': 3.191e15,
-        '⚖️🐄': 3.605e12,
+        // [v1.4.81] CO₂/CH₄ glaciaires-interglaciaires (étaient des valeurs modernes 410 ppm / 1,27 ppm, hors grille).
+        //   Grille : CO₂ [180,300] ppm, CH₄ [0,4 ; 0,8] ppm — Lüthi et al. 2008 Nature 453:379 (EPICA Dome C 800 ka),
+        //   Loulergue et al. 2008 Nature 453:383 (CH₄ 350–800 ppb).
+        //   Sonde : au milieu de grille (240 ppm / 0,6 ppm) T = 8,4 °C < 10 → valeurs HAUTES de grille, seules dans [10,16] °C.
+        //   ⚠️ INSTABILITÉ (hystérésis glace-albédo) : CH₄ 0,78 ppm (2.20e12) → 9,5 °C ; 0,80 ppm (2.25e12) → 12,1 °C.
+        //   Deux états possibles pour la même composition : le modèle est ici sur un seuil. En animation (T héritée de 🏔),
+        //   convergence lente vers 12,2 °C (branche chaude) — la bascule n'a pas lieu mais reste possible.
+        //   Cohérent avec le Pléistocène : cycles glaciaires 41 ka puis 100 ka (Lisiecki & Raymo 2005 Paleoceanography 20:PA1003),
+        //   CO₂ oscillant 180–280 ppm (Lüthi et al. 2008). À signaler en présentation : le seuil glaciaire est « visible » dans le modèle.
+        '⚖️🏭': 2.31e15, // ~298 ppm
+        '⚖️🐄': 2.25e12, // ~0,80 ppm
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
         '⚖️✈': 1.2e12,
@@ -1327,7 +1349,8 @@ window.BENCH_LIT_BY_EPOCH_ID = {
     '🦣': { tC: [10, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
     '🛖': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
     '🚂': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
-    '📱': { tC: [14.5, 15.5], co2: [415, 425], ch4: [1.8, 1.9], h2oVap: [1.0, 1.2] }
+    // 📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
+    '📱': { tC: [14.5, 15.5], co2: [365, 375], ch4: [1.70, 1.85], h2oVap: [1.0, 1.2] }
 };
 
 // Paramètres de calcul (convergence radiatif)
