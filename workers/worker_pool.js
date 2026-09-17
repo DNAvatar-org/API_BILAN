@@ -3,11 +3,13 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.1.5
+// Version 1.1.6
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: April 23, 2026
 // Logs:
+// - v1.1.6 dispatch non réentrant : throw si un dispatch est encore en cours. worker.onmessage est réaffecté à chaque appel
+//   et le filtre msg.id === k ne distingue pas les appels → 2 calculs concurrents mélangeaient des tranches de T différentes.
 // - v1.1.5 passage de ch4_eds_scale (EARTH.CH4_EDS_SCALE) au worker slice_transfer (parallèle à h2o_eds_scale).
 // - v1.1.4 URL worker : window.__SPECTRAL_WORKER_SCRIPT__ (epoch_bench doc/) sinon ../API_BILAN/workers/ (CO2)
 // - v1.1.3 __API_BILAN_WORKER_POOL__ + silence console si __EPOCH_BENCH_PAGE__ (résumé dans epoch_bench)
@@ -50,7 +52,13 @@
     // Chaque worker calcule sa tranche et transfère son Float32Array[nZ * sliceSize] au main thread.
     // Le main thread fusionne les tranches dans resultBuf[nZ * nL].
     // Retourne Promise<{resultBuf: Float32Array, sums: {CO2, H2O, CH4, clouds}}>.
+    var dispatchPending = false;
+
     function dispatch(params, nZ, nL) {
+        if (dispatchPending) {
+            throw new Error('[worker_pool.js] dispatch concurrent : un calcul spectral est déjà en cours (2 boucles solveur en parallèle ?)');
+        }
+        dispatchPending = true;
         var sliceSize = Math.ceil(nL / nWorkers);
         var doneCount = 0;
         var activeWorkers = 0;
@@ -83,9 +91,11 @@
                         sums.CIA += (msg.sum_blocked_CIA || 0);
                         doneCount++;
                         if (doneCount === activeWorkers) {
+                            dispatchPending = false;
                             resolve({ resultBuf: resultBuf, sums: sums });
                         }
                     } else if (msg.type === 'sliceError') {
+                        dispatchPending = false;
                         reject(new Error('[worker_pool worker ' + k + '] ' + msg.error));
                     }
                 };
@@ -120,6 +130,7 @@
             });
 
             if (activeWorkers === 0) {
+                dispatchPending = false;
                 resolve({ resultBuf: resultBuf, sums: sums });
             }
         });

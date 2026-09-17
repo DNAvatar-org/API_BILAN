@@ -1,8 +1,18 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.77
-// Date: [July 13, 2026]
+// Version 1.4.80
+// Date: [September 17, 2026]
 // logs :
+// - v1.4.80: 📱 🕰 🔺⚖️🏭 ×1000 (kg réels : 850 GtCO₂ = 850e12 kg ; avant 850e9 = 0,85 Gt, sans effet) + refs GCB/SSP.
+// - v1.4.79: logs — logIceSnapshotDiagnostic / logAlbedoUiDiagnostic / logEpochCompareToFile à false (écritures fichier par appel) ; hyst.txt + bench.txt + rnd.txt conservés.
+// - v1.4.78: HYSTÉRÉSIS 1 recalée sur la littérature (après albedo v1.2.64 : Δ(T) sans racines parasites, nuages 2 couches).
+//   hysteresis 1a : 🌡️🧮 283.15 (restauré), ⚖️🏭 5.2e15 (~640 ppm, lit. [500,2000]) → ≈ 7 °C (bench [5,15]) ; ⚖️🏭🔺 retiré.
+//     Test hyst (CO₂ seul) : seuil ≈ 92–93 ppm (Brunetti 2023 ESD 95±5 ppm à 700 Ma ; Feulner & Kienert 2014 100–130).
+//   ⛄ : voile racine 🔺🍰⚽ 0.02→0.05 (Franklin LIP −10 W/m², Macdonald & Wordsworth 2017), 🌡️🧮 218.15 (−55 °C),
+//     ⚖️🏭 = 1a (même CO₂, deux états), ⚖️🐄 30→10 ppm (lit. [0.1,10]) ; 🕰.order ['💫','🌋'] (voile retombé puis sortie).
+//     Visu : 1a 7 °C → 🗻 → ⛄ −56 °C → 💫 −53 °C (reste gelé au même CO₂) → 🌋 → 1b 29 °C.
+//   hysteresis 1b : ⚖️🏭 1.31e18 (15 %) → 8.2e16 (~9 900 ppm, grille CSV [2000,10000]) + 🌫️❄️ 0.48 (glace sale,
+//     Abbot & Pierrehumbert 2010) + ⚖️🏭🔺 0.25 (scan+ depuis la branche froide). Seuil test ≈ 8 500 ppm ; bench ≈ 29 °C.
 // - v1.4.77: hysteresis 1b (Sortie Marinoen) — déglaciation en anim. En animation la T° se propage : après le
 //   snowball (1a bascule froid depuis v1.4.75 dt_pol=20), la frise arrivait sur 1b à ~−57 °C et y restait
 //   coincée. Cause : ⚖️🏭 1b = 2.75e16 (3500 ppm) contredisait son PROPRE commentaire (« hyper-greenhouse
@@ -564,11 +574,10 @@ const timeline = [
         // 🌡️🧮 : graine solveur hyst (id stable `hysteresis 1a` — ligne TIMELINE dédiée, hidden: true).
         // L’onglet / carte « Sturtienne » (🪸) est une autre entrée : modifier son 🌡️🧮 ne règle pas la graine du bouton hyst.
         // Ici 283.15 K = 10 °C (milieu CSV) ; T_conv après 1er bilan ≠ cette valeur (équilibre radiatif).
-        // v-2026-07-16 EXPÉRIENCE : graine mise à 271.15 K (-2 °C) pour reproduire EXACTEMENT les conditions
-        // de la visu ⛄ (même graine, même 100 ppm, même 2 % voile). But : voir si le test oscille aussi depuis
-        // -2 °C (→ c'est la graine) ou atteint quand même -46 °C (→ la graine n'y est pour rien). Restaurer 283.15
-        // après le test. Ancienne valeur : 283.15 (10 °C).
-        '🌡️🧮': 271.15,
+        // v-2026-09-15 : 283.15 K RESTAURÉ (fin de l'expérience -2 °C du 16/07). La « surfusion à -2 °C » était un
+        // ARTEFACT : la masse de glace passait de 0.10 à 0.009 sous T_freeze (albédo ↓ en refroidissant, faux puits
+        // pile à -2.00 °C) — corrigé albedo v1.2.64. Branche chaude 1a réelle ≈ 7 °C à 640 ppm (bench [5,15]).
+        '🌡️🧮': 283.15,
         // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
@@ -598,17 +607,14 @@ const timeline = [
         // v-2026-07-14b : le seuil warm de la visu dépend des AUTRES gaz (mesuré : le scan tenait warm à 52 ppm
         //   parce que la bary co-variait CH₄→35 ppm / O₂→1.5e16 ; à 7 ppm CH₄ la visu tombait en snowball à 53 ppm).
         //   → on aligne hyst 1a sur le vecteur warm du scan, mais CH₄ borné à 30 ppm (haut litt.) + CO₂ 52→55 ppm en compensation.
-        '⚖️🏭': 8.1e14,//100 ppm — v-2026-07-15b : entrée Sturtienne calibrée. Le scan (baseline 200) a trouvé le tip
-        //   à ~112 ppm AVEC 2% de voile. On pose la warm branch JUSTE SOUS (100 ppm, littérature 100-300) : sans
-        //   voile = chaud (+0.3°C) ; +2% voile (volcan Franklin) = snowball net (100 < 112 tip). C'est le déclencheur.
-        //   (Ancienne baseline scan : 1.62e15 = 200 ppm ; avant : 4.451e14 = 55 ppm.)
-        // ⚖️🏭🔺 = facteur de démarrage du SCAN de recherche (entrée) v-2026-07-16. Le baseline (100 ppm) est
-        //   volontairement JUSTE SOUS le tip → sous voile 2 % il est déjà sur la branche froide (-46 °C = le
-        //   déclencheur qui marche). Mais le scan de bifurcation doit AMORCER au-dessus du tip : ×2 → 200 ppm,
-        //   exactement la baseline qui a trouvé le tip à ~112 ppm. Le point de fonctionnement (visu) reste 100 ppm ;
-        //   seul le scan part plus haut, puis ×0.5 redescend et croise proprement la bifurcation → SUCCESS.
-        '⚖️🏭🔺': 1.0,  // v-2026-07-16 : temporairement 1 (ex-2) pour RETESTER le scan directement à 100 ppm dès le
-        //   step 1 (expérience : step 1 doit tomber à -46°C, prouvant que 100 ppm + voile 2% = snowball sans « élan »).
+        // v-2026-09-15 : 5.2e15 kg ≈ 640 ppm (fourchette lit. pré-Sturtienne [500,2000], grille CSV).
+        //   Carte Δ(T) (albedo v1.2.64, nuages 2 couches) : branche chaude ≈ 7 °C à 640 ppm (504→5.4, 800→8.0) ; test hyst
+        //   CO₂ seul → bascule snowball à ≈ 92–93 ppm (Brunetti 2023 ESD 14:533 : 95±5 ppm à 700 Ma ; Feulner & Kienert 2014 :
+        //   100–130 ppm ; AOGCM 20–700 ppm).
+        //   Déclencheur visu = voile sulfate Franklin (−10 W/m², Macdonald & Wordsworth 2017 GRL 44:1938) posé par ⛄ :
+        //   à 640 ppm il supprime la branche chaude (marge ≈ 2.5 W/m²) → snowball ; le voile retombé, ⛄ RESTE gelé au
+        //   MÊME CO₂ = hystérésis. Anciennes valeurs : 8.1e14 (100 ppm, « surfusion » artefact) ; 4.451e14 (55).
+        '⚖️🏭': 5.2e15,
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
@@ -620,9 +626,9 @@ const timeline = [
         // ⚖️✈ : baseline sulfate volcanique. v-2026-07-14b 1.018e12 (aligné vecteur scan ; ancien 1.0e12).
         '⚖️✈': 1.018e12,
         '⚖️💨': 5.133e18,//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
-        // 1a = SURFUSION (~-2°C). Le bouton volcan 🗻 est un DÉCLENCHEUR ERGONOMIQUE : son tooltip (desc du logo,
+        // 1a = branche CHAUDE pré-Sturtienne (≈ 7 °C). Le bouton volcan 🗻 est un DÉCLENCHEUR ERGONOMIQUE : son tooltip (desc du logo,
         // "Volcan — voile atmosphérique") annonce à l'utilisateur que le voile arrive, et le clic fait avancer la
-        // frise vers ⛄ (Plein Snowball) où le voile s'applique RÉELLEMENT (clé racine 🔺🍰⚽=0.02 de ⛄).
+        // frise vers ⛄ (Plein Snowball) où le voile s'applique RÉELLEMENT (clé racine 🔺🍰⚽=0.05 de ⛄, v-2026-09-15).
         // ⚠️ Choix ASSUMÉ, pas cohérent en interne : le voile n'est PAS dans ce bouton (pas de 🔺🍰⚽ ici), il est
         // dans la config de ⛄. C'est voulu pour la lisibilité utilisateur (« je clique le volcan → snowball »).
         // v-2026-07-16.
@@ -668,10 +674,15 @@ const timeline = [
 {//"⛄"
     "📅": "⛄",
     // Voile : racine 🔺🍰⚽ = impulsion à 📿💫===0 (compute) ; 🕰.💫.🍰⚽ = valeur 📜🔺🍰⚽ après chaque clic 💫 (events).
-    "🔺🍰⚽": 0.02,
+    // v-2026-09-15 : voile sulfate Franklin LIP (Macdonald & Wordsworth 2017 GRL 44:1938 : −10 à −12 W/m² pour
+    // 500 Mt SO₂/an, suffisant à 3000 ppm) : 0.05 d’obstruction SW ≈ −10 W/m² sur la branche chaude. À 640 ppm il
+    // supprime toute racine chaude (Δmax ≈ −2.5 W/m²) → bascule ; retiré au 1er 💫 (🕰.💫.🍰⚽=0) → ⛄ reste gelé = hystérésis. (ex-0.02)
+    "🔺🍰⚽": 0.05,
     "▶": 72e7,
     "◀": 69e7,
-    "🌡️🧮": 270.0,
+    // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
+    // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
+    "🌡️🧮": 218.15,
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.592e26,
@@ -685,8 +696,8 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🏭": 8.1e14,// 100 ppm — v-2026-07-15b : aligné sur hyst 1a (100 ppm). Même vecteur, branche froide via graine 🌡️🧮=270 K. Anciens : 4.451e14 (55), 4.289e14 (53), 45.797e13 (56,6).
-    "⚖️🐄": 8.57e13,// 30 ppm — aligné hyst 1a (v-2026-07-14b ; ancien 2e13 = 7 ppm)
+    "⚖️🏭": 5.2e15,// ≈640 ppm — v-2026-09-15 : MÊME CO₂ que hyst 1a (lit. snowball [300,1500]) : même planète, deux états (chaud 1a ≈ 7 °C / gelé ⛄ ≈ −55 °C). Anciens : 8.1e14 (100), 4.451e14 (55).
+    "⚖️🐄": 2.86e13,// 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     "⚖️✈": 1018000000000,
@@ -723,12 +734,16 @@ const timeline = [
             "cools": "max"
         }
     },
+    // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
+    // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
     "🕰": {
+        "order": ["💫", "🌋"],
         "💫": {
             "🔺🌡️💫": 0,
-            "🔺⏳": 30,
+            "🔺⏳": 10,
             "🍰⚽": 0
-        }
+        },
+        "🌋": { "🔺⏳": 20 }
     },
     "🌱": 0,
     "🧫": 0.05,
@@ -756,7 +771,19 @@ const timeline = [
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
         // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
         // bas pour déglacer (anim restait à −57 °C) et ne tenait même pas la branche chaude au bench.
-        '⚖️🏭': 1.31e18, // co2_kg — ~150 000 ppm mol (~15 %) — v-2026-07-15 : monté de 8% à 15% pour tester la déglaciation (outgassing volcanique sur Ma, plausible ; Gemini/Hu 2011). Ancien : 7.0e17 (~80 000 ppm, 8%). À combiner avec glace poussiéreuse (iceAlbedoCoeff bas, slider manuel).
+        // v-2026-09-15 : 8.2e16 kg ≈ 9 900 ppm (0.01 bar, haut de la grille CSV Sortie Marinoen [2000,10000]).
+        //   Sortie par glace SALE (clé 🌫️❄️ ci-dessous) : Abbot & Pierrehumbert 2010 (JGR 115:D03104) / Abbot & Halevy
+        //   2010 → la poussière abaisse le CO₂ de déglaciation à 0.01–0.1 bar. Carte Δ(T) : à α_glace 0.48 la branche
+        //   froide disparaît entre ~4 800 et ~9 300 ppm ; à 10 000 ppm seule la branche chaude existe (≈ 30 °C, bench
+        //   [20,50]). Sans poussière la branche froide tient jusqu'à >14 % (GCM : >0.1–0.2 bar, Hu 2011). Anciens :
+        //   1.31e18 (15 %, zone d'artefact d'inversion OLR >16 %), 7.0e17 (8 %).
+        '⚖️🏭': 8.2e16,
+        // 🌫️❄️ = albédo de la glace sale (poussière concentrée par sublimation, snowball établi). Lu par calculations_albedo.js
+        //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
+        '🌫️❄️': 0.48,
+        // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
+        //   sale (≈ −9 °C) ; le scan CO₂↑ croise la sortie vers ~0.5–0.9 % puis dicho.
+        '⚖️🏭🔺': 0.25,
         // ⚖️🏭🔝 = plafond du scan CO₂ hystérésis (kg). v-2026-07-16. C'est le régime de déglaciation 1b
         // (poussière volcanique) qui impose ce plafond, PAS un cas particulier codé dans le scan. Au-delà de
         // ~16 % CO₂ (~1.31e18 kg) l'OLR du modèle s'INVERSE (ajouter du CO₂ refroidit — artefact CO₂-gaz-majeur,
@@ -1159,7 +1186,7 @@ const timeline = [
         '⚖️✈': 1.0e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.004 }, // 2 ka/tic ≈ 5 tics pour couvrir 10 ka → 1800
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.004 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
@@ -1244,12 +1271,16 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas
         // 🕰 indexé par année : clic ⛽/🛢 injecte 🔺⚖️🏭 (masse CO₂) ; pas encore de cycle complet (airborne / océan → TODO)
-        // Convention affichage « Gt » UI (events.js) : même chiffre que N dans N·1e9 — ex. tranche 2000 → 850e9 = +850Gt CO2
+        // 🔺⚖️🏭 en kg de CO₂ émis sur la tranche de 25 ans (1 Gt = 1e12 kg ; affichage events.js = kg/1e12).
+        // [v1.4.80] ×1000 : les valeurs étaient en « N·1e9 » (850e9 kg = 0,85 Gt) → aucun effet climatique.
+        // Refs : Friedlingstein et al. 2023 ESSD 15:5301 (Global Carbon Budget) : fossile+usage des sols ≈ 40 GtCO₂/an
+        //   → 2000–2025 ≈ 850–1000 GtCO₂ ; 1 ppm CO₂ ≈ 7,8 GtCO₂ ; fraction aéroportée ≈ 44 % (≈ +55 ppm, 369→424 ppm NOAA).
+        //   ⛽ ≈ émissions stabilisées/décroissantes (SSP2-4.5 : ~36 → 14 GtCO₂/an) ; 🛢 ≈ doublement (SSP5-8.5 : ~70 GtCO₂/an).
         '🕰': {
-            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e9 } }, // +850 Gt (année 2000), aligné tooltip
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e11 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e11 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e9 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e11 } },
+            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e12 } }, // +850 GtCO₂ (2000–2025)
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
@@ -1463,14 +1494,19 @@ window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
 window.CONFIG_COMPUTE.logIrisDiagnostic = false;
 // pdTrace Henry (CO₂ océan-atmosphère) : load / NO-OP / APPLY
 window.CONFIG_COMPUTE.logCo2PartitionDiagnostic = false;
-// Fichiers _logs/ (post /_log) : true = miroir panneau hyst (appendLog) → hyst.txt ; true = blocs epoch compare → epoch.txt. Pas de ?debug= requis ; setTopic(…, { reset: false }).
+// Fichiers _logs/ (post /_log) : miroir panneau hyst (appendLog) → hyst.txt ; blocs epoch compare → epoch.txt.
+// Pas de ?debug= requis ; setTopic(…, { reset: false }).
+// v-2026-09-16 : hyst.txt GARDÉ (c'est le journal du test hystérésis, une ligne par pas, celui qu'on relit) ;
+//   epoch.txt passé à false (doublon calcul-seul du même contenu, écrit à chaque compute:done).
 window.CONFIG_COMPUTE.logHystPanelToFile = true;
-window.CONFIG_COMPUTE.logEpochCompareToFile = true;
-// Panneau organigramme (breakdown albedo_percents, Corps noir vs surfaces 🪩) → bilan_radiatif/logs/albedoUi.txt si serveur tools/server.py v1.3+ ; sinon window.__ALBEDO_UI_LOG
-window.CONFIG_COMPUTE.logAlbedoUiDiagnostic = true;
+window.CONFIG_COMPUTE.logEpochCompareToFile = false;
+// Panneau organigramme (breakdown albedo_percents, Corps noir vs surfaces 🪩) → _logs/albedoUi.txt ; sinon window.__ALBEDO_UI_LOG
+// v-2026-09-16 : false par défaut (écriture à chaque rafraîchissement du panneau ; diagnostic ponctuel).
+window.CONFIG_COMPUTE.logAlbedoUiDiagnostic = false;
 // v1.2.59 albedo : snapshot pré-Search 🍰💧🧊/🍰🪩🧊 + blend dt + cible glace_equilibre — permet
 // comparaison parcours visu vs bench séquentiel (calibration). _logs/iceSnapshot.txt.
-window.CONFIG_COMPUTE.logIceSnapshotDiagnostic = true;
+// v-2026-09-16 : false par défaut — une ligne fichier à CHAQUE calculateAlbedo (des centaines par convergence).
+window.CONFIG_COMPUTE.logIceSnapshotDiagnostic = false;
 // 1 ligne synthétique par époque pendant un run bench multi-époques. Reset au démarrage du run
 // (epoch_bench.html via window.logBenchReset()). _logs/bench.txt.
 window.CONFIG_COMPUTE.logBenchPerEpoch = true;

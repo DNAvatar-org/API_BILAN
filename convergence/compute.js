@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.22
-// Date: [May 07, 2026]
+// Version 1.0.23
+// Date: [September 17, 2026]
 // logs :
+// - v1.0.23: 📱 🕰 indexé par année — date = ▶ + 📿💫 × 🔺⏳ des tranches (restait figée à 2000) ; getMasses ajoute le cumul 📜🔺⚖️🏭 (injection CO₂ perdue au refactor d92a02e).
 // - v1.0.22: boucles sur EPOCH['🕰'] — ignorer la clé baryFromDate (flag booléen, pas un groupe tic) pour éviter accès cfg['🔺⏳'] undefined / biais sur deltaYearsFromTics et cohérence Δ📐.
 // - v1.0.21: bary — 🕰.baryFromDate (interpolation linéaire selon DATA📜📅 / ▶◀) ; 🔀/'📜' merge 📜.🔺🍰⚽ (voile SW le long de l’époque). Impulsion racine 🔺🍰⚽ désactivée si 🔀 inclut 📜 (évite conflit avec rampe).
 // - v1.0.20: getEpochDateConfig — bary 🕰.🔀 inclut '📅' : merge 📅 (Object.assign) pour ne pas écraser l’objet, sync 📜.🌡️🧮←📅 ; maxTics≥2 si ▶−◀ > 1 pas Ma alors que floor donnait 1 (🦣 : bary=0.5 à 1 tic). Autres groupes ⚖️/🌕 : remplacement par out inchangé.
@@ -136,6 +137,13 @@ function getMasses() {
         base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
     }
 
+    // 📱 🕰 indexé par année : CO₂ = racine époque + cumul injecté par les clics ⛽/🛢 (events.js → 📜🔺⚖️🏭).
+    // Cumul (pas un delta « consommé ») : getMasses est rappelé à chaque pas de convergence. Partition océan = calculations_co2.js.
+    // (Perdu au refactor d92a02e du 20/04/2026 : les clics ne changeaient plus le CO₂.)
+    if (EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(k => !isNaN(Number(k)))) {
+        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'];
+    }
+
     syncDryAtmosphereMassKg(base);
     DATA['⚖️'] = base;
 
@@ -165,6 +173,17 @@ function getEpochDateConfig() {
                 deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
             }
         }
+    }
+    // 📱 🕰 indexé par année (2000: {⛽: {🔺⏳…}}) : le pas est porté par les actions des tranches, pas par une clé tic.
+    // Chaque clic ⛽/🛢 incrémente 📿💫 → date = ▶ + 📿💫 × pas. Pas unique exigé (sinon date ambiguë → crash).
+    const yearBucketKeys = EPOCH['🕰'] ? Object.keys(EPOCH['🕰']).filter(k => !isNaN(Number(k))) : [];
+    if (yearBucketKeys.length) {
+        const steps = new Set();
+        for (const yk of yearBucketKeys) {
+            for (const act of Object.values(EPOCH['🕰'][yk])) steps.add(act['🔺⏳']);
+        }
+        if (steps.size !== 1) throw new Error('[getEpochDateConfig] 🕰 indexé par année : 🔺⏳ doit être identique pour toutes les actions (' + Array.from(steps).join(',') + ')');
+        deltaYearsFromTics += DATA['📜']['📿💫'] * steps.values().next().value * 1e6;
     }
     const epochEnd = EPOCH['◀'];
     // Detect time direction: geological = backward (▶ > ◀), modern = forward (▶ < ◀)

@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.16
-// Date: [July 15, 2026]
+// Version 2.0.17
+// Date: [September 15, 2026]
 // logs :
+// - v2.0.17: EARTH['🪩🍰']['🪩🍰⛅'] 0.50 → 0.42 = réflectance r_c de la méthode d'addition 2 couches (calculations_albedo v1.2.64) ; même albédo nuageux moderne que l'ancien mélange linéaire à 0.50.
 // - v2.0.16: EARTH['🪩🍰']['🪩🍰🏊'] = 0.50 — paramètre Briegleb/CCSM3 melt pond (bare ice + ponds, Perovich SHEBA 2002 ; NCAR/TN-463 §5). Consommé par calculations_albedo.js brieglebIceAlbedoLocal().
 // - v2.0.15: computeIceTempFactor passe à 3 zones (polaire/mi-lat/TROPICAL). Ajout EARTH.POLAR_AMP_TROP_K=-5 K (tropical plus chaud que la moyenne globale), EARTH.SEASONAL_AMP_TROP_K=3 K (faible saisonnalité tropicale, Peixoto & Oort 1992 ch.7), EARTH.TROPICAL_ZONE_FRAC=0.50 (0°-30° lat., 2 hémisphères, géométrie sphérique sin(30°)=0.5). ice_tf devient la somme pondérée directe (f_pol×tf_pol + f_mid×tf_mid + f_trop×tf_trop), plus de normalisation par fsum : les 3 zones somment à 1.0 par construction. ICE_FORMULA_MAX_FRACTION passe de 0.46 (artefact Terre-moderne, cf. point 2 review Zorba) à 1.0 (physique correcte, autorise Snowball). Rétro-compat : à T_glob ≥ −4°C, tf_trop=0 → identique à avant avec normalisation ; au-dessous, la rampe tropicale (largeur 6 K) active la bifurcation Budyko-Sellers.
 // - v2.0.14: EARTH.CH4_EDS_SCALE (défaut 1.0) + EARTH.CH4_HAZE_RATIO_THRESHOLD (0.1) ajoutés. CH4_EDS_SCALE parallèle à H2O_EDS_SCALE, tuning fin du line-by-line HITRAN (saturation bandes 3.3/7.7 µm, overlap H2O). CH4_HAZE_RATIO_THRESHOLD = seuil Haqq-Misra 2008 pour formation brume organique (pas encore câblé, hook SW futur).
@@ -353,7 +354,7 @@ EARTH.MT_CKD_T_EXPONENT = 4.25;
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
-    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.50, '🪩🍰🌍': 0.18,
+    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.42, '🪩🍰🌍': 0.18, // ⛅ v-2026-09-15 : 0.50→0.42 = réflectance nuage r_c de la méthode d'addition 2 couches (albedo v1.2.64) ; même α nuageux moderne (α_s≈0.18) que l'ancien 0.50 linéaire. Plage lit. 0.4–0.6.
     // ❄️ = neige propre profonde (T_polaire ≤ −30 °C) — Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 ;
     // Warren (1982) Rev. Geophys. 20:67. Plage pristine snow 0.80–0.90 ; 0.85 = médiane broadband.
     '🪩🍰❄️': 0.85,
