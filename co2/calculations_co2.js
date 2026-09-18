@@ -1,12 +1,13 @@
 // ============================================================================
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: En français, dans l'architecture, je suis le module de partition CO₂ (atmosphère ↔ océan) appelé par le cycle principal.
-// Version 1.2.4
+// Version 1.2.5
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 25, 2026]
 // Logs:
+// - v1.2.5: advanceCarbonSinks(dt, émis) — puits océan (Henry/Revelle, relaxation τ) + forêts (fertilisation β ln) du CO₂ injecté.
 // - v1.2.4: après variation ⚖️🏭 (Henry) → COMPUTE.syncDryAtmosphereMassKg(DATA['⚖️']) — ⚖️🫧 = somme sèche (plus += delta).
 // - v1.2.3: miroir debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', …) (load, NO-OP, APPLY) → _logs/co2Partition.txt
 // - v1.2.2: pdTrace load / NO-OP / APPLY — uniquement si CONFIG_COMPUTE.logCo2PartitionDiagnostic === true
@@ -163,5 +164,38 @@ function calculateCO2Partition() {
     return true;
 }
 
+/**
+ * Puits de carbone du CO₂ INJECTÉ (📜🔺⚖️🏭 = E, kg CO₂) — appelé UNE fois par événement de durée dtYears.
+ * État : O = 📜🌊🔺⚖️🏭 (absorbé océan), L = 📜🌳🔺⚖️🏭 (stocké forêts). Atmosphère = ⚖️🏭 époque + E − O − L (getMasses).
+ * Paramètres et références : CONFIG_COMPUTE.CARBON_SINKS (configTimeline.js). Forêts puis océan, CO₂ milieu de pas.
+ */
+function advanceCarbonSinks(dtYears, emittedKg) {
+    const DATA = window.DATA;
+    const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
+    const CONST = window.CONST;
+    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const P = DATA['📜'];
+    const C0 = EPOCH['⚖️🏭'];                        // équilibre de l'époque (kg)
+    const GTC_TO_KG_CO2 = 1e12 * CONST.M_CO2 / 0.012011;
+    // CO₂ atmosphérique au MILIEU du pas (émission étalée sur dt)
+    const C_mid = C0 + P['🔺⚖️🏭'] - emittedKg / 2 - P['🌊🔺⚖️🏭'] - P['🌳🔺⚖️🏭'];
+    // ppm via composition du dernier calcul (fraction massique × M_air / M_CO2)
+    const ppmPerKg = (DATA['🫧']['🍰🫧🏭'] * 1e6 * DATA['🫧']['🧪'] / CONST.M_CO2) / DATA['⚖️']['⚖️🏭'];
+    const ppm_mid = C_mid * ppmPerKg;
+
+    // FORÊTS : L → L_eq = ΔNPP·τ
+    const dNppKgPerYear = CS.landNpp0GtC * GTC_TO_KG_CO2 * CS.landBeta * Math.log(C_mid / C0);
+    const L_eq = dNppKgPerYear * CS.landTauYears;
+    P['🌳🔺⚖️🏭'] = L_eq + (P['🌳🔺⚖️🏭'] - L_eq) * Math.exp(-dtYears / CS.landTauYears);
+
+    // OCÉAN : O → O_eq = k/(1+k)·(E − L), k = ratio/R · Van 't Hoff
+    const R = CS.oceanRevelleRef + CS.oceanRevelleSlopePerPpm * (ppm_mid - CS.oceanRevelleRefPpm);
+    const T = Math.max(271.15, DATA['🧮']['🧮🌡️']);
+    const k = (window.CONFIG_COMPUTE.co2OceanRatioRef / R) * Math.exp(2400.0 * (1.0 / T - 1.0 / EPOCH['🌡️🧮']));
+    const O_eq = k / (1 + k) * (P['🔺⚖️🏭'] - P['🌳🔺⚖️🏭']);
+    P['🌊🔺⚖️🏭'] = O_eq + (P['🌊🔺⚖️🏭'] - O_eq) * Math.exp(-dtYears / CS.oceanTauYears);
+}
+
 window.CO2 = window.CO2 || {};
 window.CO2.calculateCO2Partition = calculateCO2Partition;
+window.CO2.advanceCarbonSinks = advanceCarbonSinks;

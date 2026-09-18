@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.23
+// Version 1.0.24
 // Date: [September 17, 2026]
 // logs :
+// - v1.0.24: getMasses 📱 — ⚖️🏭 = époque + injecté − océan − forêts (puits CARBON_SINKS).
 // - v1.0.23: 📱 🕰 indexé par année — date = ▶ + 📿💫 × 🔺⏳ des tranches (restait figée à 2000) ; getMasses ajoute le cumul 📜🔺⚖️🏭 (injection CO₂ perdue au refactor d92a02e).
 // - v1.0.22: boucles sur EPOCH['🕰'] — ignorer la clé baryFromDate (flag booléen, pas un groupe tic) pour éviter accès cfg['🔺⏳'] undefined / biais sur deltaYearsFromTics et cohérence Δ📐.
 // - v1.0.21: bary — 🕰.baryFromDate (interpolation linéaire selon DATA📜📅 / ▶◀) ; 🔀/'📜' merge 📜.🔺🍰⚽ (voile SW le long de l’époque). Impulsion racine 🔺🍰⚽ désactivée si 🔀 inclut 📜 (évite conflit avec rampe).
@@ -141,7 +142,8 @@ function getMasses() {
     // Cumul (pas un delta « consommé ») : getMasses est rappelé à chaque pas de convergence. Partition océan = calculations_co2.js.
     // (Perdu au refactor d92a02e du 20/04/2026 : les clics ne changeaient plus le CO₂.)
     if (EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(k => !isNaN(Number(k)))) {
-        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'];
+        // Conservation : injecté − absorbé océan − stocké forêts (CO2.advanceCarbonSinks, calculations_co2.js)
+        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'] - DATA['📜']['🌊🔺⚖️🏭'] - DATA['📜']['🌳🔺⚖️🏭'];
     }
 
     syncDryAtmosphereMassKg(base);

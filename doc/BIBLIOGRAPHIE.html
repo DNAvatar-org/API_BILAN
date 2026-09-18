@@ -18,21 +18,23 @@
         Conserver strictement l'ordre alphabétique par clé à l'intérieur de chaque section.
     -->
     <style>
-        body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #222; }
-        h1 { border-bottom: 2px solid #333; }
-        h2 { margin-top: 2em; border-bottom: 1px solid #bbb; color: #444; }
-        article.ref { margin: 1em 0; padding: 0.5em 0.75em; border-left: 3px solid #8aa; background: #f6f8f9; }
-        article.ref:target { background: #fff3b0; border-left-color: #c90; }
-        .ref .cite-key { font-family: "Courier New", monospace; color: #777; font-size: 0.85em; }
-        .ref .title { font-weight: bold; }
-        .ref .authors { font-style: italic; }
-        .ref .venue { color: #555; }
-        .ref .doi a { color: #058; text-decoration: none; }
-        .ref .used-in { font-size: 0.82em; color: #666; margin-top: 0.3em; }
-        .ref .used-in code { background: #eef; padding: 0 3px; border-radius: 2px; }
-        .todo { color: #b00; font-weight: bold; }
-        nav.toc { background: #f0f0f0; padding: 0.6em 1em; border-radius: 4px; }
-        nav.toc a { text-decoration: none; color: #058; }
+        /* v2026-09-17 : thème sombre (affichée dans la popup noire d'index — textes #222 illisibles avant) */
+        body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #e0e0e0; background: #1a1a1a; }
+        h1 { border-bottom: 2px solid #666; color: #f0f0f0; }
+        h2 { margin-top: 2em; border-bottom: 1px solid #555; color: #9ecbff; }
+        code { color: #ffd479; }
+        article.ref { margin: 1em 0; padding: 0.5em 0.75em; border-left: 3px solid #5a9; background: #262a2e; }
+        article.ref:target { background: #4a4020; border-left-color: #fc3; }
+        .ref .cite-key { font-family: "Courier New", monospace; color: #999; font-size: 0.85em; }
+        .ref .title { font-weight: bold; color: #fff; }
+        .ref .authors { font-style: italic; color: #cfcfcf; }
+        .ref .venue { color: #b8b8b8; }
+        .ref .doi a { color: #7fc4ff; text-decoration: none; }
+        .ref .used-in { font-size: 0.82em; color: #aaa; margin-top: 0.3em; }
+        .ref .used-in code { background: #33373d; padding: 0 3px; border-radius: 2px; }
+        .todo { color: #ff7b7b; font-weight: bold; }
+        nav.toc { background: #262a2e; padding: 0.6em 1em; border-radius: 4px; }
+        nav.toc a { text-decoration: none; color: #7fc4ff; }
     </style>
 </head>
 <body>
@@ -54,7 +56,9 @@
     <a href="#sec-snowball">Snowball Earth</a> ·
     <a href="#sec-biosphere">Biosphère &amp; végétation</a> ·
     <a href="#sec-co2">Cycle du CO₂</a> ·
-    <a href="#sec-orbital">Paramètres orbitaux</a>
+    <a href="#sec-orbital">Paramètres orbitaux</a> ·
+    <a href="#sec-quaternary">Quaternaire</a> ·
+    <a href="#sec-epochs">Compositions d'époques</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -580,6 +584,42 @@
     <div class="used-in">Modèle BLAG fondateur du couplage silicate-carbonate long terme. Cadre théorique de <code>calculations_co2.js</code> (partition Henry + pompe Urey) et du facteur EPOCH['🌊🏭'] modulé par époque tectonique.</div>
 </article>
 
+<article class="ref" id="carvalhais2014" data-tags="carbon-cycle land residence-time observation">
+    <div class="cite-key">[carvalhais2014]</div>
+    <div class="authors">Carvalhais, N. et al.</div>
+    <div class="title">Global covariation of carbon turnover times with climate in terrestrial ecosystems</div>
+    <div class="venue">Nature, 514:213–217 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature13731">10.1038/nature13731</a></div>
+    <div class="used-in">Temps de résidence du carbone terrestre ≈ 23 ans → landTauYears. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
+<article class="ref" id="eglestonSabineMorel2010" data-tags="co2 ocean revelle carbonate saturation">
+    <div class="cite-key">[eglestonSabineMorel2010]</div>
+    <div class="authors">Egleston, E. S., Sabine, C. L. &amp; Morel, F. M. M.</div>
+    <div class="title">Revelle revisited: Buffer factors that quantify the response of ocean chemistry to changes in DIC and alkalinity</div>
+    <div class="venue">Global Biogeochemical Cycles, 24:GB1002 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2008GB003407">10.1029/2008GB003407</a></div>
+    <div class="used-in">Facteur de Revelle croissant avec le CO₂ (saturation de la pompe océanique) → oceanRevelleSlopePerPpm. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
+<article class="ref" id="fieldBehrenfeld1998" data-tags="biosphere npp land ocean observation">
+    <div class="cite-key">[fieldBehrenfeld1998]</div>
+    <div class="authors">Field, C. B., Behrenfeld, M. J., Randerson, J. T. &amp; Falkowski, P.</div>
+    <div class="title">Primary production of the biosphere: integrating terrestrial and oceanic components</div>
+    <div class="venue">Science, 281:237–240 (1998)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.281.5374.237">10.1126/science.281.5374.237</a></div>
+    <div class="used-in">Productivité primaire nette terrestre ≈ 56 GtC/an → landNpp0GtC. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
+<article class="ref" id="friedlingstein2023" data-tags="carbon-budget observation ocean-sink land-sink">
+    <div class="cite-key">[friedlingstein2023]</div>
+    <div class="authors">Friedlingstein, P. et al.</div>
+    <div class="title">Global Carbon Budget 2023</div>
+    <div class="venue">Earth System Science Data, 15:5301–5369 (2023)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/essd-15-5301-2023">10.5194/essd-15-5301-2023</a></div>
+    <div class="used-in">Émissions CO₂ 2000–2025 (📱 ⛽ 850 GtCO₂) ; puits mesurés océan ~26 % / terres ~30 % : vérification (pas calage) des puits. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
 <article class="ref" id="higginsSchrag2003" data-tags="snowball deglaciation marinoan cap-carbonate co2">
     <div class="cite-key">[higginsSchrag2003]</div>
     <div class="authors">Higgins, J. A. &amp; Schrag, D. P.</div>
@@ -587,6 +627,32 @@
     <div class="venue">Geochemistry, Geophysics, Geosystems, 4(3):1028 (2003)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GC000403">10.1029/2002GC000403</a></div>
     <div class="used-in"><code>configTimeline.js</code> EPOCH['🌊🏭'] : ⛈ hysteresis 1b = 2.0 (déglaciation Marinoenne catastrophique, altération accélérée des carbonates de couverture) ; ⛄ = 0 (banquise globale coupe Henry). Cf. <code>calculations_co2.js</code> log v1.2.0.</div>
+</article>
+
+<article class="ref" id="norby2005" data-tags="co2-fertilization face forest npp experiment">
+    <div class="cite-key">[norby2005]</div>
+    <div class="authors">Norby, R. J. et al.</div>
+    <div class="title">Forest response to elevated CO₂ is conserved across a broad range of productivity</div>
+    <div class="venue">PNAS, 102(50):18052–18056 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.0509478102">10.1073/pnas.0509478102</a></div>
+    <div class="used-in">Expériences FACE : +23 % de NPP à ~550 ppm → β ≈ 0,5 (fertilisation ΔNPP = NPP0·β·ln(C/C0)). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
+<article class="ref" id="sabine2004" data-tags="co2 ocean revelle anthropogenic-uptake observation">
+    <div class="cite-key">[sabine2004]</div>
+    <div class="authors">Sabine, C. L. et al.</div>
+    <div class="title">The oceanic sink for anthropogenic CO₂</div>
+    <div class="venue">Science, 305:367–371 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1097403">10.1126/science.1097403</a></div>
+    <div class="used-in">Facteur de Revelle moyen ~10 (8–15) ; absorption océanique mesurée (traceurs) → oceanRevelleRef, oceanTauYears. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+</article>
+
+<article class="ref" id="sarmientoGruber2006" data-tags="co2 ocean textbook henry">
+    <div class="cite-key">[sarmientoGruber2006]</div>
+    <div class="authors">Sarmiento, J. L. &amp; Gruber, N.</div>
+    <div class="title">Ocean Biogeochemical Dynamics</div>
+    <div class="venue">Princeton University Press (2006)</div>
+    <div class="used-in">Rapport carbone océan/atmosphère ≈ 50 → CONFIG_COMPUTE.co2OceanRatioRef.</div>
 </article>
 
 <article class="ref" id="walkerHaysKasting1981" data-tags="co2 carbon-cycle weathering urey silicate negative-feedback">
@@ -638,6 +704,75 @@
 <!--   4. Vérifier chaque DOI (script : voir CO2/doc/API/…).                  -->
 <!--   5. Optionnel : export .bib à partir de ce HTML (script build).         -->
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-quaternary">9. Quaternaire &amp; carottes de glace</h2>
+
+<article class="ref" id="lisieckiRaymo2005" data-tags="quaternary glacial-cycles benthic-d18o obliquity">
+    <div class="cite-key">[lisieckiRaymo2005]</div>
+    <div class="authors">Lisiecki, L. E. &amp; Raymo, M. E.</div>
+    <div class="title">A Pliocene-Pleistocene stack of 57 globally distributed benthic δ¹⁸O records</div>
+    <div class="venue">Paleoceanography, 20:PA1003 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2004PA001071">10.1029/2004PA001071</a></div>
+    <div class="used-in">Cycles glaciaires 41 ka puis 100 ka : commentaire instabilité 🦣 Quaternaire (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="loulergue2008" data-tags="quaternary methane ice-core epica">
+    <div class="cite-key">[loulergue2008]</div>
+    <div class="authors">Loulergue, L. et al.</div>
+    <div class="title">Orbital and millennial-scale features of atmospheric CH₄ over the past 800,000 years</div>
+    <div class="venue">Nature, 453:383–386 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature06950">10.1038/nature06950</a></div>
+    <div class="used-in">CH₄ glaciaire–interglaciaire 350–800 ppb → 🦣 ⚖️🐄 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="luthi2008" data-tags="quaternary co2 ice-core epica">
+    <div class="cite-key">[luthi2008]</div>
+    <div class="authors">Lüthi, D. et al.</div>
+    <div class="title">High-resolution carbon dioxide concentration record 650,000–800,000 years before present</div>
+    <div class="venue">Nature, 453:379–382 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature06949">10.1038/nature06949</a></div>
+    <div class="used-in">Carottes EPICA Dome C : CO₂ 180–300 ppm → 🦣 ⚖️🏭 (<code>configTimeline.js</code>).</div>
+</article>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-epochs">10. Compositions d'époques (Hadéen, Éocène)</h2>
+
+<article class="ref" id="anagnostou2016" data-tags="eocene co2 proxy boron">
+    <div class="cite-key">[anagnostou2016]</div>
+    <div class="authors">Anagnostou, E. et al.</div>
+    <div class="title">Changing atmospheric CO₂ concentration was the primary driver of early Cenozoic climate</div>
+    <div class="venue">Nature, 533:380–384 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature17423">10.1038/nature17423</a></div>
+    <div class="used-in">CO₂ Éocène précoce ~1000–1600 ppm → 🐊 ⚖️🏭 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="beerling2011" data-tags="eocene methane chemistry-climate">
+    <div class="cite-key">[beerling2011]</div>
+    <div class="authors">Beerling, D. J. et al.</div>
+    <div class="title">Enhanced chemistry-climate feedbacks in past greenhouse worlds</div>
+    <div class="venue">PNAS, 108(24):9770–9775 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1102409108">10.1073/pnas.1102409108</a></div>
+    <div class="used-in">CH₄ élevé des mondes chauds (zones humides) → 🐊 ⚖️🐄 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="sleepZahnleNeuhoff2001" data-tags="hadean co2 magma-ocean early-atmosphere">
+    <div class="cite-key">[sleepZahnleNeuhoff2001]</div>
+    <div class="authors">Sleep, N. H., Zahnle, K. &amp; Neuhoff, P. S.</div>
+    <div class="title">Initiation of clement surface conditions on the earliest Earth</div>
+    <div class="venue">PNAS, 98(7):3666–3672 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.071045698">10.1073/pnas.071045698</a></div>
+    <div class="used-in">40–210 bar CO₂ après l'impact lunaire → 🔥 ⚖️🏭 (<code>configTimeline.js</code>) ; retrait du CO₂ vers le manteau en 10–100 Ma.</div>
+</article>
+
+<article class="ref" id="zahnle2010" data-tags="hadean steam-atmosphere early-atmosphere review">
+    <div class="cite-key">[zahnle2010]</div>
+    <div class="authors">Zahnle, K. et al.</div>
+    <div class="title">Earth's earliest atmospheres</div>
+    <div class="venue">Cold Spring Harbor Perspectives in Biology, 2:a004895 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1101/cshperspect.a004895">10.1101/cshperspect.a004895</a></div>
+    <div class="used-in">Atmosphère de vapeur post-impact → 🔥 ⚖️💧 (<code>configTimeline.js</code>).</div>
+</article>
 
 </body>
 </html>

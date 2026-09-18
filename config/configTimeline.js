@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.82
+// Version 1.4.83
 // Date: [September 17, 2026]
 // logs :
+// - v1.4.83: CONFIG_COMPUTE.CARBON_SINKS — puits océan (Henry/Revelle, τ 50 a) + forêts (fertilisation β ln, τ 23 a) pour le CO₂ injecté ; refs mesures.
 // - v1.4.82: 🔥 CO₂ 3.5e20 (~270k ppm) + H₂O 6e20 (vapeur 15 %) selon grille litt. ; commentaire T moyenne Hadéen sans sens ; 🦣 commentaire instabilité glace-albédo (Pléistocène).
 // - v1.4.81: compositions ramenées dans la grille litt. : 🦠 CO₂/CH₄ sous les max, 🦣 CO₂ 298 / CH₄ 0,80 ppm (seuil glace), 🏔 CH₄ 1,5 ppm, 🐊 CO₂ ~1380 / CH₄ 3,8 ppm (vers 24 °C) ; 🔥 inchangé (grilles CO₂/T incompatibles, documenté) ; bench 📱 = observations an 2000.
 // - v1.4.80: 📱 🕰 🔺⚖️🏭 ×1000 (kg réels : 850 GtCO₂ = 850e12 kg ; avant 850e9 = 0,85 Gt, sans effet) + refs GCB/SSP.
@@ -1369,7 +1370,37 @@ window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
 //   ~38 000 GtC océan / ~760 GtC atm pré-industriel → ratio ≈ 50). Crash-first (lu sans fallback).
 window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 // Flag de test pompe CO₂ océan : 1 = actif, 0 = coupé (seed océan inclus), >1 = amplification volontaire.
+// ⚠️ [v1.4.83] Mesuré inerte : bench identique au centième avec 0 (initForConfig re-seed l'océan à chaque calcul,
+//   getMasses réécrit ⚖️🏭 à chaque pas). L'absorption du CO₂ INJECTÉ est portée par CARBON_SINKS ci-dessous.
 window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
+
+// ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢) — v1.4.83 ────────────────
+// Modèle de PERTURBATION : la composition de chaque époque (config) est un équilibre ; seul le CO₂ injecté E
+// (📜🔺⚖️🏭) est partagé entre atmosphère, océan (O = 📜🌊🔺⚖️🏭) et forêts (L = 📜🌳🔺⚖️🏭).
+// Atmosphère = ⚖️🏭 époque + E − O − L (conservation, compute.js getMasses). O et L avancent UNE fois par clic
+// (CO2.advanceCarbonSinks(Δt), calculations_co2.js), remis à 0 avec E au changement d'époque (setEpoch).
+// Tous les paramètres viennent de MESURES (pas de projections) :
+//  OCÉAN — équilibre O_eq = k/(1+k)·(E − L), k = (co2OceanRatioRef / R)·exp(2400·(1/T − 1/T_ref)) :
+//    R = facteur de Revelle (chimie des carbonates mesurée) : ~10 vers 370 ppm, croît avec le CO₂ → saturation.
+//      Sabine et al. 2004 Science 305:367 (R moyen ~10, 8–15) ; Egleston, Sabine & Morel 2010 Glob. Biogeochem. Cycles 24:GB1002.
+//    2400 K = Van 't Hoff solubilité CO₂ (eau plus chaude = moins de dissolution, même loi que calculateCO2Partition).
+//    Relaxation O → O_eq en 1 − exp(−Δt/τ), τ = 50 ans (ventilation de la thermocline ; ordre de grandeur des traceurs
+//      CFC / radiocarbone des bombes, Sabine et al. 2004).
+//  FORÊTS — fertilisation CO₂ : ΔNPP = NPP0·β·ln(C/C0), C0 = ⚖️🏭 de l'époque (équilibre).
+//    NPP0 = 56 GtC/an (Field et al. 1998 Science 281:237) ; β = 0,5 (expériences FACE : +23 % de NPP à 550 ppm,
+//      Norby et al. 2005 PNAS 102:18052) ; stockage L → L_eq = ΔNPP·τ, τ = 23 ans (temps de résidence du carbone
+//      terrestre, Carvalhais et al. 2014 Nature 514:213). ln → saturation. Effet albédo négligeable (non modélisé).
+//  Vérification (pas un calage) : 2000→2025, +850 GtCO₂ → forêts ~25 %, océan ~24 %, atmosphère 369 → ~424 ppm
+//    (mesure NOAA 2025 ≈ 424 ppm ; puits mesurés GCB : océan ~26 %, terres ~30 %, Friedlingstein et al. 2023 ESSD 15:5301).
+window.CONFIG_COMPUTE.CARBON_SINKS = {
+    oceanRevelleRef: 10,          // R à oceanRevelleRefPpm
+    oceanRevelleRefPpm: 370,
+    oceanRevelleSlopePerPpm: 0.014, // Egleston 2010 : R ≈ 10 (370 ppm) → ≈ 16 (800 ppm)
+    oceanTauYears: 50,
+    landNpp0GtC: 56,
+    landBeta: 0.5,
+    landTauYears: 23
+};
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
 window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
 // ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.51 ────────────
