@@ -3,6 +3,11 @@
 // Version 1.2.65
 // Date: [September 16, 2026]
 // logs :
+// - v1.2.66: DATA['🪩']['🍰🪩💧'] — le facteur corps-noir (couche d'eau globale / 10 m, plafond 1) est
+//   désormais écrit dans DATA. Il multiplie A_geo et expliquait à lui seul l'écart entre le détail
+//   affiché et le badge albédo sur ⚫ (7,6 % avec une glace donnée à 2,3 % × 0,70).
+//   DATA['🪩']['🪩🍰🧊'] — albédo de glace effectif (moyenne zonale Briegleb) réellement utilisé dans A_geo,
+//   à afficher à la place du coefficient de config.
 // - v1.2.65: retrait de la journalisation par appel (FNTRACE + DATA_DUMP de DATA complet vers _logs/) — diagnostic du 16/07 devenu inutile (cause trouvée en v1.2.64), coûteux en I/O.
 // - v1.2.64: HYSTÉRÉSIS 1 — suppression des racines parasites de Δ(T) (albédo non monotone) + physique nuages :
 //   (1) calcGlaceEquilibre CONTINU au gel : max(0.1 calottes, 0.9·gel mer) (avant 0.10 → 0.009 à −2.0/−2.2 °C :
@@ -1042,6 +1047,12 @@ function calculateAlbedo() {
     }
     DATA['🪩']['🍰🪩📿'] = A_eff;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
+    // Facteur corps-noir exposé : sans lui, le détail affiché (couverture × coefficient) ne peut pas
+    // reproduire 🍰🪩📿 — une couche d'eau de 2 m sur une bille de roche ne réfléchit pas comme une banquise.
+    DATA['🪩']['🍰🪩💧'] = blackbody_factor;
+    // Albédo de glace EFFECTIF (moyenne zonale Briegleb, cf. iceAlbedoEff) — c'est lui qui entre dans A_geo,
+    // pas le coefficient de config 🪩🍰🧊. Exposé pour que l'affichage montre le nombre réellement utilisé.
+    DATA['🪩']['🪩🍰🧊'] = iceAlbedoEff;
     // ── Diagnostic hystérésis (stash) : albédo agrégé
     window._hystDiag = window._hystDiag || {};
     window._hystDiag.weightedAlbedoBase = weighted_albedo;
