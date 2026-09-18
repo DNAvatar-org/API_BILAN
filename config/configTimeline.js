@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.83
+// Version 1.4.84
 // Date: [September 17, 2026]
 // logs :
+// - v1.4.84: 🦣 — 🕰.🔁 (états par tic : obliquité + masses) et 🔺⏳ 0,5 Ma : 4 clics montrent la bascule glaciaire/interglaciaire (EPICA, Laskar 2004). Textes dans epochs_alt2sec.js.
 // - v1.4.83: CONFIG_COMPUTE.CARBON_SINKS — puits océan (Henry/Revelle, τ 50 a) + forêts (fertilisation β ln, τ 23 a) pour le CO₂ injecté ; refs mesures.
 // - v1.4.82: 🔥 CO₂ 3.5e20 (~270k ppm) + H₂O 6e20 (vapeur 15 %) selon grille litt. ; commentaire T moyenne Hadéen sans sens ; 🦣 commentaire instabilité glace-albédo (Pléistocène).
 // - v1.4.81: compositions ramenées dans la grille litt. : 🦠 CO₂/CH₄ sous les max, 🦣 CO₂ 298 / CH₄ 0,80 ppm (seuil glace), 🏔 CH₄ 1,5 ppm, 🐊 CO₂ ~1380 / CH₄ 3,8 ppm (vers 24 °C) ; 🔥 inchangé (grilles CO₂/T incompatibles, documenté) ; bench 📱 = observations an 2000.
@@ -1168,7 +1169,20 @@ const timeline = [
         '⚖️✈': 1.2e12,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 1.0 },
+            // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
+            // Un clic = un DEMI-cycle représentatif, pas un cycle réel de 41 ka (2 Ma en tics de 41 ka = 49 clics).
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.5 },
+            // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu).
+            // Mécanisme générique (compute.js getEpochDateConfig) : '⚾' = obliquité ε courante (→ 📜⚾),
+            // clés '⚖️*' = masses imposées pour l'état (→ 📜🔁⚖️, lues par getMasses). AUCUN texte ici :
+            // le récit de chaque état vit dans CO2/static/texts/epochs_alt2sec.js (EVENT_STORY['🦣']['💫'], par index).
+            // Valeurs : carottes EPICA (Lüthi 2008 : CO₂ 180–300 ppm ; Loulergue 2008 : CH₄ 350–800 ppb) ;
+            // obliquité 22,1°–24,5° sur 41 ka (Laskar et al. 2004) — ε pilote, CO₂ et CH₄ amplifient.
+            '🔁': [
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 },   // glaciaire  (~190 ppm / 0,43 ppm)
+                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12 },  // interglaciaire (~280 ppm / 0,70 ppm)
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 }    // glaciaire (dernière avant l'Holocène)
+            ],
             // Interpolation linéaire 🌡️🧮 (graine solveur) du début 🦣 (2 Ma) vers la borne ◀ de frise (10 ka ; même graine K que 🛖).
             '🔀': ['📅'],
             '◀': {

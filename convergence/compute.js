@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.24
+// Version 1.0.25
 // Date: [September 17, 2026]
 // logs :
+// - v1.0.25: 🕰.🔁 — états par tic (obliquité 📜⚾, masses 📜🔁⚖️ appliquées par getMasses, texte 📜🔁📝) ; générique, aucun if d'époque.
 // - v1.0.24: getMasses 📱 — ⚖️🏭 = époque + injecté − océan − forêts (puits CARBON_SINKS).
 // - v1.0.23: 📱 🕰 indexé par année — date = ▶ + 📿💫 × 🔺⏳ des tranches (restait figée à 2000) ; getMasses ajoute le cumul 📜🔺⚖️🏭 (injection CO₂ perdue au refactor d92a02e).
 // - v1.0.22: boucles sur EPOCH['🕰'] — ignorer la clé baryFromDate (flag booléen, pas un groupe tic) pour éviter accès cfg['🔺⏳'] undefined / biais sur deltaYearsFromTics et cohérence Δ📐.
@@ -136,6 +137,12 @@ function getMasses() {
         }
         const airborneM = profile.airborne;
         base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
+    }
+
+    // 🔁 état de cycle courant (📜🔁⚖️, posé par getEpochDateConfig) : masses imposées pour ce tic.
+    const cycleMasses = DATA['📜']['🔁⚖️'];
+    if (cycleMasses) {
+        for (const k of Object.keys(cycleMasses)) base[k] = cycleMasses[k];
     }
 
     // 📱 🕰 indexé par année : CO₂ = racine époque + cumul injecté par les clics ⛽/🛢 (events.js → 📜🔺⚖️🏭).
@@ -281,6 +288,28 @@ function getEpochDateConfig() {
         }
     }
     DATA['📜']['📐'] = baseRadiusKm + deltaRadiusKm;
+
+    // 🔁 ÉTATS PAR TIC (générique, cf. 🦣 Quaternaire) : EPOCH['🕰']['🔁'] = liste d'états.
+    // Index = 📿💫 − 1 (tic 0 = racine de l'époque) ; au-delà de la liste, le dernier état est maintenu.
+    // Un état peut porter : '⚾' (obliquité ε courante → 📜⚾, physics.js), les masses '⚖️*' (→ 📜🔁⚖️, lues
+    // par getMasses) et '📝' (texte du POURQUOI, affiché en alt2sec par events.js). Aucun if par époque.
+    DATA['📜']['⚾'] = 0;
+    DATA['📜']['🔁⚖️'] = null;
+    DATA['📜']['🔁📝'] = '';
+    const cycleStates = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔁'])) ? EPOCH['🕰']['🔁'] : null;
+    if (cycleStates && cycleStates.length) {
+        const ticCycle = DATA['📜']['📿💫'];
+        if (ticCycle >= 1) {
+            const state = cycleStates[Math.min(ticCycle - 1, cycleStates.length - 1)];
+            const massOverrides = {};
+            for (const k of Object.keys(state)) {
+                if (k.indexOf('⚖️') === 0) massOverrides[k] = state[k];
+            }
+            if (Number(state['⚾']) > 0) DATA['📜']['⚾'] = Number(state['⚾']);
+            if (Object.keys(massOverrides).length) DATA['📜']['🔁⚖️'] = massOverrides;
+            if (typeof state['📝'] === 'string') DATA['📜']['🔁📝'] = state['📝'];
+        }
+    }
 
     // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
     // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])

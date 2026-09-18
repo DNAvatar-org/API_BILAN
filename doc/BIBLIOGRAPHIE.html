@@ -100,7 +100,7 @@
     <div class="title">The effect of solar radiation variations on the climate of the Earth</div>
     <div class="venue">Tellus, 21(5):611–619 (1969)</div>
     <div class="doi"><a href="https://doi.org/10.3402/tellusa.v21i5.10109">10.3402/tellusa.v21i5.10109</a></div>
-    <div class="used-in"><code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
+    <div class="used-in">EARTH.EBM_B_W_PER_M2_K = 2,0 W/m²/K (coefficient de refroidissement radiatif utilisé pour convertir ΔS̄ d'obliquité en ΔT de zone, <code>physics.js</code> v2.0.18). <code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
 </article>
 
 <article class="ref" id="sellers1969" data-tags="ebm polar-amp">
@@ -675,6 +675,24 @@
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-orbital">8. Paramètres orbitaux (obliquité, Milankovitch)</h2>
+
+<article class="ref" id="berger1978" data-tags="orbital insolation milankovitch">
+    <div class="cite-key">[berger1978]</div>
+    <div class="authors">Berger, A. L.</div>
+    <div class="title">Long-term variations of daily insolation and Quaternary climatic changes</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 35(12):2362–2367 (1978)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2">10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2</a></div>
+    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> v2.0.18 : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+</article>
+
+<article class="ref" id="laskar2004" data-tags="orbital obliquity solution long-term">
+    <div class="cite-key">[laskar2004]</div>
+    <div class="authors">Laskar, J., Robutel, P., Joutel, F., Gastineau, M., Correia, A. C. M. &amp; Levrard, B.</div>
+    <div class="title">A long-term numerical solution for the insolation quantities of the Earth</div>
+    <div class="venue">Astronomy &amp; Astrophysics, 428:261–285 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1051/0004-6361:20041335">10.1051/0004-6361:20041335</a></div>
+    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka → états 🕰.🔁 du Quaternaire. <code>API_BILAN/physics/physics.js</code> v2.0.18 : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+</article>
 
 <article class="ref" id="laskar1993" data-tags="obliquity moon chaos">
     <div class="cite-key">[laskar1993]</div>
