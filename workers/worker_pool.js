@@ -12,6 +12,8 @@
 //   et le filtre msg.id === k ne distingue pas les appels → 2 calculs concurrents mélangeaient des tranches de T différentes.
 // - v1.1.5 passage de ch4_eds_scale (EARTH.CH4_EDS_SCALE) au worker slice_transfer (parallèle à h2o_eds_scale).
 // - v1.1.4 URL worker : window.__SPECTRAL_WORKER_SCRIPT__ (epoch_bench doc/) sinon ../API_BILAN/workers/ (CO2)
+// - v1.1.4 Repli blob: si new Worker(chemin) est refusé (file://) — source prise dans window.__SPECTRAL_WORKER_MAIN__,
+//   publié par spectral_slice_worker.js v0.6.0 quand la page le charge en <script>.
 // - v1.1.3 __API_BILAN_WORKER_POOL__ + silence console si __EPOCH_BENCH_PAGE__ (résumé dans epoch_bench)
 // - v1.0.0 Initial: N-1 workers, SAB Float32 pour upward_flux, sums EDS via postMessage
 // - v1.1.0 Transferable au lieu de SharedArrayBuffer (pas de headers COOP/COEP requis, compatible prod)
@@ -33,15 +35,36 @@
         ? window.__SPECTRAL_WORKER_SCRIPT__
         : '../API_BILAN/workers/spectral_slice_worker.js';
 
+    // En file://, Chrome refuse new Worker('file://…') : origine 'null'. Un blob: passe, lui — et comme
+    // fetch/XHR sont aussi bloqués, la source ne peut venir que de la page, qui charge le worker en <script>
+    // (il se publie alors dans __SPECTRAL_WORKER_MAIN__ au lieu de s'exécuter, cf. spectral_slice_worker.js v0.6.0).
+    // Même code, mêmes tranches, mêmes nombres : ce n'est qu'une autre façon de livrer la source.
+    var blobUrl = null;
+    function makeWorker() {
+        if (blobUrl) return new Worker(blobUrl);
+        try {
+            return new Worker(workerPath);
+        } catch (e) {
+            if (typeof window.__SPECTRAL_WORKER_MAIN__ !== 'function') {
+                throw new Error('[worker_pool.js] Worker refusé (' + e.message + ') et pas de repli : la page doit '
+                    + 'charger API_BILAN/workers/spectral_slice_worker.js en <script> pour permettre le mode blob (file://).');
+            }
+            var src = '(' + window.__SPECTRAL_WORKER_MAIN__.toString() + ')();';
+            blobUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+            return new Worker(blobUrl);
+        }
+    }
+
     var workers = [];
     for (var k = 0; k < nWorkers; k++) {
-        workers.push(new Worker(workerPath));
+        workers.push(makeWorker());
     }
 
     window.__API_BILAN_WORKER_POOL__ = {
         nWorkers: nWorkers,
         nCPU: nCPU,
-        transferable: true
+        transferable: true,
+        blob: blobUrl !== null
     };
 
     if (!window.__EPOCH_BENCH_PAGE__) {

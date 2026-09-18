@@ -1,313 +1,332 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.5.0
+// Version 0.6.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: April 23, 2026
+// Date: [September 18, 2026]
 // Logs:
+// - v0.6.0 Corps encapsulé dans spectralSliceWorkerMain(). Chargé comme worker → il s'exécute ; chargé comme
+//   <script> par une page → il se publie dans window.__SPECTRAL_WORKER_MAIN__, ce qui permet à worker_pool.js
+//   d'en faire un Blob. C'est le SEUL chemin possible en file:// : Chrome refuse new Worker('file://…')
+//   (origine 'null') et importScripts d'un file://, mais accepte un blob:. Code de calcul inchangé.
 // - v0.5.0 ch4_eds_scale (Haqq-Misra 2008) appliqué sur kappa_CH4 dans les 3 fonctions (runSlice / runSliceShared / runSliceTransfer). Défaut 1.0 si param absent ou non-fini.
 // - v0.4.1 Retrait guards abusifs (Number.isFinite, != null, || fallbacks) dans runSliceShared/Transfer (regle-js-crash)
 // - v0.4.0 Add slice_transfer message type: Transferable Float32Array (compatible prod, sans headers COOP/COEP)
 // - v0.3.0 Add slice_shared message type: write upward_flux directly into SharedArrayBuffer (zero-copy result)
 // - v0.2.0 constantes depuis payload (CONST côté main), plus de doublon
 
-'use strict';
 
-function planck(lambda, T, cst) {
-    if (!Number.isFinite(lambda) || !Number.isFinite(T) || lambda <= 0 || T <= 0) return 0;
-    var h = cst.PLANCK_H, c = cst.SPEED_OF_LIGHT, k = cst.BOLTZMANN_KB, cap = cst.MAX_PLANCK_SAFE;
-    var term1 = (2 * h * c * c) / Math.pow(lambda, 5);
-    var term2 = Math.exp((h * c) / (lambda * k * T)) - 1;
-    var B = (term2 > 0) ? term1 / term2 : 0;
-    return (Number.isFinite(B) && B >= 0) ? Math.min(B, cap) : 0;
-}
+/**
+ * Corps du worker. Une seule source, deux usages :
+ *   • dans un Worker  → self.onmessage est posé, le worker écoute (appel immédiat plus bas) ;
+ *   • dans une page   → publié sur window, worker_pool.js en fait un Blob (seul chemin possible en file://).
+ */
+function spectralSliceWorkerMain() {
+    'use strict';
 
-var TAU_EFF_MIN = 0;
-var TAU_EFF_MAX = 700;
-var MAX_FLUX_PER_BAND = 1e15;
+    function planck(lambda, T, cst) {
+        if (!Number.isFinite(lambda) || !Number.isFinite(T) || lambda <= 0 || T <= 0) return 0;
+        var h = cst.PLANCK_H, c = cst.SPEED_OF_LIGHT, k = cst.BOLTZMANN_KB, cap = cst.MAX_PLANCK_SAFE;
+        var term1 = (2 * h * c * c) / Math.pow(lambda, 5);
+        var term2 = Math.exp((h * c) / (lambda * k * T)) - 1;
+        var B = (term2 > 0) ? term1 / term2 : 0;
+        return (Number.isFinite(B) && B >= 0) ? Math.min(B, cap) : 0;
+    }
 
-function runSlice(p) {
-    var cst = p.constants || {};
-    var CONST_FALLBACK = {
-        PLANCK_H: 6.62607015e-34,
-        SPEED_OF_LIGHT: 2.998e8,
-        BOLTZMANN_KB: 1.380649e-23,
-        MAX_PLANCK_SAFE: 1e30
-    };
-    var cstUse = {
-        PLANCK_H: cst.PLANCK_H != null ? cst.PLANCK_H : CONST_FALLBACK.PLANCK_H,
-        SPEED_OF_LIGHT: cst.SPEED_OF_LIGHT != null ? cst.SPEED_OF_LIGHT : CONST_FALLBACK.SPEED_OF_LIGHT,
-        BOLTZMANN_KB: cst.BOLTZMANN_KB != null ? cst.BOLTZMANN_KB : CONST_FALLBACK.BOLTZMANN_KB,
-        MAX_PLANCK_SAFE: cst.MAX_PLANCK_SAFE != null ? cst.MAX_PLANCK_SAFE : CONST_FALLBACK.MAX_PLANCK_SAFE
-    };
-    var lambda_range = p.lambda_range;
-    var lambda_weights = p.lambda_weights;
-    var cross_section_CO2 = p.cross_section_CO2;
-    var cross_section_H2O = p.cross_section_H2O;
-    var cross_section_CH4 = p.cross_section_CH4;
-    var earth_flux = p.earth_flux;
-    var layers = p.layers;
-    var i_trop = p.i_trop;
-    var h2o_eds_scale = p.h2o_eds_scale;
-    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
-    var cia_CO2 = p.cia_CO2;
-    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
-    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
-    var tau_cloud_per_layer = p.tau_cloud_per_layer;
-    var effective_delta_lambda = p.effective_delta_lambda;
-    var T_surf = p.T_surf;
-    var nL = lambda_range.length;
-    var nZ = layers.length;
+    var TAU_EFF_MIN = 0;
+    var TAU_EFF_MAX = 700;
+    var MAX_FLUX_PER_BAND = 1e15;
 
-    var flux_in = earth_flux.slice();
-    var upward_flux = [];
-    for (var i = 0; i < nZ; i++) upward_flux.push(new Array(nL).fill(0));
+    function runSlice(p) {
+        var cst = p.constants || {};
+        var CONST_FALLBACK = {
+            PLANCK_H: 6.62607015e-34,
+            SPEED_OF_LIGHT: 2.998e8,
+            BOLTZMANN_KB: 1.380649e-23,
+            MAX_PLANCK_SAFE: 1e30
+        };
+        var cstUse = {
+            PLANCK_H: cst.PLANCK_H != null ? cst.PLANCK_H : CONST_FALLBACK.PLANCK_H,
+            SPEED_OF_LIGHT: cst.SPEED_OF_LIGHT != null ? cst.SPEED_OF_LIGHT : CONST_FALLBACK.SPEED_OF_LIGHT,
+            BOLTZMANN_KB: cst.BOLTZMANN_KB != null ? cst.BOLTZMANN_KB : CONST_FALLBACK.BOLTZMANN_KB,
+            MAX_PLANCK_SAFE: cst.MAX_PLANCK_SAFE != null ? cst.MAX_PLANCK_SAFE : CONST_FALLBACK.MAX_PLANCK_SAFE
+        };
+        var lambda_range = p.lambda_range;
+        var lambda_weights = p.lambda_weights;
+        var cross_section_CO2 = p.cross_section_CO2;
+        var cross_section_H2O = p.cross_section_H2O;
+        var cross_section_CH4 = p.cross_section_CH4;
+        var earth_flux = p.earth_flux;
+        var layers = p.layers;
+        var i_trop = p.i_trop;
+        var h2o_eds_scale = p.h2o_eds_scale;
+        var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+        var cia_CO2 = p.cia_CO2;
+        var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+        var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
+        var tau_cloud_per_layer = p.tau_cloud_per_layer;
+        var effective_delta_lambda = p.effective_delta_lambda;
+        var T_surf = p.T_surf;
+        var nL = lambda_range.length;
+        var nZ = layers.length;
 
-    var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
+        var flux_in = earth_flux.slice();
+        var upward_flux = [];
+        for (var i = 0; i < nZ; i++) upward_flux.push(new Array(nL).fill(0));
 
-    for (var i = 0; i < nZ; i++) {
-        var L = layers[i];
-        var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
-        var T = L.T;
-        var delta_z_real = L.delta_z_real;
-        var sigma_broad = L.pressureBroadening;
-        var is_trop = (i < i_trop);
-        var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
+        var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
 
-        for (var j = 0; j < nL; j++) {
-            var lambda = lambda_range[j];
-            var kappa_CO2 = (Number.isFinite(n_CO2) && cross_section_CO2[j] != null) ? cross_section_CO2[j] * sigma_broad * n_CO2 : 0;
-            var kappa_H2O_raw = (Number.isFinite(n_H2O) && cross_section_H2O[j] != null) ? cross_section_H2O[j] * sigma_broad * n_H2O : 0;
-            var kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
-            var kappa_CH4_raw = (Number.isFinite(n_CH4) && cross_section_CH4[j] != null) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
-            var kappa_CH4 = kappa_CH4_raw * ch4_eds_scale;
-            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
-            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
-            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
-                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
-            var tau_raw = kappa * delta_z_real + tau_cloud_layer;
-            var tau = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(Math.max(tau_raw, TAU_EFF_MIN), TAU_EFF_MAX) : 0;
-            var transmission = Math.exp(-tau);
-            var emissivity = 1 - transmission;
+        for (var i = 0; i < nZ; i++) {
+            var L = layers[i];
+            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
+            var T = L.T;
+            var delta_z_real = L.delta_z_real;
+            var sigma_broad = L.pressureBroadening;
+            var is_trop = (i < i_trop);
+            var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
 
-            var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
-            if (!has_absorption) {
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
-            } else {
-                var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
-                var out = flux_in[j] * transmission + em_flux;
-                if (!Number.isFinite(out)) out = flux_in[j];
-                upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out));
-                var tau_CO2 = Math.max(0, kappa_CO2 * delta_z_real);
-                var tau_H2O = Math.max(0, kappa_H2O * delta_z_real);
-                var tau_CH4 = Math.max(0, kappa_CH4 * delta_z_real);
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-tau_CO2));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-tau_H2O));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-tau_CH4));
-                sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+            for (var j = 0; j < nL; j++) {
+                var lambda = lambda_range[j];
+                var kappa_CO2 = (Number.isFinite(n_CO2) && cross_section_CO2[j] != null) ? cross_section_CO2[j] * sigma_broad * n_CO2 : 0;
+                var kappa_H2O_raw = (Number.isFinite(n_H2O) && cross_section_H2O[j] != null) ? cross_section_H2O[j] * sigma_broad * n_H2O : 0;
+                var kappa_H2O = kappa_H2O_raw * h2o_eds_scale;
+                var kappa_CH4_raw = (Number.isFinite(n_CH4) && cross_section_CH4[j] != null) ? cross_section_CH4[j] * sigma_broad * n_CH4 : 0;
+                var kappa_CH4 = kappa_CH4_raw * ch4_eds_scale;
+                // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+                // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+                var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                    ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+                var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
+                var tau_raw = kappa * delta_z_real + tau_cloud_layer;
+                var tau = (Number.isFinite(tau_raw) && tau_raw >= 0) ? Math.min(Math.max(tau_raw, TAU_EFF_MIN), TAU_EFF_MAX) : 0;
+                var transmission = Math.exp(-tau);
+                var emissivity = 1 - transmission;
+
+                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
+                if (!has_absorption) {
+                    upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, flux_in[j]));
+                } else {
+                    var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
+                    var out = flux_in[j] * transmission + em_flux;
+                    if (!Number.isFinite(out)) out = flux_in[j];
+                    upward_flux[i][j] = Math.max(-MAX_FLUX_PER_BAND, Math.min(MAX_FLUX_PER_BAND, out));
+                    var tau_CO2 = Math.max(0, kappa_CO2 * delta_z_real);
+                    var tau_H2O = Math.max(0, kappa_H2O * delta_z_real);
+                    var tau_CH4 = Math.max(0, kappa_CH4 * delta_z_real);
+                    sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-tau_CO2));
+                    sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-tau_H2O));
+                    sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-tau_CH4));
+                    sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+                }
+                flux_in[j] = upward_flux[i][j];
             }
-            flux_in[j] = upward_flux[i][j];
         }
+
+        var topFlux = upward_flux[nZ - 1];
+        var total_flux_slice = topFlux.reduce(function (s, v) { return s + v; }, 0);
+        return {
+            id: p.id,
+            total_flux_slice: total_flux_slice,
+            upward_flux: upward_flux,
+            sum_blocked_CO2: sum_blocked_CO2,
+            sum_blocked_H2O: sum_blocked_H2O,
+            sum_blocked_CH4: sum_blocked_CH4,
+            sum_blocked_clouds: sum_blocked_clouds
+        };
     }
 
-    var topFlux = upward_flux[nZ - 1];
-    var total_flux_slice = topFlux.reduce(function (s, v) { return s + v; }, 0);
-    return {
-        id: p.id,
-        total_flux_slice: total_flux_slice,
-        upward_flux: upward_flux,
-        sum_blocked_CO2: sum_blocked_CO2,
-        sum_blocked_H2O: sum_blocked_H2O,
-        sum_blocked_CH4: sum_blocked_CH4,
-        sum_blocked_clouds: sum_blocked_clouds
+    // runSliceShared: same physics as runSlice but writes upward_flux[i][j] directly into SharedArrayBuffer.
+    // j is the absolute lambda index (jStart..jEnd-1), stored at sharedView[i * nL_total + j].
+    // Returns sums for EDS attribution (sent back via small postMessage, no large copy).
+    function runSliceShared(p) {
+        var sharedView = new Float32Array(p.sharedBuf);
+        var cstUse = p.constants;
+        // Slice parameters: p.lambda_range/weights/cross_sections/earth_flux are already sliced [0..nL_slice)
+        // p.jStart is the absolute offset for writing into the SharedArrayBuffer
+        var lambda_range = p.lambda_range;
+        var lambda_weights = p.lambda_weights;
+        var cross_section_CO2 = p.cross_section_CO2;
+        var cross_section_H2O = p.cross_section_H2O;
+        var cross_section_CH4 = p.cross_section_CH4;
+        var earth_flux = p.earth_flux;
+        var layers = p.layers;
+        var i_trop = p.i_trop;
+        var h2o_eds_scale = p.h2o_eds_scale;
+        var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+        var cia_CO2 = p.cia_CO2;
+        var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+        var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
+        var tau_cloud_per_layer = p.tau_cloud_per_layer;
+        var effective_delta_lambda = p.effective_delta_lambda;
+        var nL = lambda_range.length;        // slice size
+        var nL_total = p.nL_total;           // total lambda count (for SAB offset)
+        var jStart = p.jStart;              // absolute lambda offset
+        var nZ = layers.length;
+
+        var flux_in = earth_flux.slice();
+        var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
+
+        for (var i = 0; i < nZ; i++) {
+            var L = layers[i];
+            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
+            var T = L.T;
+            var delta_z_real = L.delta_z_real;
+            var sigma_broad = L.pressureBroadening;
+            var is_trop = (i < i_trop);
+            var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
+
+            for (var j = 0; j < nL; j++) {
+                var lambda = lambda_range[j];
+                var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
+                var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
+                var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
+                // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+                // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+                var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                    ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+                var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
+                var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
+                var transmission = Math.exp(-tau);
+                var emissivity = 1 - transmission;
+                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
+                var upval;
+                if (!has_absorption) {
+                    upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
+                } else {
+                    var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
+                    var out = flux_in[j] * transmission + em_flux;
+                    upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
+                    sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
+                    sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
+                    sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
+                    sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+                }
+                // Write directly into SharedArrayBuffer at absolute position
+                sharedView[i * nL_total + jStart + j] = upval;
+                flux_in[j] = upval;
+            }
+        }
+        return { sum_blocked_CO2, sum_blocked_H2O, sum_blocked_CH4, sum_blocked_clouds };
+    }
+
+    // runSliceTransfer: même physique que runSliceShared, mais écrit dans un Float32Array local
+    // puis transfère l'ownership au main thread (Transferable, zero-copy, sans SharedArrayBuffer).
+    // Layout: resultBuf[i * nL + j] pour la tranche de taille nL = jEnd - jStart.
+    function runSliceTransfer(p) {
+        var cstUse = p.constants;
+        var lambda_range = p.lambda_range;
+        var lambda_weights = p.lambda_weights;
+        var cross_section_CO2 = p.cross_section_CO2;
+        var cross_section_H2O = p.cross_section_H2O;
+        var cross_section_CH4 = p.cross_section_CH4;
+        var earth_flux = p.earth_flux;
+        var layers = p.layers;
+        var i_trop = p.i_trop;
+        var h2o_eds_scale = p.h2o_eds_scale;
+        var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
+        var cia_CO2 = p.cia_CO2;
+        var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
+        var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
+        var tau_cloud_per_layer = p.tau_cloud_per_layer;
+        var effective_delta_lambda = p.effective_delta_lambda;
+        var nL = lambda_range.length;
+        var nZ = layers.length;
+        // Float32Array local : transféré (zero-copy) après calcul
+        var resultBuf = new Float32Array(nZ * nL);
+        var flux_in = earth_flux.slice();
+        var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
+
+        for (var i = 0; i < nZ; i++) {
+            var L = layers[i];
+            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
+            var T = L.T;
+            var delta_z_real = L.delta_z_real;
+            var sigma_broad = L.pressureBroadening;
+            var is_trop = (i < i_trop);
+            var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
+
+            for (var j = 0; j < nL; j++) {
+                var lambda = lambda_range[j];
+                var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
+                var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
+                var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
+                // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
+                // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
+                var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
+                    ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
+                var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
+                var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
+                var transmission = Math.exp(-tau);
+                var emissivity = 1 - transmission;
+                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
+                var upval;
+                if (!has_absorption) {
+                    upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
+                } else {
+                    var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
+                    var out = flux_in[j] * transmission + em_flux;
+                    upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
+                    sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
+                    sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
+                    sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
+                    sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+                    sum_blocked_CIA += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CIA * delta_z_real)));
+                }
+                resultBuf[i * nL + j] = upval;
+                flux_in[j] = upval;
+            }
+        }
+        // Transférer l'ownership du buffer (zero-copy : le worker perd l'accès après postMessage)
+        self.postMessage({
+            type: 'sliceTransferDone',
+            id: p.id,
+            buf: resultBuf.buffer,
+            jStart: p.jStart,
+            jEnd: p.jEnd,
+            sum_blocked_CO2: sum_blocked_CO2,
+            sum_blocked_H2O: sum_blocked_H2O,
+            sum_blocked_CH4: sum_blocked_CH4,
+            sum_blocked_clouds: sum_blocked_clouds,
+            sum_blocked_CIA: sum_blocked_CIA
+        }, [resultBuf.buffer]); // Transferable : ownership move, zéro copie
+    }
+
+    self.onmessage = function (e) {
+        var msg = e.data;
+        if (msg && msg.type === 'slice') {
+            try {
+                var result = runSlice(msg);
+                self.postMessage({ type: 'sliceResult', result: result });
+            } catch (err) {
+                self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
+            }
+        } else if (msg && msg.type === 'slice_transfer') {
+            try {
+                runSliceTransfer(msg); // postMessage avec Transferable est dans runSliceTransfer
+            } catch (err) {
+                self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
+            }
+        } else if (msg && msg.type === 'slice_shared') {
+            try {
+                var sums = runSliceShared(msg);
+                self.postMessage({
+                    type: 'sliceSharedDone',
+                    id: msg.id,
+                    sum_blocked_CO2: sums.sum_blocked_CO2,
+                    sum_blocked_H2O: sums.sum_blocked_H2O,
+                    sum_blocked_CH4: sums.sum_blocked_CH4,
+                    sum_blocked_clouds: sums.sum_blocked_clouds
+                });
+            } catch (err) {
+                self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
+            }
+        }
     };
 }
 
-// runSliceShared: same physics as runSlice but writes upward_flux[i][j] directly into SharedArrayBuffer.
-// j is the absolute lambda index (jStart..jEnd-1), stored at sharedView[i * nL_total + j].
-// Returns sums for EDS attribution (sent back via small postMessage, no large copy).
-function runSliceShared(p) {
-    var sharedView = new Float32Array(p.sharedBuf);
-    var cstUse = p.constants;
-    // Slice parameters: p.lambda_range/weights/cross_sections/earth_flux are already sliced [0..nL_slice)
-    // p.jStart is the absolute offset for writing into the SharedArrayBuffer
-    var lambda_range = p.lambda_range;
-    var lambda_weights = p.lambda_weights;
-    var cross_section_CO2 = p.cross_section_CO2;
-    var cross_section_H2O = p.cross_section_H2O;
-    var cross_section_CH4 = p.cross_section_CH4;
-    var earth_flux = p.earth_flux;
-    var layers = p.layers;
-    var i_trop = p.i_trop;
-    var h2o_eds_scale = p.h2o_eds_scale;
-    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
-    var cia_CO2 = p.cia_CO2;
-    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
-    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
-    var tau_cloud_per_layer = p.tau_cloud_per_layer;
-    var effective_delta_lambda = p.effective_delta_lambda;
-    var nL = lambda_range.length;        // slice size
-    var nL_total = p.nL_total;           // total lambda count (for SAB offset)
-    var jStart = p.jStart;              // absolute lambda offset
-    var nZ = layers.length;
-
-    var flux_in = earth_flux.slice();
-    var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0;
-
-    for (var i = 0; i < nZ; i++) {
-        var L = layers[i];
-        var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
-        var T = L.T;
-        var delta_z_real = L.delta_z_real;
-        var sigma_broad = L.pressureBroadening;
-        var is_trop = (i < i_trop);
-        var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
-
-        for (var j = 0; j < nL; j++) {
-            var lambda = lambda_range[j];
-            var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
-            var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
-            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
-            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
-            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
-            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
-                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
-            var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
-            var transmission = Math.exp(-tau);
-            var emissivity = 1 - transmission;
-            var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
-            var upval;
-            if (!has_absorption) {
-                upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
-            } else {
-                var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
-                var out = flux_in[j] * transmission + em_flux;
-                upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
-                sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
-            }
-            // Write directly into SharedArrayBuffer at absolute position
-            sharedView[i * nL_total + jStart + j] = upval;
-            flux_in[j] = upval;
-        }
-    }
-    return { sum_blocked_CO2, sum_blocked_H2O, sum_blocked_CH4, sum_blocked_clouds };
+// Dans un Worker, self n'est pas window : on démarre. Dans une page, on se contente de se publier.
+if (typeof window !== 'undefined' && typeof self !== 'undefined' && self === window) {
+    window.__SPECTRAL_WORKER_MAIN__ = spectralSliceWorkerMain;
+} else {
+    spectralSliceWorkerMain();
 }
-
-// runSliceTransfer: même physique que runSliceShared, mais écrit dans un Float32Array local
-// puis transfère l'ownership au main thread (Transferable, zero-copy, sans SharedArrayBuffer).
-// Layout: resultBuf[i * nL + j] pour la tranche de taille nL = jEnd - jStart.
-function runSliceTransfer(p) {
-    var cstUse = p.constants;
-    var lambda_range = p.lambda_range;
-    var lambda_weights = p.lambda_weights;
-    var cross_section_CO2 = p.cross_section_CO2;
-    var cross_section_H2O = p.cross_section_H2O;
-    var cross_section_CH4 = p.cross_section_CH4;
-    var earth_flux = p.earth_flux;
-    var layers = p.layers;
-    var i_trop = p.i_trop;
-    var h2o_eds_scale = p.h2o_eds_scale;
-    var ch4_eds_scale = (p.ch4_eds_scale != null && isFinite(p.ch4_eds_scale)) ? p.ch4_eds_scale : 1.0;
-    var cia_CO2 = p.cia_CO2;
-    var cia_co2_scale = (p.cia_co2_scale != null && isFinite(p.cia_co2_scale)) ? p.cia_co2_scale : 0;
-    var CIA_N_REF = 2.686780e25;   // Loschmidt (m⁻³) — normalise n en amagat pour la CIA binaire ∝ densité²
-    var tau_cloud_per_layer = p.tau_cloud_per_layer;
-    var effective_delta_lambda = p.effective_delta_lambda;
-    var nL = lambda_range.length;
-    var nZ = layers.length;
-    // Float32Array local : transféré (zero-copy) après calcul
-    var resultBuf = new Float32Array(nZ * nL);
-    var flux_in = earth_flux.slice();
-    var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
-
-    for (var i = 0; i < nZ; i++) {
-        var L = layers[i];
-        var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
-        var T = L.T;
-        var delta_z_real = L.delta_z_real;
-        var sigma_broad = L.pressureBroadening;
-        var is_trop = (i < i_trop);
-        var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
-
-        for (var j = 0; j < nL; j++) {
-            var lambda = lambda_range[j];
-            var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
-            var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
-            var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
-            // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
-            // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
-            var kappa_CIA = (cia_CO2 && cia_co2_scale > 0 && Number.isFinite(n_CO2) && n_CO2 > 0 && cia_CO2[j] != null)
-                ? cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale : 0;
-            var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
-            var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
-            var transmission = Math.exp(-tau);
-            var emissivity = 1 - transmission;
-            var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
-            var upval;
-            if (!has_absorption) {
-                upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
-            } else {
-                var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
-                var out = flux_in[j] * transmission + em_flux;
-                upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
-                sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
-                sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
-                sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
-                sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
-                sum_blocked_CIA += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CIA * delta_z_real)));
-            }
-            resultBuf[i * nL + j] = upval;
-            flux_in[j] = upval;
-        }
-    }
-    // Transférer l'ownership du buffer (zero-copy : le worker perd l'accès après postMessage)
-    self.postMessage({
-        type: 'sliceTransferDone',
-        id: p.id,
-        buf: resultBuf.buffer,
-        jStart: p.jStart,
-        jEnd: p.jEnd,
-        sum_blocked_CO2: sum_blocked_CO2,
-        sum_blocked_H2O: sum_blocked_H2O,
-        sum_blocked_CH4: sum_blocked_CH4,
-        sum_blocked_clouds: sum_blocked_clouds,
-        sum_blocked_CIA: sum_blocked_CIA
-    }, [resultBuf.buffer]); // Transferable : ownership move, zéro copie
-}
-
-self.onmessage = function (e) {
-    var msg = e.data;
-    if (msg && msg.type === 'slice') {
-        try {
-            var result = runSlice(msg);
-            self.postMessage({ type: 'sliceResult', result: result });
-        } catch (err) {
-            self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
-        }
-    } else if (msg && msg.type === 'slice_transfer') {
-        try {
-            runSliceTransfer(msg); // postMessage avec Transferable est dans runSliceTransfer
-        } catch (err) {
-            self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
-        }
-    } else if (msg && msg.type === 'slice_shared') {
-        try {
-            var sums = runSliceShared(msg);
-            self.postMessage({
-                type: 'sliceSharedDone',
-                id: msg.id,
-                sum_blocked_CO2: sums.sum_blocked_CO2,
-                sum_blocked_H2O: sums.sum_blocked_H2O,
-                sum_blocked_CH4: sums.sum_blocked_CH4,
-                sum_blocked_clouds: sums.sum_blocked_clouds
-            });
-        } catch (err) {
-            self.postMessage({ type: 'sliceError', id: msg.id, error: String(err) });
-        }
-    }
-};

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.27 — 2026-09-18 : fonctionne en file://. Retrait de l'étape fetch(configTimeline.js) (bloquée hors
+  serveur, et devenue inutile) ; spectral_slice_worker.js chargé en <script> avant le pool → workers en blob:.
   Version 1.0.26 — 2026-05-07 : BENCH_LIT — source unique window.BENCH_LIT_BY_EPOCH_ID (configTimeline.js v1.4.74) ; supprime l’objet dupliqué ici ; repères bench recalculés en mémoire au load (pas CSV / cookie).
   Version 1.0.25 — 2026-05-07 : Skip en cellule (petit ⏭) à la place du 📋 pendant le calcul ; 📋 copie seulement une fois l'époque terminée.
   Version 1.0.24 — 2026-05-07 : Bouton « Passer l'époque » pendant le run — window.ABORT_COMPUTE (calculations_flux.js) ; ligne tableau statut abort.
@@ -337,7 +339,6 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
         { kind: 'script', src: '../../CO2/static/compute/dico.js', label: 'dico.js' },
         { kind: 'script', src: BASE + 'data/initDATA.js', label: 'initDATA.js' },
         { kind: 'script', src: BASE + 'config/fine_tuning_bounds.js', label: 'fine_tuning_bounds.js' },
-        { kind: 'timeline', src: BASE + 'config/configTimeline.js', label: 'configTimeline.js (fetch)' },
         { kind: 'script', src: BASE + 'physics/physics.js', label: 'physics.js' },
         { kind: 'script', src: BASE + 'data/hitran_lines_CO2.js', label: 'hitran_lines_CO2.js' },
         { kind: 'script', src: BASE + 'data/hitran_lines_H2O.js', label: 'hitran_lines_H2O.js' },
@@ -345,6 +346,9 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
         { kind: 'script', src: BASE + 'spectroscopy/hitran.js', label: 'hitran.js' },
         { kind: 'script', src: BASE + 'physics/climate.js', label: 'climate.js' },
         { kind: 'script', src: BASE + 'radiative/calculations.js', label: 'calculations.js (radiatif)' },
+        // Chargé en <script> AVANT le pool : il se publie au lieu de s'exécuter, ce qui donne au pool
+        // une source utilisable en blob: — seul moyen d'avoir des workers quand la page est en file://.
+        { kind: 'script', src: BASE + 'workers/spectral_slice_worker.js', label: 'spectral_slice_worker.js (source)' },
         { kind: 'script', src: BASE + 'workers/worker_pool.js', label: 'worker_pool.js' },
         { kind: 'script', src: BASE + 'h2o/calculations_h2o.js', label: 'calculations_h2o.js' },
         { kind: 'script', src: BASE + 'albedo/calculations_albedo.js', label: 'calculations_albedo.js' },
@@ -393,20 +397,11 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
         });
     }
 
-    function loadTimeline(step, index) {
-        var t0 = performance.now();
-        return fetch(step.src).then(function (r) {
-            if (!r.ok) throw new Error('configTimeline HTTP ' + r.status);
-            return r.text();
-        }).then(function (text) {
-            (new Function(text))();
-            record(step.label, performance.now() - t0);
-            setLoaded(index);
-        });
-    }
-
+    // loadTimeline (fetch + new Function sur configTimeline.js) retiré en v1.0.27 : c'était une seconde
+    // évaluation défensive, et fetch est bloqué en file://, donc le chargement s'arrêtait là. Rien entre
+    // les deux chargements ne touchait TIMELINE ; la mutation qui la justifiait (🕰.order consommé par
+    // shift()) a été supprimée — events.js v1.2.36 la remplace par un curseur 📿🕰.
     function runStep(step, index) {
-        if (step.kind === 'timeline') return loadTimeline(step, index);
         return loadScript(step, index);
     }
 
