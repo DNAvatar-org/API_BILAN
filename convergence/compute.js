@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.25
+// Version 1.0.26
 // Date: [September 17, 2026]
 // logs :
+// - v1.0.26: état 🔁 — clé '🖼' publiée dans 📜🖼 (texture de la planète pour l'état ; lue par organigramme.js).
 // - v1.0.25: 🕰.🔁 — états par tic (obliquité 📜⚾, masses 📜🔁⚖️ appliquées par getMasses, texte 📜🔁📝) ; générique, aucun if d'époque.
 // - v1.0.24: getMasses 📱 — ⚖️🏭 = époque + injecté − océan − forêts (puits CARBON_SINKS).
 // - v1.0.23: 📱 🕰 indexé par année — date = ▶ + 📿💫 × 🔺⏳ des tranches (restait figée à 2000) ; getMasses ajoute le cumul 📜🔺⚖️🏭 (injection CO₂ perdue au refactor d92a02e).
@@ -296,6 +297,7 @@ function getEpochDateConfig() {
     DATA['📜']['⚾'] = 0;
     DATA['📜']['🔁⚖️'] = null;
     DATA['📜']['🔁📝'] = '';
+    DATA['📜']['🖼'] = '';
     const cycleStates = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔁'])) ? EPOCH['🕰']['🔁'] : null;
     if (cycleStates && cycleStates.length) {
         const ticCycle = DATA['📜']['📿💫'];
@@ -308,6 +310,7 @@ function getEpochDateConfig() {
             if (Number(state['⚾']) > 0) DATA['📜']['⚾'] = Number(state['⚾']);
             if (Object.keys(massOverrides).length) DATA['📜']['🔁⚖️'] = massOverrides;
             if (typeof state['📝'] === 'string') DATA['📜']['🔁📝'] = state['📝'];
+            if (typeof state['🖼'] === 'string') DATA['📜']['🖼'] = state['🖼'];
         }
     }
 

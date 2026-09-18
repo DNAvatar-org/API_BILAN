@@ -1,8 +1,9 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.84
+// Version 1.4.85
 // Date: [September 17, 2026]
 // logs :
+// - v1.4.85: 🦣 🕰.🔁 — clé '🖼' : texture de la planète par état (glaciaire -00002Ma / interglaciaire -00001Ma), lue par getPlanetTexturePathFromEpoch.
 // - v1.4.84: 🦣 — 🕰.🔁 (états par tic : obliquité + masses) et 🔺⏳ 0,5 Ma : 4 clics montrent la bascule glaciaire/interglaciaire (EPICA, Laskar 2004). Textes dans epochs_alt2sec.js.
 // - v1.4.83: CONFIG_COMPUTE.CARBON_SINKS — puits océan (Henry/Revelle, τ 50 a) + forêts (fertilisation β ln, τ 23 a) pour le CO₂ injecté ; refs mesures.
 // - v1.4.82: 🔥 CO₂ 3.5e20 (~270k ppm) + H₂O 6e20 (vapeur 15 %) selon grille litt. ; commentaire T moyenne Hadéen sans sens ; 🦣 commentaire instabilité glace-albédo (Pléistocène).
@@ -1178,10 +1179,13 @@ const timeline = [
             // le récit de chaque état vit dans CO2/static/texts/epochs_alt2sec.js (EVENT_STORY['🦣']['💫'], par index).
             // Valeurs : carottes EPICA (Lüthi 2008 : CO₂ 180–300 ppm ; Loulergue 2008 : CH₄ 350–800 ppb) ;
             // obliquité 22,1°–24,5° sur 41 ka (Laskar et al. 2004) — ε pilote, CO₂ et CH₄ amplifient.
+            // '🖼' = texture de la planète pour l'état (sinon : texture déduite de la date, organigramme.js).
+            //   fonds/-00002Ma.png = calottes maximales (Amérique du Nord + Eurasie sous la glace, niveau marin bas) ;
+            //   fonds/-00001Ma.png = état interglaciaire (calottes réduites, côtes actuelles).
             '🔁': [
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 },   // glaciaire  (~190 ppm / 0,43 ppm)
-                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12 },  // interglaciaire (~280 ppm / 0,70 ppm)
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 }    // glaciaire (dernière avant l'Holocène)
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12,  '🖼': 'fonds/-00002Ma.png' },  // glaciaire (~190 ppm / 0,43 ppm)
+                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12, '🖼': 'fonds/-00001Ma.png' },  // interglaciaire (~280 ppm / 0,70 ppm)
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12,  '🖼': 'fonds/-00002Ma.png' }   // glaciaire (dernière avant l'Holocène)
             ],
             // Interpolation linéaire 🌡️🧮 (graine solveur) du début 🦣 (2 Ma) vers la borne ◀ de frise (10 ka ; même graine K que 🛖).
             '🔀': ['📅'],
