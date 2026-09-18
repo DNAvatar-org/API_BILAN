@@ -488,6 +488,10 @@ function initForConfig() {
     const _epochIce_flux = (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') ? EPOCH['🥶'] : null;
     const _iceOpts_flux = {};
     if (_epochObliquity_flux !== undefined) _iceOpts_flux.obliquity_deg = _epochObliquity_flux;
+    if (Number(DATA['📜']['⚾']) > 0) {
+        _iceOpts_flux.obliquity_deg = Number(DATA['📜']['⚾']);      // ε courant (Milankovitch)
+        _iceOpts_flux.obliquity_ref_deg = (Number.isFinite(Number(_epochObliquity_flux)) ? Number(_epochObliquity_flux) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT)); // ε de calibration 🥶
+    }
     if (_epochIce_flux) {
         if (Number.isFinite(Number(_epochIce_flux.dT_pol)))   _iceOpts_flux.dT_pol   = Number(_epochIce_flux.dT_pol);
         if (Number.isFinite(Number(_epochIce_flux.dT_mid)))   _iceOpts_flux.dT_mid   = Number(_epochIce_flux.dT_mid);

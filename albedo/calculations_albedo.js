@@ -401,6 +401,11 @@ function calculateAlbedo() {
         // encore défini à ce point dans la fonction.
         const _iceOptsSeed = {};
         if (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) _iceOptsSeed.obliquity_deg = Number(EPOCH['⚾']);
+        // ε courant piloté dans le temps (Milankovitch) : DATA['📜']['⚾'] ; ε de calibration 🥶 = EPOCH['⚾'].
+        if (Number(DATA['📜']['⚾']) > 0) {
+            _iceOptsSeed.obliquity_deg = Number(DATA['📜']['⚾']);
+            _iceOptsSeed.obliquity_ref_deg = (Number.isFinite(Number(EPOCH && EPOCH['⚾'])) ? Number(EPOCH['⚾']) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT));
+        }
         if (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') {
             const _ei = EPOCH['🥶'];
             if (Number.isFinite(Number(_ei.dT_pol)))   _iceOptsSeed.dT_pol   = Number(_ei.dT_pol);
@@ -495,6 +500,11 @@ function calculateAlbedo() {
     const _epochIce = (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') ? EPOCH['🥶'] : null;
     const _iceOpts = {};
     if (_epochObliquity !== undefined) _iceOpts.obliquity_deg = _epochObliquity;
+    // ε courant (tics Milankovitch) vs ε de calibration de l'époque — écart seul → effet (physics.js v2.0.18).
+    if (Number(DATA['📜']['⚾']) > 0) {
+        _iceOpts.obliquity_deg = Number(DATA['📜']['⚾']);
+        _iceOpts.obliquity_ref_deg = (Number.isFinite(Number(_epochObliquity)) ? Number(_epochObliquity) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT));
+    }
     if (_epochIce) {
         if (Number.isFinite(Number(_epochIce.dT_pol)))   _iceOpts.dT_pol   = Number(_epochIce.dT_pol);
         if (Number.isFinite(Number(_epochIce.dT_mid)))   _iceOpts.dT_mid   = Number(_epochIce.dT_mid);

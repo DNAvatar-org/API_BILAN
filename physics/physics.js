@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.17
+// Version 2.0.18
 // Date: [September 15, 2026]
 // logs :
+// - v2.0.18: obliquité — redistribution méridienne de l'insolation annuelle (EARTH.zoneAnnualInsolation / obliquityZoneWarmingK) : ε > ε_époque → pôles plus chauds (ΔS·(1−α)/B, Budyko 1969). Corrige le SIGNE Milankovitch (avant : ε forte = refroidissement). Appliqué en ÉCART vs EPOCH['⚾'] → banc inchangé.
 // - v2.0.17: EARTH['🪩🍰']['🪩🍰⛅'] 0.50 → 0.42 = réflectance r_c de la méthode d'addition 2 couches (calculations_albedo v1.2.64) ; même albédo nuageux moderne que l'ancien mélange linéaire à 0.50.
 // - v2.0.16: EARTH['🪩🍰']['🪩🍰🏊'] = 0.50 — paramètre Briegleb/CCSM3 melt pond (bare ice + ponds, Perovich SHEBA 2002 ; NCAR/TN-463 §5). Consommé par calculations_albedo.js brieglebIceAlbedoLocal().
 // - v2.0.15: computeIceTempFactor passe à 3 zones (polaire/mi-lat/TROPICAL). Ajout EARTH.POLAR_AMP_TROP_K=-5 K (tropical plus chaud que la moyenne globale), EARTH.SEASONAL_AMP_TROP_K=3 K (faible saisonnalité tropicale, Peixoto & Oort 1992 ch.7), EARTH.TROPICAL_ZONE_FRAC=0.50 (0°-30° lat., 2 hémisphères, géométrie sphérique sin(30°)=0.5). ice_tf devient la somme pondérée directe (f_pol×tf_pol + f_mid×tf_mid + f_trop×tf_trop), plus de normalisation par fsum : les 3 zones somment à 1.0 par construction. ICE_FORMULA_MAX_FRACTION passe de 0.46 (artefact Terre-moderne, cf. point 2 review Zorba) à 1.0 (physique correcte, autorise Snowball). Rétro-compat : à T_glob ≥ −4°C, tf_trop=0 → identique à avant avec normalisation ; au-dessous, la rampe tropicale (largeur 6 K) active la bifurcation Budyko-Sellers.
@@ -160,6 +161,89 @@ EARTH.SEASONAL_AMP_TROP_K = 3;   // tropical : amplitude annuelle faible (océan
 EARTH.OBLIQUITY_DEG_REF = 23.44;     // référence où SEASONAL_AMP_*_K sont calibrés
 EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // défaut si l'epoch n'a pas de '⚾'
 
+// ─── Redistribution méridienne de l'insolation par ε (Milankovitch) — v2.0.18 ──────────────
+// L'amplitude saisonnière ci-dessus ne dit QUE la moitié de l'histoire : une obliquité forte
+// refroidit les hivers MAIS envoie surtout plus d'énergie ANNUELLE vers les pôles (et un peu
+// moins aux tropiques ; la moyenne globale, elle, ne change pas d'un iota).
+// C'est ce second terme qui gouverne Milankovitch : forte ε = étés polaires chauds = calottes
+// qui fondent (déglaciation) ; faible ε = étés frais = la neige survit = glaciation.
+// Sans lui, le modèle donnait le signe INVERSE (ε 24,5° → bascule froide au Quaternaire).
+//
+// S̄_z(ε) = insolation annuelle moyenne de la zone z (intégrale de l'insolation journalière sur
+// l'année et sur la bande de latitude, pondérée par la surface). Calcul exact ci-dessous, mis en
+// cache : la moyenne globale est invariante, seule la RÉPARTITION dépend de ε.
+//   dS̄/dε ≈ +4,5 W/m² par degré au pôle, −1,3 aux tropiques, ~0 aux moyennes latitudes.
+// Conversion en température de zone via l'EBM : ΔT_z = ΔS̄_z · (1 − α) / B
+//   B = 2,0 W/m²/K (coefficient de refroidissement radiatif EBM, Budyko 1969 : 1,45–2,1)
+//   α = 0,30 (albédo planétaire de référence).
+// Réfs : Berger 1978 J. Atmos. Sci. 35:2362 ; Laskar et al. 2004 A&A 428:261 ; Budyko 1969 Tellus 21:611.
+//
+// ⚠️ APPLIQUÉ EN ÉCART SEULEMENT : ΔT_z = f(ε_courant) − f(ε_époque). Les 🥶 de chaque époque sont
+// calibrés POUR son ε de config (ex. Archéen 45°) : à ε inchangé, le terme est nul et le banc ne bouge pas.
+EARTH.EBM_B_W_PER_M2_K = 2.0;
+EARTH.EBM_ALBEDO_REF = 0.30;
+EARTH.SOLAR_CONSTANT_REF_W = 1361;
+
+/** Insolation journalière moyenne (W/m²) à la latitude lat pour une déclinaison dec (degrés). */
+function dailyMeanInsolation(lat_deg, dec_deg) {
+    var toRad = Math.PI / 180;
+    var phi = lat_deg * toRad, dec = dec_deg * toRad;
+    var x = -Math.tan(phi) * Math.tan(dec);
+    var H = x >= 1 ? 0 : (x <= -1 ? Math.PI : Math.acos(x));
+    return EARTH.SOLAR_CONSTANT_REF_W / Math.PI
+        * (H * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(H));
+}
+
+/** Insolation annuelle moyenne (W/m²) d'une bande de latitude [l0,l1]°, pondérée par la surface. */
+function zoneAnnualMeanInsolation(l0_deg, l1_deg, obliquity_deg) {
+    var toRad = Math.PI / 180;
+    var nLat = 20, nDay = 73; // pas 5 jours : moyenne annuelle stable à < 0,05 W/m²
+    var num = 0, den = 0;
+    for (var i = 0; i < nLat; i++) {
+        var lat = l0_deg + (l1_deg - l0_deg) * (i + 0.5) / nLat;
+        var w = Math.cos(lat * toRad);
+        var sum = 0;
+        for (var d = 0; d < nDay; d++) {
+            var lam = 2 * Math.PI * d / nDay;
+            var dec = Math.asin(Math.sin(obliquity_deg * toRad) * Math.sin(lam)) / toRad;
+            sum += dailyMeanInsolation(lat, dec);
+        }
+        num += (sum / nDay) * w;
+        den += w;
+    }
+    return num / den;
+}
+
+var _zoneInsolationCache = {};
+/** { pol, mid, trop } : insolation annuelle moyenne par zone (W/m²), mise en cache par ε. */
+EARTH.zoneAnnualInsolation = function (obliquity_deg) {
+    var key = Number(obliquity_deg).toFixed(4);
+    if (!_zoneInsolationCache[key]) {
+        _zoneInsolationCache[key] = {
+            trop: zoneAnnualMeanInsolation(0, 30, obliquity_deg),   // f = 0.500
+            mid:  zoneAnnualMeanInsolation(30, 60, obliquity_deg),  // f = 0.366
+            pol:  zoneAnnualMeanInsolation(60, 90, obliquity_deg)   // f = 0.134
+        };
+    }
+    return _zoneInsolationCache[key];
+};
+
+/** Écart de température de zone (K) dû au changement d'obliquité ε_ref → ε : ΔT = ΔS̄·(1−α)/B. */
+EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
+    if (!Number.isFinite(obliquity_deg) || !Number.isFinite(obliquity_ref_deg)
+        || obliquity_deg === obliquity_ref_deg) {
+        return { pol: 0, mid: 0, trop: 0 };
+    }
+    var cur = EARTH.zoneAnnualInsolation(obliquity_deg);
+    var ref = EARTH.zoneAnnualInsolation(obliquity_ref_deg);
+    var k = (1 - EARTH.EBM_ALBEDO_REF) / EARTH.EBM_B_W_PER_M2_K;
+    return {
+        pol:  (cur.pol  - ref.pol)  * k,
+        mid:  (cur.mid  - ref.mid)  * k,
+        trop: (cur.trop - ref.trop) * k
+    };
+};
+
 /**
  * EARTH.computeIceTempFactor(T_glob_K, opts?) : ice_temp_factor ∈ [0,1].
  * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
@@ -191,7 +275,7 @@ EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // défaut si l'epoch n'a pas de '⚾'
  *            T_thresh_pol_high, T_thresh_pol_low, T_thresh_mid_high, T_thresh_mid_low,
  *            T_thresh_trop_high, T_thresh_trop_low,
  *            dT_pol, dT_mid, dT_trop, amp_pol, amp_mid, amp_trop,
- *            f_pol, f_mid, f_trop, obliquity_deg, obliquity_factor}}
+ *            f_pol, f_mid, f_trop, obliquity_deg, obliquity_factor, dT_obliquity}}
  */
 EARTH.computeIceTempFactor = function (T_glob_K, opts) {
     opts = opts || {};
@@ -223,6 +307,13 @@ EARTH.computeIceTempFactor = function (T_glob_K, opts) {
     var toRad = Math.PI / 180;
     var sinRef = Math.sin(EARTH.OBLIQUITY_DEG_REF * toRad);
     var obliquity_factor = Math.max(0, Math.sin(obliquity_deg * toRad) / sinRef);
+    // Redistribution méridienne (Milankovitch) : ε au-dessus de l'ε de l'époque ⇒ pôles plus chauds,
+    // tropiques un peu plus froids ⇒ dT_z (écart zone − global) corrigé. Nul si ε == ε_ref (banc inchangé).
+    var obliquity_ref_deg = Number.isFinite(Number(opts.obliquity_ref_deg)) ? Number(opts.obliquity_ref_deg) : obliquity_deg;
+    var dT_oblq = EARTH.obliquityZoneWarmingK(obliquity_deg, obliquity_ref_deg);
+    dT_pol  -= dT_oblq.pol;
+    dT_mid  -= dT_oblq.mid;
+    dT_trop -= dT_oblq.trop;
     // Amplitudes effectives : opts.amp_* écrasent le dérivé d'obliquité (pour tests sensibilité).
     var amp_pol_base  = Number.isFinite(Number(cc.seasonalAmpPolK))  ? Number(cc.seasonalAmpPolK)  : EARTH.SEASONAL_AMP_POL_K;
     var amp_mid_base  = Number.isFinite(Number(cc.seasonalAmpMidK))  ? Number(cc.seasonalAmpMidK)  : EARTH.SEASONAL_AMP_MID_K;
@@ -258,7 +349,8 @@ EARTH.computeIceTempFactor = function (T_glob_K, opts) {
         dT_pol: dT_pol, dT_mid: dT_mid, dT_trop: dT_trop,
         amp_pol: amp_pol, amp_mid: amp_mid, amp_trop: amp_trop,
         f_pol: f_pol, f_mid: f_mid, f_trop: f_trop,
-        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor
+        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor,
+        obliquity_ref_deg: obliquity_ref_deg, dT_obliquity: dT_oblq
     };
 };
 EARTH.EVAPORATION_E0 = 0.001;

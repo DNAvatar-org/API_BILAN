@@ -229,6 +229,10 @@ function calculateWaterPartition() {
     const _epochIce_h2o = (_EPOCH_h2o && _EPOCH_h2o['🥶'] && typeof _EPOCH_h2o['🥶'] === 'object') ? _EPOCH_h2o['🥶'] : null;
     const _iceOpts_h2o = {};
     if (_epochObliquity_h2o !== undefined) _iceOpts_h2o.obliquity_deg = _epochObliquity_h2o;
+    if (Number(DATA['📜']['⚾']) > 0) {
+        _iceOpts_h2o.obliquity_deg = Number(DATA['📜']['⚾']);       // ε courant (Milankovitch)
+        _iceOpts_h2o.obliquity_ref_deg = (Number.isFinite(Number(_epochObliquity_h2o)) ? Number(_epochObliquity_h2o) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT)); // ε de calibration 🥶
+    }
     if (_epochIce_h2o) {
         if (Number.isFinite(Number(_epochIce_h2o.dT_pol)))   _iceOpts_h2o.dT_pol   = Number(_epochIce_h2o.dT_pol);
         if (Number.isFinite(Number(_epochIce_h2o.dT_mid)))   _iceOpts_h2o.dT_mid   = Number(_epochIce_h2o.dT_mid);
