@@ -53,6 +53,14 @@
       "dest": "pages/bilan_radiatif/API_BILAN/convergence/compute.js"
     },
     {
+      "src": "data/alphabet.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/alphabet.js"
+    },
+    {
+      "src": "data/dico.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/dico.js"
+    },
+    {
       "src": "data/hitran_lines_CH4.js",
       "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_CH4.js"
     },

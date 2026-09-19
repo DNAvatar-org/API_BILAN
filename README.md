@@ -1,7 +1,7 @@
 # API_BILAN — Bilan radiatif
 
-Modèle 0D du bilan radiatif terrestre, en JavaScript pur (aucune dépendance, aucun DOM dans les
-calculs). Entrée : une époque géologique ou une configuration. Sortie : température de surface, flux,
+Modèle 0D du bilan radiatif terrestre, en JavaScript pur : aucune dépendance externe, aucun DOM dans
+les calculs. Entrée : une époque géologique ou une configuration. Sortie : température de surface, flux,
 spectres — via Promise et callbacks synchrones.
 
 Le modèle couvre 19 époques, du corps noir sans atmosphère à 2100, avec les deux grandes hystérésis
@@ -10,17 +10,6 @@ glace-albédo (Snowball néoprotérozoïque, calotte antarctique) et les cycles 
 > **Démo exécutable et banc de référence : [`doc/epoch_bench.html`](doc/epoch_bench.html)** — il charge
 > la pile complète, fait tourner les 19 époques et compare aux fourchettes de la littérature. C'est
 > l'intégration de référence : en cas de doute, c'est ce fichier qui fait foi, pas ce README.
-
----
-
-## Dépendance externe
-
-Deux fichiers indispensables ne sont **pas** dans ce dépôt : l'alphabet des clés et son dictionnaire
-vivent dans [DNAvatar-org/CO2](https://github.com/DNAvatar-org/CO2), à
-`CO2/static/compute/alphabet.js` et `CO2/static/compute/dico.js`. Ils définissent `window.KEYS` /
-`window.CHARS_DESC`, dont `initDATA.js` a besoin pour construire `DATA`.
-
-C'est un héritage de découpage, pas un choix : sans eux, rien ne démarre.
 
 ---
 
@@ -34,8 +23,8 @@ L'ordre est celui des dépendances, pas une préférence. Il est repris tel quel
 <!-- Config et structure de DATA -->
 <script src="API_BILAN/config/model_tuning_biblio.js"></script>
 <script src="API_BILAN/config/configTimeline.js"></script>
-<script src="CO2/static/compute/alphabet.js"></script>   <!-- dépôt CO2 -->
-<script src="CO2/static/compute/dico.js"></script>       <!-- dépôt CO2 -->
+<script src="API_BILAN/data/alphabet.js"></script>
+<script src="API_BILAN/data/dico.js"></script>
 <script src="API_BILAN/data/initDATA.js"></script>
 <script src="API_BILAN/config/fine_tuning_bounds.js"></script>
 
@@ -222,8 +211,13 @@ stack.push(function (event, payload) { /* … */ });
 ## Alphabet et dictionnaire des clés
 
 Les données sont indexées par des emojis (`'🌡️'` température, `'⚖️'` masse, `'🍰'` fraction…). La
-référence complète — alphabet, catégories, formules par clé — est dans
-**[doc/ALPHABET_ET_DICO.txt](doc/ALPHABET_ET_DICO.txt)**.
+référence rédigée — alphabet, catégories, formules par clé — est dans
+**[doc/ALPHABET_ET_DICO.txt](doc/ALPHABET_ET_DICO.txt)** ; les définitions exécutables sont dans
+`data/alphabet.js` et `data/dico.js`.
+
+Le RENDU de ces définitions — grille du lexique, pictos PNG, helpers de logo — n'est pas ici : il vit
+dans le dépôt CO2 (`static/compute/alphabet_render.js`, `dico_render.js`). L'API définit, l'application
+dessine.
 
 ---
 
@@ -238,7 +232,7 @@ référence complète — alphabet, catégories, formules par clé — est dans
 | **receiver.js** | `createReceiver(options)` — dispatch vers un hôte (visu / scie) |
 | **configsAll.js** | Stub — ancien bundle, retiré ; charger les sources séparément |
 | **config/** | `configTimeline.js` (époques + `CONFIG_COMPUTE`), `fine_tuning_bounds.js`, `model_tuning.js`, `model_tuning_biblio.js` |
-| **data/** | `initDATA.js` (construction de `DATA`), `hitran_lines_*.js` |
+| **data/** | `alphabet.js` (CHARS, CHARS_DESC), `dico.js` (KEYS, DESC, FORM), `initDATA.js`, `hitran_lines_*.js` |
 | **physics/** | Constantes et lois (Planck, Stefan-Boltzmann), `climate.js` |
 | **spectroscopy/** | Sections efficaces HITRAN, profil de Voigt |
 | **atmosphere/** | Structure verticale, pression, fractions molaires |

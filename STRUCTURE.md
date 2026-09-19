@@ -42,8 +42,8 @@ Document de référence pour déplacer et ranger les JS de calcul dans `API_BILA
 | `static/tuning/model_tuning.js` | applyTuningPayload, lien tuning ↔ DATA | 1 |
 | `static/tuning/model_tuning_biblio.js` | Références / bornes tuning | 1 |
 | `static/tuning/fine_tuning_bounds.js` | Bornes fine-tuning (SOLVER, CLOUD_SW, …) | 1 |
-| `static/compute/alphabet.js` | CHARS, getLogo, getLogoKey (sémantique clés) | 2 – Init |
-| `static/compute/dico.js` | KEYS (structure des clés DATA) | 2 |
+| `data/alphabet.js` | CHARS, CHARS_DESC, epochName (sémantique des clés) | 2 – Init |
+| `data/dico.js` | KEYS (structure des clés DATA), DESC, FORM | 2 |
 | `static/compute/initDATA.js` | Création DATA depuis KEYS + 🎚️ | 2 |
 
 ### Physique fondamentale

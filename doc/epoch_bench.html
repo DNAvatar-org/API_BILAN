@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/doc/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.0.28 — 2026-09-19 : alphabet.js / dico.js chargés depuis data/ — le banc n'a plus aucune
+  dépendance au dépôt CO2.
   Version 1.0.27 — 2026-09-18 : fonctionne en file://. Retrait de l'étape fetch(configTimeline.js) (bloquée hors
   serveur, et devenue inutile) ; spectral_slice_worker.js chargé en <script> avant le pool → workers en blob:.
   Version 1.0.26 — 2026-05-07 : BENCH_LIT — source unique window.BENCH_LIT_BY_EPOCH_ID (configTimeline.js v1.4.74) ; supprime l’objet dupliqué ici ; repères bench recalculés en mémoire au load (pas CSV / cookie).
@@ -335,8 +337,8 @@ window.__SPECTRAL_WORKER_SCRIPT__ = new URL('../workers/spectral_slice_worker.js
         // Ex-configsAll.js (bundle retiré v1.2.0) : sources séparées, ordre = dépendances.
         { kind: 'script', src: BASE + 'config/model_tuning_biblio.js', label: 'model_tuning_biblio.js' },
         { kind: 'script', src: BASE + 'config/configTimeline.js', label: 'configTimeline.js' },
-        { kind: 'script', src: '../../CO2/static/compute/alphabet.js', label: 'alphabet.js' },
-        { kind: 'script', src: '../../CO2/static/compute/dico.js', label: 'dico.js' },
+        { kind: 'script', src: BASE + 'data/alphabet.js', label: 'alphabet.js' },
+        { kind: 'script', src: BASE + 'data/dico.js', label: 'dico.js' },
         { kind: 'script', src: BASE + 'data/initDATA.js', label: 'initDATA.js' },
         { kind: 'script', src: BASE + 'config/fine_tuning_bounds.js', label: 'fine_tuning_bounds.js' },
         { kind: 'script', src: BASE + 'physics/physics.js', label: 'physics.js' },
