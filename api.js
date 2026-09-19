@@ -1,10 +1,12 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Badge version : #title-app-version si présent (index après injection fragment).
-// Version 1.0.9
+// Version 1.0.10
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: May 07, 2026
 // Logs:
+// - v1.0.10: pdTrace retiré (crochet de log fourni par l'hôte). snap() et fmt3 n'existaient que pour lui :
+//   partis avec. Le moteur ne dépend plus d'aucune fonction de trace de l'application.
 // - v1.0.9: window.BILAN_VISU_APP_VERSION (semver API) défini ici ; synchro texte span #title-app-version quand le nœud existe.
 // - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses (lecture pure DATA/STATE,
 //   pas de calcul). api.runDiag(epochId) → run + snapshot. Usage console : await api.runDiag('🚂').
@@ -114,36 +116,6 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
         dbgRunOpen = true;
     }
 
-    function fmt3(n) { return n.toExponential(3); }
-    function snap(tag) {
-        const D = window.DATA;
-        const S = window.STATE;
-        const ep = D['📜']['🗿'];
-        const i = D['📜']['👉'];
-        const phase = D['🧮']['🧮⚧'];
-        const T = D['🧮']['🧮🌡️'];
-        const alb = D['🪩'] ? D['🪩']['🍰🪩📿'] : 0;
-        const ice = D['🪩'] ? D['🪩']['🍰🪩🧊'] : 0;
-        const oce = D['🪩'] ? D['🪩']['🍰🪩🌊'] : 0;
-        const P = D['🫧'] ? D['🫧']['🎈'] : 0;
-        const co2 = D['⚖️']['⚖️🏭'];
-        const ch4 = D['⚖️']['⚖️🐄'];
-        const h2o = D['⚖️']['⚖️💧'];
-        const o2 = D['⚖️']['⚖️🫁'];
-        const atm = D['⚖️']['⚖️🫧'];
-        const lockW = (S && S.iceEpochFixedWaterState && S.iceEpochFixedWaterState.epochId === ep) ? S.iceEpochFixedWaterState.value : null;
-        const lockA = (S && S.iceEpochFixedAlbedoState && S.iceEpochFixedAlbedoState.epochId === ep) ? S.iceEpochFixedAlbedoState.value : null;
-        if (typeof window.pdTrace === 'function') window.pdTrace('api.run', 'api.js',
-            tag
-            + ' ep=' + ep + ' idx=' + i + ' phase=' + phase
-            + ' T_C=' + (T - 273.15).toFixed(2) + ' T_K=' + fmt3(T)
-            + ' P_atm=' + fmt3(P)
-            + ' CO2=' + fmt3(co2) + ' CH4=' + fmt3(ch4) + ' H2O=' + fmt3(h2o) + ' O2=' + fmt3(o2) + ' atm=' + fmt3(atm)
-            + ' ALB=' + fmt3(alb) + ' ICE=' + fmt3(ice) + ' OCE=' + fmt3(oce)
-            + ' iceLockW=' + (lockW == null ? 'null' : fmt3(lockW))
-            + ' iceLockA=' + (lockA == null ? 'null' : fmt3(lockA))
-        );
-    }
 
     DATA['🧮']['previous'] = [];
     DATA['🧮']['🧮🔄🌊'] = 0;
@@ -151,7 +123,6 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
     window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
     if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
 
-    snap('PRE_INIT');
     if (!initForConfig()) {
         if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
         if (window.FUNC_API_BILAN.isDebugAPI()) {
@@ -160,7 +131,6 @@ BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
         apiDebugCloseRun();
         return Promise.resolve(null);
     }
-    snap('POST_INIT');
     // NOTE: crash-trace retiré (debug uniquement)
 
     var callbackStack = window.FUNC_API_BILAN && window.FUNC_API_BILAN.callbackStack;

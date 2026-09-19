@@ -689,7 +689,6 @@ function calculateAlbedo() {
                 + ' phase=' + DATA['🧮']['🧮⚧']
                 + ' T_K=' + T_K.toFixed(2)
                 + ' lockA=' + (lock == null ? 'null' : Number(lock).toExponential(3));
-            if (typeof window.pdTrace === 'function') window.pdTrace('alb', 'calculations_albedo.js', mSea);
             if (typeof window.debugMirrorConfigLogToFile === 'function') {
                 window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
             }
@@ -737,8 +736,7 @@ function calculateAlbedo() {
             + ' | polarTarget=' + icePolarFormulaTarget.toFixed(4) + ' mergeSea=' + iceAfterSeaIceMerge.toFixed(4)
             + ' | iceDynamic=' + iceAfterDynamicFeedback.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
             + ' | feedback=common solI=' + solI;
-        if (typeof window.pdTrace === 'function') window.pdTrace('calculateAlbedo', 'calculations_albedo.js', msg);
-        else console.log(msg);
+        console.log(msg);
         if (typeof window.debugMirrorConfigLogToFile === 'function') {
             window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
         }

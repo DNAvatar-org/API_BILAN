@@ -52,6 +52,8 @@
 // - v1.2.80: après Init — cap optionnel 1er pas Search (🎚️.SOLVER.FIRST_SEARCH_STEP_CAP_K) pour bornes + incInit
 // - v1.2.79: calculateT0 — tic×ΔT : NaN si 📿💫/🔺🌡️💫 non finis (undefined×0) ; garde finie comme getEpochDateConfig
 // - v1.2.78: debugAPI → console.groupCollapsed computeRadiativeTransfer + log chaque itération boucle radiatif
+// - v1.2.78: bloc de log partition CO2 océan retiré (il dépendait de window.pd ET window.pdTrace,
+//   deux crochets fournis par l'hôte : le moteur n'a pas à en dépendre pour tracer).
 // - v1.2.77: log partition CO2 océan → pdTrace
 // - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
 // - v1.2.68: mode anim: yield 1 frame par cycle (await requestAnimationFrame) pour affichage inter progressif, éviter flush final
@@ -622,13 +624,6 @@ async function cycleDeLeau(isFirst) {
     // ---> INJECTION CYCLE DU CARBONE (Pompe Océanique) <---
     if (window.CO2 && window.CO2.calculateCO2Partition) {
         var _co2Changed = window.CO2.calculateCO2Partition();
-        if (typeof window !== 'undefined' && window.DEBUG_CO2_OCEAN && typeof window.pd === 'function') {
-            try {
-                var _m = (DATA && DATA['⚖️']) ? DATA['⚖️']['⚖️🏭'] : null;
-                var _o = (DATA && DATA['🌊']) ? DATA['🌊']['⚖️🌊🏭'] : null;
-                if (typeof window.pdTrace === 'function') window.pdTrace('cycleDeLeau', 'calculations_flux.js', 'CO2 ocean partition changed=' + (_co2Changed ? '1' : '0') + ' ⚖️🏭=' + (_m != null ? Number(_m).toExponential(3) : 'n/a') + ' 🌊⚖️🌊🏭=' + (_o != null ? Number(_o).toExponential(3) : 'n/a'));
-            } catch (e) {}
-        }
         window.ATM.calculateAtmosphereComposition();
         window.ATM.calculatePressureAtm();
     }

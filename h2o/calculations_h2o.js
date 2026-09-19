@@ -34,6 +34,7 @@
 // - v1.0.10 : cap vapeur final observé (AIRS/ERA5, ~7%/K) en fin d'itération Init
 // - v1.0.11 : propagation sulfate proxy 🍰🫧✈ depuis ⚖️✈ dans la composition atmosphérique avec vapeur
 // - v1.0.13 : en Search/Dicho pas de cache H2O (recalcul vapeur à T courante) pour reproductibilité albedo_nuages (35.9% vs 35.3%)
+// - v1.0.16 : pdTrace retiré (crochet hôte) — la branche console.log + miroir fichier suffit.
 // - v1.0.15 : cap vapeur log → pdTrace
 // - v1.0.14 : logs cap vapeur C-C simplifiés en "[cycle] H2O cap @...°C"
 // - v1.0.12 : sans atmosphère (⚖️🫧=0) avec ⚖️💧>0 (Corps noir météorites) : 🍰💧🧊=1 si T<0°C, sinon 🍰💧🌊=1 (didactique)
@@ -670,17 +671,10 @@ H2O.calculateH2OParameters = function () {
     if (vapor_raw > c_c_max && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
         const T_C = T - CONST.KELVIN_TO_CELSIUS;
         const mCap = 'H2O cap @' + T_C.toFixed(1) + '°C';
-        if (typeof window !== 'undefined' && typeof window.pdTrace === 'function') {
-            window.pdTrace('calculateH2OParameters', 'calculations_h2o.js', mCap);
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logEdsDiagnostic', mCap);
-            }
-        } else {
-            const line = '[cycle] ' + mCap;
-            console.log(line);
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logEdsDiagnostic', line);
-            }
+        const line = '[cycle] ' + mCap;
+        console.log(line);
+        if (typeof window.debugMirrorConfigLogToFile === 'function') {
+            window.debugMirrorConfigLogToFile('logEdsDiagnostic', line);
         }
     }
     DATA['💧']['🍰🫧💧'] = vapor_result;

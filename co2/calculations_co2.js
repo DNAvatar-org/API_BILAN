@@ -37,7 +37,6 @@
 // Log de chargement optionnel (ordre d'inclusion des scripts).
 if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2PartitionDiagnostic === true) {
     const mLoad = 'load calculations_co2.js module loaded';
-    if (typeof window.pdTrace === 'function') window.pdTrace('load', 'calculations_co2.js', mLoad);
     if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mLoad);
 }
 
@@ -101,7 +100,6 @@ function calculateCO2Partition() {
                 + ' factor=' + partitionFactor01.toFixed(3)
                 + ' ep=' + epochId
                 + ' hasOceanWater=' + (hasOceanWater ? 1 : 0);
-            if (typeof window.pdTrace === 'function') window.pdTrace('co2', 'calculations_co2.js', mNoop);
             if (typeof window.debugMirrorConfigLogToFile === 'function') {
                 window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mNoop);
             }
@@ -154,7 +152,6 @@ function calculateCO2Partition() {
                 + ' ratio_T=' + ratio_T.toExponential(3)
                 + ' CO2_atm ' + old_mass_atm.toExponential(3) + '→' + new_mass_atm.toExponential(3)
                 + ' CO2_ocean=' + DATA['🌊']['⚖️🌊🏭'].toExponential(3);
-            if (typeof window.pdTrace === 'function') window.pdTrace('co2', 'calculations_co2.js', mApply);
             if (typeof window.debugMirrorConfigLogToFile === 'function') {
                 window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mApply);
             }
