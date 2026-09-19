@@ -115,17 +115,13 @@ body {
 
 
 /* =============================================================================
-   Blocs rapatriés de static/css/style.css le 2026-09-19.
-   Ils n'étaient utilisés QUE par cette page : elle peut ainsi se passer de style.css
-   et partir dans API_BILAN/doc/ sans emporter la feuille globale de l'application.
+   Blocs rapatriés de CO2/static/css/style.css le 2026-09-19.
+   Ils n'y servaient QUE cette page : elle se passe ainsi de la feuille globale de
+   l'application et peut vivre dans API_BILAN/doc/.
    ============================================================================= */
-
-}
 
 .algorithm-params {
     font-size: 11px;
-}
-
 }
 
 .param-item {
@@ -135,20 +131,14 @@ body {
     border-radius: 4px;
 }
 
-}
-
 .param-list {
     margin: 5px 0 0 20px;
     padding: 0;
     list-style-type: disc;
 }
 
-}
-
 .param-list li {
     margin: 3px 0;
-}
-
 }
 
 .param-list code {
@@ -158,14 +148,10 @@ body {
     font-size: 10px;
 }
 
-}
-
 .convergence-phases {
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
-
 }
 
 .phase-item {
@@ -175,12 +161,8 @@ body {
     border-left: 3px solid #4ade80;
 }
 
-}
-
 .phase-item strong {
     font-size: 12px;
-}
-
 }
 
 .phase-item ul {
@@ -190,21 +172,15 @@ body {
     font-size: 11px;
 }
 
-}
-
 .phase-item ul ul {
     list-style-type: circle;
     margin-left: 15px;
-}
-
 }
 
 .interactions-content {
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
-
 }
 
 .interaction-item {
@@ -214,12 +190,8 @@ body {
     border-left: 3px solid #fbbf24;
 }
 
-}
-
 .interaction-item strong {
     font-size: 12px;
-}
-
 }
 
 .interaction-item ul {
@@ -229,8 +201,6 @@ body {
     font-size: 11px;
 }
 
-}
-
 .convergence-method {
     padding: 8px;
     background: rgb(47, 47, 47);
@@ -238,23 +208,15 @@ body {
     border-left: 3px solid #f87171;
 }
 
-}
-
 .convergence-method p {
     margin: 5px 0;
     font-size: 11px;
 }
 
-}
-
-/* .convergence-method strong hérite maintenant du body */
-
 .convergence-method ol {
     margin: 10px 0 10px 20px;
     padding: 0;
     font-size: 11px;
-}
-
 }
 
 .convergence-method ol ul {
