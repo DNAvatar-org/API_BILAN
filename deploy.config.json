@@ -81,12 +81,28 @@
       "dest": "pages/bilan_radiatif/API_BILAN/doc/ALPHABET_ET_DICO.txt"
     },
     {
+      "src": "doc/Algorithmes.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/Algorithmes.html"
+    },
+    {
       "src": "doc/BIBLIOGRAPHIE.html",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/BIBLIOGRAPHIE.html"
     },
     {
+      "src": "doc/algorithmes.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/algorithmes.css"
+    },
+    {
       "src": "doc/epoch_bench.html",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/epoch_bench.html"
+    },
+    {
+      "src": "doc/equation.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/equation.css"
+    },
+    {
+      "src": "doc/equation.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/equation.html"
     },
     {
       "src": "event_bus.js",
