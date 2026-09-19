@@ -77,6 +77,46 @@
       "dest": "pages/bilan_radiatif/API_BILAN/data/initDATA.js"
     },
     {
+      "src": "demo/alphabet.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/alphabet.html"
+    },
+    {
+      "src": "demo/alphabet_render.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/alphabet_render.js"
+    },
+    {
+      "src": "demo/dico.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/dico.html"
+    },
+    {
+      "src": "demo/dico_render.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/dico_render.js"
+    },
+    {
+      "src": "demo/emoji-fonts.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/emoji-fonts.css"
+    },
+    {
+      "src": "demo/fonts/pics/big_impact.png",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/big_impact.png"
+    },
+    {
+      "src": "demo/fonts/pics/ch4.png",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/ch4.png"
+    },
+    {
+      "src": "demo/fonts/pics/ice_meteorite.png",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/ice_meteorite.png"
+    },
+    {
+      "src": "demo/fonts/pics/sun.png",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/sun.png"
+    },
+    {
+      "src": "demo/legende.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/legende.css"
+    },
+    {
       "src": "doc/ALPHABET_ET_DICO.txt",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/ALPHABET_ET_DICO.txt"
     },

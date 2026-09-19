@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔡 Alphabet</title>
+    <link rel="stylesheet" href="emoji-fonts.css">
+    <link rel="stylesheet" href="legende.css">
+</head>
+<body>
+    <div class="container">
+        <div id="alphabet-content">
+            <!-- Le contenu sera généré par JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Définitions dans data/, rendu ici même : cette page ne dépend de rien hors du dépôt. -->
+    <script src="../data/alphabet.js"></script>
+    <script src="alphabet_render.js"></script>
+    <script>
+        // Générer l'alphabet au chargement
+        window.addEventListener('DOMContentLoaded', function() {
+            const alphabetContent = document.getElementById('alphabet-content');
+            if (alphabetContent && typeof window !== 'undefined' && window.createAlphabetHtml) {
+                alphabetContent.innerHTML = window.createAlphabetHtml();
+                
+                // Ajuster la hauteur de l'iframe au contenu
+                setTimeout(() => {
+                    const height = document.body.scrollHeight;
+                    const heightWithMargin = Math.ceil(height * 1.05) + 3 * 26 /* +3 lignes : plus de barre de scroll */; // Ajouter 5% pour éviter la barre de scroll
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'resize-iframe', height: heightWithMargin, source: 'alphabet' }, '*');
+                    }
+                }, 100);
+            } else {
+                alphabetContent.innerHTML = '<p style="color: #ff6b6b;">Erreur : Impossible de générer l\'alphabet. Vérifiez que alphabet.js est chargé.</p>';
+            }
+        });
+        
+        // Réajuster si le contenu change
+        window.addEventListener('resize', function() {
+            setTimeout(() => {
+                const height = document.body.scrollHeight;
+                const heightWithMargin = Math.ceil(height * 1.05) + 3 * 26 /* +3 lignes : plus de barre de scroll */; // Ajouter 5% pour éviter la barre de scroll
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'resize-iframe', height: heightWithMargin, source: 'alphabet' }, '*');
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
+
