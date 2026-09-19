@@ -138,6 +138,11 @@ body {
     min-width: 0;
 }
 
+/* Albédo : la légende passe sous l'équation (même sous-colonne), et le bloc glace — du texte dense —
+   occupe les deux tiers restants au lieu d'un tiers. */
+.formula-subcolumn--tiers { flex: 1; }
+.formula-subcolumn--deux-tiers { flex: 2; }
+
 .formula-item {
     font-size: 11px;
     color: #e0e0e0;
