@@ -3,6 +3,9 @@
 // Version 1.4.88
 // Date: [September 18, 2026]
 // logs :
+// - v1.4.89: window.epochIndex() — l'index des époques (type/name/id/startYears/endYears) naît avec TIMELINE.
+//   Il était construit par CO2/static/ui/loader_panels.js dans configOrganigramme.timeline, ce qui obligeait
+//   API_BILAN/geology à lire la config du diagramme de l'application pour résoudre une époque.
 // - v1.4.88: 🍄 — 🔺⏳ 140 → 35 Ma (4 clics) + 🕰.🔁 : le drawdown Dévonien-Carbonifère et la GLACIATION DU
 //   KAROO (LPIA, ~315 Ma) existent enfin. Avant, l'unique clic sautait à la racine du Permien et FAISAIT MONTER
 //   le CO₂ (909 → 1830 ppm, +7 °C), l'inverse de l'époque. Trajectoire mesurée au banc :
@@ -1372,6 +1375,36 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
+
+/**
+ * Index des époques : TIMELINE, plus les alias que lisent la géologie et l'interface
+ * (type / name / id / startYears / endYears). C'est la même donnée, pas une seconde source.
+ *
+ * Il vivait dans configOrganigramme.timeline, recopié par le loader de l'application : la géologie
+ * (API_BILAN/geology) devait donc lire une config de DIAGRAMME pour résoudre une époque — l'API ne
+ * pouvait pas tourner sans l'application. Il naît maintenant avec TIMELINE.
+ *
+ * Construit à la demande, pas au chargement : CHARS_DESC (data/alphabet.js) arrive après ce fichier.
+ */
+window.epochIndex = function () {
+    // Les ids non-emoji n'ont pas d'entrée CHARS_DESC : repli explicite, pas de nom inventé.
+    const NOMS_HORS_ALPHABET = {
+        'hysteresis 1a': 'Sturtienne', 'hysteresis 1b': 'Sortie Marinoen', 'hysteresis 2': 'Eocène-Oligocène'
+    };
+    return window.TIMELINE.map(function (item) {
+        if (!item || !item['📅']) return Object.assign({}, item, { type: 'separator' });
+        const epochId = item['📅'];
+        const desc = window.CHARS_DESC ? window.CHARS_DESC[epochId] : undefined;
+        const name = NOMS_HORS_ALPHABET[epochId] || desc || epochId;
+        return Object.assign({}, item, {
+            type: 'epoch',
+            name: name,
+            id: epochId,
+            startYears: item['▶'] != null ? item['▶'] : item.startYears,
+            endYears: item['◀'] != null ? item['◀'] : item.endYears
+        });
+    });
+};
 
 /**
  * Repères littérature (bench / colonnes T init + CONV ATM dans epoch_bench.html).

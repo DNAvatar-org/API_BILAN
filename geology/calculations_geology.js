@@ -1,7 +1,10 @@
 // ============================================================================
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
-// Version 1.0.2
+// Logs:
+// - v1.0.3: lecture de window.epochIndex() (configTimeline.js) au lieu de window.configOrganigramme.timeline.
+//   Seule dépendance du moteur au dépôt CO2 : supprimée.
+// Version 1.0.3
 // Date: [May 07, 2026]
 // Logs:
 // - v1.0.2: total_atmosphere_mass_kg — si pas ⚖️🫧 en config, dry sum via COMPUTE.dryAtmosphereMassKgFromComponents(epoch).
@@ -50,15 +53,18 @@ function computeFluxFromEpoch(epoch) {
     return 0;
 }
 
-// Fonction pour obtenir une période géologique par son nom depuis configOrganigramme
+// Période géologique par son nom (ou son id), depuis l'index des époques (configTimeline.js).
+// Avant v1.0.3 : lecture de window.configOrganigramme.timeline — la géologie dépendait de la config
+// du diagramme de l'application, donc l'API ne tournait pas sans elle.
 function getGeologicalPeriodByName(periodName) {
-    if (typeof window.configOrganigramme === 'undefined' || !window.configOrganigramme.timeline) {
-        console.error("configOrganigramme.timeline n'est pas chargé");
+    const index = (typeof window.epochIndex === 'function') ? window.epochIndex() : null;
+    if (!index) {
+        console.error("window.epochIndex n'est pas chargé (API_BILAN/config/configTimeline.js)");
         return null;
     }
 
-    // Chercher dans la timeline (filtrer les séparateurs)
-    const epoch = window.configOrganigramme.timeline.find(item =>
+    // Chercher dans l'index (filtrer les séparateurs)
+    const epoch = index.find(item =>
         item.type === 'epoch' && (item.name === periodName || item.id === periodName)
     );
 
@@ -87,12 +93,11 @@ function getGeologicalPeriodByName(periodName) {
 
 // Fonction pour obtenir la période géologique selon les années
 function getGeologicalPeriod(yearsAgo) {
-    if (typeof window.configOrganigramme === 'undefined' || !window.configOrganigramme.timeline) {
-        return null;
-    }
+    const index = (typeof window.epochIndex === 'function') ? window.epochIndex() : null;
+    if (!index) return null;
 
     // Filtrer pour ne garder que les époques
-    const epochs = window.configOrganigramme.timeline.filter(item => item.type === 'epoch');
+    const epochs = index.filter(item => item.type === 'epoch');
 
     // Parcourir les périodes
     let selectedEpoch = null;
