@@ -1,9 +1,11 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.26
+// Version 1.0.28
 // Date: [September 17, 2026]
 // logs :
+// - v1.0.28: 🕰.'🌙' → 📜🌙 (carte de nuit superposée, lue par organigramme.js).
+// - v1.0.27: 🕰.'🖼' = suite d'images parcourue par 📿💫 (modulo) → 📜🖼. Remplace le 🖼 par état 🔁 (une seule clé de config).
 // - v1.0.26: état 🔁 — clé '🖼' publiée dans 📜🖼 (texture de la planète pour l'état ; lue par organigramme.js).
 // - v1.0.25: 🕰.🔁 — états par tic (obliquité 📜⚾, masses 📜🔁⚖️ appliquées par getMasses, texte 📜🔁📝) ; générique, aucun if d'époque.
 // - v1.0.24: getMasses 📱 — ⚖️🏭 = époque + injecté − océan − forêts (puits CARBON_SINKS).
@@ -298,6 +300,7 @@ function getEpochDateConfig() {
     DATA['📜']['🔁⚖️'] = null;
     DATA['📜']['🔁📝'] = '';
     DATA['📜']['🖼'] = '';
+    DATA['📜']['🌙'] = '';
     const cycleStates = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔁'])) ? EPOCH['🕰']['🔁'] : null;
     if (cycleStates && cycleStates.length) {
         const ticCycle = DATA['📜']['📿💫'];
@@ -310,8 +313,18 @@ function getEpochDateConfig() {
             if (Number(state['⚾']) > 0) DATA['📜']['⚾'] = Number(state['⚾']);
             if (Object.keys(massOverrides).length) DATA['📜']['🔁⚖️'] = massOverrides;
             if (typeof state['📝'] === 'string') DATA['📜']['🔁📝'] = state['📝'];
-            if (typeof state['🖼'] === 'string') DATA['📜']['🖼'] = state['🖼'];
         }
+    }
+
+    // 🖼 SUITE D'IMAGES imposée par l'époque (EPOCH['🕰']['🖼'], liste de chemins) : index = 📿💫 modulo longueur.
+    // Sans cette clé, 📜🖼 reste vide et la texture est déduite de la date (organigramme.js). Générique : aucune époque nommée.
+    const imgList = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🖼'])) ? EPOCH['🕰']['🖼'] : null;
+    if (imgList && imgList.length) {
+        DATA['📜']['🖼'] = imgList[DATA['📜']['📿💫'] % imgList.length];
+    }
+    // 🌙 carte de nuit superposée (toute l'époque) : lumières des villes côté ombre, en même temps que le jour.
+    if (typeof (EPOCH['🕰'] && EPOCH['🕰']['🌙']) === 'string') {
+        DATA['📜']['🌙'] = EPOCH['🕰']['🌙'];
     }
 
     // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)

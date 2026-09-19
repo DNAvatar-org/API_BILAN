@@ -1,8 +1,14 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.85
-// Date: [September 17, 2026]
+// Version 1.4.88
+// Date: [September 18, 2026]
 // logs :
+// - v1.4.88: 🍄 — 🔺⏳ 140 → 35 Ma (4 clics) + 🕰.🔁 : le drawdown Dévonien-Carbonifère et la GLACIATION DU
+//   KAROO (LPIA, ~315 Ma) existent enfin. Avant, l'unique clic sautait à la racine du Permien et FAISAIT MONTER
+//   le CO₂ (909 → 1830 ppm, +7 °C), l'inverse de l'époque. Trajectoire mesurée au banc :
+//   20,0 → 18,9 → 17,7 → 6,3 °C (glace 11,5 → 27,7 %), puis 26,8 °C à l'arrivée sur 💀.
+// - v1.4.87: 📱 — '🌙' (carte de nuit superposée, face à l'ombre) remplace l'alternance jour/nuit par tic. '🖼' reste la suite d'images (🦣).
+// - v1.4.86: '🖼' = SUITE d'images par époque dans 🕰 (index = 📿💫 modulo longueur) — 🦣 interglaciaire/glaciaire, 📱 jour/nuit. Une seule clé, plus de 🖼 par état 🔁.
 // - v1.4.85: 🦣 🕰.🔁 — clé '🖼' : texture de la planète par état (glaciaire -00002Ma / interglaciaire -00001Ma), lue par getPlanetTexturePathFromEpoch.
 // - v1.4.84: 🦣 — 🕰.🔁 (états par tic : obliquité + masses) et 🔺⏳ 0,5 Ma : 4 clics montrent la bascule glaciaire/interglaciaire (EPICA, Laskar 2004). Textes dans epochs_alt2sec.js.
 // - v1.4.83: CONFIG_COMPUTE.CARBON_SINKS — puits océan (Henry/Revelle, τ 50 a) + forêts (fertilisation β ln, τ 23 a) pour le CO₂ injecté ; refs mesures.
@@ -882,8 +888,25 @@ const timeline = [
         '⚖️🫁': 2.0e17,
         '⚖️✈': 1.0e12,
         '⚖️💨': 4.942569e18,
+        // 4 clics de 35 Ma : 420 → 385 → 350 → 315 → 280 Ma. Le pas de 140 Ma (un seul clic) sautait
+        // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
+        // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 140 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 35 },
+            // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣.
+            // Le drawdown du Dévonien-Carbonifère : racines profondes → altération des silicates, puis
+            // enfouissement massif du carbone organique (le charbon). Réfs : Berner & Kothavala 2001
+            // (GEOCARB III, Am J Sci 301:182) ; Algeo & Scheckler 1998 (GSA Today 8:1) ; Montañez et al. 2007
+            // (Science 315:87 — CO₂ 180–300 ppm au cœur de la LPIA) ; Foster et al. 2017 (Nat Commun 8:14845).
+            // CH₄ : monde à O₂ élevé (Carbonifère ~30 %), le méthane s'oxyde vite → ordre du ppm, pas de la dizaine.
+            // ⚠️ Le modèle est ici tout près d'une bifurcation glace-albédo : à ~280 ppm, CH₄ 1,8 ppm donne 17 °C
+            //    (branche chaude) et 1,6 ppm donne 6 °C (branche froide) ; 1,0 ppm partirait en snowball.
+            //    Ne pas retoucher le ⚖️🐄 du 3ᵉ état sans relancer le banc.
+            '🔁': [
+                { '⚖️🏭': 4.884e15, '⚖️🐄': 1.187e13 },  // −385 Ma : ~600 ppm / 4 ppm — les forêts s'installent
+                { '⚖️🏭': 2.849e15, '⚖️🐄': 7.417e12 },  // −350 Ma : ~350 ppm / 2,5 ppm — le carbone s'enfouit
+                { '⚖️🏭': 2.279e15, '⚖️🐄': 4.747e12 }   // −315 Ma : ~280 ppm / 1,6 ppm — KAROO (LPIA), glace ~28 %
+            ],
         },
         '🌱': 0.31, // Après -400 Ma : forêt potentielle ~31 % terres
         // 🧫 : 🍄 Paléozoïque terrestre (420→280 Ma) — Dévonien/Carbonifère,
@@ -1179,14 +1202,16 @@ const timeline = [
             // le récit de chaque état vit dans CO2/static/texts/epochs_alt2sec.js (EVENT_STORY['🦣']['💫'], par index).
             // Valeurs : carottes EPICA (Lüthi 2008 : CO₂ 180–300 ppm ; Loulergue 2008 : CH₄ 350–800 ppb) ;
             // obliquité 22,1°–24,5° sur 41 ka (Laskar et al. 2004) — ε pilote, CO₂ et CH₄ amplifient.
-            // '🖼' = texture de la planète pour l'état (sinon : texture déduite de la date, organigramme.js).
-            //   fonds/-00002Ma.png = calottes maximales (Amérique du Nord + Eurasie sous la glace, niveau marin bas) ;
-            //   fonds/-00001Ma.png = état interglaciaire (calottes réduites, côtes actuelles).
             '🔁': [
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12,  '🖼': 'fonds/-00002Ma.png' },  // glaciaire (~190 ppm / 0,43 ppm)
-                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12, '🖼': 'fonds/-00001Ma.png' },  // interglaciaire (~280 ppm / 0,70 ppm)
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12,  '🖼': 'fonds/-00002Ma.png' }   // glaciaire (dernière avant l'Holocène)
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 },   // glaciaire  (~190 ppm / 0,43 ppm)
+                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12 },  // interglaciaire (~280 ppm / 0,70 ppm)
+                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 }    // glaciaire (dernière avant l'Holocène)
             ],
+            // 🖼 SUITE D'IMAGES imposée (sinon : texture déduite de la date). Parcourue par le compteur de tics,
+            // en boucle (index = 📿💫 modulo longueur) : 2 images = alternance, 3 = cycle de 3, etc.
+            // Ici l'alternance interglaciaire ↔ glaciaire : deux dates identiques peuvent correspondre à deux états
+            // stables, la date seule ne peut donc pas choisir l'image.
+            '🖼': ['fonds/-00001Ma.png', 'fonds/-00002Ma.png'],
             // Interpolation linéaire 🌡️🧮 (graine solveur) du début 🦣 (2 Ma) vers la borne ◀ de frise (10 ka ; même graine K que 🛖).
             '🔀': ['📅'],
             '◀': {
@@ -1318,6 +1343,10 @@ const timeline = [
         //   → 2000–2025 ≈ 850–1000 GtCO₂ ; 1 ppm CO₂ ≈ 7,8 GtCO₂ ; fraction aéroportée ≈ 44 % (≈ +55 ppm, 369→424 ppm NOAA).
         //   ⛽ ≈ émissions stabilisées/décroissantes (SSP2-4.5 : ~36 → 14 GtCO₂/an) ; 🛢 ≈ doublement (SSP5-8.5 : ~70 GtCO₂/an).
         '🕰': {
+            // 🌙 CARTE DE NUIT superposée à la texture de jour : les lumières des villes n'apparaissent que sur
+            // la face à l'ombre, EN MÊME TEMPS que le jour (pas d'alternance). Vaut pour toute l'époque (≥ 2000).
+            // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
+            '🌙': 'fonds/_002000n.png',
             2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e12 } }, // +850 GtCO₂ (2000–2025)
             2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 } },
             2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 } },
