@@ -3,9 +3,10 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.0.0
+// Version 2.0.1
 // Date: [September 19, 2026]
 // logs :
+//   - v2.0.1: 🐖 EMISSIONS_HIGH — la branche d'émissions la plus forte de 📱 (configTimeline v1.4.90).
 //   - v2.0.0: séparation définitions / rendu. Ce fichier revient dans API_BILAN — son en-tête l'y plaçait
 //     depuis toujours (« File: API_BILAN/data/alphabet.js ») alors qu'il vivait dans CO2/static/compute/.
 //     Il ne contient plus que CHARS, CHARS_DESC et epochName ; tout ce qui dessine est parti côté CO2.
@@ -54,6 +55,7 @@ const CHARS = {
     BIG_IMPACT: '🎇', // Big impact : feu d'artifice (événement d'impact majeur)
     TIC_TIME: '💫',      // TicTime : étoile (événement d'avancement temporel)
     EMISSIONS: '🛢',     // Scénario émissions CO₂ (époque moderne, remplace 💫 pour 📱)
+    EMISSIONS_HIGH: '🐖', // Scénario émissions le plus fort (📱) : ×√2 par tranche de 25 ans
     SATELLITE: '🛰', // Satellite : satellite (événement)
     FLUX_CN: '🌑', // Flux sortant : lune noire (rayonnement corps noir sortant)
     TOLERANCE: '🔬', // Tolérance : précision pour le test d'arrêt
@@ -178,6 +180,7 @@ const CHARS_DESC = {
     // Événements
     '💫': 'TicTime',
     '🛢': 'Scénario émissions',
+    '🐖': 'Scénario émissions — sans frein',
     '☄️': 'Météorite de glace',
     '🗻': 'Volcan — voile atmosphérique',
     '🌋': 'Volcan — CO₂ + noircissement de la glace',

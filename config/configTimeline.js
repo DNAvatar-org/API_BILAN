@@ -204,6 +204,9 @@
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
+// - v1.4.90: 📱 🕰 — troisième branche 🐖 dans les tranches 2025/2050/2075 : 850 GtCO₂ (observé 2000-2025)
+//   multiplié par √2 par tranche → 1202 / 1700 / 2404, cumul 5306 GtCO₂ sur 2025-2100 ≈ SSP5-8.5.
+//   ⛽ et 🛢 décroissaient toutes deux après 2050 et plafonnaient à 477 et 567 ppm en 2100.
 // - v1.3.1: 📱 🕰 — une seule action ⛽ par tranche (retrait 🛢 des buckets 2025/2050/2075)
 // - v1.3.2: doc convention 📱 — tranche 2000 : 850e9 ↔ +850Gt en UI (pas SI Gt=1e12 kg ; cycle CO₂ / puits en attente TODO)
 // - v1.3.3: libellé UI 🐊 « Éocène » (ex Hyperthermie éocène ; ex Terre étouffe PETM)
@@ -1351,9 +1354,15 @@ const timeline = [
             // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
             '🌙': 'fonds/_002000n.png',
             2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e12 } }, // +850 GtCO₂ (2000–2025)
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 } },
+            // 🐖 : la branche qui ne freine jamais. Les deux autres décroissent après 2050 — ⛽ comme 🛢 —
+            // et aucune des deux ne va chercher le haut de l'enveloppe AR6. Celle-ci part des 850 GtCO₂
+            // réellement émis entre 2000 et 2025 et les multiplie par √2 à chaque tranche : 48, puis 68,
+            // puis 96 GtCO₂/an, contre ~41 aujourd'hui. Cumul 2025→2100 = 5306 GtCO₂, c'est-à-dire
+            // l'ordre de grandeur de SSP5-8.5 (~5600, AR6 WG1) que le commentaire ci-dessus cite comme
+            // référence sans qu'aucune branche n'y menait.
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1202e12 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1700e12 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2404e12 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
