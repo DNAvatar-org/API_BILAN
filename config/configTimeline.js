@@ -204,6 +204,10 @@
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
+// - v1.4.92: CARBON_SINKS — océan en 3 réservoirs (mélange 1,2/1 an · thermocline 10/50 ans · profond
+//   38,8/350 ans, Σratio = 50 inchangé) au lieu d'une boîte unique à τ 50 ans qui ventilait l'océan entier
+//   en un demi-siècle. β forêts 0,5 → 0,605 (Norby 2005 avec l'ambiant FACE réel, 376 ppm). Océan 2025 :
+//   14,9 % → 26,1 % (mesuré ~26 %). Terres 21,9 % (mesuré ~30 %) : écart assumé, fertilisation seule.
 // - v1.4.91: 📱 🕰 — 🐖 renommée 🪾 et recalée sur « 2 × le bidon » : 36e14 / 24e14 / 14e14 (double de 🛢
 //   à chaque tranche), cumul 7400 GtCO₂ sur 2025-2100. Remplace l'ancien ×√2 (1202/1700/2404).
 // - v1.4.90: 📱 🕰 — troisième branche dans les tranches 2025/2050/2075 : 850 GtCO₂ (observé 2000-2025)
@@ -1468,35 +1472,64 @@ window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 //   getMasses réécrit ⚖️🏭 à chaque pas). L'absorption du CO₂ INJECTÉ est portée par CARBON_SINKS ci-dessous.
 window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 
-// ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢) — v1.4.83 ────────────────
+// ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢/🪾) — v1.4.92 ────────────────
 // Modèle de PERTURBATION : la composition de chaque époque (config) est un équilibre ; seul le CO₂ injecté E
 // (📜🔺⚖️🏭) est partagé entre atmosphère, océan (O = 📜🌊🔺⚖️🏭) et forêts (L = 📜🌳🔺⚖️🏭).
-// Atmosphère = ⚖️🏭 époque + E − O − L (conservation, compute.js getMasses). O et L avancent UNE fois par clic
-// (CO2.advanceCarbonSinks(Δt), calculations_co2.js), remis à 0 avec E au changement d'époque (setEpoch).
-// Tous les paramètres viennent de MESURES (pas de projections) :
-//  OCÉAN — équilibre O_eq = k/(1+k)·(E − L), k = (co2OceanRatioRef / R)·exp(2400·(1/T − 1/T_ref)) :
+// Atmosphère = ⚖️🏭 époque + E − O − L (conservation, compute.js getMasses). CO2.advanceCarbonSinks intègre
+// l'événement par pas de stepYears, remis à 0 avec E au changement d'époque (setEpoch).
+//
+//  OCÉAN — TROIS RÉSERVOIRS. Chacun relaxe vers k_i·A, où A = excès resté dans l'air (E − L − ΣO) et
+//    k_i = (ratio_i / R)·exp(2400·(1/T − 1/T_ref)). À l'équilibre ΣO = (Σratio/R)·A : la CAPACITÉ TOTALE
+//    de l'océan est inchangée (Σratio = co2OceanRatioRef = 50, Sarmiento & Gruber 2006). Seuls les TEMPS
+//    diffèrent — et c'était là l'erreur : une boîte unique à τ = 50 ans faisait ventiler l'océan ENTIER
+//    (38 000 GtC) en un demi-siècle. Sur 100 ans elle avalait presque tout l'émis (fraction aéroportée
+//    tombée à 1 % en 2100 sur ⛽) alors que la mesure la donne stable à 0,44 ± 0,06 depuis 65 ans
+//    (Friedlingstein et al. 2023 ESSD 15:5301).
+//      • couche de mélange 0–100 m — ~900 GtC de CID, soit ratio ≈ 1,2 ; équilibre gazeux air-mer en
+//        ~1 an (Broecker & Peng 1982, Tracers in the Sea).
+//      • thermocline 100–1000 m — ~7 600 GtC, ratio ≈ 10 ; ventilée en ~50 ans. C'est LA fourchette que
+//        donnent les traceurs CFC et le radiocarbone des bombes (Sabine et al. 2004 Science 305:367), et
+//        c'est là que se trouve l'essentiel du carbone anthropique mesuré. La v1.4.83 citait bien cette
+//        référence, mais appliquait ses 50 ans à l'océan entier.
+//      • océan profond > 1000 m — le reste (~29 000 GtC, ratio 38,8) ; renouvelé par la circulation
+//        thermohaline, τ de l'ordre de 350 ans. C'est le paramètre le MOINS contraint des trois : il ne
+//        joue presque pas sur 2000-2100 (7 % de relaxation en 25 ans) mais fixe le très long terme.
 //    R = facteur de Revelle (chimie des carbonates mesurée) : ~10 vers 370 ppm, croît avec le CO₂ → saturation.
-//      Sabine et al. 2004 Science 305:367 (R moyen ~10, 8–15) ; Egleston, Sabine & Morel 2010 Glob. Biogeochem. Cycles 24:GB1002.
+//      Sabine et al. 2004 ; Egleston, Sabine & Morel 2010 Glob. Biogeochem. Cycles 24:GB1002.
 //    2400 K = Van 't Hoff solubilité CO₂ (eau plus chaude = moins de dissolution, même loi que calculateCO2Partition).
-//    Relaxation O → O_eq en 1 − exp(−Δt/τ), τ = 50 ans (ventilation de la thermocline ; ordre de grandeur des traceurs
-//      CFC / radiocarbone des bombes, Sabine et al. 2004).
-//  FORÊTS — fertilisation CO₂ : ΔNPP = NPP0·β·ln(C/C0), C0 = ⚖️🏭 de l'époque (équilibre).
-//    NPP0 = 56 GtC/an (Field et al. 1998 Science 281:237) ; β = 0,5 (expériences FACE : +23 % de NPP à 550 ppm,
-//      Norby et al. 2005 PNAS 102:18052) ; stockage L → L_eq = ΔNPP·τ, τ = 23 ans (temps de résidence du carbone
-//      terrestre, Carvalhais et al. 2014 Nature 514:213). ln → saturation. Effet albédo négligeable (non modélisé).
-//  Vérification (pas un calage) : 2000→2025, +850 GtCO₂ → forêts ~25 %, océan ~24 %, atmosphère 369 → ~424 ppm
-//    (mesure NOAA 2025 ≈ 424 ppm ; puits mesurés GCB : océan ~26 %, terres ~30 %, Friedlingstein et al. 2023 ESSD 15:5301).
+//
+//  FORÊTS — fertilisation CO₂ seule : ΔNPP = NPP0·β·ln(C/C0), C0 = ⚖️🏭 de l'époque (équilibre).
+//    NPP0 = 56 GtC/an (Field et al. 1998 Science 281:237) ; stockage L → L_eq = ΔNPP·τ, τ = 23 ans
+//    (temps de résidence du carbone terrestre, Carvalhais et al. 2014 Nature 514:213). ln → saturation.
+//    β = 0,605 : Norby et al. 2005 PNAS 102:18052 donnent +23 % de NPP à 550 ppm dans les dispositifs FACE,
+//      dont l'ambiant était ~376 ppm → β = 0,23/ln(550/376) = 0,605. Le 0,5 d'avant supposait un ambiant
+//      de 350 ppm. Effet albédo négligeable (non modélisé).
+//
+//  ⚠️ ÉCART CONNU ET ASSUMÉ — LE PUITS TERRESTRE EST TROP FAIBLE.
+//    Calage 2000→2025 (850 GtCO₂) : océan 26,1 % (mesuré ~26 % ✅), terres 21,9 % (mesuré ~30 % ❌).
+//    Ce n'est pas un défaut de calage : la boîte ne contient QUE la fertilisation CO₂. Le puits terrestre
+//    mesuré par le Global Carbon Budget contient aussi le dépôt d'azote, la reprise forestière sur terres
+//    abandonnées et l'allongement des saisons de végétation. Aucune valeur de β dans la fourchette FACE
+//    ne comble les 8 points — il faudrait β ≈ 0,85. On le SIGNALE, on ne cale pas dessus.
+//    Conséquence : fraction aéroportée 52 % au lieu des 44,3 % mesurés. Les émissions de la tranche
+//    2000-2025 sont par ailleurs à 850 GtCO₂ au lieu des 973 mesurés (Global Carbon Budget) : les deux
+//    écarts se compensent et 2025 tombe à 425,4 ppm d'air sec contre 424,6 mesurés. À traiter ensemble.
 window.CONFIG_COMPUTE.CARBON_SINKS = {
     // Pas d'intégration des deux puits (années). L'événement dure 🔺⏳ ; advanceCarbonSinks le découpe
     // en pas de stepYears, étale l'émission et relaxe pas à pas. 1 an = intégrale juste ; mettre 25
     // reproduit l'ancien pas unique (le CO₂ de fin de tranche absorbé comme celui du début — faux).
     stepYears: 1,
+    // Σ ratio DOIT valoir co2OceanRatioRef (50) : même capacité totale, temps différents. Crash sinon.
+    oceanBoxes: [
+        { nom: 'couche de mélange', ratio: 1.2,  tauYears: 1 },
+        { nom: 'thermocline',       ratio: 10.0, tauYears: 50 },
+        { nom: 'océan profond',     ratio: 38.8, tauYears: 350 }
+    ],
     oceanRevelleRef: 10,          // R à oceanRevelleRefPpm
     oceanRevelleRefPpm: 370,
     oceanRevelleSlopePerPpm: 0.014, // Egleston 2010 : R ≈ 10 (370 ppm) → ≈ 16 (800 ppm)
-    oceanTauYears: 50,
     landNpp0GtC: 56,
-    landBeta: 0.5,
+    landBeta: 0.605,
     landTauYears: 23
 };
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽

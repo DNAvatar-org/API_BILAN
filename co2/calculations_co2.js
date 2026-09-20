@@ -1,12 +1,16 @@
 // ============================================================================
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: En français, dans l'architecture, je suis le module de partition CO₂ (atmosphère ↔ océan) appelé par le cycle principal.
-// Version 1.2.6
+// Version 1.2.7
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 25, 2026]
 // Logs:
+// - v1.2.7: océan en 3 réservoirs (CONFIG_COMPUTE.CARBON_SINKS.oceanBoxes) au lieu d'une boîte unique.
+//   Chacun relaxe vers k_i·A avec A = excès resté dans l'air ; Σratio inchangé (capacité totale identique),
+//   seuls les temps diffèrent. Les 3 réservoirs ne vivent PAS dans DATA : neuf points du modèle remettent
+//   📜🌊🔺⚖️🏭 à 0 sans les connaître. Ils sont donc resynchronisés sur ce total à chaque appel.
 // - v1.2.6: advanceCarbonSinks INTÈGRE À L'ANNÉE (CARBON_SINKS.stepYears = 1) au lieu d'un seul pas de Δt.
 //   Un clic de 25 ans versait la totalité de l'émission à l'instant zéro puis laissait les puits agir
 //   25 ans dessus : le CO₂ émis en 2024 avait autant de temps d'absorption que celui de 2000. Le pas
@@ -178,9 +182,46 @@ function calculateCO2Partition() {
  * puits agir 25 ans sur la totalité — le CO₂ de 2024 absorbé comme celui de 2000. Même équation, intégrale
  * juste. L'appelant (events.js) a déjà ajouté emittedKg à 📜🔺⚖️🏭 : on repart donc du cumul d'AVANT le clic.
  */
+/**
+ * Contenu des réservoirs océaniques (kg CO₂), même ordre que CARBON_SINKS.oceanBoxes.
+ * Hors DATA à dessein : neuf endroits du modèle remettent 📜🌊🔺⚖️🏭 à 0 pour purger le puits océan
+ * (setEpoch, scie, hysteresis, search…) sans connaître ce découpage. Plutôt que d'aller les modifier
+ * tous — et d'en oublier un —, syncOceanBoxes() se recale sur ce total à chaque appel : total 0 ⇒ tout
+ * à zéro, total ≠ somme ⇒ remise à l'échelle. Le découpage est un détail du puits, pas un état du modèle.
+ */
+var oceanBoxKg = null;
+
+/** Réaligne les réservoirs sur 📜🌊🔺⚖️🏭 (seule source de vérité du total absorbé). */
+function syncOceanBoxes(totalKg, boxes) {
+    if (!oceanBoxKg || oceanBoxKg.length !== boxes.length) oceanBoxKg = boxes.map(function () { return 0; });
+    if (!(totalKg > 0)) { oceanBoxKg = boxes.map(function () { return 0; }); return; }
+    var sum = 0;
+    for (var i = 0; i < oceanBoxKg.length; i++) sum += oceanBoxKg[i];
+    if (sum <= 0) {
+        // Total non nul mais réservoirs vides (reprise d'un état posé hors d'ici) : répartir aux capacités.
+        var cap = 0;
+        for (var c = 0; c < boxes.length; c++) cap += boxes[c].ratio;
+        for (var j = 0; j < boxes.length; j++) oceanBoxKg[j] = totalKg * boxes[j].ratio / cap;
+        return;
+    }
+    if (Math.abs(sum - totalKg) > 1e-9 * Math.abs(totalKg)) {
+        var f = totalKg / sum;
+        for (var k = 0; k < oceanBoxKg.length; k++) oceanBoxKg[k] *= f;
+    }
+}
+
 function advanceCarbonSinks(dtYears, emittedKg) {
     const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
     const P = window.DATA['📜'];
+    // Crash-first : la capacité totale des réservoirs DOIT rester celle de co2OceanRatioRef.
+    let capTotal = 0;
+    for (const b of CS.oceanBoxes) capTotal += b.ratio;
+    if (Math.abs(capTotal - window.CONFIG_COMPUTE.co2OceanRatioRef) > 1e-6) {
+        throw new Error('[advanceCarbonSinks] Σ oceanBoxes.ratio = ' + capTotal
+            + ' ≠ co2OceanRatioRef = ' + window.CONFIG_COMPUTE.co2OceanRatioRef
+            + ' — la capacité totale de l\'océan doit rester inchangée (seuls les τ diffèrent).');
+    }
+    syncOceanBoxes(P['🌊🔺⚖️🏭'], CS.oceanBoxes);
     const nSteps = Math.max(1, Math.round(dtYears / CS.stepYears));
     const dt = dtYears / nSteps;
     const emitPerStep = emittedKg / nSteps;
@@ -213,12 +254,23 @@ function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     const L_eq = dNppKgPerYear * CS.landTauYears;
     P['🌳🔺⚖️🏭'] = L_eq + (P['🌳🔺⚖️🏭'] - L_eq) * Math.exp(-dtYears / CS.landTauYears);
 
-    // OCÉAN : O → O_eq = k/(1+k)·(E − L), k = ratio/R · Van 't Hoff
+    // OCÉAN : chaque réservoir relaxe vers k_i·A, A = excès resté dans l'air (E − L − ΣO).
+    // À l'équilibre ΣO = (Σratio/R)·A, soit exactement la partition de l'ancienne boîte unique :
+    // même capacité, mais atteinte en 1 an / 50 ans / 350 ans selon le réservoir au lieu de 50 pour tout.
     const R = CS.oceanRevelleRef + CS.oceanRevelleSlopePerPpm * (ppm_mid - CS.oceanRevelleRefPpm);
     const T = Math.max(271.15, DATA['🧮']['🧮🌡️']);
-    const k = (window.CONFIG_COMPUTE.co2OceanRatioRef / R) * Math.exp(2400.0 * (1.0 / T - 1.0 / EPOCH['🌡️🧮']));
-    const O_eq = k / (1 + k) * (E_cum - P['🌳🔺⚖️🏭']);
-    P['🌊🔺⚖️🏭'] = O_eq + (P['🌊🔺⚖️🏭'] - O_eq) * Math.exp(-dtYears / CS.oceanTauYears);
+    const vantHoff = Math.exp(2400.0 * (1.0 / T - 1.0 / EPOCH['🌡️🧮']));
+    let oceanTotal = 0;
+    for (let i = 0; i < oceanBoxKg.length; i++) oceanTotal += oceanBoxKg[i];
+    const airExcess = E_cum - P['🌳🔺⚖️🏭'] - oceanTotal;
+    let newTotal = 0;
+    for (let i = 0; i < CS.oceanBoxes.length; i++) {
+        const box = CS.oceanBoxes[i];
+        const O_eq = (box.ratio / R) * vantHoff * airExcess;
+        oceanBoxKg[i] = O_eq + (oceanBoxKg[i] - O_eq) * Math.exp(-dtYears / box.tauYears);
+        newTotal += oceanBoxKg[i];
+    }
+    P['🌊🔺⚖️🏭'] = newTotal;
 }
 
 window.CO2 = window.CO2 || {};
