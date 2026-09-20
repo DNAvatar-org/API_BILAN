@@ -37,6 +37,8 @@
         { kind: 'script', src: BASE + 'h2o/calculations_h2o.js', label: 'calculations_h2o.js' },
         { kind: 'script', src: BASE + 'albedo/calculations_albedo.js', label: 'calculations_albedo.js' },
         { kind: 'script', src: BASE + 'atmosphere/calculations_atm.js', label: 'calculations_atm.js' },
+        { kind: 'script', src: BASE + 'ocean/sinks_ocean.js', label: 'sinks_ocean.js' },
+        { kind: 'script', src: BASE + 'land/sinks_land.js', label: 'sinks_land.js' },
         { kind: 'script', src: BASE + 'co2/calculations_co2.js', label: 'calculations_co2.js' },
         { kind: 'script', src: BASE + 'convergence/compute.js', label: 'compute.js' },
         { kind: 'script', src: BASE + 'convergence/calculations_flux.js', label: 'calculations_flux.js' },

@@ -21,6 +21,14 @@
       "dest": "pages/bilan_radiatif/API_BILAN/callback_stack.js"
     },
     {
+      "src": "ocean/sinks_ocean.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/ocean/sinks_ocean.js"
+    },
+    {
+      "src": "land/sinks_land.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/land/sinks_land.js"
+    },
+    {
       "src": "co2/calculations_co2.js",
       "dest": "pages/bilan_radiatif/API_BILAN/co2/calculations_co2.js"
     },

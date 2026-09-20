@@ -47,6 +47,8 @@ L'ordre est celui des dépendances, pas une préférence. Il est repris tel quel
 <script src="API_BILAN/h2o/calculations_h2o.js"></script>
 <script src="API_BILAN/albedo/calculations_albedo.js"></script>
 <script src="API_BILAN/atmosphere/calculations_atm.js"></script>
+<script src="API_BILAN/ocean/sinks_ocean.js"></script>
+<script src="API_BILAN/land/sinks_land.js"></script>
 <script src="API_BILAN/co2/calculations_co2.js"></script>
 
 <!-- Orchestration -->
