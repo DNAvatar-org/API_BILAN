@@ -204,6 +204,10 @@
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
+// - v1.4.93: CARBON_SINKS — puits terrestre en 3 mécanismes (fertilisation pondérée par l'âge des
+//   peuplements, dépôt d'azote, repousse héritée), un chiffre publié pour chacun. landBeta unique
+//   remplacé par landBetaYoung/landBetaMature/landYoungFraction0. Terres 2025 : 21,9 % → 28,6 %
+//   (mesuré ~30 %), sans aucun calage.
 // - v1.4.92: CARBON_SINKS — océan en 3 réservoirs (mélange 1,2/1 an · thermocline 10/50 ans · profond
 //   38,8/350 ans, Σratio = 50 inchangé) au lieu d'une boîte unique à τ 50 ans qui ventilait l'océan entier
 //   en un demi-siècle. β forêts 0,5 → 0,605 (Norby 2005 avec l'ambiant FACE réel, 376 ppm). Océan 2025 :
@@ -1498,22 +1502,40 @@ window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 //      Sabine et al. 2004 ; Egleston, Sabine & Morel 2010 Glob. Biogeochem. Cycles 24:GB1002.
 //    2400 K = Van 't Hoff solubilité CO₂ (eau plus chaude = moins de dissolution, même loi que calculateCO2Partition).
 //
-//  FORÊTS — fertilisation CO₂ seule : ΔNPP = NPP0·β·ln(C/C0), C0 = ⚖️🏭 de l'époque (équilibre).
-//    NPP0 = 56 GtC/an (Field et al. 1998 Science 281:237) ; stockage L → L_eq = ΔNPP·τ, τ = 23 ans
-//    (temps de résidence du carbone terrestre, Carvalhais et al. 2014 Nature 514:213). ln → saturation.
-//    β = 0,605 : Norby et al. 2005 PNAS 102:18052 donnent +23 % de NPP à 550 ppm dans les dispositifs FACE,
-//      dont l'ambiant était ~376 ppm → β = 0,23/ln(550/376) = 0,605. Le 0,5 d'avant supposait un ambiant
-//      de 350 ppm. Effet albédo négligeable (non modélisé).
+//  TERRES — TROIS MÉCANISMES DISTINCTS, un chiffre publié pour chacun, aucun calage.
+//    Le puits terrestre mesuré n'est pas de la fertilisation CO₂ pure : la version d'avant ne modélisait
+//    que celle-là et plafonnait à 21,9 % des émissions contre ~30 % mesurés.
+//      1. FERTILISATION — ΔNPP = NPP0·β_eff·ln(C/C0), stock relaxant vers ΔNPP·τ.
+//         NPP0 = 56 GtC/an (Field et al. 1998 Science 281:237) ; τ = 23 ans (Carvalhais et al. 2014
+//         Nature 514:213). β_eff = f_jeune·β_jeune + (1−f_jeune)·β_mature — voir sinks_land.js.
+//         β_jeune = 0,605 : Norby et al. 2005 PNAS 102:18052, +23 % de NPP à 550 ppm pour un ambiant
+//           FACE de ~376 ppm → 0,23/ln(550/376). Ces parcelles avaient 10-20 ans.
+//         β_mature = 0,15 : sur forêt MATURE le CO₂ enrichi ne donne aucun gain de biomasse — EucFACE
+//           (Jiang et al. 2020 Nature 580:227) et Web-FACE (Körner et al. 2005 Science 309:1360).
+//         f_jeune = 0,358 : part de forêt de moins de 30 ans en 2000, agrégée depuis GFADv1.1
+//           (Poulter et al. 2019, PANGAEA doi:10.1594/PANGAEA.897392) par scripts/gfad_young_forest_fraction.py
+//           du dépôt CO2. Bornes du jeu de données : 0,30 – 0,48. La fenêtre de 30 ans vient de Tang
+//           et al. 2014 PNAS 111:8856 (la NPP culmine entre 10 et 40 ans puis redescend).
+//         → β_eff = 0,313. Appliquer 0,605 à toute la forêt mondiale, dont les deux tiers ne sont pas
+//           jeunes, c'était le biais d'échelle classique des FACE.
+//      2. DÉPÔT D'AZOTE — 0,7 GtC/an après 2000, soit ~20 % du puits terrestre (O'Sullivan et al. 2019
+//         Glob. Biogeochem. Cycles 33:163). Flux NET, cumulé sans relaxation. Indexé sur les émissions
+//         (0,7 GtC pour 38,9 GtCO₂/an) : l'azote réactif est un co-produit de la combustion et de
+//         l'agriculture, une injection volcanique n'en dépose pas.
+//      3. REPOUSSE FORESTIÈRE — 1,30 GtC/an en 2001-2010 dans les peuplements en repousse après
+//         perturbation passée, contre 0,85 en forêt primaire intacte (Pugh et al. 2019 PNAS 116:4382).
+//         Héritage du XXᵉ siècle, indépendant du CO₂ et de l'azote ; décroît en 66 ans (temps de
+//         reconstitution de la biomasse, même source).
 //
-//  ⚠️ ÉCART CONNU ET ASSUMÉ — LE PUITS TERRESTRE EST TROP FAIBLE.
-//    Calage 2000→2025 (850 GtCO₂) : océan 26,1 % (mesuré ~26 % ✅), terres 21,9 % (mesuré ~30 % ❌).
-//    Ce n'est pas un défaut de calage : la boîte ne contient QUE la fertilisation CO₂. Le puits terrestre
-//    mesuré par le Global Carbon Budget contient aussi le dépôt d'azote, la reprise forestière sur terres
-//    abandonnées et l'allongement des saisons de végétation. Aucune valeur de β dans la fourchette FACE
-//    ne comble les 8 points — il faudrait β ≈ 0,85. On le SIGNALE, on ne cale pas dessus.
-//    Conséquence : fraction aéroportée 52 % au lieu des 44,3 % mesurés. Les émissions de la tranche
-//    2000-2025 sont par ailleurs à 850 GtCO₂ au lieu des 973 mesurés (Global Carbon Budget) : les deux
-//    écarts se compensent et 2025 tombe à 425,4 ppm d'air sec contre 424,6 mesurés. À traiter ensemble.
+//    Résultat 2000→2025 sans aucun ajustement : terres 28,6 % (fertilisation 10,2 · azote 6,6 ·
+//    repousse 11,8) contre ~30 % mesurés, océan 23,5 % contre ~26 %. Les trois publications, prises
+//    telles quelles, tombent à 1,4 point du total mesuré — c'est une VÉRIFICATION, pas un calage.
+//
+//  ⚠️ CE QUI RESTE OUVERT
+//    Fraction aéroportée 47,9 % contre 44,3 % mesurés : il manque ~3,5 points de puits, répartis
+//    entre océan et terres. Et le terme de repousse est pour l'instant une décroissance IMPOSÉE ;
+//    quand le bouton 🪾 existera, il devra devenir la conséquence des coupes simulées (couper du
+//    mature remplit le pool jeune, qui reconstitue sa biomasse sur landRegrowthTauYears).
 window.CONFIG_COMPUTE.CARBON_SINKS = {
     // Pas d'intégration des deux puits (années). L'événement dure 🔺⏳ ; advanceCarbonSinks le découpe
     // en pas de stepYears, étale l'émission et relaxe pas à pas. 1 an = intégrale juste ; mettre 25
@@ -1528,9 +1550,18 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
     oceanRevelleRef: 10,          // R à oceanRevelleRefPpm
     oceanRevelleRefPpm: 370,
     oceanRevelleSlopePerPpm: 0.014, // Egleston 2010 : R ≈ 10 (370 ppm) → ≈ 16 (800 ppm)
-    landNpp0GtC: 56,
-    landBeta: 0.605,
-    landTauYears: 23
+    landNpp0GtC: 56,              // Field 1998
+    landTauYears: 23,             // Carvalhais 2014
+    // Fertilisation pondérée par l'âge — c'est ce qui corrige le biais d'échelle des FACE.
+    landBetaYoung: 0.605,         // Norby 2005 (parcelles de 10-20 ans)
+    landBetaMature: 0.15,         // Jiang 2020 EucFACE + Körner 2005 Web-FACE (aucun gain de biomasse)
+    landYoungFraction0: 0.358,    // GFADv1.1 [0,30–0,48] — scripts/gfad_young_forest_fraction.py (dépôt CO2)
+    // Dépôt d'azote : 0,7 GtC/an pour 38,9 GtCO₂/an émis (O'Sullivan 2019). Indexé sur les émissions
+    // pour rester nul dans une époque sans combustion ni agriculture industrielle.
+    landNdepGtCPerGtCO2: 0.7 / 38.9,
+    // Repousse forestière héritée (Pugh 2019), décroissant sur le temps de reconstitution de biomasse.
+    landRegrowth0GtCPerYear: 1.30,
+    landRegrowthTauYears: 66
 };
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
 window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;

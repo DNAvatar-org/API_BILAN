@@ -193,6 +193,7 @@ function advanceCarbonSinks(dtYears, emittedKg) {
     const P = window.DATA['📜'];
     window.OCEAN_SINK.assertOceanCapacity(CS.oceanBoxes);
     window.OCEAN_SINK.syncOceanBoxes(P['🌊🔺⚖️🏭'], CS.oceanBoxes);
+    window.LAND_SINK.syncLandStocks(P['🌳🔺⚖️🏭']);
     const nSteps = Math.max(1, Math.round(dtYears / CS.stepYears));
     const dt = dtYears / nSteps;
     const emitPerStep = emittedKg / nSteps;
@@ -219,7 +220,7 @@ function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     const ppmPerKg = (DATA['🫧']['🍰🫧🏭'] * 1e6 * DATA['🫧']['🧪'] / CONST.M_CO2) / DATA['⚖️']['⚖️🏭'];
     const ppm_mid = C_mid * ppmPerKg;
 
-    window.LAND_SINK.advanceLandSinkStep(dtYears, C_mid, C0);
+    window.LAND_SINK.advanceLandSinkStep(dtYears, C_mid, C0, emitStep);
 
     const airExcess = E_cum - P['🌳🔺⚖️🏭'] - window.OCEAN_SINK.totalKg();
     window.OCEAN_SINK.advanceOceanSinkStep(dtYears, airExcess, ppm_mid);
