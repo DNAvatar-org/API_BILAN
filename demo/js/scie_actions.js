@@ -202,13 +202,16 @@ function updateEpochActions() {
 
 // Initialiser les variables globales nécessaires
 function initializeGlobals() {
-    // Initialiser window.currentEpochIndex depuis le bouton sélectionné
-    const selectedBtn = document.querySelector('.epoch-btn-horizontal.selected');
-    let epochId = null;
-    if (selectedBtn) {
-        epochId = selectedBtn.getAttribute('data-epoch');
-    } else {
-        epochId = '⚫'; // Par défaut : Corps Noir
+    // L'époque courante est dans DATA ; le bouton de la frise n'en est qu'une vue. La version de CO2
+    // relit le DOM, et seulement .epoch-btn-horizontal : les époques masquées (hysteresis 1a/1b/2),
+    // rendues en .epoch-text-horizontal, n'y trouvaient aucun bouton et retombaient en silence sur ⚫.
+    // On a donc vu la page annoncer « hysteresis 1a » dans la frise et charger la config du Corps Noir.
+    // Côté CO2 le défaut ne se voyait pas : cette page n'a pas de frise, et son époque lui vient du
+    // parent par sync:state.
+    let epochId = (window.DATA && window.DATA['📜'] && window.DATA['📜']['🗿']) || null;
+    if (!epochId) {
+        const selectedBtn = document.querySelector('.epoch-btn-horizontal.selected, .epoch-text-horizontal.selected');
+        epochId = selectedBtn ? selectedBtn.getAttribute('data-epoch') : '⚫';
     }
     
     // Trouver l'index de l'époque dans TIMELINE
