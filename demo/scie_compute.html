@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!--
+  File: API_BILAN/demo/scie_compute.html — Vue scientifique, version API
+  Version 1.0.0 — 2026-09-20 : copie autonome de CO2/html/scie_compute.html.
+
+  Ce qu'elle a en plus de la page de CO2 :
+    — une frise horizontale des époques, au-dessus de la configuration : cliquer une époque
+      précharge sa configuration, c'est le seul moyen d'entrer une époque ici (pas de parent
+      qui pousse un sync:state) ;
+    — des champs de configuration modifiables, là où la page de CO2 se contente d'afficher.
+
+  Ce qu'elle n'a pas : site_paths.js, debug.js, log_display.js, FPS.js, configOrganigramme.js,
+  organigramme/timeline.js et timeline/events.js. Aucun des scripts de la page ne les appelle —
+  la vérification est dans le commit. Seul scie_convergence.js vient de CO2 (buildStepHtml), il
+  est dupliqué ici.
+
+  Scripts classiques, dans l'ordre des dépendances : le parseur les exécute au fil de l'eau,
+  la page se monte de façon synchrone. Pas de loader, pas de module ES (ouverture en file://).
+-->
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue scientifique — API Bilan Radiatif</title>
+    <link href="emoji-fonts.css" rel="stylesheet">
+    <link href="scie_compute.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+
+        <!-- Frise : préchargement de la configuration par clic sur une époque. -->
+        <div id="epoch-frise" class="results divGlass">
+            <h2>🕰 Époque <span id="epoch-name" class="frise-epoch-name"></span></h2>
+            <div class="timeline-horizontal-container">
+                <div class="scie_timeline-epoch-section">
+                    <div>début <span id="epoch-start-time">—</span></div>
+                    <div>date <span id="info-time">—</span></div>
+                    <div id="tic-duration"></div>
+                </div>
+                <div class="scie_epochs-container">
+                    <div id="epochs-row-emojis" class="epochs-row-emojis"></div>
+                </div>
+            </div>
+            <div class="frise-actions">
+                <div id="timeline-events-logos" class="timeline-events-logos"></div>
+                <button id="run-stop-btn" class="icon-button" type="button" title="Exécuter" onclick="toggleRunStop()">▶️</button>
+            </div>
+        </div>
+
+        <!-- Champs modifiables : la ligne TIMELINE de l'époque. Ce panneau n'existe que du côté
+             API — la page de CO2 affiche la configuration sans permettre d'y toucher. -->
+        <div id="config-edit" class="results replied divGlass">
+            <h2>🛠 Paramètres de l'époque <button class="toggle-button" onclick="reinitialiserEpoque()" title="Rendre à l'époque ses valeurs de configTimeline.js">↺ Réinitialiser</button></h2>
+            <div id="config-edit-content" class="config-edit-grid"></div>
+        </div>
+
+        <div id="config" class="results replied divGlass">
+            <h2>📋 Configuration <button class="toggle-button" onclick="toggleConfig()">Formules +</button></h2>
+            <div id="config-content"></div>
+        </div>
+
+        <div id="fine-tuning" class="results replied divGlass">
+            <h2>🧩 Fine-tuning 🪩 <button class="toggle-button" id="fine-tuning-toggle" onclick="toggleFineTuning()" style="margin-left:auto">+</button></h2>
+            <div id="fine-tuning-content" style="display:none;"></div>
+        </div>
+
+        <div id="convergence" class="results replied convergence-cycles-hidden divGlass">
+            <h2>⚙ Convergence : —°C <span class="convergence-buttons"><button class="toggle-button toggle-cycles" onclick="toggleCycles(); return false;">Cycles +</button><button class="toggle-button toggle-details" onclick="toggleConvergenceDetails(); return false;">Bilan +</button><button class="toggle-button toggle-formules" onclick="toggleConvergence()">Formules +</button></span></h2>
+            <div id="convergence-content"></div>
+        </div>
+
+        <div id="results" class="results divGlass" style="display: none;">
+            <h2>📊 Résultats</h2>
+            <div id="results-content"></div>
+        </div>
+
+    </div>
+
+    <!-- Chemin du worker spectral : avant worker_pool.js, qui le lit à son évaluation. -->
+    <script src="demo_paths.js"></script>
+    <!-- Coquilles ORG / SYNC_STATE que le moteur appelle : une page de demo n'a pas
+         d'organigramme ni de shell pour les fournir. -->
+    <script src="demo_host.js"></script>
+
+    <!-- Configuration et structure de DATA -->
+    <script src="../config/model_tuning_biblio.js"></script>
+    <script src="../config/configTimeline.js"></script>
+    <!-- Définitions des clés, puis leur rendu (logos, pictos) -->
+    <script src="../data/alphabet.js"></script>
+    <script src="../data/dico.js"></script>
+    <script src="alphabet_render.js"></script>
+    <script src="dico_render.js"></script>
+    <script src="../data/initDATA.js"></script>
+    <script src="../config/fine_tuning_bounds.js"></script>
+    <!-- Moteur -->
+    <script src="../physics/physics.js"></script>
+    <script src="../data/hitran_lines_CO2.js"></script>
+    <script src="../data/hitran_lines_H2O.js"></script>
+    <script src="../data/hitran_lines_CH4.js"></script>
+    <script src="../spectroscopy/hitran.js"></script>
+    <script src="../physics/climate.js"></script>
+    <script src="../radiative/calculations.js"></script>
+    <!-- Avant le pool : le worker se publie au lieu de s'exécuter, ce qui donne au pool une
+         source utilisable en blob: — seul moyen d'avoir des workers en file:// (origine 'null'). -->
+    <script src="../workers/spectral_slice_worker.js"></script>
+    <script src="../workers/worker_pool.js"></script>
+    <script src="../h2o/calculations_h2o.js"></script>
+    <script src="../albedo/calculations_albedo.js"></script>
+    <script src="../atmosphere/calculations_atm.js"></script>
+    <script src="../co2/calculations_co2.js"></script>
+    <script src="../convergence/compute.js"></script>
+    <script src="scie_convergence.js"></script>
+    <script src="../convergence/calculations_flux.js"></script>
+    <!-- Après physics.js, comme l'exige tuning.js -->
+    <script src="../tuning.js"></script>
+
+    <!-- La page elle-même -->
+    <script src="scie_boot.js"></script>
+    <script src="scie_timeline.js"></script>
+    <script src="scie_actions.js"></script>
+    <script src="scie_config_view.js"></script>
+    <script src="scie_tuning_view.js"></script>
+    <script src="scie_results_view.js"></script>
+    <script src="scie_demo.js"></script>
+    <script src="scie_main.js"></script>
+</body>
+</html>

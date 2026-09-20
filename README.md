@@ -10,6 +10,11 @@ glace-albédo (Snowball néoprotérozoïque, calotte antarctique) et les cycles 
 > **Démo exécutable et banc de référence : [`demo/epoch_bench.html`](demo/epoch_bench.html)** — il charge
 > la pile complète, fait tourner les 19 époques et compare aux fourchettes de la littérature. C'est
 > l'intégration de référence : en cas de doute, c'est ce fichier qui fait foi, pas ce README.
+>
+> **Pour manipuler une époque : [`demo/scie_compute.html`](demo/scie_compute.html)** — la frise
+> charge la configuration d'une époque, les champs la rendent modifiable (température attendue,
+> masses, orbite), et ▶️ fait converger. Même moteur, même résultat que le banc : l'Archéen y
+> donne 18,748 °C dans les deux.
 
 ---
 
@@ -244,7 +249,7 @@ dessine.
 | **convergence/** | `compute.js` (masses, config d'époque), `calculations_flux.js` (solveur) |
 | **workers/** | Pool de web workers pour le calcul spectral (N−1 threads) |
 | **doc/** | Documentation détaillée : formules, algorithmes, bibliographie |
-| **demo/** | Pages exécutables : banc d'époques, alphabet, dictionnaire — le dépôt se teste sans CO2 |
+| **demo/** | Pages exécutables : banc d'époques, vue scientifique, alphabet, dictionnaire — le dépôt se teste sans CO2 |
 
 Découpage détaillé par catégorie de calcul : **[STRUCTURE.md](STRUCTURE.md)**.
 

@@ -85,6 +85,14 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/alphabet_render.js"
     },
     {
+      "src": "demo/demo_host.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/demo_host.js"
+    },
+    {
+      "src": "demo/demo_paths.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/demo_paths.js"
+    },
+    {
       "src": "demo/dico.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/dico.html"
     },
@@ -111,10 +119,6 @@
     {
       "src": "demo/epoch_bench_format.js",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_format.js"
-    },
-    {
-      "src": "demo/epoch_bench_host.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_host.js"
     },
     {
       "src": "demo/epoch_bench_loader.js",
@@ -155,6 +159,50 @@
     {
       "src": "demo/legende.css",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/legende.css"
+    },
+    {
+      "src": "demo/scie_actions.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_actions.js"
+    },
+    {
+      "src": "demo/scie_boot.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_boot.js"
+    },
+    {
+      "src": "demo/scie_compute.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_compute.css"
+    },
+    {
+      "src": "demo/scie_compute.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_compute.html"
+    },
+    {
+      "src": "demo/scie_config_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_config_view.js"
+    },
+    {
+      "src": "demo/scie_convergence.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_convergence.js"
+    },
+    {
+      "src": "demo/scie_demo.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_demo.js"
+    },
+    {
+      "src": "demo/scie_main.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_main.js"
+    },
+    {
+      "src": "demo/scie_results_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_results_view.js"
+    },
+    {
+      "src": "demo/scie_timeline.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_timeline.js"
+    },
+    {
+      "src": "demo/scie_tuning_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_tuning_view.js"
     },
     {
       "src": "doc/ALPHABET_ET_DICO.txt",
