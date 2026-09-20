@@ -663,7 +663,7 @@
     <div class="title">Forest response to elevated CO₂ is conserved across a broad range of productivity</div>
     <div class="venue">PNAS, 102(50):18052–18056 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1073/pnas.0509478102">10.1073/pnas.0509478102</a></div>
-    <div class="used-in">Expériences FACE : +23 % de NPP à ~550 ppm → β ≈ 0,5 (fertilisation ΔNPP = NPP0·β·ln(C/C0)). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+    <div class="used-in">Expériences FACE : +23 % de NPP à 550 ppm pour un ambiant de ~376 ppm → β = 0,23/ln(550/376) = <b>0,605</b> (fertilisation ΔNPP = NPP0·β·ln(C/C0)) → landBeta. Le 0,5 utilisé jusqu'à la v1.4.91 supposait un ambiant de 350 ppm. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
 </article>
 
 <article class="ref" id="sabine2004" data-tags="co2 ocean revelle anthropogenic-uptake observation">
@@ -672,7 +672,7 @@
     <div class="title">The oceanic sink for anthropogenic CO₂</div>
     <div class="venue">Science, 305:367–371 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.1097403">10.1126/science.1097403</a></div>
-    <div class="used-in">Facteur de Revelle moyen ~10 (8–15) ; absorption océanique mesurée (traceurs) → oceanRevelleRef, oceanTauYears. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks (puits du CO₂ injecté par les événements 📱).</div>
+    <div class="used-in">Facteur de Revelle moyen ~10 (8–15) → oceanRevelleRef. Et surtout : les traceurs CFC et le radiocarbone des bombes datent la ventilation de la THERMOCLINE (~50 ans) et y localisent l'essentiel du carbone anthropique mesuré → oceanBoxes[1] (ratio 10, τ 50 ans). La v1.4.83 appliquait par erreur ces 50 ans à l'océan entier. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
 </article>
 
 <article class="ref" id="sarmientoGruber2006" data-tags="co2 ocean textbook henry">
@@ -680,7 +680,42 @@
     <div class="authors">Sarmiento, J. L. &amp; Gruber, N.</div>
     <div class="title">Ocean Biogeochemical Dynamics</div>
     <div class="venue">Princeton University Press (2006)</div>
-    <div class="used-in">Rapport carbone océan/atmosphère ≈ 50 → CONFIG_COMPUTE.co2OceanRatioRef.</div>
+    <div class="used-in">Rapport carbone océan/atmosphère ≈ 50 (~38 000 GtC de CID / ~760 GtC atmosphériques) → CONFIG_COMPUTE.co2OceanRatioRef, et somme imposée des trois oceanBoxes (crash-first) : le découpage en réservoirs change les TEMPS, jamais la capacité totale. Fournit aussi les inventaires par couche : ~900 GtC couche de mélange (ratio 1,2), ~7 600 GtC thermocline (ratio 10), le reste en profond (ratio 38,8). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
+</article>
+
+<article class="ref" id="broeckerPeng1982" data-tags="co2 ocean mixed-layer air-sea gas-exchange tracers">
+    <div class="cite-key">[broeckerPeng1982]</div>
+    <div class="authors">Broecker, W. S. &amp; Peng, T.-H.</div>
+    <div class="title">Tracers in the Sea</div>
+    <div class="venue">Lamont-Doherty Geological Observatory, Columbia University (1982)</div>
+    <div class="used-in">Équilibrage gazeux air-mer de la couche de mélange en ~1 an → oceanBoxes[0] (couche de mélange 0–100 m, ratio 1,2, τ 1 an). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
+</article>
+
+<article class="ref" id="joos2013" data-tags="co2 ocean impulse-response deep-ocean overturning timescale">
+    <div class="cite-key">[joos2013]</div>
+    <div class="authors">Joos, F. et al.</div>
+    <div class="title">Carbon dioxide and climate impulse response functions for the computation of greenhouse gas metrics: a multi-model analysis</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 13:2793–2825 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-13-2793-2013">10.5194/acp-13-2793-2013</a></div>
+    <div class="used-in">Décomposition de la réponse impulsionnelle du CO₂ en trois temps (≈ 4,3 / 36,5 / 394 ans) : c'est la structure à trois réservoirs océaniques, et le mode lent (394 ans) fixe l'ordre de grandeur de oceanBoxes[2] (océan profond, τ 350 ans). ⚠️ C'est le paramètre le MOINS contraint du puits océan, et le seul qui vienne d'une intercomparaison de modèles plutôt que d'une mesure directe — il ne joue quasiment pas sur 2000-2100 (7 % de relaxation en 25 ans) mais fixe le très long terme. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
+</article>
+
+<article class="ref" id="osullivan2019" data-tags="land-sink nitrogen-deposition co2-synergy attribution">
+    <div class="cite-key">[osullivan2019]</div>
+    <div class="authors">O'Sullivan, M. et al.</div>
+    <div class="title">Have synergies between nitrogen deposition and atmospheric CO₂ driven the recent enhancement of the terrestrial carbon sink?</div>
+    <div class="venue">Global Biogeochemical Cycles, 33(2):163–180 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2018GB005922">10.1029/2018GB005922</a></div>
+    <div class="used-in">Effet du dépôt d'azote anthropique sur l'absorption terrestre après 2000 : 0,7 GtC/an, soit ~20 % du puits terrestre total ; dépôt d'azote + synergie C–N ≈ 28 % du puits historique. Deuxième des trois mécanismes du puits terrestre, celui qui NE dépend PAS du CO₂. ⚠️ L'article montre aussi que les attributions ne sont pas additives (c'est tout son sujet : la synergie). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
+</article>
+
+<article class="ref" id="pugh2019" data-tags="land-sink forest-regrowth land-use-legacy attribution">
+    <div class="cite-key">[pugh2019]</div>
+    <div class="authors">Pugh, T. A. M. et al.</div>
+    <div class="title">Role of forest regrowth in global carbon sink dynamics</div>
+    <div class="venue">PNAS, 116(10):4382–4387 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1810512116"><span>10.1073/pnas.1810512116</span></a></div>
+    <div class="used-in">2001–2010 : 0,85 (0,66–0,96) GtC/an de puits en forêt primaire intacte, et 1,30 (1,03–1,96) GtC/an dans les peuplements en repousse après perturbation passée. Troisième mécanisme du puits terrestre — héritage de la déforestation, indépendant du CO₂, et point d'accroche naturel des futurs boutons de déforestation. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
 </article>
 
 <article class="ref" id="walkerHaysKasting1981" data-tags="co2 carbon-cycle weathering urey silicate negative-feedback">
