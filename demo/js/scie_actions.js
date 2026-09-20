@@ -73,7 +73,11 @@ function updateEpochActions() {
                 }
             }
         }
-        const actions = EPOCH['🕰'][activeYr];
+        // Butoir de fin d'époque, comme dans timeline/events.js : passé ◀ (2100), plus rien à proposer.
+        // Sans lui, activeYr restait bloqué sur la dernière tranche et l'on pouvait injecter du CO₂
+        // indéfiniment au-delà de la fin de la simulation.
+        const finie = (epochEnd != null && curYrForBucket >= epochEnd);
+        const actions = finie ? null : EPOCH['🕰'][activeYr];
 
         if (actions) {
             for (const [emoji, cfg] of Object.entries(actions)) {

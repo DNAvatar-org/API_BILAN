@@ -144,3 +144,42 @@ function reinitialiserEpoque() {
     prechargerConfigEpoque();
 }
 window.reinitialiserEpoque = reinitialiserEpoque;
+
+
+// ============================================================================
+// RETOUR VISUEL APRES UN EVENEMENT
+// ============================================================================
+//
+// Les boutons d'evenement font leur travail — ils injectent le CO2 dans
+// 📜🔺⚖️🏭, font avancer les puits (advanceCarbonSinks) et le temps — mais ils
+// ne redessinent que la date. La configuration affichee restait celle d'avant
+// le clic, si bien que les boutons avaient l'air de ne rien faire d'autre que
+// decaler l'annee.
+//
+// On ne peut PAS rappeler prechargerConfigEpoque ici : il passe par
+// initializeGlobals, qui remet 📿💫 et les cumuls 📜🔺⚖️🏭 a zero — ce qui
+// effacerait justement le clic qu'on vient de faire. Il faut donc la moitie
+// basse du prechargement, sans la reinitialisation.
+function rafraichirApresEvenement() {
+    if (!window.DATA || !window.CONVERGE) return;
+    try {
+        if (!window.CONVERGE.initForConfig()) return;
+        displayResults(null);
+        updateTimelineDisplay();
+        afficherConfigEditable();
+    } catch (e) {
+        console.error('❌ Rafraîchissement après événement :', e);
+    }
+}
+window.rafraichirApresEvenement = rafraichirApresEvenement;
+
+// Delegation sur le document, en phase de bouillonnement : le gestionnaire du
+// bouton a deja tourne, et updateEpochActions a pu remplacer les boutons sans
+// que l'ecoute soit perdue.
+document.addEventListener('click', function (ev) {
+    const cible = ev.target && ev.target.closest ? ev.target.closest('.btn-events') : null;
+    if (!cible) return;
+    if (!document.getElementById('timeline-events-logos')) return;
+    // Apres la pile d'appels du bouton (getEpochDateConfig, updateEpochActions).
+    setTimeout(rafraichirApresEvenement, 0);
+});
