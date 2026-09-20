@@ -44,12 +44,12 @@
         { kind: 'script', src: BASE + 'api.js', label: 'api.js' },
         // Scripts du banc, apres l'API : epoch_bench_format.js lit window.BENCH_LIT_BY_EPOCH_ID
         // (configTimeline.js) des son evaluation. L'ordre ci-dessous est celui des dependances.
-        { kind: 'script', src: 'demo_host.js', label: 'demo_host.js' },
-        { kind: 'script', src: 'epoch_bench_format.js', label: 'epoch_bench_format.js' },
-        { kind: 'script', src: 'epoch_bench_table.js', label: 'epoch_bench_table.js' },
-        { kind: 'script', src: 'epoch_bench_tuning.js', label: 'epoch_bench_tuning.js' },
-        { kind: 'script', src: 'epoch_bench_run.js', label: 'epoch_bench_run.js' },
-        { kind: 'script', src: 'epoch_bench_main.js', label: 'epoch_bench_main.js' }
+        { kind: 'script', src: 'js/demo_host.js', label: 'demo_host.js' },
+        { kind: 'script', src: 'js/epoch_bench_format.js', label: 'epoch_bench_format.js' },
+        { kind: 'script', src: 'js/epoch_bench_table.js', label: 'epoch_bench_table.js' },
+        { kind: 'script', src: 'js/epoch_bench_tuning.js', label: 'epoch_bench_tuning.js' },
+        { kind: 'script', src: 'js/epoch_bench_run.js', label: 'epoch_bench_run.js' },
+        { kind: 'script', src: 'js/epoch_bench_main.js', label: 'epoch_bench_main.js' }
     ];
 
     function initLoaderUI() {

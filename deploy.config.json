@@ -81,64 +81,28 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/alphabet.html"
     },
     {
-      "src": "demo/alphabet_render.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/alphabet_render.js"
+      "src": "demo/css/emoji-fonts.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/css/emoji-fonts.css"
     },
     {
-      "src": "demo/demo_host.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/demo_host.js"
+      "src": "demo/css/epoch_bench.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/css/epoch_bench.css"
     },
     {
-      "src": "demo/demo_paths.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/demo_paths.js"
+      "src": "demo/css/legende.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/css/legende.css"
+    },
+    {
+      "src": "demo/css/scie_compute.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/css/scie_compute.css"
     },
     {
       "src": "demo/dico.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/dico.html"
     },
     {
-      "src": "demo/dico_render.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/dico_render.js"
-    },
-    {
-      "src": "demo/emoji-fonts.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/emoji-fonts.css"
-    },
-    {
-      "src": "demo/epoch_bench.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench.css"
-    },
-    {
       "src": "demo/epoch_bench.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench.html"
-    },
-    {
-      "src": "demo/epoch_bench_boot.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_boot.js"
-    },
-    {
-      "src": "demo/epoch_bench_format.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_format.js"
-    },
-    {
-      "src": "demo/epoch_bench_loader.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_loader.js"
-    },
-    {
-      "src": "demo/epoch_bench_main.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_main.js"
-    },
-    {
-      "src": "demo/epoch_bench_run.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_run.js"
-    },
-    {
-      "src": "demo/epoch_bench_table.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_table.js"
-    },
-    {
-      "src": "demo/epoch_bench_tuning.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_tuning.js"
     },
     {
       "src": "demo/fonts/pics/big_impact.png",
@@ -157,52 +121,88 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/sun.png"
     },
     {
-      "src": "demo/legende.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/legende.css"
+      "src": "demo/js/alphabet_render.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/alphabet_render.js"
     },
     {
-      "src": "demo/scie_actions.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_actions.js"
+      "src": "demo/js/demo_host.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/demo_host.js"
     },
     {
-      "src": "demo/scie_boot.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_boot.js"
+      "src": "demo/js/demo_paths.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/demo_paths.js"
     },
     {
-      "src": "demo/scie_compute.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_compute.css"
+      "src": "demo/js/dico_render.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/dico_render.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_boot.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_boot.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_format.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_format.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_loader.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_loader.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_main.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_main.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_run.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_run.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_table.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_table.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_tuning.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_tuning.js"
+    },
+    {
+      "src": "demo/js/scie_actions.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_actions.js"
+    },
+    {
+      "src": "demo/js/scie_boot.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_boot.js"
+    },
+    {
+      "src": "demo/js/scie_config_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_config_view.js"
+    },
+    {
+      "src": "demo/js/scie_convergence.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_convergence.js"
+    },
+    {
+      "src": "demo/js/scie_demo.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_demo.js"
+    },
+    {
+      "src": "demo/js/scie_main.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_main.js"
+    },
+    {
+      "src": "demo/js/scie_results_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_results_view.js"
+    },
+    {
+      "src": "demo/js/scie_timeline.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_timeline.js"
+    },
+    {
+      "src": "demo/js/scie_tuning_view.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/scie_tuning_view.js"
     },
     {
       "src": "demo/scie_compute.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_compute.html"
-    },
-    {
-      "src": "demo/scie_config_view.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_config_view.js"
-    },
-    {
-      "src": "demo/scie_convergence.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_convergence.js"
-    },
-    {
-      "src": "demo/scie_demo.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_demo.js"
-    },
-    {
-      "src": "demo/scie_main.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_main.js"
-    },
-    {
-      "src": "demo/scie_results_view.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_results_view.js"
-    },
-    {
-      "src": "demo/scie_timeline.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_timeline.js"
-    },
-    {
-      "src": "demo/scie_tuning_view.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/scie_tuning_view.js"
     },
     {
       "src": "doc/ALPHABET_ET_DICO.txt",

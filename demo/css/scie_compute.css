@@ -214,8 +214,22 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Page API seulement : la frise en haut, et les champs modifiables de l'epoque.
+   Page API seulement : le fond, la frise en haut, et les champs modifiables.
    --------------------------------------------------------------------------- */
+
+/* Cote CO2 la page est une iframe : html et body y sont transparents pour laisser
+   voir le ciel de l'application. Ici elle est seule, et transparent veut dire blanc.
+   Meme « deep-space de secours » que l'app (style.css). */
+html { background: #05060a; }
+body { background: #05060a; }
+
+/* overflow-x: auto rend l'axe vertical scrollable lui aussi (regle CSS : un axe non
+   visible force l'autre). scrollHeight arrondit la hauteur fractionnaire du contenu au
+   pixel superieur — 117 pour 116 de hauteur utile — et ce pixel fantome suffisait a poser
+   une barre de scroll verticale sur toute la frise. Rien ne depasse reellement : l'element
+   le plus bas s'arrete pile au bord, donc masquer l'axe ne rogne rien. */
+.timeline-horizontal-container { overflow-y: hidden; }
+
 .frise-epoch-name { font-size: 12px; color: #bbb; font-weight: normal; margin-left: 6px; }
 .frise-actions { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 .frise-actions .timeline-events-logos { flex: 1 1 auto; }

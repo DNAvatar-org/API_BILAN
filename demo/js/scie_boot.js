@@ -128,14 +128,13 @@ function toggleAnim() {
     }
 }
 
-// Fonction helper pour convertir les chemins relatifs en chemins absolus depuis la racine
-// Depuis static/compute/, on doit remonter de 2 niveaux pour atteindre la racine
+// resolveImagePath (alphabet_render.js) delegue ici des qu'un getImagePath global existe.
+// Cote CO2 il fallait remonter d'un niveau ; ici la page est dans demo/, qui a son propre
+// fonts/pics/ — le chemin est deja bon, et remonter le ferait pointer hors de demo/.
 function getImagePath(relativePath) {
     if (!relativePath) return relativePath;
-    // Si le chemin commence déjà par http:// ou https:// ou /, le retourner tel quel
     if (relativePath.startsWith('http://') || relativePath.startsWith('https://') || relativePath.startsWith('/')) {
         return relativePath;
     }
-    // Depuis doc/ : remonter d'un niveau pour atteindre la racine
-    return '../' + relativePath;
+    return relativePath;
 }
