@@ -204,7 +204,9 @@
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
-// - v1.4.90: 📱 🕰 — troisième branche 🐖 dans les tranches 2025/2050/2075 : 850 GtCO₂ (observé 2000-2025)
+// - v1.4.91: 📱 🕰 — 🐖 renommée 🪾 et recalée sur « 2 × le bidon » : 36e14 / 24e14 / 14e14 (double de 🛢
+//   à chaque tranche), cumul 7400 GtCO₂ sur 2025-2100. Remplace l'ancien ×√2 (1202/1700/2404).
+// - v1.4.90: 📱 🕰 — troisième branche dans les tranches 2025/2050/2075 : 850 GtCO₂ (observé 2000-2025)
 //   multiplié par √2 par tranche → 1202 / 1700 / 2404, cumul 5306 GtCO₂ sur 2025-2100 ≈ SSP5-8.5.
 //   ⛽ et 🛢 décroissaient toutes deux après 2050 et plafonnaient à 477 et 567 ppm en 2100.
 // - v1.3.1: 📱 🕰 — une seule action ⛽ par tranche (retrait 🛢 des buckets 2025/2050/2075)
@@ -1322,7 +1324,10 @@ const timeline = [
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
         // Simulation parameters - Quantités en kg
-        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA
+        // ⚠️ 369 ppm = fraction molaire d'air SEC (NOAA). Le modèle affiche de l'air HUMIDE (365 ppm) :
+        //    ppm_sec = ppm_humide / (1 − x_H2O). Détail et vérif : atmosphere/calculations_atm.js,
+        //    bloc « AIR SEC vs AIR HUMIDE ». Cette masse est juste — ne pas la retoucher pour recoller à 369.
+        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA (air sec)
         '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
@@ -1354,15 +1359,13 @@ const timeline = [
             // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
             '🌙': 'fonds/_002000n.png',
             2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e12 } }, // +850 GtCO₂ (2000–2025)
-            // 🐖 : la branche qui ne freine jamais. Les deux autres décroissent après 2050 — ⛽ comme 🛢 —
-            // et aucune des deux ne va chercher le haut de l'enveloppe AR6. Celle-ci part des 850 GtCO₂
-            // réellement émis entre 2000 et 2025 et les multiplie par √2 à chaque tranche : 48, puis 68,
-            // puis 96 GtCO₂/an, contre ~41 aujourd'hui. Cumul 2025→2100 = 5306 GtCO₂, c'est-à-dire
-            // l'ordre de grandeur de SSP5-8.5 (~5600, AR6 WG1) que le commentaire ci-dessus cite comme
-            // référence sans qu'aucune branche n'y menait.
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1202e12 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1700e12 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🐖': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2404e12 } },
+            // 🪾 : le double du bidon, tranche par tranche. ⛽ et 🛢 décroissent toutes deux après 2050 ;
+            // celle-ci vaut exactement 2 × 🛢 à chaque clic — 36, 24 puis 14 centaines de GtCO₂, soit
+            // 144, 96 puis 56 GtCO₂/an contre ~41 aujourd'hui. Cumul 2025→2100 = 7400 GtCO₂.
+            // Ce n'est pas une prévision : c'est la borne haute mécanique « on double le bidon ».
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 36e14 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 24e14 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 14e14 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
@@ -1440,6 +1443,8 @@ window.BENCH_LIT_BY_EPOCH_ID = {
     '🛖': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
     '🚂': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
     // 📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
+    // ⚠️ co2 [365, 375] est une grille AIR HUMIDE (le chiffre que sort le modèle), pas les ppm NOAA qui sont en air SEC.
+    //    Conversion et vérif : atmosphere/calculations_atm.js, bloc « AIR SEC vs AIR HUMIDE ».
     '📱': { tC: [14.5, 15.5], co2: [365, 375], ch4: [1.70, 1.85], h2oVap: [1.0, 1.2] }
 };
 

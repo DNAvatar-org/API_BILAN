@@ -157,6 +157,29 @@ function calculatePressureAtm() {
 // FONCTION PRINCIPALE : CALCULER COMPOSITION DEPUIS OBJET AVEC LOGOS
 // ============================================================================
 
+// ─── AIR SEC vs AIR HUMIDE — à lire avant toute comparaison à NOAA/Mauna Loa ──────────────
+// 🍰🫧🏭 (et 🍰🫧🐄, 🍰🫧🫁, 🍰🫧💨) sont des fractions MASSIQUES d'air HUMIDE : le dénominateur
+// ⚖️🫧 contient la vapeur (renormalisation après calculateWaterPartition). Converties en molaire
+// par × 🧪/M_CO2, elles donnent donc une fraction molaire HUMIDE.
+//
+// NOAA, Mauna Loa, GCB, toute la littérature CO₂ publient en fraction molaire d'air SEC.
+// Les deux diffèrent de la fraction molaire de vapeur (≈ 1,06 % sur Terre moderne) :
+//
+//     ppm_sec = ppm_humide / (1 − x_H2O)     avec x_H2O = 🍰🫧💧 × 🧪 / M_H2O
+//
+// Vérifié 2026-09-20 sur 📱 (bench headless, 2000 spectraux) :
+//     an 2000 : modèle 365,0 humide → 368,9 sec   (NOAA 369,5 — reste −0,6)
+//     an 2025 : modèle 419,2 humide → 423,9 sec   (NOAA 424,6 — reste −0,7)
+// Les masses de config (⚖️🏭 = 2,887e15 kg) et les puits CARBON_SINKS sont donc justes :
+// l'écart apparent de ~4 ppm qu'on croyait voir n'était que cette conversion manquante.
+// Le résidu de −0,6/−0,7 ppm reste non expliqué (composition N₂/O₂ sans argon ? masses molaires ?).
+//
+// ⚠️ NE PAS « corriger » la physique pour ça : le transfert radiatif consomme n_CO2 = n_air × 🍰🫧🏭,
+// c'est-à-dire la densité RÉELLE de molécules dans l'air réel, humide. C'est la comparaison qui
+// doit convertir, pas le modèle. Concerne : bench (epoch_bench_format.js), affichage app,
+// et BENCH_LIT_BY_EPOCH_ID['📱'].co2 dont la grille [365, 375] a été posée sur le chiffre humide.
+// ──────────────────────────────────────────────────────────────────────────────────────────
+
 //Calcule la composition atmosphérique depuis DATA (met à jour DATA['🫧'])
 function calculateAtmosphereComposition() {
     const DATA = window.DATA;
