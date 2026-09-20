@@ -474,13 +474,39 @@
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-biosphere">6. Biosphère, végétation &amp; albédo terrestre</h2>
 
-<!-- TODO Sonnet : compléter cette section (Scheffer, Berner GEOCARB, Kleidon…). -->
+<article class="ref" id="kleidonFraedrichHeimann2000" data-tags="biosphere vegetation albedo land-surface climate-model">
+    <div class="cite-key">[kleidonFraedrichHeimann2000]</div>
+    <div class="authors">Kleidon, A., Fraedrich, K. &amp; Heimann, M.</div>
+    <div class="title">A green planet versus a desert world: Estimating the maximum effect of vegetation on the land surface climate</div>
+    <div class="venue">Climatic Change, 44(4):471–493 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.1023/A:1005559518889">10.1023/A:1005559518889</a></div>
+    <div class="used-in">Borne l'effet maximal de la végétation sur le climat de surface (albédo, évapotranspiration) → justifie l'amplitude du gate <code>EPOCH['🌱']</code>. <code>calculations_albedo.js</code> (<code>forest_potential</code>).</div>
+</article>
+
+<article class="ref" id="schefferHolmgren2005" data-tags="biosphere vegetation bistability feedback water-cycle">
+    <div class="cite-key">[schefferHolmgren2005]</div>
+    <div class="authors">Scheffer, M., Holmgren, M., Brovkin, V. &amp; Claussen, M.</div>
+    <div class="title">Synergy between small- and large-scale feedbacks of vegetation on the water cycle</div>
+    <div class="venue">Global Change Biology, 11(7):1003–1012 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1111/j.1365-2486.2005.00962.x">10.1111/j.1365-2486.2005.00962.x</a></div>
+    <div class="used-in">Rétroaction végétation-précipitation à seuil (bistabilité forêt/désert) → cadre conceptuel du gate <code>EPOCH['🌱']</code> comme fraction de terres pouvant porter une végétation stable. <code>calculations_albedo.js</code> (<code>forest_potential</code>, <code>temp_suitability</code>).</div>
+</article>
+
+<article class="ref" id="bernerKothavala2001-biosphere" data-tags="biosphere weathering co2 geocarb cross-reference">
+    <div class="cite-key">[bernerKothavala2001]</div>
+    <div class="authors">Berner, R. A. &amp; Kothavala, Z.</div>
+    <div class="title">GEOCARB III: A revised model of atmospheric CO₂ over Phanerozoic time</div>
+    <div class="venue">American Journal of Science, 301(2):182–204 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.2475/ajs.301.2.182">10.2475/ajs.301.2.182</a></div>
+    <div class="used-in">Voir <a href="#bernerKothavala2001">entrée complète §7</a> : altération silicatée accélérée par la végétation terrestre (forêts Dévonien/Carbonifère) → couplage <code>EPOCH['🌱']</code> ↔ <code>EPOCH['🌊🏭']</code> entre <code>calculations_albedo.js</code> et <code>calculations_co2.js</code>.</div>
+</article>
+
 <article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
     <div class="cite-key">[beerling2007]</div>
     <div class="authors">Beerling, D. J.</div>
     <div class="title">The Emerald Planet: How plants changed Earth's history</div>
     <div class="venue">Oxford University Press (2007)</div>
-    <div class="doi"><span class="todo">TODO Sonnet : ISBN</span></div>
+    <div class="doi">ISBN 978-0-19-280602-4</div>
     <div class="used-in"><code>configTimeline.js</code> (<code>'🌱'</code> par époque).</div>
 </article>
 
