@@ -204,6 +204,10 @@
 // - v1.2.8: commentaire 🦣 sans mention erronée « Crétacé » (🌿 = Paléozoïque)
 // - v1.2.9: ❄️ Quaternaire (▶ 2 Ma) — calotte arctique / cycles glaciaires ; entre 🏔 et 🚂
 // - v1.3.0: 🚂 (Industriel / 1800) retiré du tableau timeline (frise ❄️ → 📱) ; config physique 1800 référencée ailleurs si besoin
+// - v1.4.94: 📱 🕰 tranche 2000 — émissions 850e12 → 973e12 kg CO₂, le cumul MESURÉ 2000-2024 du Global
+//   Carbon Budget (2751,5 − 1778,1 GtCO₂). Les 850 venaient du bas d'une fourchette estimée au jugé et
+//   compensaient des puits trop faibles. Seule la tranche du passé change : 2025/2050/2075 restent des
+//   scénarios, ils ne se mesurent pas. 2025 : 420,5 → 428,3 ppm d'air sec (mesuré 424,6).
 // - v1.4.93: CARBON_SINKS — puits terrestre en 3 mécanismes (fertilisation pondérée par l'âge des
 //   peuplements, dépôt d'azote, repousse héritée), un chiffre publié pour chacun. landBeta unique
 //   remplacé par landBetaYoung/landBetaMature/landYoungFraction0. Terres 2025 : 21,9 % → 28,6 %
@@ -1359,14 +1363,19 @@ const timeline = [
         // 🔺⚖️🏭 en kg de CO₂ émis sur la tranche de 25 ans (1 Gt = 1e12 kg ; affichage events.js = kg/1e12).
         // [v1.4.80] ×1000 : les valeurs étaient en « N·1e9 » (850e9 kg = 0,85 Gt) → aucun effet climatique.
         // Refs : Friedlingstein et al. 2023 ESSD 15:5301 (Global Carbon Budget) : fossile+usage des sols ≈ 40 GtCO₂/an
-        //   → 2000–2025 ≈ 850–1000 GtCO₂ ; 1 ppm CO₂ ≈ 7,8 GtCO₂ ; fraction aéroportée ≈ 44 % (≈ +55 ppm, 369→424 ppm NOAA).
+        //   → 2000–2025 = 973 GtCO₂ MESURÉS, pas une fourchette : cumul avec usage des sols du Global Carbon
+        //   Budget, 2751,5 − 1778,1 GtCO₂ entre fin 1999 et fin 2024 (Friedlingstein et al. 2026 ESSD 18:3211,
+        //   série cumulée diffusée par Our World in Data). 1 ppm CO₂ ≈ 7,8 GtCO₂ ; aéroportée mesurée ≈ 44 %
+        //   (≈ +55 ppm, 369,5 → 424,6 ppm NOAA, en air SEC — cf. bloc « AIR SEC vs AIR HUMIDE »).
+        //   ⚠️ Les 850e12 d'avant (bas d'une fourchette « 850–1000 » notée au jugé) compensaient par en dessous
+        //   des puits alors trop faibles : 2025 tombait juste pour deux erreurs qui s'annulaient.
         //   ⛽ ≈ émissions stabilisées/décroissantes (SSP2-4.5 : ~36 → 14 GtCO₂/an) ; 🛢 ≈ doublement (SSP5-8.5 : ~70 GtCO₂/an).
         '🕰': {
             // 🌙 CARTE DE NUIT superposée à la texture de jour : les lumières des villes n'apparaissent que sur
             // la face à l'ombre, EN MÊME TEMPS que le jour (pas d'alternance). Vaut pour toute l'époque (≥ 2000).
             // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
             '🌙': 'fonds/_002000n.png',
-            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 850e12 } }, // +850 GtCO₂ (2000–2025)
+            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 973e12 } }, // +973 GtCO₂ MESURÉS (2000–2024, GCB cumulé)
             // 🪾 : le double du bidon, tranche par tranche. ⛽ et 🛢 décroissent toutes deux après 2050 ;
             // celle-ci vaut exactement 2 × 🛢 à chaque clic — 36, 24 puis 14 centaines de GtCO₂, soit
             // 144, 96 puis 56 GtCO₂/an contre ~41 aujourd'hui. Cumul 2025→2100 = 7400 GtCO₂.
