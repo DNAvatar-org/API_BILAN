@@ -1,8 +1,11 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.10
+// Version 1.3.11
 // Date: [April 25, 2026] [14:00 UTC+1]
 // logs :
+// - v1.3.11: SULFATE_BOOST_MAX sorti du barycentre (fixed: 0.3125 = sa valeur effective à 45 %).
+//   Audit des 7 cibles CLOUD_SW/RADIATIVE : une plage n'est un barycentre légitime que si c'est une
+//   vraie incertitude. Celle-ci était une borne numérique de sécurité, de l'aveu de sa propre source.
 // - v1.3.10: RADIATIVE.factorTropopause — baryGroup retiré (fixe par CONFIG_COMPUTE.radiativeFactorTropopauseFixed, tuning v1.0.18).
 // - v1.3.9: RADIATIVE.factorTropopause — plage resserrée 0 % → 1,03 ; 100 % → 1,00 (moins violente que 1,05–1,0) ; défaut 1,03.
 // - v1.3.8: RADIATIVE.factorTropopause (baryGroup SCIENCE) — 0 % → 1,05 ; 100 % → 1,0 ; défaut doc 1,03 (~40 % ATM avec cette pente). Hauteur radiative RT/Mg × facteur (calculations_atm).
@@ -91,11 +94,18 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'CLOUD_SW',
             key: 'SULFATE_BOOST_MAX',
+            // SORTI DU BARYCENTRE (v1.3.11) — ce n'était pas une incertitude scientifique.
+            // Sa propre source le dit : « borne numérique de sécurité ». Un plafond anti-emballement
+            // n'a pas de fourchette de littérature à interpoler ; le faire varier avec la jauge
+            // « flou scientifique » faisait bouger un garde-fou comme si c'était de la physique.
+            // Figé à sa valeur effective au barycentre par défaut (45 %), donc aucun changement de
+            // résultat. min/max conservés pour mémoire de la plage d'où il sortait.
+            fixed: 0.3125,
             min: 0.20,
             max: 0.45,
             default: 0.35,
             unit: 'ratio',
-            note: 'plafond du boost sulfate',
+            note: 'plafond du boost sulfate — borne numérique FIXE, hors barycentre',
             source: 'Borne numerique de securite (evite emballement du proxy)',
             effect: 'negative',
             biblio_ref: 'SULFATE_BOOST_MAX'
