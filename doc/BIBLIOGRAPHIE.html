@@ -718,6 +718,78 @@
     <div class="used-in">2001–2010 : 0,85 (0,66–0,96) GtC/an de puits en forêt primaire intacte, et 1,30 (1,03–1,96) GtC/an dans les peuplements en repousse après perturbation passée. Troisième mécanisme du puits terrestre — héritage de la déforestation, indépendant du CO₂, et point d'accroche naturel des futurs boutons de déforestation. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
 </article>
 
+<article class="ref" id="ryan1997" data-tags="land-sink forest stand-age npp decline">
+    <div class="cite-key">[ryan1997]</div>
+    <div class="authors">Ryan, M. G., Binkley, D. &amp; Fownes, J. H.</div>
+    <div class="title">Age-related decline in forest productivity: pattern and process</div>
+    <div class="venue">Advances in Ecological Research, 27:213–262 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/S0065-2504(08)60009-4">10.1016/S0065-2504(08)60009-4</a></div>
+    <div class="used-in">Le déclin de la production ligneuse après fermeture du couvert est le comportement normal d'un peuplement équienne — c'est le travail fondateur sur la question. Avec [tang2014], fixe la fenêtre « jeune » (forte réponse au CO₂) du puits terrestre. <code>land/sinks_land.js</code>.</div>
+</article>
+
+<article class="ref" id="tang2014" data-tags="land-sink forest stand-age gpp respiration observation">
+    <div class="cite-key">[tang2014]</div>
+    <div class="authors">Tang, J. et al.</div>
+    <div class="title">Steeper declines in forest photosynthesis than respiration explain age-driven decreases in forest growth</div>
+    <div class="venue">PNAS, 111(24):8856–8860 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1320761111">10.1073/pnas.1320761111</a></div>
+    <div class="used-in">Généralise Ryan 1997 sur un grand jeu de données : la NPP forestière culmine vers 10–40 ans puis redescend, la photosynthèse déclinant plus vite que la respiration. → fenêtre « jeune » ≈ 30 ans dans le puits terrestre. <code>land/sinks_land.js</code>.</div>
+</article>
+
+<article class="ref" id="jiang2020" data-tags="land-sink face mature-forest co2-response experiment">
+    <div class="cite-key">[jiang2020]</div>
+    <div class="authors">Jiang, M. et al.</div>
+    <div class="title">The fate of carbon in a mature forest under carbon dioxide enrichment</div>
+    <div class="venue">Nature, 580:227–231 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/s41586-020-2128-9">10.1038/s41586-020-2128-9</a></div>
+    <div class="used-in">EucFACE : forêt d'eucalyptus MATURE sous CO₂ enrichi — pas d'augmentation de biomasse, le carbone supplémentaire repart par la respiration du sol. C'est la contre-mesure de [norby2005] et la raison d'un β distinct pour les peuplements matures (β_mature ≈ 0,15 contre 0,605 pour les jeunes). <code>land/sinks_land.js</code>.</div>
+</article>
+
+<article class="ref" id="korner2005" data-tags="land-sink face mature-forest co2-response experiment">
+    <div class="cite-key">[korner2005]</div>
+    <div class="authors">Körner, C. et al.</div>
+    <div class="title">Carbon flux and growth in mature deciduous forest trees exposed to elevated CO₂</div>
+    <div class="venue">Science, 309:1360–1362 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1113977">10.1126/science.1113977</a></div>
+    <div class="used-in">Web-FACE : feuillus matures (~100 ans) sous CO₂ enrichi, pas d'effet soutenu sur la croissance. Deuxième appui expérimental du β_mature faible, indépendant d'EucFACE. <code>land/sinks_land.js</code>.</div>
+</article>
+
+<article class="ref" id="poulter2019gfad" data-tags="land-sink forest stand-age dataset observation">
+    <div class="cite-key">[poulter2019gfad]</div>
+    <div class="authors">Poulter, B. et al.</div>
+    <div class="title">The global forest age dataset and its uncertainties (GFADv1.1)</div>
+    <div class="venue">PANGAEA (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1594/PANGAEA.897392">10.1594/PANGAEA.897392</a></div>
+    <div class="used-in">Distribution mondiale de l'âge des peuplements par classes de 10 ans jusqu'à 140+ ans, construite sur les inventaires forestiers nationaux. Source de la fraction initiale de forêt « jeune » en l'an 2000. ⚠️ À télécharger : la valeur n'est pas encore dans la config. <code>land/sinks_land.js</code>.</div>
+</article>
+
+<article class="ref" id="myhre1998" data-tags="radiative-forcing co2 line-by-line validation">
+    <div class="cite-key">[myhre1998]</div>
+    <div class="authors">Myhre, G., Highwood, E. J., Shine, K. P. &amp; Stordal, F.</div>
+    <div class="title">New estimates of radiative forcing due to well mixed greenhouse gases</div>
+    <div class="venue">Geophysical Research Letters, 25(14):2715–2718 (1998)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/98GL01908">10.1029/98GL01908</a></div>
+    <div class="used-in">ΔF = 5,35·ln(C/C₀), soit 3,7 W/m² pour un doublement du CO₂ (ajusté stratosphère). Déclaré dans <code>climate.js</code> comme « affichage uniquement, pas de calcul » : le modèle ne s'est donc jamais comparé à cette valeur. Mesure au banc 2026-09-20 : 2,04 W/m² au sommet de l'atmosphère (instantané, sans ajustement stratosphérique). ⚠️ ÉCART OUVERT.</div>
+</article>
+
+<article class="ref" id="dessler2013" data-tags="water-vapor feedback satellite airs observation">
+    <div class="cite-key">[dessler2013]</div>
+    <div class="authors">Dessler, A. E.</div>
+    <div class="title">Observations of climate feedbacks over 2000–2010 and comparisons to climate models</div>
+    <div class="venue">Journal of Climate, 26(1):333–342 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00640.1">10.1175/JCLI-D-11-00640.1</a></div>
+    <div class="used-in">Rétroaction vapeur d'eau mesurée par satellite (AIRS) ≈ +1,8 W/m²/K. Mesure au banc 2026-09-20 sur 📱 : le modèle en délivre −0,28, soit six fois trop peu, alors que la masse de vapeur répond correctement (+6,5 %/K, Clausius-Clapeyron exact). ⚠️ ÉCART OUVERT, premier des TODO : l'écart est dans le transfert radiatif H₂O, pas dans le cycle de l'eau.</div>
+</article>
+
+<article class="ref" id="loeb2021" data-tags="ceres toa-imbalance satellite observation ocean-heat">
+    <div class="cite-key">[loeb2021]</div>
+    <div class="authors">Loeb, N. G. et al.</div>
+    <div class="title">Satellite and ocean data reveal marked increase in Earth's heating rate</div>
+    <div class="venue">Geophysical Research Letters, 48:e2021GL093047 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2021GL093047">10.1029/2021GL093047</a></div>
+    <div class="used-in">CERES : déséquilibre radiatif mesuré au sommet de l'atmosphère, +0,5 W/m² (2005) → +1,0 W/m² (2019), confirmé par le contenu thermique océanique (flotteurs Argo). C'est LA grandeur que l'appli calcule, et elle dit que la Terre n'est PAS à l'équilibre : l'appli fait converger 🔺🧲 → 0, donc elle ne sait produire que des températures d'équilibre. ⚠️ TODO inertie thermique de l'océan.</div>
+</article>
+
 <article class="ref" id="walkerHaysKasting1981" data-tags="co2 carbon-cycle weathering urey silicate negative-feedback">
     <div class="cite-key">[walkerHaysKasting1981]</div>
     <div class="authors">Walker, J. C. G., Hays, P. B. &amp; Kasting, J. F.</div>
