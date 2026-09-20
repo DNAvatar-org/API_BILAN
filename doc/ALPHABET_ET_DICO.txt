@@ -191,7 +191,7 @@ PARTIE 2: DICO (CLÉS ET DESCRIPTIONS)
    TSI moderne = 1361 W/m² (Kopp & Lean 2011, TSIS-1)
    Confirmé par Bahcall et al. (2001) ApJ 555:990
    🔒 Hyperbolique — NE PAS interpoler linéairement.
-   Calculée dynamiquement par goughLuminosity() dans compute.js / physicsAll.js.
+   Calculée dynamiquement par goughLuminosity() dans API_BILAN/convergence/compute.js.
 
 🌕 NOYAU:
 🧲🌕  Flux géothermique
@@ -294,7 +294,7 @@ PARTIE 3: FORMULES DE CALCUL
 🍰🪩🧊 = ice_coverage = min(0.9, 🍰💧🧊 × 0.9)
 🍰🪩⛅ = clamp((0.19 + 0.11×☁️) × cloud_optical_efficiency, 0, 0.75)
            cloud_optical_efficiency = (1.10 + 0.45×(ccn_ratio-1)) × pressure_factor × oxidation_soft_factor × temp_factor
-           Fraction optique moyenne vue par le Soleil (voir doc SCIE_CONVERGENCE_DOC.txt § fine-tuning nuages)
+           Fraction optique moyenne vue par le Soleil (bornes : API_BILAN/config/fine_tuning_bounds.js, groupe CLOUD_SW)
 
 🗻 GÉOLOGIE:
 🍰🗻🌊 = Surface océanique potentielle (bassin océanique) = f(époque)
@@ -337,7 +337,7 @@ NOTES IMPORTANTES
 
 - Algorithme de convergence: la vue Scie (API_BILAN/convergence/calculations_flux.js) utilise
   Search puis Dicho avec cycles eau/albédo, pas seulement une dichotomie
-  classique. Voir doc/API/ALGORITHME_CALCULS.md, doc/SCIE_CONVERGENCE_DOC.txt et html/Algorithmes.html.
+  classique. Voir ALGORITHME_CALCULS.md et Algorithmes.html, tous deux dans API_BILAN/doc/.
 
 ================================================================================
 FIN DU FICHIER

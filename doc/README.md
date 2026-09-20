@@ -15,8 +15,20 @@ Documentation technique du modèle et de l'API (algorithmes, convergence, formul
 | **[PLAN_HITRAN_CROSS_SECTIONS.md](PLAN_HITRAN_CROSS_SECTIONS.md)** | Plan : remplacer formules empiriques par sections efficaces HITRAN (σ(λ,T,P)). |
 | **[REFS_LITTERATURE_ET_TUNING.md](REFS_LITTERATURE_ET_TUNING.md)** | Fichiers de référence : littérature vs config, bornes du tuning. |
 
+## Pages HTML
+
+| Page | Description |
+|------|-------------|
+| **[Algorithmes.html](Algorithmes.html)** | Les deux algorithmes (dichotomie, transfert radiatif) : localisation dans le code, grilles, complexité. |
+| **[equation.html](equation.html)** | Les équations du bilan, présentées en colonnes. |
+| **[BIBLIOGRAPHIE.html](BIBLIOGRAPHIE.html)** | Références, avec pour chacune où elle est utilisée dans le code. |
+| **jgrd11691.html** | Article archivé (copie locale). |
+
+Les pages qui *s'exécutent* ne sont pas ici mais dans `API_BILAN/demo/` : banc d'époques, vue
+scientifique, alphabet, dictionnaire. `doc/` définit, `demo/` fait tourner.
+
 ## Liens utiles
 
 - Config époques : `API_BILAN/config/configTimeline.js`
-- Tuning : `API_BILAN/config/model_tuning.js`, `fine_tuning_bounds.js`
+- Tuning : `API_BILAN/config/model_tuning.js`, `fine_tuning_bounds.js`, `model_tuning_biblio.js`
 - Structure des fichiers : `API_BILAN/STRUCTURE.md`

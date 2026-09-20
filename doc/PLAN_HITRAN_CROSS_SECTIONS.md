@@ -1,8 +1,8 @@
 # Plan : sections efficaces HITRAN (vraies données, pas interpolation)
 
-**Objectif** : Remplacer les formules empiriques (gaussiennes) dans `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` par des sections efficaces calculées à partir des **données HITRAN** (lignes + Q(T), S(T), γ(T,P), Voigt), selon la méthode décrite dans `doc/HITRAN.txt`.
+**Objectif** : Remplacer les formules empiriques (gaussiennes) dans `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` par des sections efficaces calculées à partir des **données HITRAN** (lignes + Q(T), S(T), γ(T,P), Voigt), selon la méthode décrite dans `CO2/doc/hitran/HITRAN.txt`.
 
-**Référence** : `doc/HITRAN.txt` (formules S(T), γ(T,P), lineshape Voigt, conseils implémentation).
+**Référence** : `CO2/doc/hitran/HITRAN.txt` (formules S(T), γ(T,P), lineshape Voigt, conseils implémentation).
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### Phase 1 : Données (Python + hitran-api)
 
-1. **Script Python** (ex. `scripts/hitran_fetch_lines.py` ou `doc/scripts/`) :
+1. **Script Python** (`CO2/scripts/hitran_fetch_lines.py`) :
    - Utiliser **HAPI** (`hitran-api`) pour récupérer les lignes CO₂, H₂O, CH₄ dans les **bandes utiles** (LW 4–25 µm ≈ 400–2500 cm⁻¹) :
      - CO₂ : ~500–800 cm⁻¹ (15 µm)
      - H₂O : ~500–700 cm⁻¹ (17 µm), ~1500–1800 cm⁻¹ (6,3 µm)
@@ -31,12 +31,12 @@
 
 3. **Chargement des lignes** : Au chargement de l’app (ou du module calcul), charger les JSON de lignes (CO2, H2O, CH4). Une seule fois, pas à chaque pas radiatif.
 
-4. **Fonctions de scaling** (dans `API_BILAN/physics/physics.js` ou un module dédié `hitran_utils.js`) :
+4. **Fonctions de scaling** — écrites depuis dans `API_BILAN/spectroscopy/hitran.js` (le module `hitran_utils.js` envisagé ici n'a jamais vu le jour) :
    - **Q(T)** : fonction de partition (lecture table ou formule).
    - **S(T)** : intensité de ligne selon HITRAN.txt (S(T_ref), Q(T), E'', ν_ij, c₂).
    - **γ(T, P)** : Lorentz total = P × [X_self γ_self(T) + X_air γ_air(T)], avec γ(T) = γ(T_ref) × (T_ref/T)^n.
    - **γ_D(ν, T, M)** : Doppler (HITRAN.txt).
-   - **Voigt(Δν, γ_L, γ_D)** : lineshape (lib JS type numeric.js ou implémentation Voigt/Faddeeva).
+   - **Voigt(Δν, γ_L, γ_D)** : lineshape — implémentation maison dans `hitran.js`, sans dépendance externe.
 
 5. **Nouvelles fonctions de section efficace** :
    - `crossSectionCO2FromLines(λ, T, P)` : pour chaque ligne CO₂ dans une fenêtre ±(5–10 γ) autour de ν = 1/λ, calculer S(T), γ_L, γ_D, Voigt, sommer. Retourner σ(λ, T, P) en m²/molécule (ou unité cohérente avec l’actuel).
@@ -62,18 +62,18 @@
 
 | Fichier | Rôle |
 |---------|------|
-| `doc/HITRAN.txt` | Méthode (Q, S, γ, Voigt, conseils). |
+| `CO2/doc/hitran/HITRAN.txt` | Méthode (Q, S, γ, Voigt, conseils). |
 | `API_BILAN/physics/physics.js` | Constantes actuelles (fallback). |
 | `API_BILAN/radiative/calculations.js` | `crossSectionCO2`, `crossSectionH2O`, `crossSectionCH4` ; boucles qui utilisent les sections efficaces ; `getSpectralResultFromDATA`. |
-| `scripts/hitran_fetch_lines.py` | Fetch HAPI, export lignes (JSON/CSV). |
-| `API_BILAN/spectroscopy/hitran.js` | Q(T), S(T), γ(T,P), γ_D, Voigt (réf. doc/HITRAN.txt). |
+| `CO2/scripts/hitran_fetch_lines.py` | Fetch HAPI, export lignes (JSON/CSV). |
+| `API_BILAN/spectroscopy/hitran.js` | Q(T), S(T), γ(T,P), γ_D, Voigt (réf. CO2/doc/hitran/HITRAN.txt). |
 | `API_BILAN/data/hitran_lines_*.js` | Données de lignes (CO₂, H₂O, CH₄). |
 
 ---
 
 ## 4. TODO (suivi)
 
-- [x] **HITRAN-1** : Script Python `scripts/hitran_fetch_lines.py` (hitran-api) : fetch lignes CO₂, H₂O, CH₄, export `static/data/hitran_lines_CO2.json`, `hitran_lines_H2O.json`, `hitran_lines_CH4.json` (ν, sw, elower, gamma_air, gamma_self, n_air, delta_air).
+- [x] **HITRAN-1** : Script Python `CO2/scripts/hitran_fetch_lines.py` (hitran-api) : fetch lignes CO₂, H₂O, CH₄, livrées aujourd'hui en `API_BILAN/data/hitran_lines_{CO2,H2O,CH4}.js` (ν, sw, elower, gamma_air, gamma_self, n_air, delta_air).
 - [ ] **HITRAN-2** : Implémenter en JS : Q(T), S(T), γ(T,P), γ_D, Voigt (réf. HITRAN.txt).
 - [x] **HITRAN-3** : `crossSectionCO2/H2O/CH4FromLines(λ, T, P)` dans hitran.js, chargement via `hitran_lines_*.js` (window.HITRAN_LINES_*), `crossSectionCO2/H2O/CH4` dans calculations.js utilisent HITRAN à T_ref/P_ref.
 - [ ] **HITRAN-4** : Idem CH₄ (lignes + export + JS).

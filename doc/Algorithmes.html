@@ -25,7 +25,8 @@
     <div class="container" style="display: block; grid-template-columns: none; gap: 0;">
         <div class="algorithms-sections-wrapper">
                 <div class="algorithm-section" style="width: fit-content;">
-                    <h4 class="algorithm-subtitle">Paramètres d'entrée (main.js)</h4>
+                    <h4 class="algorithm-subtitle">Paramètres d'entrée (<code>CO2/static/ui/main.js</code>)</h4>
+                    <p style="font-size:0.9em;opacity:0.75;margin:0 0 8px;">Cette section décrit l'application, pas l'API : <code>plotData</code> et <code>CO2_STATES</code> vivent côté CO2. L'API, elle, se pilote par <code>DATA</code> et la ligne d'époque de <code>API_BILAN/config/configTimeline.js</code>.</p>
                     <div class="algorithm-params">
                         <div class="param-item"><strong>plotData</strong> : Objet principal de données</div>
                         <ul class="param-list">
@@ -75,7 +76,7 @@
                                     <li>Si non convergé : ajustement T₀ (dichotomie classique)</li>
                                     <li>Affichage progressif : displayDichotomyStep(iteration=i)</li>
                                 </ul>
-                                <li><strong>2.4 - Convergence</strong> : Arrêt si |différence| < 0.1 W/m² ou max_iterations (20)</li>
+                                <li><strong>2.4 - Convergence</strong> : arrêt si |différence| &lt; <code>tolMinWm2</code> = 0,10 W/m², ou au plafond <code>maxRadiatifIters</code> = 101 (configTimeline.js)</li>
                             </ul>
                         </div>
                         <div class="phase-item">
@@ -141,7 +142,7 @@
                                     <li>Si flux_total < flux_solaire : T₀ trop basse → T₀_min = T₀_test</li>
                                 </ul>
                             </li>
-                            <li><strong>Arrêt</strong> : Convergence atteinte OU max_iterations = 20</li>
+                            <li><strong>Arrêt</strong> : convergence atteinte, ou plafond <code>maxRadiatifIters</code> = 101</li>
                         </ol>
                         <p><strong>Équation d'équilibre</strong> : flux_total(T₀) = flux_solaire_absorbé(T₀)</p>
                         <p>Où flux_total inclut : émission IR, absorption CO₂/H₂O, rétroactions albedo/nuages</p>
@@ -164,7 +165,8 @@
                 <ul>
                     <li><strong>Fichier</strong> : <code>API_BILAN/convergence/calculations_flux.js</code> ou <code>API_BILAN/radiative/calculations.js</code></li>
                     <li><strong>Fonctions</strong> : <code>computeRadiativeTransfer(callback)</code> / <code>simulateRadiativeTransfer()</code></li>
-                    <li><strong>Boucle principale</strong> : à chaque itération, appel à <code>calculateFluxForT0()</code> ; convergence en 10–12 itérations (max 20).</li>
+                    <li><strong>Boucle principale</strong> : à chaque itération, appel à <code>calculateFluxForT0()</code>.</li>
+                    <li><strong>Plafonds</strong> : deux boucles distinctes, toutes deux dans <code>API_BILAN/config/configTimeline.js</code>. <code>maxRadiatifIters</code> = 101 borne la boucle interne Search/Dicho de <code>computeRadiativeTransfer</code> (c'est le « 🌈 calcul radiatif N » du panneau) ; <code>maxDichotomyIterations</code> = 10 borne la boucle externe de <code>simulateRadiativeTransfer</code>. En pratique une époque converge en une dizaine de pas (📱 moderne : 9 ; 🦠 Archéen : 39), très loin du plafond.</li>
                 </ul>
                 <h3>Description</h3>
                 <p>Méthode de dichotomie (bisection) pour trouver T₀ telle que :</p>
@@ -179,14 +181,13 @@
                 <p><strong>En pratique</strong> :</p>
                 <ul>
                     <li>Intervalle initial : ±50K autour de T₀_initial</li>
-                    <li><code>max_iterations = 20</code> (limite fixe)</li>
-                    <li><strong>Complexité réelle</strong> : <strong>O(1)</strong> car limité à 20 itérations maximum</li>
+                    <li>Plafonds : <code>maxRadiatifIters</code> = 101 (boucle interne), <code>maxDichotomyIterations</code> = 10 (boucle externe)</li>
+                    <li><strong>Complexité réelle</strong> : <strong>O(1)</strong>, la boucle étant bornée</li>
                 </ul>
                 <h3>Nombre d'itérations</h3>
                 <ul>
-                    <li><strong>Minimum</strong> : ~5-7 itérations (convergence rapide)</li>
-                    <li><strong>Maximum</strong> : 20 itérations (limite fixe)</li>
-                    <li><strong>Moyenne</strong> : ~10-12 itérations</li>
+                    <li><strong>Plafond</strong> : 101 (<code>maxRadiatifIters</code>), jamais atteint en pratique</li>
+                    <li><strong>Observé</strong> : 9 pas pour 📱 moderne, 39 pour 🦠 Archéen, 2 pour ⚫ Corps Noir — le nombre suit l'écart entre la graine 🌡️🧮 et l'équilibre, pas l'époque</li>
                 </ul>
                 <hr style="border: none; border-top: 2px solid #e5e7eb; margin: 30px 0;">
                 <h2>2. Algorithme de Transfert Radiatif (Flux Réémis)</h2>
@@ -216,13 +217,13 @@
                     </tr>
                     <tr>
                         <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;"><code>z_max</code></td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">120,000 m</td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Altitude maximale</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">variable</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Sommet de l'atmosphère, lu par époque : <code>DATA['🫧']['📏🫧🧿'] × 1000</code>. Le 120 000 m n'est plus qu'un seuil : au-delà, la grille ajoute un régime exosphérique à 5 000 m de pas.</td>
                     </tr>
                     <tr style="background: #383838;">
                         <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;"><code>delta_z</code></td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">50 m</td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Pas d'altitude</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">30 m</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Pas dans la troposphère. La grille a trois régimes : troposphère 30 m, stratosphère <code>max(100, 30×5/precisionFactor)</code>, exosphère 5 000 m si <code>z_max</code> dépasse 120 km. Mesuré sur 📱 : 800 couches.</td>
                     </tr>
                     <tr>
                         <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;"><code>lambda_min</code></td>
@@ -236,14 +237,13 @@
                     </tr>
                     <tr>
                         <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;"><code>delta_lambda</code></td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">0.1 × 10⁻⁶ m</td>
-                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Pas de longueur d'onde</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">0.1 × 10⁻⁶ m (pas de base)</td>
+                        <td style="border: 1px solid rgba(255,255,255,0.2); padding: 12px;">Ce n'est plus un pas uniforme : la grille spectrale est <strong>adaptative</strong>, resserrée sur les régions d'absorption et lâche ailleurs. Mesuré sur 📱 : 2 000 longueurs d'onde, pas les 999 000 qu'un pas constant donnerait.</td>
                     </tr>
                 </table>
                 <h3>Complexité temporelle</h3>
-                <p><strong>O(n_z × n_λ) = O(2,400 × 999,000) ≈ O(2.4 × 10⁹)</strong></p>
-                <p><strong>Opérations totales par itération</strong> :</p>
-                <pre style="padding: 15px; border-radius: 5px; overflow-x: auto;"><code>N_ops = 2.4 × 10⁹ × 7 ≈ 1.68 × 10¹⁰ opérations</code></pre>
+                <p><strong>O(n_z × n_λ)</strong>, avec les deux grilles devenues adaptatives. Mesuré sur 📱 : <strong>800 × 2 000 = 1,6 × 10⁶</strong> couples par passe — trois ordres de grandeur sous le 2,4 × 10⁹ que donnait l'ancienne grille uniforme (2 400 couches de 50 m × 999 000 pas de 0,1 µm).</p>
+                <p>Et la passe n'est plus séquentielle : les tranches spectrales partent dans un pool de <code>navigator.hardwareConcurrency − 1</code> web workers (<code>API_BILAN/workers/worker_pool.js</code>), soit 9 sur une machine à 10 cœurs.</p>
                 <hr style="border: none; border-top: 2px solid #e5e7eb; margin: 30px 0;">
                 
                 
