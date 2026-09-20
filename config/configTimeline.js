@@ -1487,6 +1487,10 @@ window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 //  Vérification (pas un calage) : 2000→2025, +850 GtCO₂ → forêts ~25 %, océan ~24 %, atmosphère 369 → ~424 ppm
 //    (mesure NOAA 2025 ≈ 424 ppm ; puits mesurés GCB : océan ~26 %, terres ~30 %, Friedlingstein et al. 2023 ESSD 15:5301).
 window.CONFIG_COMPUTE.CARBON_SINKS = {
+    // Pas d'intégration des deux puits (années). L'événement dure 🔺⏳ ; advanceCarbonSinks le découpe
+    // en pas de stepYears, étale l'émission et relaxe pas à pas. 1 an = intégrale juste ; mettre 25
+    // reproduit l'ancien pas unique (le CO₂ de fin de tranche absorbé comme celui du début — faux).
+    stepYears: 1,
     oceanRevelleRef: 10,          // R à oceanRevelleRefPpm
     oceanRevelleRefPpm: 370,
     oceanRevelleSlopePerPpm: 0.014, // Egleston 2010 : R ≈ 10 (370 ppm) → ≈ 16 (800 ppm)

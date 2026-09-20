@@ -1,12 +1,19 @@
 // ============================================================================
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: En français, dans l'architecture, je suis le module de partition CO₂ (atmosphère ↔ océan) appelé par le cycle principal.
-// Version 1.2.5
+// Version 1.2.6
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 25, 2026]
 // Logs:
+// - v1.2.6: advanceCarbonSinks INTÈGRE À L'ANNÉE (CARBON_SINKS.stepYears = 1) au lieu d'un seul pas de Δt.
+//   Un clic de 25 ans versait la totalité de l'émission à l'instant zéro puis laissait les puits agir
+//   25 ans dessus : le CO₂ émis en 2024 avait autant de temps d'absorption que celui de 2000. Le pas
+//   annuel étale l'émission (émis/n par an) et relaxe d'un an à la fois — même équation, intégrale juste.
+//   Effet mesuré sur 2000→2025 (850 GtCO₂) : 423,9 → 438,1 ppm sec, océan 24,1 → 14,9 %, terres 25,3 → 21,4 %.
+//   Les 424 ppm d'avant tenaient donc sur l'erreur d'intégration. Recalage des puits sur les parts
+//   mesurées (océan 26 %, terres 30 %) et passage des émissions à 973 GtCO₂ : étapes suivantes.
 // - v1.2.5: advanceCarbonSinks(dt, émis) — puits océan (Henry/Revelle, relaxation τ) + forêts (fertilisation β ln) du CO₂ injecté.
 // - v1.2.4: après variation ⚖️🏭 (Henry) → COMPUTE.syncDryAtmosphereMassKg(DATA['⚖️']) — ⚖️🫧 = somme sèche (plus += delta).
 // - v1.2.3: miroir debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', …) (load, NO-OP, APPLY) → _logs/co2Partition.txt
@@ -165,8 +172,29 @@ function calculateCO2Partition() {
  * Puits de carbone du CO₂ INJECTÉ (📜🔺⚖️🏭 = E, kg CO₂) — appelé UNE fois par événement de durée dtYears.
  * État : O = 📜🌊🔺⚖️🏭 (absorbé océan), L = 📜🌳🔺⚖️🏭 (stocké forêts). Atmosphère = ⚖️🏭 époque + E − O − L (getMasses).
  * Paramètres et références : CONFIG_COMPUTE.CARBON_SINKS (configTimeline.js). Forêts puis océan, CO₂ milieu de pas.
+ *
+ * L'événement est INTÉGRÉ PAR PAS DE stepYears (1 an) : l'émission est étalée (émis/n par pas) et les deux
+ * puits relaxent d'un pas à la fois. Un pas unique de 25 ans versait tout à l'instant zéro puis laissait les
+ * puits agir 25 ans sur la totalité — le CO₂ de 2024 absorbé comme celui de 2000. Même équation, intégrale
+ * juste. L'appelant (events.js) a déjà ajouté emittedKg à 📜🔺⚖️🏭 : on repart donc du cumul d'AVANT le clic.
  */
 function advanceCarbonSinks(dtYears, emittedKg) {
+    const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
+    const P = window.DATA['📜'];
+    const nSteps = Math.max(1, Math.round(dtYears / CS.stepYears));
+    const dt = dtYears / nSteps;
+    const emitPerStep = emittedKg / nSteps;
+    const E_before = P['🔺⚖️🏭'] - emittedKg;        // cumul émis avant ce clic
+    for (let i = 0; i < nSteps; i++) {
+        advanceCarbonSinksStep(dt, E_before + (i + 1) * emitPerStep, emitPerStep);
+    }
+}
+
+/**
+ * Un pas d'intégration des puits. E_cum = cumul émis À LA FIN du pas (kg CO₂), emitStep = ce qu'a versé le pas.
+ * Ne touche pas à 📜🔺⚖️🏭 : seuls O (📜🌊🔺⚖️🏭) et L (📜🌳🔺⚖️🏭) avancent.
+ */
+function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     const DATA = window.DATA;
     const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
     const CONST = window.CONST;
@@ -175,7 +203,7 @@ function advanceCarbonSinks(dtYears, emittedKg) {
     const C0 = EPOCH['⚖️🏭'];                        // équilibre de l'époque (kg)
     const GTC_TO_KG_CO2 = 1e12 * CONST.M_CO2 / 0.012011;
     // CO₂ atmosphérique au MILIEU du pas (émission étalée sur dt)
-    const C_mid = C0 + P['🔺⚖️🏭'] - emittedKg / 2 - P['🌊🔺⚖️🏭'] - P['🌳🔺⚖️🏭'];
+    const C_mid = C0 + E_cum - emitStep / 2 - P['🌊🔺⚖️🏭'] - P['🌳🔺⚖️🏭'];
     // ppm via composition du dernier calcul (fraction massique × M_air / M_CO2)
     const ppmPerKg = (DATA['🫧']['🍰🫧🏭'] * 1e6 * DATA['🫧']['🧪'] / CONST.M_CO2) / DATA['⚖️']['⚖️🏭'];
     const ppm_mid = C_mid * ppmPerKg;
@@ -189,7 +217,7 @@ function advanceCarbonSinks(dtYears, emittedKg) {
     const R = CS.oceanRevelleRef + CS.oceanRevelleSlopePerPpm * (ppm_mid - CS.oceanRevelleRefPpm);
     const T = Math.max(271.15, DATA['🧮']['🧮🌡️']);
     const k = (window.CONFIG_COMPUTE.co2OceanRatioRef / R) * Math.exp(2400.0 * (1.0 / T - 1.0 / EPOCH['🌡️🧮']));
-    const O_eq = k / (1 + k) * (P['🔺⚖️🏭'] - P['🌳🔺⚖️🏭']);
+    const O_eq = k / (1 + k) * (E_cum - P['🌳🔺⚖️🏭']);
     P['🌊🔺⚖️🏭'] = O_eq + (P['🌊🔺⚖️🏭'] - O_eq) * Math.exp(-dtYears / CS.oceanTauYears);
 }
 
