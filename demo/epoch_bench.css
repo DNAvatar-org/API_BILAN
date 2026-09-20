@@ -1,0 +1,246 @@
+/* File: API_BILAN/demo/epoch_bench.css
+   Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
+   Version 1.0.0
+   Date: 2026-09-20
+   Copyright 2026 DNAvatar.org - Arnaud Maignan */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #d0d0d0; font-size: 13px; }
+
+/* Loader (aligné CO2/index + index-shell) */
+.app-loader {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 2147483647;
+    background: #0a0a0a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: auto;
+}
+.app-loader.hidden { display: none; }
+.app-loader-title {
+    color: #2a8e3e;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+.app-loader-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 720px;
+    width: 100%;
+    font-family: monospace;
+    font-size: 11px;
+    color: #888;
+    column-count: 2;
+    column-gap: 24px;
+}
+.app-loader-list li {
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+    break-inside: avoid;
+}
+.app-loader-list li.loaded {
+    background: rgba(0, 160, 0, 0.35);
+    color: #8fdf8f;
+}
+
+header { padding: 16px 20px 12px; border-bottom: 2px solid #333; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+header h1 { font-size: 18px; color: #eee; flex: 1 0 auto; }
+#btn-run {
+  background: #1a6e2e; color: #b0ffb0; border: 1px solid #2a8e3e; border-radius: 4px;
+  padding: 8px 20px; font-size: 14px; cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+}
+#btn-run:hover { background: #1f8535; }
+#btn-run:disabled { background: #222; color: #555; cursor: not-allowed; border-color: #333; }
+#progress-label { color: #888; font-size: 12px; }
+
+#progress-bar { height: 3px; background: #222; }
+#progress-fill { height: 100%; background: #2a8e3e; width: 0; transition: width 0.3s ease; }
+
+#report { overflow-x: visible; padding: 0; }
+
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+thead tr { background: #1a1a1a; position: sticky; top: 0; z-index: 10; }
+thead th {
+  padding: 8px 10px; text-align: left; color: #888; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #333;
+  white-space: nowrap;
+}
+thead th.num { text-align: right; }
+thead th.fit, td.fit {
+  width: fit-content;
+  max-width: max-content;
+  white-space: nowrap;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+thead th.cell-icon {
+  width: 36px;
+  min-width: 36px;
+  max-width: 40px;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 6px 4px;
+}
+
+tbody tr { border-bottom: 1px solid #1e1e1e; transition: background 0.1s; }
+tbody tr:hover { background: #161616; }
+tbody tr.running { background: #0a1a2a; }
+tbody tr.done-converged { background: #0a150a; }
+tbody tr.done-maxiter { background: #1a130a; }
+tbody tr.done-crash { background: #1a0a0a; }
+
+td { padding: 6px 10px; vertical-align: top; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono { font-family: 'Courier New', monospace; }
+
+.epoch-cell { display: flex; align-items: center; gap: 6px; }
+.epoch-logo { font-size: 18px; line-height: 1; flex-shrink: 0; }
+.epoch-name { color: #ccc; }
+.epoch-age { color: #666; font-size: 11px; }
+th.col-epoch, td.col-epoch {
+  max-width: 9rem;
+  width: 9rem;
+  box-sizing: border-box;
+}
+th.col-epoch { white-space: nowrap; }
+.col-epoch .epoch-cell { min-width: 0; }
+.col-epoch .epoch-cell > div { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.col-epoch .epoch-name,
+.col-epoch .epoch-age {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.status-ok   { color: #5dca5d; }
+.status-warn { color: #d4a520; }
+.status-err  { color: #ca5d5d; }
+.status-run  { color: #5da8ca; animation: pulse 1s infinite; }
+
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.delta-pos { color: #e07070; }
+.delta-neg { color: #70b0e0; }
+.delta-zero { color: #5dca5d; }
+
+.val-na { color: #444; }
+
+td.json-rad-path, td.json-conv-atm {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #9ab59a;
+  min-width: 200px;
+  max-width: 42vw;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  line-height: 1.45;
+}
+td.json-rad-path .bench-key, td.json-conv-atm .bench-key { color: #7a9a7a; }
+td.json-rad-path .bench-tpath { color: #b0c4e8; }
+td.json-rad-path .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.json-conv-atm .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.num.tinit-cell { white-space: normal; text-align: right; vertical-align: top; line-height: 1.35; }
+td.num.tinit-cell .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.json-conv-atm .bench-ircap { color: #c2b07a; }
+
+td.cell-icon {
+  width: 36px;
+  min-width: 36px;
+  max-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+.btn-copy-row {
+  background: transparent;
+  color: #8ab4c7;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 16px;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-copy-row:hover { color: #c5e8ff; background: rgba(80, 120, 160, 0.2); }
+
+/* Skip : même emplacement que 📋, uniquement sur la ligne « running » */
+.btn-skip-epoch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  min-height: 1.35rem;
+  padding: 0 3px;
+  font-size: 11px;
+  line-height: 1;
+  font-family: inherit;
+  cursor: pointer;
+  background: #3a3018;
+  color: #e8c868;
+  border: 1px solid #7a6820;
+  border-radius: 3px;
+}
+.btn-skip-epoch:hover { background: #4c4020; color: #f5e090; }
+
+details { margin: 0; }
+details summary { cursor: pointer; color: #555; font-size: 11px; list-style: none; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: '\25b8 '; }
+details[open] summary::before { content: '\25be '; }
+.detail-block { margin-top: 4px; background: #111; border: 1px solid #2a2a2a; border-radius: 3px; padding: 6px 8px; font-size: 11px; color: #888; line-height: 1.7; }
+.detail-block span { color: #aaa; }
+
+footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid #1e1e1e; margin-top: 8px; }
+
+/* Fine-tuning (miroir CO2/html/scie_compute.html, thème sombre) */
+.bench-ft-wrap {
+  flex: 1 1 280px;
+  min-width: 200px;
+  max-width: 100%;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #121212;
+}
+#bench-ft-title-slot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  color: #ccc;
+}
+#bench-ft-title-slot .bench-ft-btn {
+  background: #1e3a1e;
+  color: #9fdf9f;
+  border: 1px solid #2a8e3e;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#bench-ft-title-slot .bench-ft-btn:hover { background: #255525; }
+#bench-ft-title-slot .bench-ft-toggle { margin-left: auto; }
+#bench-ft-title-slot input[type="range"] { width: 100px; vertical-align: middle; }
+#bench-ft-content {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a2a;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #aaa;
+}
+#bench-ft-content .bench-ft-sec { margin-bottom: 10px; }
+#bench-ft-content .bench-ft-line { margin: 2px 0; padding-left: 2px; }
+#bench-ft-content strong { color: #c9c9c9; }

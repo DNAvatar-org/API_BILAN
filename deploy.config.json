@@ -97,6 +97,46 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/emoji-fonts.css"
     },
     {
+      "src": "demo/epoch_bench.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench.css"
+    },
+    {
+      "src": "demo/epoch_bench.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench.html"
+    },
+    {
+      "src": "demo/epoch_bench_boot.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_boot.js"
+    },
+    {
+      "src": "demo/epoch_bench_format.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_format.js"
+    },
+    {
+      "src": "demo/epoch_bench_host.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_host.js"
+    },
+    {
+      "src": "demo/epoch_bench_loader.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_loader.js"
+    },
+    {
+      "src": "demo/epoch_bench_main.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_main.js"
+    },
+    {
+      "src": "demo/epoch_bench_run.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_run.js"
+    },
+    {
+      "src": "demo/epoch_bench_table.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_table.js"
+    },
+    {
+      "src": "demo/epoch_bench_tuning.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench_tuning.js"
+    },
+    {
       "src": "demo/fonts/pics/big_impact.png",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/fonts/pics/big_impact.png"
     },
@@ -131,10 +171,6 @@
     {
       "src": "doc/algorithmes.css",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/algorithmes.css"
-    },
-    {
-      "src": "doc/epoch_bench.html",
-      "dest": "pages/bilan_radiatif/API_BILAN/doc/epoch_bench.html"
     },
     {
       "src": "doc/equation.css",

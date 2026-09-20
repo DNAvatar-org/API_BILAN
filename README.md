@@ -7,7 +7,7 @@ spectres — via Promise et callbacks synchrones.
 Le modèle couvre 19 époques, du corps noir sans atmosphère à 2100, avec les deux grandes hystérésis
 glace-albédo (Snowball néoprotérozoïque, calotte antarctique) et les cycles glaciaires du Quaternaire.
 
-> **Démo exécutable et banc de référence : [`doc/epoch_bench.html`](doc/epoch_bench.html)** — il charge
+> **Démo exécutable et banc de référence : [`demo/epoch_bench.html`](demo/epoch_bench.html)** — il charge
 > la pile complète, fait tourner les 19 époques et compare aux fourchettes de la littérature. C'est
 > l'intégration de référence : en cas de doute, c'est ce fichier qui fait foi, pas ce README.
 
@@ -17,7 +17,7 @@ glace-albédo (Snowball néoprotérozoïque, calotte antarctique) et les cycles 
 
 ### 1. Charger les scripts, dans cet ordre
 
-L'ordre est celui des dépendances, pas une préférence. Il est repris tel quel de `doc/epoch_bench.html`.
+L'ordre est celui des dépendances, pas une préférence. Il est repris tel quel de `demo/epoch_bench_loader.js`.
 
 ```html
 <!-- Config et structure de DATA -->
@@ -243,7 +243,8 @@ dessine.
 | **radiative/** | Transfert radiatif couche par couche |
 | **convergence/** | `compute.js` (masses, config d'époque), `calculations_flux.js` (solveur) |
 | **workers/** | Pool de web workers pour le calcul spectral (N−1 threads) |
-| **doc/** | Documentation détaillée + `epoch_bench.html` |
+| **doc/** | Documentation détaillée : formules, algorithmes, bibliographie |
+| **demo/** | Pages exécutables : banc d'époques, alphabet, dictionnaire — le dépôt se teste sans CO2 |
 
 Découpage détaillé par catégorie de calcul : **[STRUCTURE.md](STRUCTURE.md)**.
 

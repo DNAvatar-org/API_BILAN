@@ -467,7 +467,7 @@ const timeline = [
         //    Pavlov et al. 2000 : 100–1 000 ppm ; Charnay 2020 : 100–17 000 ppm ✓
         // ✅ Ratio CH₄/CO₂ = 3.0e16 / 1.5e18 = 0.02 — sous le seuil de brume organique (0.1, Haqq-Misra 2008) ✓
         // ⚖️ = masses totales (kg). Grille CSV « Archéen » : CO₂ ppm [50k,150k] ; CH₄ [1k,10k] ; H₂O vapeur atm [0.5,3.0]% mol.
-        // ppm calculés par epoch_bench.html (ligne 544) : ppm_molaire = mass_frac × (M_air / M_gaz) × 1e6.
+        // ppm calculés par demo/epoch_bench_format.js (fmtConvAtmSnapshot) : ppm_molaire = mass_frac × (M_air / M_gaz) × 1e6.
         // Repère rapide pour ajuster les masses (N₂ ≈ 9.918e18 dominant) : CO₂ 150k mol ppm ⇒ ≈ 2.75e18 kg ; CO₂ 50k mol ppm ⇒ ≈ 0.80e18 kg ; CH₄ 10k mol ppm ⇒ ≈ 6.7e16 kg ; CH₄ 1k mol ppm ⇒ ≈ 6.5e15 kg.
         //
         // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50).

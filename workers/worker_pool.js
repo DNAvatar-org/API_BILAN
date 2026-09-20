@@ -30,7 +30,7 @@
         ? Math.max(1, window.CONFIG_COMPUTE.maxWorkers) : rawWorkers;
     var nWorkers = Math.min(rawWorkers, maxCap);
 
-    // CO2/index : document sous CO2/ → ../API_BILAN/workers/ OK. API_BILAN/doc/epoch_bench : définir window.__SPECTRAL_WORKER_SCRIPT__.
+    // CO2/index : document sous CO2/ → ../API_BILAN/workers/ OK. API_BILAN/demo/epoch_bench : définir window.__SPECTRAL_WORKER_SCRIPT__.
     var workerPath = (typeof window.__SPECTRAL_WORKER_SCRIPT__ === 'string' && window.__SPECTRAL_WORKER_SCRIPT__)
         ? window.__SPECTRAL_WORKER_SCRIPT__
         : '../API_BILAN/workers/spectral_slice_worker.js';

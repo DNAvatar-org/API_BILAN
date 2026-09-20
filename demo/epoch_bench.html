@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+  File: API_BILAN/demo/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.1.0 — 2026-09-20 : la page passe de doc/ à demo/ (doc/ = les définitions, demo/ = ce qui
+  s'exécute) et son script de 880 lignes est éclaté par responsabilité : boot, host, format, table,
+  tuning, run, main, loader, plus la feuille de style. Le HTML n'est plus que le squelette.
+  Retrait de /CO2/static/logs_to_server.js : chemin absolu vers le dépôt applicatif, dans une page
+  dont tout l'intérêt est de tourner sans lui. Les appels au journal fichier sont devenus optionnels.
+  Version 1.0.28 — 2026-09-19 : alphabet.js / dico.js chargés depuis data/ — le banc n'a plus aucune
+  dépendance au dépôt CO2.
+  Version 1.0.27 — 2026-09-18 : fonctionne en file://. Retrait de l'étape fetch(configTimeline.js) (bloquée hors
+  serveur, et devenue inutile) ; spectral_slice_worker.js chargé en <script> avant le pool → workers en blob:.
+  Version 1.0.26 — 2026-05-07 : BENCH_LIT — source unique window.BENCH_LIT_BY_EPOCH_ID (configTimeline.js v1.4.74) ; supprime l’objet dupliqué ici ; repères bench recalculés en mémoire au load (pas CSV / cookie).
+  Version 1.0.25 — 2026-05-07 : Skip en cellule (petit ⏭) à la place du 📋 pendant le calcul ; 📋 copie seulement une fois l'époque terminée.
+  Version 1.0.24 — 2026-05-07 : Bouton « Passer l'époque » pendant le run — window.ABORT_COMPUTE (calculations_flux.js) ; ligne tableau statut abort.
+  Version 1.0.23 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.43 — Sturtienne [5,15], Snowball [-60,-50], P/T [21,32], Méso [21,31].
+  Version 1.0.22 — 2026-04-25 : BENCH_LIT Protérozoïque [0,15]°C (début 2.5 Ga, configTimeline v1.4.42).
+  Version 1.0.21 — 2026-04-25 : BENCH_LIT Archéen [5,25]°C (configTimeline v1.4.41).
+  Version 1.0.20 — 2026-04-25 : BENCH_LIT resync configTimeline v1.4.39 — Archéen [15,45]°C ; Sturtienne [5,20]°C.
+  Version 1.0.19 — 2026-04-25 : ?debugBench=1 → window.DEBUG_BENCH_LOG + DEBUG.setTopic('bench') ; benchLogRun (fin d’époque + synthèse) → _logs/bench.txt.
+  Version 1.0.18 — 2026-04-23 : benchSyncBaryFromConfigCompute copie aussi ATM ; SOLVER seulement si défini dans baryByGroupDefault (initDATA v1.3.1 = ref unique % avec CONFIG miroir).
+  Version 1.0.17 — 2026-04-23 : bench parle ET écoute. benchEmitTuningToParent sur oninput (run:false) → visu/scie/hysteresis reçoivent la jauge bench live. benchSyncFineTuningSlidersFromBary (update slider+span seulement, même pattern que scie) dans le listener sync:tuning pour éviter rebuild DOM pendant l'écho (casserait le drag). Fallback rebuild si sliders absents.
+  Version 1.0.16 — 2026-04-23 : benchApplyFineTuningAtmUnified → set ATM dans baryByGroup (fix: fillDataTuningFromBary/normalizeAtmBary lisait l'ancien ATM et réécrasait CLOUD_SW/SCIENCE → slider sans effet). Ajout listener postMessage 'sync:tuning' pour sync depuis visu via sync_panels.js.
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌍 Bench Époques — Bilan Radiatif</title>
+<link rel="stylesheet" href="epoch_bench.css">
+</head>
+<body>
+
+<!-- Avant le loader : pose les drapeaux d'URL et le chemin du worker. -->
+<script src="epoch_bench_boot.js"></script>
+
+<div id="app-loader" class="app-loader" aria-live="polite">
+  <div class="app-loader-title">Chargement des modules API…</div>
+  <ul id="app-loader-list" class="app-loader-list"></ul>
+</div>
+
+<header>
+  <h1>🌍 Bench Époques — Bilan Radiatif</h1>
+  <div id="bench-fine-tuning-wrap" class="bench-ft-wrap" aria-label="Fine-tuning">
+    <div id="bench-ft-title-slot"></div>
+    <div id="bench-ft-content" style="display:none;"></div>
+  </div>
+  <span id="progress-label">—</span>
+  <button id="btn-run" type="button" disabled>▶ Lancer</button>
+</header>
+<div id="progress-bar"><div id="progress-fill"></div></div>
+
+<div id="report">
+<table>
+  <thead>
+    <tr>
+      <th class="cell-icon" title="Pendant le calcul : passer l'époque. Terminé : copier la ligne.">⏭/📋</th>
+      <th class="col-epoch">Époque</th>
+      <th class="num fit" title="Ligne 1 : T\u2080 solveur (\u00b0C). Ligne 2 : fourchette litt\u00e9rature CSV [Tmin,Tmax] (configTimeline).">T init</th>
+      <th class="num fit">T FIN</th>
+      <th class="num fit" title="T_fin \u2212 T_graine (\u00b0C) ; T_graine = \u{1F321}\u{FE0F}\u{1F9EE} TIMELINE. Ce n\u2019est pas l\u2019\u00e9cart au milieu de la plage litt\u00e9rature CSV.">Δ T°</th>
+      <th title="Ligne 1 : \u0394 = flux entrant \u2212 OLR effective au 1er pas Init (W/m\u00b2), m\u00eame convention que DATA \u{1F53A}\u{1F9F2} (entrant \u2212 sortant). \u0394&lt;0 fr\u00e9quent si la graine T est au-dessus de l\u2019\u00e9quilibre radiatif (OLR &gt; apports). Lignes suivantes : T (\u00b0C) le long de la convergence.">RADIATIF (\u0394 + T\u00b0)</th>
+      <th title="Post-convergence + plages Lit. CO\u2082 / CH\u2084 / H\u2082O vap. (% mol) CSV">CONV ATM</th>
+    </tr>
+  </thead>
+  <tbody id="results-body"></tbody>
+</table>
+</div>
+
+<footer id="footer-info">Chargement des scripts en cours…</footer>
+
+<!-- Le loader charge les modules de l'API puis les scripts du banc, dans l'ordre des
+     dépendances, et appelle initEpochBenchPage() quand tout est là. -->
+<script src="epoch_bench_loader.js"></script>
+
+</body>
+</html>
