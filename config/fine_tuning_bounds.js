@@ -108,7 +108,7 @@ window.FINE_TUNING_BOUNDS = {
             max: 0.45,
             default: 0.35,
             unit: 'ratio',
-            note: 'plafond du boost sulfate — borne numérique FIXE, hors barycentre',
+            note: 'plafond du boost sulfate',
             source: 'Borne numerique de securite (evite emballement du proxy)',
             effect: 'negative',
             biblio_ref: 'SULFATE_BOOST_MAX'
