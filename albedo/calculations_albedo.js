@@ -939,10 +939,29 @@ function calculateAlbedo() {
         const f_liq = Math.max(0, Math.min(1, (DATA['🧮']['🧮🌡️'] - 233.15) / 40.0));
         const temp_factor = f_liq * 1.0 + (1 - f_liq) * 0.6;
 
-        // 3) Efficacité optique réelle (Twomey + microphysique)
-        // Centrage moderne autour de 1.0-1.2 ; états pauvres en CCN en dessous.
-        // [OBS/CALIB] 1.10 et 0.45 choisis pour reproduire la plage moderne observée de couverture optique SW effective.
-        let cloud_optical_efficiency = DATA['🎚️'].CLOUD_SW.OPTICAL_EFF_BASE + DATA['🎚️'].CLOUD_SW.OPTICAL_EFF_CCN_GAIN * (ccn_ratio - 1.0);
+        // 3) Efficacité optique réelle — TWOMEY (1991), forme analytique, plus de coefficient réglé.
+        //
+        //   ΔA / [A(1−A)] = Δ(ln N) / 3
+        //
+        // Ce n'est pas une paramétrisation ajustable : à eau liquide constante l'épaisseur optique
+        // va comme N^⅓ et l'albédo comme τ/(τ+cste) ; en différenciant on obtient ce résultat.
+        // Deux conséquences, et le code d'avant se trompait sur les deux :
+        //   • la sensibilité NE SE RÈGLE PAS — elle vaut (1−A)/3 et se lit sur l'albédo nuageux du
+        //     modèle (🪩🍰⛅ = 0,42 → 0,193). L'ancien OPTICAL_EFF_CCN_GAIN = 0,45 sur une base de
+        //     1,10 donnait 0,409, soit 2,1× trop ;
+        //   • la réponse est LOGARITHMIQUE en N, pas linéaire. Les deux coïncident au voisinage de
+        //     ccn_ratio = 1 — la Terre moderne — et divergent partout ailleurs, c'est-à-dire
+        //     exactement sur les époques à CCN extrême (Archéen sans oxygène, snowball sans plancton).
+        // Réf. : Twomey 1977 J. Atmos. Sci. 34:1149 ; Twomey 1991 Atmos. Environ. 25A:2435 ;
+        //        Platnick & Twomey 1994 (validation sur traces de navires).
+        //
+        // On applique l'incrément à l'ALBÉDO nuageux puis on en prend le rapport : borné par
+        // construction dans [0,1], là où appliquer ln() au multiplicateur le laissait filer négatif
+        // aux très faibles CCN.
+        const A_cloud_ref = albedo_coeff['🪩🍰⛅'];
+        const twomeyA = Math.max(0, Math.min(1,
+            A_cloud_ref + A_cloud_ref * (1 - A_cloud_ref) / 3 * Math.log(Math.max(1e-6, ccn_ratio))));
+        let cloud_optical_efficiency = DATA['🎚️'].CLOUD_SW.OPTICAL_EFF_BASE * (twomeyA / A_cloud_ref);
         // Oxydation déjà partiellement portée par ccn_proxy : on la garde mais en pondération douce.
         // [EQ] Pondération douce pour limiter la double comptabilisation.
         const oxidation_soft_factor = DATA['🎚️'].CLOUD_SW.OXIDATION_SOFT_BASE + DATA['🎚️'].CLOUD_SW.OXIDATION_SOFT_GAIN * oxidation_factor;

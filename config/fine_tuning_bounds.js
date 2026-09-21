@@ -1,8 +1,11 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.13
+// Version 1.3.14
 // Date: [April 25, 2026] [14:00 UTC+1]
 // logs :
+// - v1.3.14: OPTICAL_EFF_CCN_GAIN retiré des targets — remplacé par la forme analytique de Twomey
+//   dans calculations_albedo.js. Première application de la règle dans le bon sens : on sait le
+//   calculer, donc il quitte le barycentre par le CODE (pas par `fixed`).
 // - v1.3.13: SULFATE_BOOST_MAX et H2O_EDS_SCALE REMIS dans le barycentre. Les sorties v1.3.11/12
 //   appliquaient la règle à l'envers : on avait figé les deux seuls paramètres sans aucun fondement,
 //   c'est-à-dire exactement ceux qui doivent pouvoir varier. Règle corrigée — ce qu'on CONNAÎT se
@@ -74,19 +77,13 @@ window.FINE_TUNING_BOUNDS = {
             effect: 'negative',
             biblio_ref: 'OPTICAL_EFF_BASE'
         },
-        {
-            group: 'CLOUD_SW',
-            key: 'OPTICAL_EFF_CCN_GAIN',
-            baryGroup: 'SCIENCE',
-            min: 0.30,
-            max: 0.60,
-            default: 0.45,
-            unit: 'ratio',
-            note: 'sensibilité optique au ratio CCN',
-            source: 'Twomey effect (sensibilite de l albedo nuageux aux CCN)',
-            effect: 'negative',
-            biblio_ref: 'OPTICAL_EFF_CCN_GAIN'
-        },
+        // OPTICAL_EFF_CCN_GAIN RETIRÉ (v1.3.14) — la sensibilité de l'albédo nuageux aux CCN ne se
+        // règle pas, elle se CALCULE : Twomey (1991) donne ΔA/[A(1−A)] = Δ(ln N)/3, donc un gain de
+        // (1−A)/3 lu sur l'albédo nuageux du modèle. Appliqué dans calculations_albedo.js.
+        // L'ancienne valeur 0,45 sur une base 1,10 donnait 0,409 contre 0,193 : 2,1× trop. Et la
+        // forme était linéaire en (ccn_ratio − 1) quand Twomey est logarithmique — équivalent près
+        // de 1, faux partout ailleurs. Même traitement que TEMP_FACTOR_REF_K en son temps :
+        // une grandeur qu'on sait calculer n'a rien à faire dans le barycentre.
         {
             group: 'CLOUD_SW',
             key: 'SULFATE_BOOST_SCALE',
