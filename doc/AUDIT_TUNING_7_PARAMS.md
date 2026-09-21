@@ -1,9 +1,17 @@
 # Audit des 7 cibles du barycentre — incertitude, ou calcul à préciser ?
 
-Question posée : le barycentre interpole entre deux bornes de littérature. Ça n'a de sens que si
-la plage est une **vraie incertitude scientifique**. Si la plage est en fait le résumé d'une
-**dépendance à un autre paramètre** (altitude, humidité, température, albédo), alors la jauge fait
-varier une grandeur qui n'est pas libre — et masque la physique manquante.
+## La règle
+
+**Ce qu'on CONNAÎT se calcule dans le code, à partir de ses vrais paramètres, et quitte les targets.
+Ce qu'on IGNORE reste dans le barycentre, dont c'est précisément le rôle : dire qu'on ne sait pas.**
+
+Corollaire, appris à la dure (v1.3.11/12, annulées en v1.3.13) : un paramètre sans fondement
+scientifique ne doit SURTOUT pas être figé. Le figer ne le rend pas plus juste — ça remplace un
+« on ne sait pas » honnête par un nombre d'apparence décidée. Les deux seules cibles qu'on avait
+sorties étaient les deux seules sans base : exactement l'inverse de ce qu'il fallait faire.
+
+Le critère n'est donc pas « cette plage est-elle une vraie incertitude ? » mais
+**« sait-on calculer cette grandeur ? »**. Si oui → au code. Si non → au barycentre, et on cherche.
 
 Une cible par section. `fixed:` dans `fine_tuning_bounds.js` sort une cible du barycentre
 (tuning.js v1.0.19). **Une sortie à la fois, bench à chaque fois.**
@@ -21,10 +29,10 @@ elle n'avait simplement jamais été passée en revue systématiquement.
 | 1 | CLOUD_FRACTION_BASE | 0,17–0,23 | incertitude de calibration — **mais un terme suspect** | reste, à discuter |
 | 2 | CLOUD_FRACTION_INDEX_GAIN | 0,08–0,14 | vraie incertitude | reste |
 | 3 | OPTICAL_EFF_BASE | 1,00–1,20 | vraie incertitude | reste |
-| 4 | **OPTICAL_EFF_CCN_GAIN** | 0,30–0,60 | **calcul à préciser — Twomey est analytique** | à sortir |
+| 4 | **OPTICAL_EFF_CCN_GAIN** | 0,30–0,60 | **on sait le calculer — Twomey est analytique** | **à coder** |
 | 5 | SULFATE_BOOST_SCALE | 300–700 | ignorance assumée (proxy sans littérature) | reste |
-| 6 | **SULFATE_BOOST_MAX** | 0,20–0,45 | **borne numérique, pas de la science** | ✅ sorti (v1.3.11) |
-| 7 | **H2O_EDS_SCALE** | 1,00–0,60 | **trois mécanismes non modélisés** | ✅ figé à 0,82 (v1.3.12) — pas remplacé |
+| 6 | SULFATE_BOOST_MAX | 0,20–0,45 | aucune mesure ne le fixe | **reste** — on ne sait pas |
+| 7 | H2O_EDS_SCALE | 1,00–0,60 | remplace 3 physiques absentes | **reste** tant qu'elles ne sont pas codées |
 
 ---
 
@@ -72,13 +80,14 @@ cloud_optical_efficiency = OPTICAL_EFF_BASE * (1 + (1 - A_cloud) / 3 * Math.log(
 logarithmique. Elle demande donc un re-calage, et elle touche les époques à CCN extrême — dont le
 snowball. À faire seule, avec bench avant/après sur les 19 époques.
 
-## 6. SULFATE_BOOST_MAX — sorti ✅
+## 6. SULFATE_BOOST_MAX — reste dans le barycentre
 
-Sa propre source le disait : « borne numérique de sécurité (évite emballement du proxy) ». Un
-garde-fou n'a pas de fourchette de littérature. Figé à 0,3125, sa valeur effective au barycentre
-par défaut → aucun résultat ne change. Bench vérifié.
+Sa source dit « borne numérique de sécurité (évite emballement du proxy) ». Donc aucune mesure ne
+le fixe. Il avait été figé à 0,3125 en v1.3.11 : erreur, annulée. Un plafond dont personne ne
+connaît la valeur est exactement ce qu'un barycentre doit porter. Il n'en sortira que le jour où
+on saura dire à quoi sature réellement l'activation des CCN par les sulfates.
 
-## 7. H2O_EDS_SCALE — figé ✅, mais PAS remplacé
+## 7. H2O_EDS_SCALE — reste dans le barycentre
 
 Sa note nomme elle-même trois mécanismes : « capture continuum MT_CKD non implémenté + overlap
 CO₂/H₂O + approximations HR(z) ». Ce ne sont pas des incertitudes, ce sont trois physiques absentes.

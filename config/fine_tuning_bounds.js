@@ -1,8 +1,13 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.12
+// Version 1.3.13
 // Date: [April 25, 2026] [14:00 UTC+1]
 // logs :
+// - v1.3.13: SULFATE_BOOST_MAX et H2O_EDS_SCALE REMIS dans le barycentre. Les sorties v1.3.11/12
+//   appliquaient la règle à l'envers : on avait figé les deux seuls paramètres sans aucun fondement,
+//   c'est-à-dire exactement ceux qui doivent pouvoir varier. Règle corrigée — ce qu'on CONNAÎT se
+//   calcule dans le code et quitte les targets ; ce qu'on IGNORE reste ici. Le mécanisme `fixed`
+//   reste disponible pour une valeur déterminée AILLEURS, pas pour geler une inconnue.
 // - v1.3.12: H2O_EDS_SCALE sorti du barycentre (fixed: 0.82 = sa valeur effective à 45 %). Sa note
 //   nomme trois physiques absentes, pas une incertitude. Aucune formule de remplacement à ce jour :
 //   on le fige pour que les six autres cibles redeviennent réglables sans l'entraîner. Voir TODO 1.
@@ -97,13 +102,12 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'CLOUD_SW',
             key: 'SULFATE_BOOST_MAX',
-            // SORTI DU BARYCENTRE (v1.3.11) — ce n'était pas une incertitude scientifique.
-            // Sa propre source le dit : « borne numérique de sécurité ». Un plafond anti-emballement
-            // n'a pas de fourchette de littérature à interpoler ; le faire varier avec la jauge
-            // « flou scientifique » faisait bouger un garde-fou comme si c'était de la physique.
-            // Figé à sa valeur effective au barycentre par défaut (45 %), donc aucun changement de
-            // résultat. min/max conservés pour mémoire de la plage d'où il sortait.
-            fixed: 0.3125,
+            // REMIS DANS LE BARYCENTRE (v1.3.13). Il en avait été sorti en v1.3.11 au motif que
+            // « ce n'est pas de la science ». C'est vrai — et c'est précisément la raison de l'y
+            // laisser. Aucune mesure ne fixe ce plafond ; le figer à 0,3125 revenait à décréter
+            // une valeur sans fondement, ce qui est pire que d'assumer qu'on l'ignore.
+            // Règle (doc/AUDIT_TUNING_7_PARAMS.md) : ce qu'on CONNAÎT se calcule dans le code et
+            // quitte les targets ; ce qu'on IGNORE reste ici, où la jauge dit qu'on l'ignore.
             min: 0.20,
             max: 0.45,
             default: 0.35,
@@ -119,22 +123,16 @@ window.FINE_TUNING_BOUNDS = {
             group: 'RADIATIVE',
             key: 'H2O_EDS_SCALE',
             baryGroup: 'SCIENCE',
-            // SORTI DU BARYCENTRE (v1.3.12) — ce n'est pas une incertitude scientifique.
-            // Sa propre note nomme trois PHYSIQUES ABSENTES : continuum MT_CKD non implémenté,
-            // overlap CO₂/H₂O, approximations sur le profil d'humidité relative HR(z). Une jauge
-            // « flou scientifique » ne devrait pas piloter ça : un multiplicateur CONSTANT mis à la
-            // place de termes qui dépendent de la température ne peut porter aucune rétroaction.
-            // C'est mesuré : rétroaction vapeur −0,28 W/m²/K contre −1,8 attendus
-            // (doc/DIAGNOSTIC_RETROACTION_VAPEUR.md).
-            //
-            // ⚠️ IL N'Y A PAS ENCORE DE FORMULE DE REMPLACEMENT. On le fige, on ne le remplace pas.
-            // La valeur retenue est sa valeur effective au barycentre par défaut (45 % → 0,82), donc
-            // aucun résultat ne change : les six autres cibles redeviennent réglables sans que
-            // celle-ci bouge avec elles. Le vrai travail — implémenter les trois mécanismes — est le
-            // TODO 1. Tant qu'il n'est pas fait, ce nombre reste un aveu, pas un paramètre.
-            fixed: 0.82,
-            min: 1.00,       // bary 0 %  → κ_H₂O max (T haute)   [inerte depuis fixed]
-            max: 0.60,       // bary 100 % → κ_H₂O min (T basse, cible littérature Schmidt 2010 ~75 W/m²). min>max volontaire pour cohérence avec autres targets du projet.   [inerte depuis fixed]
+            // REMIS DANS LE BARYCENTRE (v1.3.13). Sorti en v1.3.12 puis figé à 0,82 — une valeur qui
+            // ne vient de nulle part : le milieu d'une plage elle-même posée à la main. Le figer ne
+            // le rendait pas plus juste, ça ne faisait que masquer qu'on l'ignore.
+            // Il reste vrai que ce scalaire remplace trois physiques absentes (continuum MT_CKD,
+            // overlap CO₂/H₂O, profil HR(z)) et qu'un multiplicateur constant ne peut porter aucune
+            // rétroaction — rétroaction vapeur mesurée à −0,28 W/m²/K contre −1,8 attendus
+            // (doc/DIAGNOSTIC_RETROACTION_VAPEUR.md). Mais tant que ces trois mécanismes ne sont pas
+            // CODÉS, le seul énoncé honnête est « on ne sait pas », et c'est ce que dit la jauge.
+            min: 1.00,       // bary 0 %  → κ_H₂O max (T haute)
+            max: 0.60,       // bary 100 % → κ_H₂O min (T basse, cible littérature Schmidt 2010 ~75 W/m²). min>max volontaire pour cohérence avec autres targets du projet.
             default: 0.80,
             unit: 'ratio',
             note: 'multiplicateur global de κ_H₂O (EARTH.H2O_EDS_SCALE). Capture continuum MT_CKD non implémenté + overlap CO₂/H₂O + approximations HR(z). Scalaire global (pas de dépendance époque — feedback T déjà porté par Clausius-Clapeyron dans waterVaporMixingRatio).',

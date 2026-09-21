@@ -6,9 +6,11 @@
 // Version 1.0.18
 // Date: 2026-04-25
 // Logs:
+// - v1.0.20: doc `fixed` corrigée — réservé à une valeur déterminée AILLEURS, jamais à geler une
+//   inconnue. Un paramètre sans fondement scientifique RESTE dans le barycentre : c'est justement
+//   son rôle de dire qu'on ne sait pas.
 // - v1.0.19: `fixed` générique sur une cible FINE_TUNING_BOUNDS — la sort du barycentre sans cas
-//   particulier dans ce fichier. Sert à extraire les paramètres dont la plage n'est pas une
-//   incertitude scientifique (borne numérique, ou dépendance à un autre paramètre).
+//   particulier dans ce fichier.
 // - v1.0.18: RADIATIVE.factorTropopause — si CONFIG_COMPUTE.radiativeFactorTropopauseFixed != null, valeur fixe (hors bary SCIENCE) ; sinon interp. comme avant via atmPct.
 // - v1.0.17: doc factorTropopause — useFactorTropopause défaut true (config v1.4.50).
 // - v1.0.16: doc syncRadiativeConfig — factorTropopause appliqué seulement si CONFIG_COMPUTE.useFactorTropopause (ATM v1.2.1).
@@ -38,13 +40,18 @@
     /**
      * Valeur d'une cible pour un barycentre donné.
      *
-     * `fixed` SORT LA CIBLE DU BARYCENTRE. Le barycentre interpole entre deux bornes de
-     * littérature : il n'a de sens que si la plage est une vraie INCERTITUDE scientifique.
-     * Quand la plage est en fait autre chose — une borne numérique de sécurité, ou le résumé
-     * d'une dépendance à un autre paramètre (altitude, humidité relative, température) — la
-     * jauge fait varier une grandeur qui n'est pas libre, et masque la physique manquante.
-     * Dans ce cas on pose `fixed` et on calcule la grandeur correctement là où elle est utilisée.
-     * min/max restent déclarés : ils documentent d'où venait la plage, et ce qu'on a abandonné.
+     * `fixed` SORT LA CIBLE DU BARYCENTRE — réservé à une valeur DÉTERMINÉE AILLEURS.
+     *
+     * ⚠️ Ce n'est PAS un moyen de geler un paramètre dont on ignore la valeur. Le barycentre est
+     * là pour dire « on ne sait pas, voici la plage » : un paramètre sans fondement scientifique
+     * doit donc y RESTER. Le figer ne le rend pas plus juste, ça ne fait que masquer l'ignorance
+     * derrière un nombre d'apparence décidée — et la v1.3.11/12 a fait exactement cette erreur,
+     * en figeant les deux seuls paramètres qui n'avaient aucune base.
+     *
+     * La règle est l'inverse : ce qu'on CONNAÎT se calcule dans le code à partir de ses vrais
+     * paramètres, et disparaît alors des targets ; ce qu'on IGNORE reste dans le barycentre.
+     * `fixed` ne sert qu'au cas intermédiaire — une valeur fixée par une autre source de vérité
+     * (cf. RADIATIVE.factorTropopause, piloté par CONFIG_COMPUTE).
      *
      * Précédents : RADIATIVE.factorTropopause (v1.3.10, via CONFIG_COMPUTE) et TEMP_FACTOR_REF_K
      * (remplacé par la partition de phase Hu & Stamnes 1993 dans calculations_albedo.js).
