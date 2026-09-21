@@ -24,7 +24,7 @@ elle n'avait simplement jamais été passée en revue systématiquement.
 | 4 | **OPTICAL_EFF_CCN_GAIN** | 0,30–0,60 | **calcul à préciser — Twomey est analytique** | à sortir |
 | 5 | SULFATE_BOOST_SCALE | 300–700 | ignorance assumée (proxy sans littérature) | reste |
 | 6 | **SULFATE_BOOST_MAX** | 0,20–0,45 | **borne numérique, pas de la science** | ✅ sorti (v1.3.11) |
-| 7 | **H2O_EDS_SCALE** | 1,00–0,60 | **trois mécanismes non modélisés** | à sortir — c'est le chantier |
+| 7 | **H2O_EDS_SCALE** | 1,00–0,60 | **trois mécanismes non modélisés** | ✅ figé à 0,82 (v1.3.12) — pas remplacé |
 
 ---
 
@@ -78,7 +78,7 @@ Sa propre source le disait : « borne numérique de sécurité (évite emballeme
 garde-fou n'a pas de fourchette de littérature. Figé à 0,3125, sa valeur effective au barycentre
 par défaut → aucun résultat ne change. Bench vérifié.
 
-## 7. H2O_EDS_SCALE — à sortir, mais c'est tout le chantier
+## 7. H2O_EDS_SCALE — figé ✅, mais PAS remplacé
 
 Sa note nomme elle-même trois mécanismes : « capture continuum MT_CKD non implémenté + overlap
 CO₂/H₂O + approximations HR(z) ». Ce ne sont pas des incertitudes, ce sont trois physiques absentes.
@@ -86,7 +86,14 @@ Un multiplicateur **constant** à la place de termes dépendant de la températu
 aucune rétroaction — voir `DIAGNOSTIC_RETROACTION_VAPEUR.md`, où la rétroaction vapeur est mesurée
 à −0,28 W/m²/K contre −1,8 attendus.
 
-Le sortir = implémenter les trois. C'est le TODO 1, pas une extraction.
+**Il n'y a pas de formule de remplacement.** Ce qu'on a est un diagnostic de pourquoi la
+rétroaction est morte, pas son remède. Le sortir du barycentre, c'est donc le FIGER, pas le
+remplacer — à 0,82, sa valeur effective à 45 %, pour ne rien déplacer. Bénéfice immédiat et réel :
+les autres cibles redeviennent réglables sans l'entraîner avec elles, et on peut chercher sa vraie
+formule en parallèle. Tant que le TODO 1 n'est pas fait, ce 0,82 est un aveu, pas un paramètre.
+
+(0,60 — le bas de l'ancienne plage — refroidirait les 19 époques : c'est un choix disponible, pas
+le choix neutre.)
 
 ---
 
@@ -116,9 +123,24 @@ exactement l'outil adapté. Reste.
 
 ---
 
-## Ordre proposé
+## Cible finale
 
-1. ✅ SULFATE_BOOST_MAX — fait, impact nul.
-2. **OPTICAL_EFF_CCN_GAIN → Twomey** — impact réel, re-calage nécessaire, touche le snowball.
-3. CLOUD_FRACTION_BASE — comprendre d'abord ce que porte le terme constant.
-4. H2O_EDS_SCALE — le chantier TODO 1, pas une extraction.
+Ne doivent rester dans le barycentre que les trois vraies incertitudes :
+`CLOUD_FRACTION_INDEX_GAIN`, `OPTICAL_EFF_BASE`, `SULFATE_BOOST_SCALE`.
+
+## Ordre
+
+1. ✅ SULFATE_BOOST_MAX — figé 0,3125, impact nul.
+2. ✅ H2O_EDS_SCALE — figé 0,82, impact nul. Formule à trouver (TODO 1).
+3. **OPTICAL_EFF_CCN_GAIN → Twomey** — impact réel, re-calage nécessaire, touche le snowball.
+4. CLOUD_FRACTION_BASE — comprendre d'abord ce que porte le terme constant. Argument à garder en
+   tête : il y a toujours des nuages sauf en corps noir, et il faut pouvoir les gérer aux extrêmes
+   (volcanisme massif, hiver nucléaire). Le terme constant a donc une raison d'être — reste à lui
+   en donner une PHYSIQUE plutôt qu'un réglage.
+
+## Sur le linéaire vs logarithmique (n°4) — c'est tranché par la dérivation
+
+À eau liquide constante, l'épaisseur optique va comme N^⅓ et l'albédo comme τ/(τ+cste) ; en
+différenciant, dA = A(1−A)/3 · **d(ln N)**. Le logarithme n'est pas un choix de modélisation, c'est
+le résultat du calcul. La forme linéaire du code n'est défendable qu'au voisinage de ccn_ratio = 1,
+c'est-à-dire sur la Terre moderne et nulle part ailleurs.
