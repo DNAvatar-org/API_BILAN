@@ -74,10 +74,50 @@ puisque le boost est négligeable partout (défaut n°2) ; bloquant dès qu'on l
 Le modèle manque **~1 W/m² de refroidissement aérosol** sur l'époque moderne. C'est du même ordre
 que le déséquilibre mesuré par CERES, et de signe opposé au CO₂ : ça n'est pas un détail.
 
-Pour atteindre ERFaci = −1,0 W/m² il faut multiplier le boost par ~27, soit `SCALE` ≈ 13 000 au
-lieu de 480. Et alors — c'est le point intéressant — **le plafond redevient utile** : le produit
-vaudrait 0,20 au moderne et 1,26 au SRM, donc le `Math.min` mordrait enfin. Les deux paramètres
-reprendraient vie ensemble.
+## Et la vraie réponse : la forme est fausse, pas seulement l'échelle
 
-⚠️ Ça refroidit l'époque moderne (~−0,3 °C avec le λ actuel) et déplace 🚂 une fois la porte
-réparée. À faire en un bloc, avec re-calage et bench.
+Premier réflexe : remonter `SCALE` de 480 à ~13 000 pour atteindre −1 W/m². Mauvaise idée — ce
+serait remplacer un nombre inventé par un autre nombre inventé, calé à l'envers sur le résultat.
+
+**Il existe de la littérature, et elle ne borne pas `SCALE` : elle remplace sa FORME.**
+
+La relation sulfate → nombre de gouttelettes est une **loi de puissance** depuis Boucher & Lohmann
+(1995), et c'est toujours celle qu'on utilise :
+
+    log₁₀(CDNC) = a · log₁₀(masse SO₄) + b
+
+McCoy et al. (2018, ACP 18:2035) la calent sur MESURES — CDNC de MODIS, masses d'aérosols de
+MERRA2, 2003-2015, validées contre campagnes aéroportées. Exposant sulfate sur 19 régions :
+
+| | a₁ |
+|---|---|
+| médiane | **0,22** |
+| quartiles | [0,11 ; 0,29] |
+| plage complète | [−0,02 ; 0,44] |
+
+Le modèle fait `🍰🫧✈ × SCALE` : **linéaire**. Une loi de puissance d'exposant 0,22 n'a rien d'une
+droite — à sulfate faible elle est bien plus raide, à sulfate fort bien plus plate. C'est aussi ce
+qui donne à `SULFATE_BOOST_MAX` sa raison d'être ou non : une loi en puissance sature d'elle-même,
+elle n'a pas besoin d'un `Math.min` posé à la main.
+
+Et le forçage qui en résulte est lui aussi mesuré : **−0,97 W/m²** (McCoy et al. 2017a),
+indépendamment cohérent avec les −1,0 de l'AR6.
+
+## Ce qu'il faut faire, dans l'ordre
+
+1. **Remplacer la forme linéaire par la loi de puissance** — même opération que Twomey pour
+   OPTICAL_EFF_CCN_GAIN : on sait la calculer, elle quitte le barycentre par le code.
+2. **Garder un barycentre sur l'exposant a**, avec les bornes mesurées [0,11 ; 0,29] (quartiles) ou
+   [−0,02 ; 0,44] (plage complète). Là, la jauge décrit une vraie dispersion observée — régionale,
+   pas inventée.
+3. **Vérifier** que l'ERFaci qui en sort tombe vers −1 W/m². C'est une vérification, pas un calage.
+4. **Réparer la porte anthropique** (défaut n°3) : sans ça 🚂 reste exclue.
+
+⚠️ Tout ça refroidit l'époque moderne (~−0,3 °C avec le λ actuel) et déplace 🚂. À faire en un bloc,
+avec re-calage et bench.
+
+## Ce qui manque encore
+
+Il faut convertir `🍰🫧✈` (fraction massique) en **concentration massique de SO₄ en µg/m³** dans la
+couche limite, puisque c'est la variable de la loi publiée — et disposer d'un CDNC de référence
+(le `b` de la régression). Ni l'un ni l'autre n'est dans le modèle aujourd'hui.
