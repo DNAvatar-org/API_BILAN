@@ -1,8 +1,14 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.14
+// Version 1.3.15
 // Date: [April 25, 2026] [14:00 UTC+1]
 // logs :
+// - v1.3.15: SULFATE_BOOST_SCALE et SULFATE_BOOST_MAX SUPPRIMÉS, remplacés par SULFATE_CCN_EXPONENT.
+//   Même règle que OPTICAL_EFF_CCN_GAIN en v1.3.14, appliquée une marche plus haut : on ne remplace
+//   pas une valeur par une autre, on remplace la FORME. Le facteur linéaire 🍰🫧✈ × SCALE, borné à la
+//   main par un Math.min(MAX, …), devient la loi de puissance mesurée de McCoy 2018 — qui sature
+//   d'elle-même, donc le plafond n'a plus d'objet. Deux jauges inventées → une jauge mesurée.
+//   Le barycentre ATM passe de 6 à 5 paramètres. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
 // - v1.3.14: OPTICAL_EFF_CCN_GAIN retiré des targets — remplacé par la forme analytique de Twomey
 //   dans calculations_albedo.js. Première application de la règle dans le bon sens : on sait le
 //   calculer, donc il quitte le barycentre par le CODE (pas par `fixed`).
@@ -86,33 +92,36 @@ window.FINE_TUNING_BOUNDS = {
         // une grandeur qu'on sait calculer n'a rien à faire dans le barycentre.
         {
             group: 'CLOUD_SW',
-            key: 'SULFATE_BOOST_SCALE',
-            min: 300,
-            max: 700,
-            default: 500,
-            unit: 'scale',
-            note: 'gain sulfate proxy -> CCN',
-            source: 'Proxy sulfate interne SO4(2-) pour microphysique nuageuse',
-            effect: 'negative',
-            biblio_ref: 'SULFATE_BOOST_SCALE'
-        },
-        {
-            group: 'CLOUD_SW',
-            key: 'SULFATE_BOOST_MAX',
-            // REMIS DANS LE BARYCENTRE (v1.3.13). Il en avait été sorti en v1.3.11 au motif que
-            // « ce n'est pas de la science ». C'est vrai — et c'est précisément la raison de l'y
-            // laisser. Aucune mesure ne fixe ce plafond ; le figer à 0,3125 revenait à décréter
-            // une valeur sans fondement, ce qui est pire que d'assumer qu'on l'ignore.
-            // Règle (doc/AUDIT_TUNING_7_PARAMS.md) : ce qu'on CONNAÎT se calcule dans le code et
-            // quitte les targets ; ce qu'on IGNORE reste ici, où la jauge dit qu'on l'ignore.
-            min: 0.20,
-            max: 0.45,
-            default: 0.35,
-            unit: 'ratio',
-            note: 'plafond du boost sulfate',
-            source: 'Borne numerique de securite (evite emballement du proxy)',
-            effect: 'negative',
-            biblio_ref: 'SULFATE_BOOST_MAX'
+            key: 'SULFATE_CCN_EXPONENT',
+            // REMPLACE SULFATE_BOOST_SCALE [300,700] ET SULFATE_BOOST_MAX [0.20,0.45] (v1.3.15).
+            // Les deux étaient des nombres inventés : « gain sulfate proxy » et « garde-fou numérique,
+            // pas une grandeur mesurée », de l'aveu de leur propre champ `source`. Et tous deux
+            // mesurés SANS EFFET au banc (0,00 °C d'écart entre leurs extrêmes).
+            //
+            // Ils sont remplacés par UN paramètre, qui est l'exposant a de la loi publiée
+            //     CDNC / CDNC_ref = (m_SO₄ / m_ref)^a          Boucher & Lohmann 1995 ; McCoy 2018
+            // appliquée dans calculations_albedo.js via AEROSOL.sulfateCcnRatio().
+            //
+            // Cette plage-ci est MESURÉE, pas posée : McCoy et al. 2018 (ACP 18:2035, Table 1) calent
+            // la loi sur 19 régions — CDNC de MODIS, sulfate de MERRA2, 2003-2015, validés contre
+            // campagnes aéroportées. Médiane 0,22, quartiles [0,11 ; 0,29], plage complète
+            // [−0,02 ; 0,44]. La jauge décrit donc une dispersion RÉGIONALE OBSERVÉE : c'est le seul
+            // cas du barycentre où les bornes viennent d'un tableau de mesures.
+            // Quartiles retenus plutôt que la plage complète : les extrêmes (dont un exposant négatif)
+            // sont des régions où le sulfate n'est pas le contrôle dominant du CDNC.
+            //
+            // Pas de direction de refroidissement affichable : elle dépend de l'époque. Sur 📱, plus de
+            // sulfate qu'à la référence → a plus grand = plus de CCN = plus froid ; sur toute époque
+            // pré-industrielle, MOINS de sulfate que la référence → a plus grand = moins de CCN = plus
+            // chaud. Un « cools » unique serait faux la moitié du temps.
+            min: 0.11,
+            max: 0.29,
+            default: 0.22,
+            unit: 'exposant',
+            note: 'exposant a de CDNC ∝ (masse SO₄)^a — dispersion sur 19 régions',
+            source: 'McCoy et al. 2018 ACP 18:2035, Table 1 : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]. Forme de Boucher & Lohmann 1995 Tellus B 47:281.',
+            effect: 'epoch-dependent',
+            biblio_ref: 'SULFATE_CCN_EXPONENT'
         },
         // TEMP_FACTOR_REF_K retiré : remplacé dans calculations_albedo.js par la
         // partition de phase Hu & Stamnes (1993). Plus de borne arbitraire sur T.

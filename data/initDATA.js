@@ -60,7 +60,10 @@
             CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
             ANTHRO_RISE_START_YEAR: 1900, ANTHRO_RISE_WINDOW_YEARS: 80, ANTHRO_RISE_MAX: 0.25,
             ANTHRO_DECAY_START_YEAR: 1980, ANTHRO_DECAY_WINDOW_YEARS: 40, ANTHRO_DECAY_MAX: 0.15,
-            SULFATE_BOOST_SCALE: 700, SULFATE_BOOST_MAX: 0.45,
+            // SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX supprimés (2026-09-22) : le facteur linéaire
+            // et son plafond posé à la main sont remplacés par la loi de puissance mesurée de
+            // McCoy 2018 (aerosols/sulfate_ccn.js). Une loi de puissance sature toute seule.
+            SULFATE_CCN_EXPONENT: 0.29,   // = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
             MODERN_REF_O2: 0.21, MODERN_REF_FOREST: 0.03,
             PRESSURE_FACTOR_MAX: 1.2, OXIDATION_BASE: 0.3, OXIDATION_O2_GAIN: 4.0,
             // TEMP_FACTOR_* supprimés (v1.1.1) : remplacés par la partition de phase

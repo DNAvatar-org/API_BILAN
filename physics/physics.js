@@ -1,9 +1,15 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.18
-// Date: [September 15, 2026]
+// Version 2.0.19
+// Date: [September 22, 2026]
 // logs :
+// - v2.0.19: CONV.CCN_SULFATE_REF_KG 1,0e14 → 1,05e9 kg SO₄ — la référence sulfate de 🍰💭 suit la même
+//   source que les masses d'époque (Tsigaridis et al. 2006 ACP 6:5143, Table 5 : nss-sulfate an 2000).
+//   Ce n'est pas un recalage : ⚖️✈ cesse d'être un « proxy CCN » pour devenir une charge atmosphérique
+//   en kg de SO₄ (configTimeline v1.4.89), et une référence est par définition dans l'unité de ce qu'elle
+//   normalise. Effet : le terme sulfate de 🍰💭 vaut 0,100 sur 📱 (il valait 0,080) et 0,038 sur les
+//   époques préindustrielles (il valait 0,001 — le proxy les avait rendues aveugles au sulfate).
 // - v2.0.18: obliquité — redistribution méridienne de l'insolation annuelle (EARTH.zoneAnnualInsolation / obliquityZoneWarmingK) : ε > ε_époque → pôles plus chauds (ΔS·(1−α)/B, Budyko 1969). Corrige le SIGNE Milankovitch (avant : ε forte = refroidissement). Appliqué en ÉCART vs EPOCH['⚾'] → banc inchangé.
 // - v2.0.17: EARTH['🪩🍰']['🪩🍰⛅'] 0.50 → 0.42 = réflectance r_c de la méthode d'addition 2 couches (calculations_albedo v1.2.64) ; même albédo nuageux moderne que l'ancien mélange linéaire à 0.50.
 // - v2.0.16: EARTH['🪩🍰']['🪩🍰🏊'] = 0.50 — paramètre Briegleb/CCSM3 melt pond (bare ice + ponds, Perovich SHEBA 2002 ; NCAR/TN-463 §5). Consommé par calculations_albedo.js brieglebIceAlbedoLocal().
@@ -84,7 +90,15 @@ CONV.O2_REF_MASS = 1e18;
 CONV.CH4_REF_MASS = 1e13;
 CONV.CCN_O2_REF_KG = 1.08e18;
 CONV.CCN_CH4_REF_KG = 5.2e12;
-CONV.CCN_SULFATE_REF_KG = 1.0e14;
+// CCN_SULFATE_REF_KG : charge de sulfate de RÉFÉRENCE dans 🍰💭, c'est-à-dire celle d'aujourd'hui —
+//   exactement comme CCN_O2_REF_KG (1,08e18 = O₂ préindustriel) et CCN_CH4_REF_KG (5,2e12 ≈ CH₄ moderne).
+//   Le terme 0,1 × (⚖️✈/CCN_SULFATE_REF_KG) se lit donc « sulfate relatif à aujourd'hui ».
+//   1,05e9 kg SO₄ = nss-sulfate de l'an 2000 (Tsigaridis et al. 2006 ACP 6:5143, Table 5) : la même
+//   source que EPOCH['📱']['⚖️✈'], pour que le rapport vaille 1,00 sur l'époque moderne.
+//   ⚠️ L'ancienne valeur, 1,0e14, accompagnait le « proxy CCN » de configTimeline (📱 = 8,0e13) ;
+//   elle n'avait pas de source et 📱 y donnait 0,80 au lieu de 1,00. Voir configTimeline.js v1.4.89,
+//   encadré « MASSES DE SULFATE », et doc/MASSES_SULFATE_PAR_EPOQUE.md.
+CONV.CCN_SULFATE_REF_KG = 1.05e9;
 CONV.H2O_VAPOR_REF = 0.01;
 CONV.ALPHA_OCEAN = 0.3;
 CONV.SCALE_CLOUD = 0.4;

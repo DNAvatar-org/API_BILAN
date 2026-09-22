@@ -3,11 +3,19 @@
 // Desc: La relation publiée entre masse de sulfate et nombre de gouttelettes nuageuses.
 //       C'est une LOI DE PUISSANCE, pas un facteur linéaire. Fichier séparé parce que c'est une
 //       physique à part : l'albédo décide de ce qu'il fait des CCN (Twomey), pas d'où ils viennent.
-// Version 1.0.0
+// Version 1.2.0
 // Date: 2026-09-22
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+// - v1.2.0: BRANCHÉ dans calculations_albedo.js v1.2.65. SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX et la
+//   porte « ▶ >= 1900 » supprimés ; seule jauge restante = l'exposant a (quartiles mesurés McCoy 2018).
+//   ERFaci vérifié au banc : −0,908 W/m² contre −0,97 (McCoy 2017a) et −1,0 [−1,7 ; −0,3] (AR6).
+//   Le modèle produisait −0,037 W/m² la veille.
+// - v1.1.0: contrat d'entrée TENU — les 19 ⚖️✈ sont passées à des charges atmosphériques réelles en kg
+//   de SO₄, une source par époque (configTimeline v1.4.89 ; doc/MASSES_SULFATE_PAR_EPOQUE.md). Le rapport
+//   📱/🚂 vaut 2,6 (Tsigaridis 2006) au lieu de 53, et 2,6^(−0,22) = 81 % de CDNC préindustriel, dans les
+//   70-80 % mesurés. Reste à brancher dans calculations_albedo.js.
 // - v1.0.0: loi de puissance McCoy 2018 / Boucher & Lohmann 1995, en remplacement du proxy linéaire
 //   🍰🫧✈ × SULFATE_BOOST_SCALE. ⚠️ PAS ENCORE BRANCHÉ — voir le contrat d'entrée plus bas.
 // ============================================================================
@@ -40,25 +48,38 @@
  * convertir ⚖️✈ en µg/m³, ni de connaître un CDNC de référence. Il suffit que ⚖️✈ soit
  * PROPORTIONNEL à une charge atmosphérique réelle de sulfate.
  *
- * ─── ⚠️ CONTRAT D'ENTRÉE — NON TENU AUJOURD'HUI ────────────────────────────────────────────
- * « Proportionnel à une charge réelle » est exactement ce que les ⚖️✈ actuels ne sont pas :
+ * ─── ✅ CONTRAT D'ENTRÉE — TENU DEPUIS LE 2026-09-22 ───────────────────────────────────────
+ * Il ne l'était pas quand ce fichier a été écrit : ⚖️✈ valait 8e13 kg pour 📱 (« proxy CCN
+ * moderne », sa config le disait), soit ~76 000 × la charge atmosphérique réelle, et surtout
+ * 📱/🚂 = 53 quand la mesure donne 2,6.
  *
- *   • 📱 vaut 8e13 kg. Étalé sur 1,5 km de couche limite, ça ferait 105 000 µg/m³ de sulfate,
- *     contre 1 à 10 µg/m³ mesurés dans l'air réel. La charge atmosphérique vraie est de l'ordre
- *     de 1 Tg = 1e9 kg : le chiffre du modèle est ~27 000× trop grand. Sa config le dit
- *     elle-même — « proxy CCN moderne ».
- *   • Et les RAPPORTS entre époques, seuls à compter ici, sont faux aussi : 📱/🚂 = 8e13/1,5e12
- *     = 53, alors que le rapport mesuré entre sulfate actuel et pré-industriel est de l'ordre
- *     de 3 à 5 (émissions de SO₂ : ~20 Tg S/an naturelles contre ~100 aujourd'hui).
+ * Les 19 masses ont été refaites sur des charges physiques, une source par époque
+ * (configTimeline.js v1.4.89, encadré « MASSES DE SULFATE » ; détail dans
+ * doc/MASSES_SULFATE_PAR_EPOQUE.md) :
  *
- * Brancher cette loi sur ces masses-là donnerait un CDNC pré-industriel à 40 % du moderne, quand
- * la mesure donne plutôt 70-80 %. Ce serait remplacer une erreur par une autre.
+ *     📱 Aujourd'hui      1,05e9 kg SO₄   Tsigaridis et al. 2006 ACP 6:5143, Table 5 (nss, an 2000)
+ *     🚂 Industriel 1800  4,0e8  kg SO₄   même table, colonne préindustriel  →  rapport 2,6 ✅
+ *     ⛄ Plein Snowball   1,2e8  kg SO₄   fond × part volcanique (DMS éteint sous banquise)
+ *     ⚫ 🔥               0                pas d'atmosphère / rien ne condense à 2650 °C
+ *     les 14 autres       4,0e8  kg SO₄   fond naturel préindustriel, faute de contrainte publiée
  *
- * Il faut donc D'ABORD refaire les ⚖️✈ des 19 époques sur des charges physiques. Tant que ce
- * n'est pas fait, ce module est écrit, testé, documenté — et pas appelé.
+ * Avec l'exposant médian 0,22, le rapport 2,6 donne un CDNC préindustriel à 2,6^(−0,22) = 81 % du
+ * moderne — dans les 70-80 % mesurés. C'était le test à passer.
  *
- * Vérification qui viendra ensuite, indépendante du calage : le forçage qui doit en sortir est
- * de −0,97 W/m² (McCoy et al. 2017a), cohérent avec l'ERFaci de l'AR6, −1,0 [−1,7 ; −0,3] W/m².
+ * ─── BRANCHÉ ───────────────────────────────────────────────────────────────────────────────
+ * calculations_albedo.js v1.2.65 appelle sulfateCcnRatio() à la place du facteur linéaire.
+ * SULFATE_BOOST_SCALE, SULFATE_BOOST_MAX et la porte « ▶ >= 1900 » ont disparu avec lui.
+ * L'exposant a est la seule jauge restante : FINE_TUNING_BOUNDS.SULFATE_CCN_EXPONENT, bornes =
+ * quartiles MESURÉS [0,11 ; 0,29] de McCoy 2018.
+ *
+ * Vérification faite, et ce n'est pas un calage — SW absorbé à T figée sur 📱, sulfate seul
+ * variable, 4,0e8 → 1,05e9 kg :
+ *     ERFaci du modèle = −0,908 W/m²
+ *     McCoy et al. 2017a = −0,97 W/m²   ·   AR6 Ch. 7 = −1,0 [−1,7 ; −0,3] W/m²
+ * Le modèle produisait −0,037 W/m² la veille. Masses de Tsigaridis 2006, exposant d'ici,
+ * sensibilité de Twomey 1991 : trois sources indépendantes, aucun paramètre réglé sur le résultat.
+ * Au banc 19 époques : hystérésis 1a (4,85 → 7,33) et 🦣 (9,35 → 13,63) reviennent dans leur
+ * fourchette. Détail : doc/DIAGNOSTIC_SULFATES_CCN.md.
  */
 
 /**

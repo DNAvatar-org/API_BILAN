@@ -105,7 +105,7 @@ const DESC = {
         '🍰🫧🏭': '!CO₂',
         '🍰🫧🐄': '!CH₄',
         '🍰🫧🫁': '!O₂ (🫁) [clé historique 🫁]',
-        '🍰🫧✈': 'SO₄²⁻ (✈) - proxy CCN',
+        '🍰🫧✈': 'SO₄²⁻ (✈) - fraction massique de sulfate',
         '🍰🫧💨': '!N₂',
         '🍰🫧❀🌈': 'Cap.Rad.IR<sub>❀∈{🏭, 🐄, 💧}</sub>',
         '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈)<sub>❀∈{🏭,🐄,💧}</sub>',
@@ -115,13 +115,13 @@ const DESC = {
         '🍰💭': 'CCN - Eff.Cond nuageuse [0.3,1.0]',
     },
     '⚖️': {
-        '⚖️❀': 'Masse<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub> (+ ⚖️✈ proxy sulfate)',
+        '⚖️❀': 'Masse<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub> (+ ⚖️✈ sulfate)',
         '⚖️💧': 'Masse H₂O totale',
         '⚖️🫧': 'Masse atmosphère sec',
         '⚖️🏭': '!Masse CO₂',
         '⚖️🐄': '!Masse CH₄',
         '⚖️🫁': '!Masse O₂ (🫁) [clé historique 🫁]',
-        '⚖️✈': 'Masse SO₄²⁻ (✈) [proxy CCN]',
+        '⚖️✈': 'Masse SO₄²⁻ (✈) — charge atmosphérique de sulfate, kg de SO₄',
         '⚖️💨': '!Masse N₂',
     },
     '💧': {
@@ -236,8 +236,8 @@ const FORM = {
         '🍰🫧❀': 'Proportion radiative EDS - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨}',
         '🍰🫧❀🌈': 'Capacité radiative IR de ❀ - ∀ ❀ ∈ {🏭, 🐄, 💧}',
         '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈) - ∀ ❀ ∈ {🏭, 🐄, 💧} (pour normalisation)',
-        '🍰🫧✈': '⚖️✈ / ⚖️🫧 (proxy sulfate pour microphysique nuageuse, hors normalisation air sec)',
-        '🍰💭': 'clamp(0.4 + 0.5×(⚖️🫁/1.08e18 + ⚖️🐄/5.2e12) + 0.1×(⚖️✈/1.0e14), 0.3, 1.0) - CCN - Eff.Cond nuageuse [0.3,1.0]'
+        '🍰🫧✈': '⚖️✈ / ⚖️🫧 (fraction massique de sulfate, hors normalisation air sec)',
+        '🍰💭': 'clamp(0.4 + 0.5×(⚖️🫁/1.08e18 + ⚖️🐄/5.2e12) + 0.1×(⚖️✈/1.05e9), 0.3, 1.0) - CCN - Eff.Cond nuageuse [0.3,1.0] ⚠️ vaut 1.000 sur 18 époques/19 : le clamp sature (doc/AUDIT_CONSTANTES_SANS_SOURCE.md)'
     },
     '💧': {
         '🍰💧🧊': 'Si T < ❄️ alors toute l\'eau restante (après vapeur) est glace, sinon glace polaire (10% à 0°C → 0% à 20°C) - ❄️ = 271.15K - (P-1)×1.0',
@@ -285,9 +285,9 @@ const FORM = {
         '_note': '🗻 = Géologie (Couche A) : surfaces fixes déterminées par la géologie/relief, indépendantes des stocks d\'eau'
     },
     '⚖️': {
-        '⚖️❀': 'Masse ❀ - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨} (+ ⚖️✈ proxy sulfate)',
+        '⚖️❀': 'Masse ❀ - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨} (+ ⚖️✈ sulfate)',
         '⚖️💧': 'Masse H2O totale',
-        '⚖️🫧': 'Masse atmosphère sec = ⚖️🏭 + ⚖️🐄 + ⚖️🫁 + ⚖️💨 (sans vapeur d\'eau ; ⚖️✈ = proxy CCN séparé)'
+        '⚖️🫧': 'Masse atmosphère sec = ⚖️🏭 + ⚖️🐄 + ⚖️🫁 + ⚖️💨 (sans vapeur d\'eau ; ⚖️✈ = sulfate, compté à part)'
     },
     '🪩🍰': {
         '🪩🍰❄️': 'α_snow_deep pol/mi-lat — plateau T≤−10°C (Gardner & Sharp 2010) ; EARTH défaut 0.85',

@@ -48,6 +48,37 @@ C'est ce qui rend le remplacement par la loi de puissance de McCoy intéressant 
 *plusieurs coefficients inventés* à *un coefficient mesuré sur 19 régions*. Ce n'est pas perdre du
 détail, c'est en gagner de la fiabilité.
 
+## Mise à jour 2026-09-22 — un dix-neuvième cas, et il est pire
+
+`CONV.CCN_SULFATE_REF_KG` = 1,0e14 kg ne figurait pas dans l'inventaire : elle est dans
+`physics/physics.js`, pas dans le bloc `CLOUD_SW`. Elle y entrait pourtant, comme référence du
+terme sulfate de `🍰💭`. **Réglée** : elle vaut maintenant 1,05e9 kg SO₄, la même source que les
+masses d'époque (Tsigaridis et al. 2006 ACP 6:5143). Voir `MASSES_SULFATE_PAR_EPOQUE.md`.
+
+Sauf que la sonde passée au banc à cette occasion dit autre chose, et de plus grave :
+
+```
+🍰💭 = clamp(0,4 + 0,5×(O₂/réf + CH₄/réf) + 0,1×(SO₄/réf),  0,3 , 1,0)
+```
+
+| époque | valeur brute | après clamp |
+|---|---|---|
+| ⚫ Corps noir | 0,400 | 0,400 |
+| 🚂 Industriel | 1,285 | **1,000** |
+| 📱 Aujourd'hui | 1,526 | **1,000** |
+| 🪸 Protérozoïque | 69,7 | **1,000** |
+| 🦠 Archéen | 6058 | **1,000** |
+| *(14 autres)* | 1,15 à 481 | **1,000** |
+
+La valeur brute dépasse le plafond sur **18 époques sur 19**. `🍰💭` vaut donc 1,000 partout sauf
+sur le corps noir, qui n'a pas d'atmosphère. Le clamp n'avale pas seulement le sulfate : il avale
+aussi l'O₂ et le CH₄. **Cette formule ne module plus rien** — elle multiplie la fraction nuageuse
+de Sundqvist par la constante 1.
+
+Ce n'est donc pas une constante sans source de plus, c'est une *physique entière* devenue
+constante sans que rien ne le signale. À traiter pour elle-même, et pas seulement du côté sulfate :
+les trois termes sont concernés.
+
 ## Deux cas particuliers
 
 **`MODERN_REF_FOREST` = 0,03.** La fraction de forêt « moderne de référence ». Or `EPOCH['🌱']`

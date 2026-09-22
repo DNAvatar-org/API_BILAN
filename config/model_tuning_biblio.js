@@ -34,16 +34,14 @@ window.TUNING_BIBLIO = {
             source: "Twomey effect (sensibilite de l'albedo nuageux aux CCN)",
             effect_on_warming_when_increased: "negative"
         },
-        SULFATE_BOOST_SCALE: {
-            value: 500,
-            source: "Proxy sulfate interne SO4(2-) pour microphysique nuageuse",
-            effect_on_warming_when_increased: "negative"
-        },
-        SULFATE_BOOST_MAX: {
-            value: 0.35,
-            source: "Borne numerique de securite (evite emballement du proxy)",
-            effect_on_warming_when_increased: "negative"
+        SULFATE_CCN_EXPONENT: {
+            value: 0.22,
+            source: "McCoy et al. 2018 ACP 18:2035 Table 1 — exposant a de CDNC proportionnel a (masse SO4)^a, mesure sur 19 regions : mediane 0.22, quartiles [0.11 , 0.29]. Forme : Boucher & Lohmann 1995 Tellus B 47:281.",
+            effect_on_warming_when_increased: "epoch_dependent"
         }
+        // SULFATE_BOOST_SCALE (500, « proxy sulfate interne ») et SULFATE_BOOST_MAX (0.35, « borne
+        // numerique de securite ») retires 2026-09-22 : deux nombres inventes, mesures sans aucun
+        // effet au banc, remplaces par la loi de puissance ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
         // TEMP_FACTOR_REF_K (et MIN/MAX) retirés v1.0.2 : remplacés dans
         // calculations_albedo.js par la partition de phase Hu & Stamnes (1993),
         // J. Climate 6, 728. Plus de bornes arbitraires — f_liq lisse sur [-40, 0]°C,

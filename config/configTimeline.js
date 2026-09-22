@@ -1,6 +1,6 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.88
+// Version 1.4.90
 // Date: [September 18, 2026]
 // logs :
 // - v1.4.89: window.epochIndex() — l'index des époques (type/name/id/startYears/endYears) naît avec TIMELINE.
@@ -56,6 +56,21 @@
 //   (valeur commentée = 🔒 max, domaine nominal du BaryAdapter) — le 4.801e14 résiduel R&D plaçait x0 (65 ppm)
 //   SOUS le seuil littérature 100-300 ppm : un scan descendant ne peut pas trouver un seuil au-dessus de x0.
 // - v1.4.74: window.BENCH_LIT_BY_EPOCH_ID défini ici (source unique) — epoch_bench.html lit window au load ; plus de duplicata statique / CSV / cookie pour les repères litt. affichés au bench.
+// - v1.4.90: ⛄ repasse à 4,0e8 kg (fond naturel) — la dérivation « fond × part volcanique » qui
+//   était écrite en dur sur sa fiche est passée dans calculations_albedo.js v1.2.65, où 🧫 module la
+//   part DMS du soufre avec le partage mesuré 0,29/0,71 pour les 19 époques. Masse effective
+//   inchangée (1,30e8 au lieu de 1,2e8). Segment 🔒 ⚖️✈ de ☃/⛄ dégénéré (min = max) : plus
+//   d'incertitude de masse à interpoler sur ce segment.
+// - v1.4.89: ⚖️✈ — les 19 masses de sulfate passent du « proxy CCN » à des CHARGES ATMOSPHÉRIQUES
+//   RÉELLES, en kg de SO₄, une source par époque. 📱 8,0e13 → 1,05e9 (Tsigaridis et al. 2006 ACP
+//   6:5143, Table 5) ; 🚂 1,5e12 → 4,0e8 (même table, préindustriel) ; 🦠 5,0e14 → 4,0e8 (l'ancienne
+//   valeur pesait 500 000 × la charge moderne, sans source) ; 🪸 0 → 4,0e8 (post-GOE, l'atmosphère est
+//   oxydante) ; ⛄ 1,018e12 → 1,2e8 (fond × part volcanique, DMS éteint sous banquise — dérivation sur
+//   la fiche) ; toutes les autres → 4,0e8, fond naturel préindustriel FAUTE DE CONTRAINTE PUBLIÉE,
+//   ce qui est dit tel quel. Bornes 🔒 de 🦠, ☃/⛄ et 📱 refaites sur les mêmes sources. Encadré
+//   « MASSES DE SULFATE » en tête du tableau ; détail dans doc/MASSES_SULFATE_PAR_EPOQUE.md.
+//   Le rapport 📱/🚂 passe de 53 à 2,6 — c'est lui, pas l'échelle absolue, que la loi sulfate→CCN lit.
+//   Couple avec physics.js (CCN_SULFATE_REF_KG suit la même source) et scie_hysteresis_search.js.
 // - v1.4.73: 🏔 — 🕰.baryFromDate + 🔀 ['📅','📜'] : interpolation 🌡️🧮 + 🔺🍰⚽ (voile) selon date 📜📅 sur 33→2 Ma (compute.js v1.0.21) ; racine 🔺🍰⚽ = début de rampe.
 // - v1.4.72: 🦣 Quaternaire — 🕰.🔀 ['📅'] + ◀📅🌡️🧮 (287.15 K fin frise) pour interpolation graine T le long des tics (compute.js v1.0.20).
 // - v1.4.71: commentaires maxDichotomyIterations vs maxRadiatifIters — deux boucles distinctes (visu panneau = innerIter+1 → maxRadiatif).
@@ -303,6 +318,42 @@
 // Réfs 🌡️🧮 (temp. surface) : Kienert & Feulner Clim. Past 9:1841 (2013) ; Charnay 2017 ; PNAS 2018 ;
 // Clouds/Faint Young Sun Copernicus 2011 ; Astrobiology 2014. Valeurs au DÉBUT de chaque époque (parcours temporel à venir).
 // Réfs masses gaz (⚖️🏭, ⚖️🐄) : doc/VALIDATION_CONFIG_GAZ.md
+// ═══════════════════════════════════════════════════════════════════════════
+// MASSES DE SULFATE ⚖️✈ — une charge atmosphérique réelle, en kg de SO₄
+// ═══════════════════════════════════════════════════════════════════════════
+// Jusqu'au 2026-09-22 cette clé portait un « proxy CCN » : 8,0e13 kg pour 📱, ~1e12 partout
+// ailleurs, 5,0e14 pour 🦠. Aucun de ces nombres ne venait d'une source, et les RAPPORTS entre
+// époques — la seule chose qui compte dans une loi sulfate→CCN, qui s'écrit en rapport — étaient
+// faux d'un ordre de grandeur : 📱/🚂 = 53 contre 2,6 mesuré.
+//
+// Désormais ⚖️✈ = charge atmosphérique de sulfate, en kg de SO₄, à l'échelle réelle :
+//
+//   📱 Aujourd'hui      1,05e9 kg   Tsigaridis et al. 2006 ACP 6:5143, Table 5 (nss-SO₄, an 2000)
+//   🚂 Industriel 1800  4,0e8  kg   même table, colonne « préindustriel »
+//   ⛄ Plein Snowball   1,2e8  kg   fond naturel × part volcanique du soufre (dérivation sur sa fiche)
+//   ⚫ Corps noir       0            pas d'atmosphère
+//   🔥 Hadéen           0            ~2650 °C : rien ne condense
+//   toutes les autres   4,0e8  kg   fond naturel préindustriel, FAUTE DE CONTRAINTE
+//
+// Le « faute de contrainte » est à prendre au mot, et c'est l'énoncé honnête : il n'existe pas de
+// charge de sulfate atmosphérique publiée pour le Protérozoïque, le Paléozoïque, le Mésozoïque ni
+// le Cénozoïque. Poser un chiffre différent par époque aurait été inventer. Ce qu'on sait, en
+// revanche, c'est que le sulfate naturel vient de deux sources dont les ordres de grandeur n'ont
+// pas de raison d'avoir changé d'un facteur 10 sur le Phanérozoïque :
+//   volcanisme subaérien  23 ± 2 Tg SO₂/an = 11,5 Tg S/an  (Carn et al. 2017 Sci. Rep. 7:44095)
+//   DMS marin             28,1 [17,6 ; 34,4] Tg S/an        (Lana et al. 2011 GBC 25:GB1004)
+// La durée de vie du sulfate est de 4,12 j (Textor et al. 2006 ACP 6:1777, Table 10), donc la charge
+// suit la source presque instantanément : pas de mémoire, pas d'accumulation possible.
+//
+// Vérification d'échelle, faite une fois : 179 Tg SO₄/an × 4,12 j / 365 = 2,02 Tg — c'est bien la
+// charge de 1,99 Tg que Textor donne dans la même table. Source × durée de vie = charge, ✅.
+//
+// ⚠️ Événements ≠ fond. Un panache de LIP ou d'éruption dure des années, pas des dizaines de Ma :
+// il n'a rien à faire dans une charge de fond moyennée sur une époque. Le voile sulfaté Franklin
+// qui bascule le Sturtien est porté séparément par ⛄.🔺🍰⚽ = 0,05.
+//
+// Détail, dérivations et ce qui reste non contraint : doc/MASSES_SULFATE_PAR_EPOQUE.md
+// ═══════════════════════════════════════════════════════════════════════════
 const timeline = [
     {// Corps noir
         '📅': '⚫', // Corps noir
@@ -338,7 +389,9 @@ const timeline = [
         '⚖️🐄': 0, // ch4_kg (Quantité de CH4 en kg)
         '⚖️💧': 0, // h2o_kg (Quantité totale d'eau en kg)
         '⚖️🫁': 0, // o2_kg (Quantité de O2 en kg)
-        '⚖️✈': 0, // sulfates proxy (donnée explicite, pas de fallback)
+        // ⚖️✈ : 0 — pas d'atmosphère (⚖️🫧 = 0 sur cette fiche), donc pas d'aérosol. Ce n'est pas
+        //   une valeur de littérature, c'est la définition du cas. Cf. doc/MASSES_SULFATE_PAR_EPOQUE.md.
+        '⚖️✈': 0,
         '⚖️💨': 0, // n2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
@@ -403,6 +456,9 @@ const timeline = [
         '⚖️💧': 6.0e20, // h2o_kg — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
         //   tombait à 7 % (dilution). Atmosphère de vapeur post-impact ≈ un océan entier (Zahnle et al. 2010) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
+        // ⚖️✈ : 0 — le modèle sort cette époque à ~2650 °C. L'acide sulfurique ne condense pas :
+        //   il n'y a ni gouttelette d'eau ni aérosol sulfaté à cette température. Le soufre est
+        //   entièrement en phase gazeuse. Énoncé physique, pas une mesure. Cf. doc/MASSES_SULFATE_PAR_EPOQUE.md.
         '⚖️✈': 0,
         '⚖️💨': 5.29495e20,
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
@@ -504,14 +560,27 @@ const timeline = [
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
         '⚖️💨': 1.0e19, // n2_kg — max 🔒 [4.0e18, 1.0e19] = 2.2 atm (v1.4.76 ; était 7.0e18). Pressure broadening +GES.
-        '⚖️✈': 5.0e14, // proxy_sulfates — moyenne plage 🔒 [0, 1.0e15] (refroidissant).
+        // ⚖️✈ : 4,0e8 kg = FOND NATUREL PRÉINDUSTRIEL, faute de contrainte propre à l'Archéen.
+        //   ⚠️ NON CONTRAINT, et il faut le dire : aucune charge de sulfate atmosphérique archéenne
+        //   n'est publiée. Deux effets de signe opposé, tous deux non quantifiés, encadrent la vraie
+        //   valeur : (i) le dégazage volcanique était vraisemblablement plus fort (Terre plus chaude) ;
+        //   (ii) l'atmosphère anoxique route une part importante du soufre vers l'aérosol S8 plutôt
+        //   que vers le sulfate — c'est la condition même du fractionnement indépendant de la masse
+        //   observé dans les sédiments (Farquhar et al. 2000 Science 289:756 ; Pavlov & Kasting 2002
+        //   Astrobiology 2:27). Le fond préindustriel est donc un repère, pas une mesure.
+        //   L'ancienne valeur, 5,0e14 kg, valait 500 000 × la charge moderne mesurée : elle ne venait
+        //   d'aucune source. Cf. doc/MASSES_SULFATE_PAR_EPOQUE.md.
+        '⚖️✈': 4.0e8,
         // 🔒 Bornes hystérésis Archéen — cf. schéma commentaire global "🔒 SCHÉMA BORNES HYSTÉRÉSIS" + CSV « Archéen » [50k,150k]ppm CO₂, [1k,10k]ppm CH₄.
         //    Refs : Sleep & Zahnle 2001 (CO₂ 0.2–10 bar), Haqq-Misra 2008 (CH₄ ≤10k ppm ; haze si CH₄/CO₂ > 0.1), Som 2012/2016 (N₂ paléo 0.7–2.2 atm), Marty 2013 (N₂ Archéen ≈1–2× PAL).
         '🔒': {
             '⚖️🏭': { min: 0.80e18, max: 2.75e18, cools: 'min' }, // CO₂ : CSV [50k,150k] mol ppm
             '⚖️🐄': { min: 6.5e15,  max: 6.7e16,  cools: 'min' }, // CH₄ : CSV [1k,10k] mol ppm
             '⚖️💨': { min: 4.0e18,  max: 1.0e19,  cools: 'min' }, // N₂  : 1× → 2.5× PAL (Som 2012)
-            '⚖️✈': { min: 0,       max: 1.0e15,  cools: 'max' }, // sulfates : volcanisme explosif (refroidit)
+            // sulfates : bornes = dispersion PUBLIÉE des charges préindustrielles entre modèles,
+            //   0,10–0,58 Tg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5, colonne « previous works »).
+            //   C'est la seule fourchette honnête ici : on ne sait pas, et cette plage dit de combien.
+            '⚖️✈': { min: 1.0e8,   max: 5.8e8,   cools: 'max' },
             '⚖️🫁': { min: 0,       max: 1.0e16,  cools: 'min' }, // O₂ : pré-GOE (traces seulement)
             '⚖️💧': { min: 0.8e21,  max: 2.5e21,  cools: 'min' }, // H₂O hydrosphère : ~57% → ~179% PAL
         },
@@ -526,7 +595,7 @@ const timeline = [
             // 🔒 ☀️ n'est PAS dans 🔀 : luminosité calculée par Gough (1981) depuis la date, pas interpolée linéairement
             '🔀': ['⚖️', '🌕'],
             '◀': {
-                '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 0, '⚖️💨': 5.138e18 },
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 4.0e8, '⚖️💨': 5.138e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },
@@ -580,7 +649,11 @@ const timeline = [
         '⚖️🐄': 7.20e14,  // ch4_kg — 250 ppm (était 3.0e14 = 102 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
-        '⚖️✈': 0,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5).
+        //   Post-GOE l'atmosphère est oxydante : le SO₂ volcanique finit bien en sulfate, contrairement
+        //   à l'Archéen. Aucune charge protérozoïque n'est publiée pour autant — faiblement contraint.
+        //   L'ancienne valeur était 0, ce qui affirmait une absence de sulfate que rien ne soutient.
+        '⚖️✈': 4.0e8,
         '⚖️💨': 5.0847e18,
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
@@ -662,8 +735,12 @@ const timeline = [
         // O₂ : v-2026-07-14b 1.5e16 (aligné vecteur warm scan = serre/nuages suppl. ; 1.3 % PAL, borne haute Sturtien).
         //   (Lyons et al. 2014 ; Planavsky et al. 2014 ; Sperling 2015). Ancien : 5.0e15 (0.4 % PAL).
         '⚖️🫁': 1.5e16,
-        // ⚖️✈ : baseline sulfate volcanique. v-2026-07-14b 1.018e12 (aligné vecteur scan ; ancien 1.0e12).
-        '⚖️✈': 1.018e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5).
+        //   La part réellement vue par la loi sulfate → CCN dépend de 🧫 (calculations_albedo v1.2.65) :
+        //   ici 🧫 = 0,05 (plancton dilué, pré-glaciation) → 4,0e8 × (0,29 + 0,71 × 0,05) = 1,30e8 kg.
+        //   ⚠️ Le voile sulfaté de la LIP Franklin n'est PAS ici : il est porté séparément par
+        //   ⛄.🔺🍰⚽ = 0,05 (Macdonald & Wordsworth 2017). Pas de double comptage.
+        '⚖️✈': 4.0e8,
         '⚖️💨': 5.133e18,//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
         // 1a = branche CHAUDE pré-Sturtienne (≈ 7 °C). Le bouton volcan 🗻 est un DÉCLENCHEUR ERGONOMIQUE : son tooltip (desc du logo,
         // "Volcan — voile atmosphérique") annonce à l'utilisateur que le voile arrive, et le clic fait avancer la
@@ -698,7 +775,11 @@ const timeline = [
             '⚖️💨': { min: 5.132968982e18, max: 5.142979e18, cools: 'min' },
             '⚖️🫁': { min: 1.5e+16, max: 5.0e+15, cools: 'min' },
             '⚖️💧': { min: 1.2e+21, max: 1.2e+21, cools: 'min' },
-            '⚖️✈': { min: 1.0e+12, max: 1.018e+12, cools: 'max' }
+            // sulfates : segment DÉGÉNÉRÉ depuis v1.4.90 — 1a et ⛄ portent la même charge de fond,
+            //   4,0e8 kg. Ce qui les sépare n'est plus la masse mais 🧫 (1a = 0,05 aussi… voir NB),
+            //   appliqué dans calculations_albedo.js. min = max : la bary n'a plus rien à interpoler
+            //   ici, et c'est l'énoncé correct — il n'y a pas d'incertitude de masse sur ce segment.
+            '⚖️✈': { min: 4.0e+8, max: 4.0e+8, cools: 'min' }
         }
     },
     // ⛄ = Plein Snowball (720–690 Ma) : glaciation globale Néoprotérozoïque (Sturtien ~717 Ma)
@@ -739,7 +820,15 @@ const timeline = [
     "⚖️🐄": 2.86e13,// 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
-    "⚖️✈": 1018000000000,
+    // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5),
+    //   comme toutes les époques sans contrainte propre. La banquise globale coupe la source DMS —
+    //   mais ce n'est plus écrit ici : la dérivation est passée dans calculations_albedo.js v1.2.65,
+    //   où 🧫 (= 0,05 pour ⛄) module la part DMS du soufre avec le partage mesuré volcanique/DMS
+    //   0,29/0,71 (Carn et al. 2017 Sci. Rep. 7:44095 + Lana et al. 2011 GBC 25:GB1004).
+    //   Masse effective vue par la loi sulfate → CCN : 4,0e8 × (0,29 + 0,71 × 0,05) = 1,30e8 kg.
+    //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
+    //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
+    "⚖️✈": 400000000,
     "⚖️💨": 5132968982000000000,
     "🔒": {
         "⚖️🏭": {
@@ -768,9 +857,9 @@ const timeline = [
             "cools": "min"
         },
         "⚖️✈": {
-            "min": 1000000000000,
-            "max": 1018000000000,
-            "cools": "max"
+            "min": 400000000,
+            "max": 400000000,
+            "cools": "min"
         }
     },
     // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
@@ -833,7 +922,9 @@ const timeline = [
         '⚖️🐄': 4.5e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 90 },
@@ -872,7 +963,9 @@ const timeline = [
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e17,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.986169e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 180 },
@@ -906,7 +999,9 @@ const timeline = [
         '⚖️🐄': 3e13,
         '⚖️💧': 1.3e21,
         '⚖️🫁': 2.0e17,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.942569e18,
         // 4 clics de 35 Ma : 420 → 385 → 350 → 315 → 280 Ma. Le pas de 140 Ma (un seul clic) sautait
         // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
@@ -960,7 +1055,12 @@ const timeline = [
         '⚖️🐄': 8e13,   // CH4 élevé (anoxie, clathrates)
         '⚖️💧': 1.35e21,
         '⚖️🫁': 1.5e17, // O2 en chute (anoxie)
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — MALGRÉ les Trapps sibériens.
+        //   Un panache sulfaté de LIP a une durée de vie de quelques années ; cette fiche couvre
+        //   280→250 Ma. Moyenner un pic décennal sur 30 Ma redonne le fond, à la précision près.
+        //   Le refroidissement volcanique, s'il doit apparaître, est un ÉVÉNEMENT (comme ⛄.🔺🍰⚽),
+        //   pas une charge de fond. Voir l'encadré « MASSES DE SULFATE » en tête de fichier.
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.984919e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
@@ -1003,7 +1103,9 @@ const timeline = [
         '⚖️🐄': 4.12e13,
         '⚖️💧': 1.33e21,
         '⚖️🫁': 0,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 5.1370828e18,
         '🕰': {
             '💫': {
@@ -1045,7 +1147,9 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.063495395e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
@@ -1084,7 +1188,9 @@ const timeline = [
         '⚖️🐄': 1.1e13, // ~3,8 ppm
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.059095395e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
@@ -1124,7 +1230,9 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 4.063345395e18,
         '🕰': {
             '⛰': { '🔺🌡️💫': 0, '🔺⏳': 2 },
@@ -1161,7 +1269,9 @@ const timeline = [
         '⚖️🐄': 4.3e12, // [v1.4.81] 0,92 ppm → ~1,5 ppm (milieu grille [1,2])
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
-        '⚖️✈': 1e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
@@ -1210,7 +1320,9 @@ const timeline = [
         '⚖️🐄': 2.25e12, // ~0,80 ppm
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
-        '⚖️✈': 1.2e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
             // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
@@ -1269,7 +1381,9 @@ const timeline = [
         '⚖️🐄': 2.28e12,  // ~800 ppb CH4 pré-industriel
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,
-        '⚖️✈': 1.0e12,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.004 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂
@@ -1301,7 +1415,12 @@ const timeline = [
         '⚖️🐄': 3.605e12,
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
-        '⚖️✈': 1.5e12,
+        // ⚖️✈ : 4,0e8 kg SO₄ = charge PRÉINDUSTRIELLE simulée (Tsigaridis et al. 2006 ACP 6:5143,
+        //   Table 5 : nss-sulfate 0,40 Tg ; dispersion inter-modèles publiée 0,10–0,58 Tg).
+        //   Leur « préindustriel » utilise les émissions anthropiques EDGAR-HYDE de 1860 ; cette
+        //   fiche est datée 1800, où l'anthropique était encore plus faible — l'écart est très
+        //   inférieur à la dispersion inter-modèles. Le sulfate industriel n'arrive qu'après 1850.
+        '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000
@@ -1343,7 +1462,17 @@ const timeline = [
         '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
-        '⚖️✈': 8.0e13, // sulfate_kg (proxy CCN moderne)
+        // ⚖️✈ : 1,05e9 kg SO₄ = charge atmosphérique MESURÉE/simulée d'aujourd'hui.
+        //   Tsigaridis et al. 2006 ACP 6:5143, Table 5 : nss-sulfate 1,05 Tg (émissions an 2000),
+        //   contre 0,40 Tg en préindustriel → rapport 2,6, énoncé tel quel dans leur texte.
+        //   Recoupement indépendant : Textor et al. 2006 ACP 6:1777, Table 10 — 16 modèles AeroCom,
+        //   charge SO₄ 1,99 Tg (δ=25 %), source 179 Tg SO₄/an, durée de vie 4,12 j ; leur chiffre
+        //   inclut le sulfate porté par le sel de mer, que Tsigaridis exclut (nss). Et Schulz et al.
+        //   2006 ACP 6:5225, Table 2 : la part anthropique vaut 55 % de l'épaisseur optique sulfatée
+        //   actuelle, soit un rapport actuel/préindustriel de 2,2 — même ordre.
+        //   ⚠️ L'ancienne valeur, 8,0e13 kg, était un « proxy CCN » sans dimension physique : 76 000 ×
+        //   la charge réelle, et surtout un rapport 📱/🚂 de 53 quand la mesure donne 2,6.
+        '⚖️✈': 1.05e9,
         '⚖️💨': 3.97e18, // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
         // 🔒 Bornes hystérésis Aujourd'hui — pré-industriel → RCP8.5 extreme.
         //    Refs : NOAA/GISS (CO₂ 2000 ≈369 ppm, 280 ppm pré-industriel), IPCC AR6 WG1 SSP5-8.5 (~1135 ppm @2100), CH₄ pré-ind ≈700 ppb → ~3500 ppb RCP8.5, Crutzen 2006 (SRM sulfates stratosphériques 1–5 Tg S/an → ~5e14 kg équivalent).
@@ -1352,7 +1481,13 @@ const timeline = [
             '⚖️🏭': { min: 2.19e15, max: 1.0e16, cools: 'min' }, // CO₂ : 280 ppm (pré-ind) → ~1280 ppm (RCP8.5+)
             '⚖️🐄': { min: 2.0e12,  max: 2.0e13, cools: 'min' }, // CH₄ : 700 ppb → 7 ppm
             '⚖️💨': { min: 3.90e18, max: 4.05e18, cools: 'min' }, // N₂ : très stable (pas de réservoir rapide)
-            '⚖️✈': { min: 0,       max: 5.0e14, cools: 'max' }, // sulfates : 0 (nettoyage total) → SRM Crutzen
+            // sulfates : min = fond naturel préindustriel 4,0e8 kg (Tsigaridis 2006) — arrêter toute
+            //   émission anthropique ne descend pas plus bas. max = 1,62e10 kg : pic de charge
+            //   sulfatée stratosphérique après le Pinatubo, 5,4 Tg de soufre (Sukhodolov et al. 2018
+            //   GMD 11:2633, modèle en accord avec HIRS) × 96/32 = 16,2 Tg SO₄. C'est l'ordre de
+            //   grandeur d'une géo-ingénierie sulfatée, que Crutzen (2006) calibre précisément sur
+            //   le Pinatubo. L'ancien max, 5,0e14, était 30 000 × celui-là.
+            '⚖️✈': { min: 4.0e8,   max: 1.62e10, cools: 'max' },
             '⚖️🫁': { min: 1.17e18, max: 1.19e18, cools: 'min' }, // O₂ : quasi-constant échelle humaine
             '⚖️💧': { min: 1.38e21, max: 1.42e21, cools: 'min' }, // H₂O hydrosphère : très stable
         },
@@ -1386,7 +1521,7 @@ const timeline = [
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
-                '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 8.0e13, '⚖️💨': 3.97e18 },
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 1.05e9, '⚖️💨': 3.97e18 },
                 '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
             }
         },

@@ -681,7 +681,7 @@
     <div class="title">Predicting decadal trends in cloud droplet number concentration using reanalysis and satellite data</div>
     <div class="venue">Atmospheric Chemistry and Physics, 18:2035–2047 (2018)</div>
     <div class="doi"><a href="https://doi.org/10.5194/acp-18-2035-2018">10.5194/acp-18-2035-2018</a></div>
-    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). C'est la fourchette de littérature qui devrait remplacer le [300 , 700] inventé de SULFATE_BOOST_SCALE. Donne aussi le forçage qui en résulte : <b>−0,97 W/m²</b> (McCoy et al. 2017a), indépendamment cohérent avec l'AR6.</div>
+    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). <b>BRANCHÉE le 2026-09-22</b> : cette plage EST désormais la jauge <code>SULFATE_CCN_EXPONENT</code> du barycentre (<code>fine_tuning_bounds.js</code>, quartiles [0,11 ; 0,29]) — le seul paramètre du barycentre dont les bornes viennent d'un tableau de mesures. Elle remplace <code>SULFATE_BOOST_SCALE</code> [300 , 700] et <code>SULFATE_BOOST_MAX</code> [0,20 ; 0,45], tous deux inventés et mesurés sans effet au banc. Loi appliquée dans <code>calculations_albedo.js</code> v1.2.65 via <code>AEROSOL.sulfateCcnRatio()</code>. Forçage attendu : <b>−0,97 W/m²</b> (McCoy et al. 2017a) ; <b>vérifié au banc : le modèle sort −0,908 W/m²</b> (SW absorbé à T figée sur 📱, sulfate 4,0e8 → 1,05e9 kg), contre −0,037 avant. Aucun calage : les masses viennent de [tsigaridis2006], l'exposant d'ici, la sensibilité de [twomey1977].</div>
 </article>
 
 <article class="ref" id="ar6ch7Erfaci" data-tags="aerosol erfaci forcing ipcc assessment">
@@ -690,7 +690,79 @@
     <div class="title">The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity</div>
     <div class="venue">Climate Change 2021: The Physical Science Basis, Cambridge University Press (2021)</div>
     <div class="doi"><a href="https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/">ipcc.ch — AR6 WGI Ch. 7</a></div>
-    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Mesure au banc 2026-09-22 : le modèle produit <b>−0,037 W/m²</b>, soit 8× sous la borne basse — il n'a pratiquement pas d'effet indirect des aérosols. ⚠️ ÉCART OUVERT, voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
+    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Mesure au banc 2026-09-22, AVANT : le modèle produisait <b>−0,037 W/m²</b>, soit 8× sous la borne basse — il n'avait pratiquement pas d'effet indirect des aérosols. APRÈS branchement de la loi de [mccoy2018] sur les masses de [tsigaridis2006] : <b>−0,908 W/m²</b>, dans la fourchette et à 6 % du meilleur estimé. <b>ÉCART REFERMÉ</b>, voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
+</article>
+
+<article class="ref" id="tsigaridis2006" data-tags="aerosol sulfate burden preindustrial nss-sulfate epochs">
+    <div class="cite-key">[tsigaridis2006]</div>
+    <div class="authors">Tsigaridis, K., Krol, M., Dentener, F. J., Balkanski, Y., Lathière, J., Metzger, S., Hauglustaine, D. A. &amp; Kanakidou, M.</div>
+    <div class="title">Change in global aerosol composition since preindustrial times</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 6:5143–5162 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-6-5143-2006">10.5194/acp-6-5143-2006</a></div>
+    <div class="used-in"><b>Les deux valeurs d'ancrage de <code>⚖️✈</code></b>, Table 5, charge de nss-sulfate (sulfate hors sel de mer, la variable même de MERRA2 chez [mccoy2018]) : <b>présent 1,05 Tg</b> (émissions an 2000) et <b>préindustriel 0,40 Tg</b> (EDGAR-HYDE 1860) → rapport <b>2,6</b>, énoncé tel quel dans leur texte, plus petit que celui des émissions (3,4) parce que la chimie ne répond pas linéairement. Dispersion inter-modèles publiée dans la même table : 0,29–2,55 Tg au présent, 0,10–0,58 Tg au préindustriel — c'est elle qui sert de bornes <code>🔒</code> à 🦠 Archéen, faute de toute contrainte archéenne. Choisie plutôt qu'une autre parce que ses DEUX bouts viennent d'un même modèle et d'une même définition : c'est la seule chose qui compte pour un rapport. <code>configTimeline.js</code> (les 19 <code>⚖️✈</code>), <code>physics.js</code> (<code>CONV.CCN_SULFATE_REF_KG</code>). Détail : doc/MASSES_SULFATE_PAR_EPOQUE.md.</div>
+</article>
+
+<article class="ref" id="textor2006" data-tags="aerosol sulfate burden lifetime aerocom multi-model">
+    <div class="cite-key">[textor2006]</div>
+    <div class="authors">Textor, C., Schulz, M., Guibert, S. et al. (AeroCom)</div>
+    <div class="title">Analysis and quantification of the diversities of aerosol life cycles within AeroCom</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 6:1777–1813 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-6-1777-2006">10.5194/acp-6-1777-2006</a></div>
+    <div class="used-in">Recoupement de l'échelle moderne et source de la <b>durée de vie du sulfate</b>. Table 10, 16 modèles, masses en Tg(SO₄) : charge <b>1,99 Tg</b> (médiane 1,98, δ = 25 %), source <b>179 Tg SO₄/an</b>, durée de vie <b>4,12 j</b> (δ = 18 %). Plus haut que le 1,05 Tg de [tsigaridis2006] parce que ce chiffre-ci inclut le sulfate porté par le sel de mer. Permet la vérification d'échelle faite une fois pour toutes : 179 × 4,12/365 = <b>2,02 Tg</b> contre 1,99 mesuré — source × durée de vie = charge. Corollaire utilisé partout ensuite : à 4 jours de durée de vie, <b>le sulfate n'a pas de mémoire</b>, la charge suit la source, aucune accumulation d'une époque sur l'autre n'est possible. doc/MASSES_SULFATE_PAR_EPOQUE.md.</div>
+</article>
+
+<article class="ref" id="schulz2006" data-tags="aerosol sulfate forcing aerocom preindustrial anthropogenic-fraction">
+    <div class="cite-key">[schulz2006]</div>
+    <div class="authors">Schulz, M., Textor, C., Kinne, S. et al. (AeroCom)</div>
+    <div class="title">Radiative forcing by aerosols as derived from the AeroCom present-day and pre-industrial simulations</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 6:5225–5246 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-6-5225-2006">10.5194/acp-6-5225-2006</a></div>
+    <div class="used-in">Troisième avis, par un chemin indépendant, sur le rapport actuel/préindustriel. Table 2, 9 modèles AeroCom (expériences B et PRE, référence 1750) : la part anthropique vaut <b>55 %</b> de l'épaisseur optique sulfatée actuelle → rapport <b>2,2</b>, même ordre que le 2,6 de [tsigaridis2006]. Donne aussi le forçage DIRECT du sulfate anthropique, −0,35 W/m² en moyenne AeroCom (−0,46 dans la littérature antérieure) — à ne pas confondre avec l'ERFaci de [ar6ch7Erfaci], qui est l'effet INDIRECT via les nuages.</div>
+</article>
+
+<article class="ref" id="carn2017" data-tags="volcanic sulfur so2 degassing satellite omi">
+    <div class="cite-key">[carn2017]</div>
+    <div class="authors">Carn, S. A., Fioletov, V. E., McLinden, C. A., Li, C. &amp; Krotkov, N. A.</div>
+    <div class="title">A decade of global volcanic SO₂ emissions measured from space</div>
+    <div class="venue">Scientific Reports, 7:44095 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/srep44095">10.1038/srep44095</a></div>
+    <div class="used-in">Flux de soufre volcanique subaérien : <b>~23 ± 2 Tg SO₂/an</b> (~63 kt/j) en dégazage passif, 91 sources persistantes détectées par OMI sur 2005-2015 — soit <b>11,5 Tg S/an</b>. Presque le double de l'inventaire au sol d'Andres &amp; Kasgnoc (1998), ~12 Tg SO₂/an : l'écart est de l'inventaire, pas de la Terre — le satellite voit des sources fortes que le sol ne comptait pas. Avec [lana2011], donne la part volcanique du soufre naturel (0,29) d'où se dérive <code>⚖️✈</code> de ⛄ Plein Snowball, où la banquise coupe la source marine.</div>
+</article>
+
+<article class="ref" id="lana2011" data-tags="dms marine-sulfur claw flux climatology">
+    <div class="cite-key">[lana2011]</div>
+    <div class="authors">Lana, A., Bell, T. G., Simó, R. et al.</div>
+    <div class="title">An updated climatology of surface dimethylsulfide concentrations and emission fluxes in the global ocean</div>
+    <div class="venue">Global Biogeochemical Cycles, 25:GB1004 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2010GB003850">10.1029/2010GB003850</a></div>
+    <div class="used-in">Flux de DMS océan → atmosphère : <b>28,1 [17,6 ; 34,4] Tg S/an</b>, sur une base de plus de 47 000 mesures de surface. L'autre moitié du soufre naturel, face au volcanisme de [carn2017]. C'est la source que la banquise globale supprime : d'où <code>⚖️✈</code>(⛄) = fond × 0,29. Quantifie aussi ce que [charlson1987] pose qualitativement (CLAW) et ce que le gate <code>EPOCH['🧫']</code> module par époque.</div>
+</article>
+
+<article class="ref" id="sukhodolov2018" data-tags="volcanic stratospheric-aerosol pinatubo sulfate srm">
+    <div class="cite-key">[sukhodolov2018]</div>
+    <div class="authors">Sukhodolov, T., Sheng, J.-X., Feinberg, A. et al.</div>
+    <div class="title">Stratospheric aerosol evolution after Pinatubo simulated with a coupled size-resolved aerosol–chemistry–climate model, SOCOL-AERv1.0</div>
+    <div class="venue">Geoscientific Model Development, 11:2633–2647 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/gmd-11-2633-2018">10.5194/gmd-11-2633-2018</a></div>
+    <div class="used-in">Borne haute de <code>🔒 ⚖️✈</code> sur 📱 : charge sulfatée stratosphérique au pic post-Pinatubo, <b>~5,4 Tg de soufre</b> fin 1991 (modèle en accord avec HIRS), × 96/32 = <b>16,2 Tg SO₄</b> = 1,62e10 kg. C'est l'ordre de grandeur d'une géo-ingénierie sulfatée, et c'est bien sur le Pinatubo que Crutzen (2006) calibre sa proposition. L'ancienne borne, 5,0e14 kg, valait 30 000 fois celle-là.</div>
+</article>
+
+<article class="ref" id="farquhar2000" data-tags="archean sulfur mif anoxic s8 isotopes">
+    <div class="cite-key">[farquhar2000]</div>
+    <div class="authors">Farquhar, J., Bao, H. &amp; Thiemens, M.</div>
+    <div class="title">Atmospheric influence of Earth's earliest sulfur cycle</div>
+    <div class="venue">Science, 289:756–758 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.289.5480.756">10.1126/science.289.5480.756</a></div>
+    <div class="used-in">Avec [pavlovKasting2002] : pourquoi <code>⚖️✈</code> de 🦠 Archéen est <b>déclaré non contraint</b> plutôt que chiffré. Le fractionnement isotopique du soufre INDÉPENDANT DE LA MASSE, mesuré dans les sédiments antérieurs à ~2,45 Ga, n'est préservé que si le soufre quitte l'atmosphère par DEUX canaux d'états d'oxydation opposés — l'aérosol S₈ (Δ³³S positif) et le sulfate (Δ³³S négatif). Le sulfate n'est donc pas le débouché principal du soufre à l'Archéen, contrairement à toutes les époques post-GOE. De combien ? Aucune charge archéenne n'est publiée, et c'est dit tel quel dans la config.</div>
+</article>
+
+<article class="ref" id="pavlovKasting2002" data-tags="archean sulfur mif anoxic photochemistry o2-limit">
+    <div class="cite-key">[pavlovKasting2002]</div>
+    <div class="authors">Pavlov, A. A. &amp; Kasting, J. F.</div>
+    <div class="title">Mass-independent fractionation of sulfur isotopes in Archean sediments: strong evidence for an anoxic Archean atmosphere</div>
+    <div class="venue">Astrobiology, 2(1):27–41 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.1089/153110702753621321">10.1089/153110702753621321</a></div>
+    <div class="used-in">Le modèle photochimique qui donne sa contrainte au signal de [farquhar2000] : la préservation du MIF impose <b>pO₂ &lt; 10⁻⁵ PAL</b> à l'Archéen. Sous cette limite la chimie du soufre n'est plus celle d'aujourd'hui — une part importante et non quantifiée sort en S₈ plutôt qu'en sulfate. Sert dans <code>configTimeline.js</code> (fiche 🦠) à énoncer les deux effets de signe opposé qui encadrent la vraie valeur : dégazage plus fort d'un côté, sulfate court-circuité de l'autre. Aucun des deux n'est chiffrable aujourd'hui.</div>
 </article>
 
 <article class="ref" id="higginsSchrag2003" data-tags="snowball deglaciation marinoan cap-carbonate co2">

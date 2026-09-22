@@ -49,6 +49,17 @@
 // - v1.2.55: retrait HYSTERESIS.active / freezePolarIceDuringSearch / rampe solver du calcul de glace. La rétroaction glace-albédo suit désormais directement T dans tous les onglets ; l'hystérésis reste un pilote de scan, pas une physique spéciale.
 // - v1.2.54: passage fraction_fonte LINÉAIRE → EXPONENTIELLE. Nouvelle formule : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 (cohérence sémantique : facteur multiplieur du temps caractéristique). Avantages : (1) intrinsèquement ∈ [0,1) (pas de clamp arbitraire qui écrête à 1 quand duree_ans dépasse tau × factor), (2) sémantique physique claire (half-life = ln(2) × tau_eff), (3) composable (cascades exp). factor=1.0 standard ; factor=0 → tau_eff=0 → fraction_fonte=1 (équilibre instantané, cas limite safe). Cf. configTimeline.js v1.4.28.
 // - v1.2.53: verrou STATE.iceEpochFixedWaterState supprimé (user: "doit sauter", "virer le verrou tout le temps"). Le blend dt se ré-évalue désormais à CHAQUE pas (plus de garde epochId). T source = DATA['🧮']['🧮🌡️'] (T courante solver) au lieu de EPOCH['🌡️🧮'] (seed config) → feedback T→glace opérationnel dans scan hystérésis ⛄. Nouveau paramètre CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) pour calibrer la temporalité sans désactiver brutalement le couplage (0.0 = blend off, 0.5 = amortissement Picard). STATE.iceEpochFixedState / iceDurationBlendState ne sont plus posés ici. Fix bug ⛄ : 🍰💧🧊 figé à 0.006 pendant tout le scan CO₂ à cause de calcGlaceEquilibre(T_seed=290K) verrouillé une fois. Ref : Hoffman & Schrag 2002 + Pierrehumbert 2005 (feedback glace-albédo doit suivre T dans la branche froide de la bifurcation).
+// - v1.2.65: sulfate → CCN passe du proxy linéaire à la LOI DE PUISSANCE mesurée. sulfate_boost =
+//   AEROSOL.sulfateCcnRatio(m_eff, CCN_SULFATE_REF_KG, SULFATE_CCN_EXPONENT) = (m/m_ref)^a,
+//   Boucher & Lohmann 1995 / McCoy et al. 2018 ACP 18:2035 (a mesuré sur 19 régions, quartiles
+//   [0,11 ; 0,29]). Disparaissent : SULFATE_BOOST_SCALE, SULFATE_BOOST_MAX (deux constantes
+//   inventées, mesurées sans effet au banc — une loi de puissance sature d'elle-même) et la porte
+//   « ▶ >= ANTHRO_RISE_START_YEAR » sur le sulfate (cassée, et sans objet depuis que ⚖️✈ porte
+//   lui-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond). 🧫 devient la part du
+//   soufre d'origine DMS, avec le partage MESURÉ volcanique/DMS = 0,29/0,71 (Carn 2017 + Lana 2011) :
+//   la dérivation qui était en dur dans la fiche ⛄ passe dans le code et vaut pour les 19 époques.
+//   Changement de SENS important : le rapport est normalisé au moderne, donc il vaut 1 sur 📱 et
+//   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
 // - v1.2.52: fix NaN cascade sulfate_boost — EPOCH['🧫'] sorti hors Math.min pour éviter 0×Infinity=NaN quand '⚖️🫧'=0 (⚫ Corps noir : pas d'atmosphère → 🍰🫧✈=⚖️✈/⚖️🫧=Infinity). Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity×0) = NaN (cascade via ccn_proxy → cloud_fraction → final_albedo). Nouveau : sulfate_boost = 1 + 🧫 × Math.min(MAX, 🍰🫧✈ × SCALE). Gate biosphère marine appliqué au *boost* (enhancement > 1.0), physiquement équivalent quand 🍰🫧✈ fini. Fix signalé par Zorba sur epoch-click setEpoch (main.js:2485).
 // - v1.2.51: Briegleb étendu — seuil plateau α_snow_deep abaissé de −30°C → −10°C (Gardner & Sharp 2010 JGR 115:F01009 : α_fresh=0.84 à −10°C, standard CICE/CLM/MPAS-Seaice ; Flanner-Zender 2006 ; Domine 2008). 3 segments linéaires : [−∞,−10°C] plateau 0.85 ; [−10,−5°C] snow aging 0.85→0.70 ; [−5,0°C] melt pond onset 0.70→0.50 ; [0°C,+∞] melt 0.50. Effet : ⛄ Snowball atteignable dès T_pol ≤ −10°C (= T_glob ≤ +10°C avec amp 20 K) — active la rétroaction glace-albédo Pierrehumbert 2005 sur la gamme physique d'un scan hystérésis.
 // - v1.2.50: sulfate_boost × EPOCH['🧫'] — gate biosphère MARINE sur le couplage DMS-CCN (hypothèse CLAW, Charlson-Lovelock-Andreae-Warren 1987 Nature 326:655). 🧫=0 (Hadéen/Corps noir) à 1 (moderne), avec 🧫=0.05 pour ⛄ Plein Snowball → DMS quasi-éteint sous banquise, couplage CCN-sulfate neutralisé, reste seul le sulfate volcanique direct. Lecture directe EPOCH['🧫'] sans fallback (regle-data-territoire.mdc : NaN-crash si clé absente). Couple avec configTimeline.js v1.4.25.
@@ -918,9 +929,45 @@ function calculateAlbedo() {
         // Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity × 0) = NaN (cascade).
         // Le gate biosphère marine s'applique au *boost* (enhancement au-dessus de 1.0), pas à la
         // fraction sulfate elle-même — physiquement équivalent quand 🍰🫧✈ est fini.
-        const sulfate_boost = (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR)
-            ? (1.0 + EPOCH['🧫'] * Math.min(DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_MAX, DATA['🫧']['🍰🫧✈'] * DATA['🎚️'].CLOUD_SW.SULFATE_BOOST_SCALE))
-            : 1.0;
+        // ── SULFATE → CCN : la loi publiée, plus le proxy ────────────────────────────────────
+        // Remplace (2026-09-22) : 1 + 🧫 × Math.min(SULFATE_BOOST_MAX, 🍰🫧✈ × SULFATE_BOOST_SCALE).
+        // Les deux constantes étaient inventées et mesurées sans effet au banc ; surtout la FORME
+        // était fausse — linéaire, et toujours ≥ 1, c'est-à-dire que le sulfate ne pouvait
+        // qu'AJOUTER des CCN par rapport à la référence moderne, alors que c'est le moderne qui en
+        // a le plus. La vraie loi est une puissance, écrite en rapport à la référence :
+        //
+        //     CDNC / CDNC_ref = (m_SO₄ / m_ref)^a
+        //
+        // Boucher & Lohmann 1995 (Tellus B 47:281) pour la forme, McCoy et al. 2018 (ACP 18:2035,
+        // Table 1) pour l'exposant, calé sur MESURES — CDNC de MODIS, sulfate de MERRA2, 19 régions.
+        // a est la seule jauge qui reste (FINE_TUNING_BOUNDS.SULFATE_CCN_EXPONENT, quartiles mesurés
+        // [0,11 ; 0,29]) ; le plafond posé à la main disparaît, une loi de puissance sature seule.
+        //
+        // Plus de porte « ▶ >= 1900 » non plus : elle servait à n'allumer le proxy que sur le
+        // moderne, et elle était cassée (elle compare des années avant le présent à des années du
+        // calendrier — 🚂 en était exclue, l'Archéen y passait). La masse de sulfate porte maintenant
+        // elle-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond naturel
+        // (configTimeline v1.4.89). La porte n'a plus d'objet ICI ; elle reste à réparer sur
+        // anthro_factor ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
+        //
+        // 🧫 (biosphère marine) devient ce qu'il a toujours voulu dire : la part du soufre qui vient
+        // du DMS. Le partage entre les deux sources naturelles est mesuré —
+        //     volcanisme  11,5 Tg S/an  (Carn et al. 2017, Sci. Rep. 7:44095 : 23 ± 2 Tg SO₂/an)
+        //     DMS marin   28,1 Tg S/an  (Lana et al. 2011, GBC 25:GB1004)
+        //     part volcanique = 11,5 / (11,5 + 28,1) = 0,29, part DMS = 0,71
+        // — donc 🧫 = 0 (océan stérile ou sous banquise) laisse la part volcanique, 🧫 = 1 rend tout.
+        // C'est la dérivation qui était écrite en dur dans la fiche ⛄ ; elle passe dans le code, où
+        // elle s'applique à toutes les époques. Règle du projet : ce qu'on sait calculer se calcule.
+        const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
+        const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * EPOCH['🧫']);
+        // m_SO₄ = 0 (⚫ sans atmosphère, 🔥 à 2650 °C où rien ne condense) → rapport 0, et le
+        // Math.max(1e-6, ccn_ratio) du Twomey plus bas encaisse le log. Pas de NaN possible ici,
+        // contrairement à 🍰🫧✈ = ⚖️✈/⚖️🫧 qui valait 0/0 sur ⚫ (cf. note v1.2.52).
+        const sulfate_boost = window.AEROSOL.sulfateCcnRatio(
+            sulfate_kg_effective,
+            CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
+            DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
+        );
         const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
         // [OBS/CALIB] Référence moderne explicite : O2=21%, biomasse efficace ~3%, anthro courant.
         // On compare les époques en relatif, plutôt qu'en absolu, pour éviter d'écraser le moderne.
@@ -980,6 +1027,7 @@ function calculateAlbedo() {
         window._hystDiag.ccnRefModern = ccn_ref_modern;
         window._hystDiag.ccnRatio = ccn_ratio;
         window._hystDiag.sulfateBoost = sulfate_boost;
+        window._hystDiag.sulfateKgEffective = sulfate_kg_effective;
         window._hystDiag.anthroFactor = anthro_factor;
         window._hystDiag.pressureFactor = pressure_factor;
         window._hystDiag.oxidationFactor = oxidation_factor;

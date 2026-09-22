@@ -215,7 +215,7 @@ function calculateAtmosphereComposition() {
         
         // 🍰🫧💨 = ⚖️💨 / ⚖️🫧
         DATA['🫧']['🍰🫧💨'] = mass_N2 / atm_mass_total;
-        // 🍰🫧✈ = ⚖️✈ / ⚖️🫧 (proxy CCN ; hors renormalisation air sec)
+        // 🍰🫧✈ = ⚖️✈ / ⚖️🫧 (fraction massique de sulfate ; hors renormalisation air sec)
         DATA['🫧']['🍰🫧✈'] = mass_SULFATE / atm_mass_total;
     }
         
