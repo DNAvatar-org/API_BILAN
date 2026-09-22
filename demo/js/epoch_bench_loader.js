@@ -35,6 +35,7 @@
         { kind: 'script', src: BASE + 'workers/spectral_slice_worker.js', label: 'spectral_slice_worker.js (source)' },
         { kind: 'script', src: BASE + 'workers/worker_pool.js', label: 'worker_pool.js' },
         { kind: 'script', src: BASE + 'h2o/calculations_h2o.js', label: 'calculations_h2o.js' },
+        { kind: 'script', src: BASE + 'aerosols/sulfate_ccn.js', label: 'sulfate_ccn.js' },
         { kind: 'script', src: BASE + 'albedo/calculations_albedo.js', label: 'calculations_albedo.js' },
         { kind: 'script', src: BASE + 'atmosphere/calculations_atm.js', label: 'calculations_atm.js' },
         { kind: 'script', src: BASE + 'ocean/sinks_ocean.js', label: 'sinks_ocean.js' },

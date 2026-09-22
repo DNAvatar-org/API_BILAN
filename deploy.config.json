@@ -5,6 +5,10 @@
   "files_root": ".",
   "files": [
     {
+      "src": "aerosols/sulfate_ccn.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/aerosols/sulfate_ccn.js"
+    },
+    {
       "src": "albedo/calculations_albedo.js",
       "dest": "pages/bilan_radiatif/API_BILAN/albedo/calculations_albedo.js"
     },
