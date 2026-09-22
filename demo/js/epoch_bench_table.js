@@ -127,7 +127,7 @@ function updateRow(id, initStep, lastStep, status, tEpochInitC, epoch, radTPath,
     } else if (status !== 'converged') {
         statusPrefix = '<span class="status-warn" title="' + String(status) + '">\u26a0\ufe0f</span> ';
     }
-    if (tConv && lastStep) tConv.innerHTML = statusPrefix + fmtC(lastStep.temperature_C);
+    if (tConv && lastStep) tConv.innerHTML = statusPrefix + fmtCvsLit(lastStep.temperature_C, id);
     if (dFin && lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C)
         && typeof tEpochInitC === 'number' && isFinite(tEpochInitC)) {
         dFin.innerHTML = fmtDelta(lastStep.temperature_C - tEpochInitC);

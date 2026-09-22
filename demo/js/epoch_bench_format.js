@@ -24,6 +24,37 @@ function fmtC(v) {
     if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
     return v.toFixed(2);
 }
+
+/**
+ * Classe de position d'une valeur dans sa fourchette littérature.
+ *   rouge = hors fourchette
+ *   bleu  = dedans mais dans le dernier EDGE_FRAC de chaque côté (on frôle une borne)
+ *   vert  = au milieu
+ * Une fourchette de largeur nulle ne peut pas avoir de « milieu » : tout ce qui n'est pas
+ * hors fourchette y est vert.
+ */
+var BENCH_EDGE_FRAC = 0.15;
+function benchRangeClass(v, lo, hi) {
+    if (v == null || !isFinite(v) || !isFinite(lo) || !isFinite(hi)) return null;
+    if (v < lo || v > hi) return 'lit-out';
+    var w = hi - lo;
+    if (!(w > 0)) return 'lit-mid';
+    var d = Math.min(v - lo, hi - v) / w;
+    return d < BENCH_EDGE_FRAC ? 'lit-edge' : 'lit-mid';
+}
+
+/** Enrobe un texte déjà formaté dans la classe de position correspondante. */
+function benchWrapRange(html, v, range) {
+    var cls = range ? benchRangeClass(v, range[0], range[1]) : null;
+    return cls ? '<span class="' + cls + '">' + html + '</span>' : html;
+}
+
+/** T convergée colorée selon la fourchette littérature de l'époque. */
+function fmtCvsLit(v, epochId) {
+    if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
+    var L = (epochId != null && epochId !== '') ? BENCH_LIT_BY_EPOCH_ID[epochId] : null;
+    return benchWrapRange(v.toFixed(2), v, (L && L.tC) ? L.tC : null);
+}
 function fmtDelta(v) {
     if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
     var cls = Math.abs(v) < 0.5 ? 'delta-zero' : (v > 0 ? 'delta-pos' : 'delta-neg');
@@ -88,7 +119,9 @@ function fmtConvAtmSnapshot(snap, epochId) {
     var parts = [];
     if (typeof snap.co2Frac === 'number' && isFinite(snap.co2Frac) && CONST && M_air) {
         var ppmCO2 = snap.co2Frac * (M_air / CONST.M_CO2) * 1e6;
-        var sCo2 = '<span class="bench-key">CO\u2082</span>\u2248' + (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm');
+        var sCo2 = '<span class="bench-key">CO\u2082</span>\u2248' + benchWrapRange(
+            (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm'),
+            ppmCO2, hasLitGaz ? L.co2 : null);
         if (hasLitGaz) {
             sCo2 += ' <span class="bench-sub">' + benchLitRangeBracket(L.co2[0], L.co2[1]) + '</span>';
         }
@@ -96,7 +129,9 @@ function fmtConvAtmSnapshot(snap, epochId) {
     }
     if (typeof snap.ch4Frac === 'number' && isFinite(snap.ch4Frac) && CONST && M_air) {
         var ppmCH4 = snap.ch4Frac * (M_air / CONST.M_CH4) * 1e6;
-        var sCh4 = '<span class="bench-key">CH\u2084</span>\u2248' + (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm');
+        var sCh4 = '<span class="bench-key">CH\u2084</span>\u2248' + benchWrapRange(
+            (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm'),
+            ppmCH4, hasLitGaz ? L.ch4 : null);
         if (hasLitGaz) {
             sCh4 += ' <span class="bench-sub">' + benchLitRangeBracket(L.ch4[0], L.ch4[1]) + '</span>';
         }
@@ -104,7 +139,8 @@ function fmtConvAtmSnapshot(snap, epochId) {
     }
     if (typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST && M_air) {
         var molH2O = snap.h2oFrac * (M_air / CONST.M_H2O);
-        var sH2o = '<span class="bench-key">H\u2082O</span>\u2248' + (molH2O * 100).toFixed(2) + '% vapmol.';
+        var sH2o = '<span class="bench-key">H\u2082O</span>\u2248' + benchWrapRange(
+            (molH2O * 100).toFixed(2) + '% vapmol.', molH2O * 100, hasLitGaz ? L.h2oVap : null);
         if (hasLitGaz) {
             sH2o += ' <span class="bench-sub">' + benchLitRangeBracket(L.h2oVap[0], L.h2oVap[1]) + '</span>';
         }

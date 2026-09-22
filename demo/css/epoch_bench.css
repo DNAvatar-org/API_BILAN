@@ -133,6 +133,12 @@ th.col-epoch { white-space: nowrap; }
 
 .val-na { color: #444; }
 
+/* Position dans la fourchette littérature (BENCH_LIT_BY_EPOCH_ID) — T convergée et composition.
+   Ne pas réutiliser .delta-* : ceux-là codent le SIGNE d'un écart, pas une position dans une plage. */
+.lit-out  { color: #ff6b6b; font-weight: 600; }   /* hors fourchette */
+.lit-edge { color: #6fb7ff; }                     /* dedans, mais on frôle une borne */
+.lit-mid  { color: #5dca5d; }                     /* au milieu */
+
 td.json-rad-path, td.json-conv-atm {
   font-size: 11px;
   font-family: 'Courier New', monospace;
