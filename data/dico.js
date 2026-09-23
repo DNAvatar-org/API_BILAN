@@ -39,7 +39,8 @@ const KEYS = {
     // Noyau
     '🌕': ['🧲🌕', '🔋🌕'],
     // EDS breakdown (🧲📛, 🍰📛❀, 🧲📛❀) ; 🔺📛❀ = diagnostic ΔF (convention affichage, pas calcul T)
-    '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧', '🔺📛🏭', '🔺📛🐄', '🔺📿📛'],
+    // 🔺📛🏭, 🔺📛🐄 et 🔺📿📛 retirées le 2026-09-23 : jamais écrites ni lues (page 🔎 Paramètres).
+    '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧'],
     // Géologie (Surfaces géologiques - Couche A)
     '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍'],
     // Constantes physiques
@@ -168,9 +169,6 @@ const DESC = {
         '🍰📛🐄': 'Part EDS CH₄ [0,1]',
         '🍰📛⛅': 'Part EDS nuages [0,1]',
         '🔺📛💧': 'ΔF H₂O affichage (W/m², convention)',
-        '🔺📛🏭': 'ΔF CO₂ affichage (W/m², convention)',
-        '🔺📛🐄': 'ΔF CH₄ affichage (W/m², convention)',
-        '🔺📿📛': 'ΔF total affichage (W/m², convention)',
     },
     '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',
@@ -275,8 +273,8 @@ const FORM = {
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents, géologie)'
     },
     '💎': {
-        '🎈┴💧': 'Pression au point triple de l\'eau (611.2 Pa)',
-        '🌡️┴💧': 'Température au point triple de l\'eau (273.15 K, 0°C)'
+        '🎈┴💧': 'Pression au point triple de l\'eau = CONST.P_TRIPLE_WATER = 611,657 Pa (IAPWS)',
+        '🌡️┴💧': 'Température au point triple de l\'eau = CONST.T_TRIPLE_WATER = 273,16 K (IAPWS)'
     },
     '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique) = f(époque) : Hadéen=1.0, Archéen=0.80, Moderne=0.71',

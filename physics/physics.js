@@ -56,7 +56,6 @@ CONST.M_O2 = 0.03200;   // O₂ kg/mol
 CONST.M_CO2 = 0.04401;  // CO₂ kg/mol
 CONST.M_CH4 = 0.01604;  // CH₄ kg/mol
 CONST.M_H2O = 0.01802;  // H₂O kg/mol
-CONST.M_AR = 0.03995;   // Ar kg/mol
 CONST.RHO_WATER = 1000;  // Densité eau kg/m³
 // ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
 // C-C est une équation DIFFÉRENTIELLE : de/dT = L·e/(R_v·T²). L'intégrer donne ln e = −L/(R_v T) + C,
@@ -70,10 +69,8 @@ CONST.RHO_WATER = 1000;  // Densité eau kg/m³
 //   « point triple » sur une valeur qui n'en était pas une.
 CONST.T_TRIPLE_WATER = 273.16;      // K   — point triple de l'eau (IAPWS)
 CONST.P_TRIPLE_WATER = 611.657;     // Pa  — pression de vapeur au point triple (IAPWS)
-CONST.P0_WATER = CONST.P_TRIPLE_WATER;   // alias historique, mêmes usages  // Pression point triple eau (Pa)
 CONST.L_VAPORIZATION = 2.5e6;  // Chaleur latente vaporisation (J/kg)
 CONST.RV_WATER = 461.5;  // R vapeur d'eau J/(kg·K)
-CONST.L_V = 40660;  // Chaleur latente (J/mol)
 CONST.CP_AIR = 1005;  // Capacité calorifique air sec J/(kg·K)
 CONST.T_BOIL = 373.15;  // Ébullition eau 1 atm (K)
 CONST.T0_WATER = 273.15;  // K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
@@ -84,13 +81,23 @@ CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // CO₂ 15 μm
 CONST.LAMBDA_H2O_1 = 6.3e-6;
 CONST.LAMBDA_H2O_2 = 17.0e-6;
 CONST.LAMBDA_CH4_1 = 7.7e-6;
-CONST.LAMBDA_CH4_2 = 3.3e-6;
 
 // ========== 3. CONVERSION TEMPÉRATURE (DATA = K ; °C/°F = affichage) ==========
 CONST.KELVIN_TO_CELSIUS = CONST.T0_WATER;  // 273.15
 CONST.K2C = function (K) { return K - CONST.KELVIN_TO_CELSIUS; };
-CONST.K2F = function (K) { return (K - CONST.KELVIN_TO_CELSIUS) * 9 / 5 + 32; };
 
+// ─── 12 CONSTANTES MORTES RETIRÉES le 2026-09-23 ──────────────────────────────────────────
+// Définies et jamais lues — ni dans le moteur, ni dans l'interface, ni dans les scripts inline
+// des pages. Repérées par la page 🔎 Paramètres (demo/parametres.html), qui signale toute clé à
+// zéro lecture. Liste : K2F, LAMBDA_CH4_2, L_V, M_AR, P0_WATER, ALPHA_OCEAN, SCALE_CLOUD,
+// CH4_HAZE_RATIO_THRESHOLD, PRECIP_BASE_RATE, PRECIP_CLOUD_SCALE, PRECIP_PRESSURE_SCALE,
+// T_NO_POLAR_ICE_K.
+//   · L_V faisait double emploi avec L_VAPORIZATION (même grandeur, deux températures).
+//   · P0_WATER n'était plus qu'un alias de P_TRIPLE_WATER depuis le passage au point triple.
+//   · ALPHA_OCEAN (0,3) et SCALE_CLOUD (0,4) étaient déjà signalées sans source par l'audit —
+//     et 0,3 n'est de toute façon pas un albédo d'océan (0,06–0,10 mesurés).
+//   · T_NO_POLAR_ICE_K était marquée 🏷️ DEPRECATED par le code lui-même.
+// Banc : aucun écart, par construction — rien ne les lisait.
 // ========== CONV (convention : unités, références) ==========
 var CONV = window.CONV = window.CONV || {};
 CONV.AU_M = 1.496e11;
@@ -120,15 +127,12 @@ CONV.CCN_SULFATE_REF_KG = 1.05e9;
 // CONV.H2O_VAPOR_REF (0,01 kg/kg) SUPPRIMÉE le 2026-09-22 : sans source, et morte. Seule trace
 // restante, un commentaire de calculations_albedo.js:222 qui dit que la formule qui l'utilisait
 // « n'est plus utilisée ». Elle a survécu à sa propre formule.
-CONV.ALPHA_OCEAN = 0.3;
-CONV.SCALE_CLOUD = 0.4;
 
 // ========== EARTH (terrestre : seuils climat, cycle eau, albédos par défaut ; overridable par époque) ==========
 // var pour permettre plot.js / main.js de faire var EARTH = window.EARTH sans erreur
 var EARTH = window.EARTH = window.EARTH || {};
 // 🏷️ LEGACY — T_NO_POLAR_ICE_K = 293K était calibré comme seuil de T_GLOBALE (plus utilisé dans la formule 3-zones ;
 // conservé pour rétro-compat outils externes / logs). La formule glace utilise désormais T_FREEZE_SEAWATER + dT.
-EARTH.T_NO_POLAR_ICE_K = CONST.KELVIN_TO_CELSIUS + 20;         // 🏷️ DEPRECATED (usage hors albédo/flux/h2o)
 EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // largeur de rampe ice_temp_factor (utilisée)
 /** Plafond absolu ice_temp_factor. Depuis v2.0.15 = 1.0 (formule 3 zones normalisée par construction).
  *  Ancien 0.46 (≤ v2.0.14) : artefact Terre-moderne qui empêchait Snowball en capant la glace à 46%.
@@ -444,9 +448,6 @@ EARTH.T_WATER_CYCLE_HIGH_K_PER_ATM = 5;
 /** Seuils pour recalcul partition eau (calculations_h2o.js) : recalcul seulement si ΔT > DELTA_T_K ou ΔP > DELTA_P_ATM. */
 EARTH.WATER_PARTITION_DELTA_T_K = 5;
 EARTH.WATER_PARTITION_DELTA_P_ATM = 1;
-EARTH.PRECIP_BASE_RATE = 5e-6;
-EARTH.PRECIP_PRESSURE_SCALE = 5e-6;
-EARTH.PRECIP_CLOUD_SCALE = 1e-6;
 /** Précip convective (calculations_h2o.js) : facteur temp = (T / T_REF)^EXP_T, facteur RH = (RH / RH_REF)^EXP_RH. Lit. Held & Soden 2006, IPCC AR6 ; réponse précip plus lente que C-C. */
 EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
@@ -484,7 +485,6 @@ EARTH.CIA_CO2_SCALE = 1.0e-2;   // v-2026-07-15 : 1e-4→1e-2 (×100) TEST — l
 // qui absorbe le SW en stratosphère → anti-greenhouse. Au-dessous : pas de brume.
 // Seuil Haqq-Misra 2008 : 0.1. NB : modèles plus récents (Arney et al. 2016) suggèrent plutôt 0.2.
 // Actuellement INFORMATIF UNIQUEMENT — non-lu par le worker spectral. Hook futur pour SW haze.
-EARTH.CH4_HAZE_RATIO_THRESHOLD = 0.1;
 
 // ─── MT_CKD H₂O continuum (Mlawer et al. 2012 JQSRT v3.5 — paramétrique simplifié) ─
 // Le continuum self-broadening + foreign-broadening de H₂O dans la fenêtre 8–12 µm
