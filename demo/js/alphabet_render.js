@@ -47,7 +47,7 @@ function createAlphabetHtml() {
     if (typeof CHARS === 'undefined') console.error('[createAlphabet] CHARS non défini');
     // Colonne 1 : Unités
     const charsCol1 = [
-        'CARDINAL', 'PROPORTION', 'METER', 'WEIGHT', 'PRESSURE', 'TEMP', 'POWER', 'FLUX_IN', 'FLUX_OUT', 'GRAVITY', 'ENERGY_FLUX', 'MOLAR_MASS_AIR', 'ALEMBIC', 'TRIPLE_POINT'
+        'CARDINAL', 'PROPORTION', 'METER', 'WEIGHT', 'PRESSURE', 'TEMP', 'POWER', 'FLUX_IN', 'FLUX_OUT', 'GRAVITY', 'ENERGY_FLUX', 'MOLAR_MASS_AIR', 'TRIPLE_POINT'
     ];
     
     // Colonne 2 : Éléments
@@ -62,7 +62,7 @@ function createAlphabetHtml() {
     
     // Colonne 4 : Événements
     const charsCol4 = [
-        'DATE', 'TIC_TIME', 'EVENTS', 'CYCLE', 'TEXTURE', 'NIGHTMAP', 'OBLIQUITY', 'TRANSITION', 'BIG_IMPACT', 'METEORITE_COUNT', 'VOLCANO_VEIL', 'VOLCANO', 'FLUX_START', 'FLUX_END', 'PLANET_RADIUS', 'TROPOPAUSE', 'ALTITUDE', 'SATELLITE', 'INDEX_EPOCH'
+        'DATE', 'TIC_TIME', 'EVENTS', 'ALEMBIC', 'CYCLE', 'TEXTURE', 'NIGHTMAP', 'OBLIQUITY', 'TRANSITION', 'BIG_IMPACT', 'METEORITE_COUNT', 'VOLCANO_VEIL', 'VOLCANO', 'FLUX_START', 'FLUX_END', 'PLANET_RADIUS', 'TROPOPAUSE', 'ALTITUDE', 'SATELLITE', 'INDEX_EPOCH'
     ];
     
     // Colonne 5 : Époques et autres logos

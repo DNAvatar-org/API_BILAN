@@ -25,9 +25,9 @@ const KEYS = {
     // Masses
     '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
     // Composition atmosphérique
-    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈', '🍰💭'],
+    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈'],   // 🍰💭 retirée le 2026-09-23 avec sa formule (pas de physique CCN dans la couverture nuageuse)
     // Cycle de l'eau
-    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧮🌧', '🍰🫧💧', '🍰🫧☔', '🍰⚖️💦', '💭☔', '⏳☔'],
+    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🫧☔', '🧲⚖️💦', '💭☔', '⏳☔'],
     // Albédo
     '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '☁️'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
@@ -112,7 +112,6 @@ const DESC = {
         '🍰🫧🏭🌈': '!Capacité radiative IR de CO₂',
         '🍰🫧💧🌈': 'Cap.Rad.IR H₂O atm.',
         '🍰🫧🐄🌈': '!Capacité radiative IR de CH₄',
-        '🍰💭': 'CCN - Eff.Cond nuageuse [0.3,1.0]',
     },
     '⚖️': {
         '⚖️❀': 'Masse<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub> (+ ⚖️✈ sulfate)',
@@ -127,13 +126,13 @@ const DESC = {
     '💧': {
         '🍰💧🧊': 'Glace',
         '🍰💧🌊': 'Océan',
-        '🍰🧮🌧': 'Fraction de vapeur max',
-        '🍰🫧💧': 'Fraction massique de vapeur',
-        '🍰🫧☔': 'Humidité relative moyenne [0,1]',
+        '🍰🧪🌧': 'Fraction MOLAIRE de vapeur à saturation (mol/mol) = 🎈🌧/🎈',
+        '🍰🫧💧': 'Fraction MASSIQUE de vapeur, à la SURFACE (kg/kg) — ⚠️ pas une moyenne de colonne',
+        '🍰🫧☔': 'Humidité relative de surface (sans dimension) = 🍰🫧💧 / q_sat',
         '☁️': 'Index de formation nuageuse [0,1]',
         '💭☔': 'Seuil critique précipitations [0.7,0.9]',
         '⏳☔': '1/τ_global (s⁻¹), τ ~10 j litt.',
-        '🍰⚖️💦': 'Taux précipitation (kg/m²/s), P=W/τ',
+        '🧲⚖️💦': 'Flux de masse d\'eau précipitée (kg/m²/s), P = W/τ',
     },
     '🧲': {
         '🧲☀️🔽': 'Flux solaire absorbé',
@@ -160,11 +159,11 @@ const DESC = {
     },
     '📛': {
         '🧲📛': 'EDS (effet de serre) W/m² = 🧲🌑🔼 − 🧲🌈🔼. OLR = 🧲🌈🔼 = flux IR sortant au sommet ; EDS = flux « bloqué » par l’atmosphère. EDS insuffisant ⟺ OLR trop élevé (même T surface).',
-        '🧲📛🏭': 'EDS CO₂ W/m² (part retenue par CO₂)',
-        '🧲📛💧': 'EDS H₂O W/m² (part retenue par vapeur)',
+        '🧲📛🏭': 'EDS CO₂ W/m² — part mesurée PAR RETRAIT (Schmidt 2010)',
+        '🧲📛💧': 'EDS H₂O W/m² — part mesurée PAR RETRAIT (Schmidt 2010), pas un ΔF',
         '🧲📛🐄': 'EDS CH₄ W/m² (part retenue par CH₄)',
-        '🧲📛⛅': 'EDS nuages W/m² (part retenue par nuages)',
-        '🍰📛🏭': 'Part EDS CO₂ [0,1]',
+        '🧲📛⛅': 'EDS nuages W/m² — part mesurée PAR RETRAIT (doc/DIAGNOSTIC_ATTRIBUTION_EDS.md)',
+        '🍰📛🏭': 'Part EDS CO₂ [0,1] — méthode du retrait, normalisée à 1 (recouvrement réparti)',
         '🍰📛💧': 'Part EDS H₂O (vapeur) [0,1]',
         '🍰📛🐄': 'Part EDS CH₄ [0,1]',
         '🍰📛⛅': 'Part EDS nuages [0,1]',
@@ -237,18 +236,19 @@ const FORM = {
         '🍰🫧❀🌈': 'Capacité radiative IR de ❀ - ∀ ❀ ∈ {🏭, 🐄, 💧}',
         '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈) - ∀ ❀ ∈ {🏭, 🐄, 💧} (pour normalisation)',
         '🍰🫧✈': '⚖️✈ / ⚖️🫧 (fraction massique de sulfate, hors normalisation air sec)',
-        '🍰💭': 'clamp(0.4 + 0.5×(⚖️🫁/1.08e18 + ⚖️🐄/5.2e12) + 0.1×(⚖️✈/1.05e9), 0.3, 1.0) - CCN - Eff.Cond nuageuse [0.3,1.0] ⚠️ vaut 1.000 sur 18 époques/19 : le clamp sature (doc/AUDIT_CONSTANTES_SANS_SOURCE.md)'
+        // '🍰💭' RETIRÉE le 2026-09-23 : la couverture nuageuse ne dépend pas des CCN (Sundqvist 1989),
+        // et sa formule faisait intervenir O₂ et CH₄, qui n'interviennent pas dans l'activation de Köhler.
     },
     '💧': {
         '🍰💧🧊': 'Si T < ❄️ alors toute l\'eau restante (après vapeur) est glace, sinon glace polaire (10% à 0°C → 0% à 20°C) - ❄️ = 271.15K - (P-1)×1.0',
         '🍰💧🌊': 'Océan',
-        '🍰🧮🌧': '🎈🌧 / 🎈<br>🎈🌧 = 🎈┴💧 × exp(L_v/R_v × (1/🌡️┴💧 - 1/🧮🌡️)) [Clausius-Clapeyron]<br>🎈┴💧 = 611.2 Pa, 🌡️┴💧 = 273.15 K,<br>L_v = 2.5e6 J/kg (chaleur latente vaporisation H2O), R_v = 461.5 J/(kg·K) = R/M_H2O, 🧮🌡️ = température actuelle',
-        '🍰🫧💧': 'max(0, min(🍰🧮🌧 × (CONST.M_H2O / 🧪), ⚖️💧 / ⚖️🫧) - (🍰⚖️💦 × (4 × π × (📐 × 1000)²) × 🔺⏳) / ⚖️🫧) - Fraction massique de vapeur',
-        '🍰🫧☔': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧮🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
-        '☁️': '(1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)) × 🍰💭 - Schéma Sundqvist classique (couverture nuageuse à partir de RH) × (🍰💭) – nuages plus minces = optiquement moins actifs',
+        '🍰🧪🌧': '🎈🌧 / 🎈 — fraction MOLAIRE (mol/mol)<br>🎈🌧 = 🎈┴💧 × exp(L_v/R_v × (1/🌡️┴💧 - 1/🧮🌡️)) [Clausius-Clapeyron]<br>🎈┴💧 = 611.657 Pa, 🌡️┴💧 = 273.16 K (point triple, IAPWS),<br>L_v = 2.5e6 J/kg (chaleur latente vaporisation H2O), R_v = 461.5 J/(kg·K) = R/M_H2O, 🧮🌡️ = température actuelle',
+        '🍰🫧💧': 'max(0, min(🍰🧪🌧 × (CONST.M_H2O / 🧪), ⚖️💧 / ⚖️🫧) - (🧲⚖️💦 × (4 × π × (📐 × 1000)²) × 🔺⏳) / ⚖️🫧) - Fraction massique de vapeur',
+        '🍰🫧☔': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
+        '☁️': '1 - (1 - min(🍰🫧☔, 1))^0.6 — Sundqvist (1989) : couverture nuageuse à partir de la SEULE humidité relative [sans dimension, 0-1]',
         '💭☔': 'clamp(0.75 + 0.05 × (🧮🌡️ - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE, 0.7, 0.95) - Seuil critique précipitations [0.7,0.9]',
         '⏳☔': '1/τ_global (s⁻¹), τ_global = 10 j (litt. 8–10 j, Nature Rev. Earth Env. 2021; HESS 2017)',
-        '🍰⚖️💦': 'W/τ_global × ramp(RH−💭☔, 0.2) quand RH > 💭☔ ; W = masse_vapeur_par_m² (kg/m²) ; P = W/τ (litt. ~2,7 mm/j GPCP) - Taux précipitation (kg/m²/s)'
+        '🧲⚖️💦': 'W/τ_global × ramp(RH−💭☔, 0.2) quand RH > 💭☔ ; W = masse_vapeur_par_m² (kg/m²) ; P = W/τ (litt. ~2,7 mm/j GPCP) - Taux précipitation (kg/m²/s)'
     },
     '📅': {
         '🔺⏳': '86400 s (1 jour) - Durée équilibre précipitation'

@@ -3,9 +3,14 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.0.1
+// Version 2.1.0
 // Date: [September 19, 2026]
 // logs :
+//   - v2.1.0: LA RÈGLE DE L'ALPHABET écrite (1ᵉʳ caractère = unité ; pour 🍰, le 2ᵉ dit la nature du
+//     rapport). ⚗ quitte la colonne Unités pour Événements — c'est une action d'interface. 🧪 devient
+//     le marqueur MOLAIRE, 🧲⚖️ le flux de masse. Deux clés renommées pour respecter la règle :
+//     🍰🧪🌧 → 🍰🧪🌧 (molaire) et 🧲⚖️💦 → 🧲⚖️💦 (kg/m²/s). Ce sont les deux qui produisaient
+//     les bugs massique/molaire à répétition.
 //   - v2.0.2: EMISSIONS_HIGH passe de 🐖 à 🪾 (configTimeline v1.4.91 — 2 × le bidon par tranche).
 //   - v2.0.1: 🐖 EMISSIONS_HIGH — la branche d'émissions la plus forte de 📱 (configTimeline v1.4.90).
 //   - v2.0.0: séparation définitions / rendu. Ce fichier revient dans API_BILAN — son en-tête l'y plaçait
@@ -132,10 +137,34 @@ const CHARS = {
 // ============================================================================
 // DESCRIPTIONS DES CARACTÈRES (CHARS_DESC) - Utilise directement les emojis
 // ============================================================================
+// ─── LA RÈGLE DE L'ALPHABET ──────────────────────────────────────────────────────────────
+// Le PREMIER caractère d'une clé donne son UNITÉ. C'est la règle qui rend l'écriture des
+// formules vérifiable : une somme de ⚖️ avec un 🧲 se voit à l'œil nu.
+//
+// Pour 🍰 (proportion, sans dimension), l'unité ne suffit pas : une proportion DE QUOI ?
+// Le DEUXIÈME caractère le dit, et cette règle était déjà respectée par 34 clés sur 36 —
+// elle n'était simplement écrite nulle part. Elle l'est maintenant :
+//
+//     🍰🫧…  proportion MASSIQUE de l'atmosphère   (kg/kg)   ex. 🍰🫧🏭 = ⚖️🏭 / ⚖️🫧
+//     🍰💧…  proportion MASSIQUE de l'eau totale   (kg/kg)   ex. 🍰💧🧊
+//     🍰🪩…  proportion de SURFACE (albédo)        (m²/m²)   ex. 🍰🪩🌊
+//     🍰🗻…  proportion de SURFACE (géologie)      (m²/m²)   ex. 🍰🗻🌊
+//     🍰📛…  proportion d'ÉNERGIE (effet de serre) (W/W)     ex. 🍰📛🏭
+//     🍰🧪…  proportion MOLAIRE                    (mol/mol) ex. 🍰🧪🌧
+//
+// ⚠️ v-2026-09-23 : deux clés violaient la règle, et ce sont exactement les deux qui ont produit
+// des bugs répétés (voir doc/DIAGNOSTIC_RETROACTION_VAPEUR.md) :
+//   • 🍰🧪🌧 était une fraction MOLAIRE rangée sous 🧮 (« Calculs »), au milieu de voisines
+//     massiques → renommée 🍰🧪🌧. La confusion massique/molaire a frappé trois fois
+//     (ln_H2O, computePWV, calculateMolarMassAir) faute que le symbole le dise.
+//   • 🧲⚖️💦 était un DÉBIT en kg/m²/s — ni une proportion, ni une masse → renommée 🧲⚖️💦.
+//
+// Aucun emoji nouveau n'a été créé : 🧪 (molaire) et 🧲⚖️ (flux de masse) composent des
+// caractères d'unité qui existaient déjà, comme ┴ compose (🎈,🌡️).
 const CHARS_DESC = {
     // Unités
     '📿': 'Cardinal (#)',
-    '🍰': 'Proportion ([0,1])',
+    '🍰': 'Proportion sans dimension [0,1] — le 2ᵉ caractère dit de quoi : 🫧💧 massique, 🪩🗻 surfacique, 📛 énergétique, 🧪 molaire',
     '📏': 'Longueur (km)',
     '⚖️': 'Masse (kg)',
     '🎈': 'Pression (atm)',
@@ -144,9 +173,9 @@ const CHARS_DESC = {
     '🔽': 'Réception (+)',
     '🔼': 'Émission (-)',
     '🍎': 'Gravité (m/s²)',
-    '🧲': 'Flux (W/m²)',
-    '🧪': 'Masse molaire (kg/mol)',
-    '┴': 'Point triple (🎈,🌡️)',
+    '🧲': 'Flux surfacique (W/m²) — 🧲⚖️ = flux de MASSE (kg/m²/s)',
+    '🧪': 'Molaire — seul : masse molaire (kg/mol) ; en 2ᵉ position : rapport MOLAIRE (mol/mol)',
+    '┴': 'Point triple de l\'eau (🎈,🌡️) = 611,657 Pa à 273,16 K (IAPWS)',
     '⚧': 'Phase (Init/Search/Dicho)',
     '☯': 'Direction Search (+/-)',
     // Éléments
@@ -179,6 +208,7 @@ const CHARS_DESC = {
     '🌑': 'Flux sortant (σT⁴)',
     '☁️': 'Index formation nuageuse [0,1]',
     // Événements
+    '⚗': 'Affiche les concentrations (action d\'interface — ce n\'est PAS une unité)',
     '💫': 'TicTime',
     '🛢': 'Scénario émissions',
     '🪾': 'Scénario émissions — double du bidon',
@@ -230,8 +260,7 @@ const CHARS_DESC = {
     '📅': 'Date (Ma)',
     '📐': 'Rayon planète',
     '🍎': 'Gravité (m/s²)',
-    '┴': 'Point triple (🎈,🌡️)',
-    '⚗': 'Affiche les concentrations'
+    '┴': 'Point triple de l\'eau (🎈,🌡️) = 611,657 Pa à 273,16 K (IAPWS)'
 };
 
 // alt2sec des époques : déplacé dans static/texts/epochs_alt2sec.js (récit + chiffres lus à la source).
