@@ -1,6 +1,6 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.65
+// Version 1.2.66
 // Date: [September 16, 2026]
 // logs :
 // - v1.2.66: DATA['🪩']['🍰🪩💧'] — le facteur corps-noir (couche d'eau globale / 10 m, plafond 1) est
@@ -49,6 +49,13 @@
 // - v1.2.55: retrait HYSTERESIS.active / freezePolarIceDuringSearch / rampe solver du calcul de glace. La rétroaction glace-albédo suit désormais directement T dans tous les onglets ; l'hystérésis reste un pilote de scan, pas une physique spéciale.
 // - v1.2.54: passage fraction_fonte LINÉAIRE → EXPONENTIELLE. Nouvelle formule : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 (cohérence sémantique : facteur multiplieur du temps caractéristique). Avantages : (1) intrinsèquement ∈ [0,1) (pas de clamp arbitraire qui écrête à 1 quand duree_ans dépasse tau × factor), (2) sémantique physique claire (half-life = ln(2) × tau_eff), (3) composable (cascades exp). factor=1.0 standard ; factor=0 → tau_eff=0 → fraction_fonte=1 (équilibre instantané, cas limite safe). Cf. configTimeline.js v1.4.28.
 // - v1.2.53: verrou STATE.iceEpochFixedWaterState supprimé (user: "doit sauter", "virer le verrou tout le temps"). Le blend dt se ré-évalue désormais à CHAQUE pas (plus de garde epochId). T source = DATA['🧮']['🧮🌡️'] (T courante solver) au lieu de EPOCH['🌡️🧮'] (seed config) → feedback T→glace opérationnel dans scan hystérésis ⛄. Nouveau paramètre CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) pour calibrer la temporalité sans désactiver brutalement le couplage (0.0 = blend off, 0.5 = amortissement Picard). STATE.iceEpochFixedState / iceDurationBlendState ne sont plus posés ici. Fix bug ⛄ : 🍰💧🧊 figé à 0.006 pendant tout le scan CO₂ à cause de calcGlaceEquilibre(T_seed=290K) verrouillé une fois. Ref : Hoffman & Schrag 2002 + Pierrehumbert 2005 (feedback glace-albédo doit suivre T dans la branche froide de la bifurcation).
+// - v1.2.66: 🍰💭 SUPPRIMÉE. La fraction nuageuse ne dépend plus que de l'humidité relative
+//   (Sundqvist 1989), ce qui est sa physique. 🍰💭 mélangeait O₂, CH₄ et sulfate dans un « proxy CCN »
+//   sans fondement (ni O₂ ni CH₄ n'interviennent dans l'activation de Köhler), et son clamp la
+//   figeait de toute façon à 1,000 sur 18 époques sur 19. L'apport des CCN passe désormais
+//   uniquement par la loi mesurée sulfate → gouttelettes (McCoy 2018) puis Twomey.
+//   Disparaissent avec elle : CONV.CCN_O2_REF_KG, CONV.CCN_CH4_REF_KG, et la modulation
+//   τ_LW = 2,6 × 🍰💭 de radiative/calculations.js.
 // - v1.2.65: sulfate → CCN passe du proxy linéaire à la LOI DE PUISSANCE mesurée. sulfate_boost =
 //   AEROSOL.sulfateCcnRatio(m_eff, CCN_SULFATE_REF_KG, SULFATE_CCN_EXPONENT) = (m/m_ref)^a,
 //   Boucher & Lohmann 1995 / McCoy et al. 2018 ACP 18:2035 (a mesuré sur 19 régions, quartiles
@@ -82,7 +89,7 @@
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - epochId Archéen : 🦠 (🌋 réservé actions). Archéen utilise clouds modernes pour ~15°C.
-// - 🍰⚖️💦 : formule P = W/τ (litt. 8–10 j), ⏳☔ = 1/τ_global ; rampe (RH−💭☔)/0,2 ; ref. Nature Rev. Earth Env. 2021, HESS 2017, GPCP ~2,7 mm/j.
+// - 🧲⚖️💦 : formule P = W/τ (litt. 8–10 j), ⏳☔ = 1/τ_global ; rampe (RH−💭☔)/0,2 ; ref. Nature Rev. Earth Env. 2021, HESS 2017, GPCP ~2,7 mm/j.
 // - v1.2.1 : rampe douce 🍰🪩🧊 en Search/Dicho (premières itérations) pour éviter saut de bassin albédo/glace
 // - v1.2.2 : verrou optionnel glace initiale pendant Search du premier bassin (🧮🔄🌊=0) pour stabiliser le point fixe froid
 // - v1.2.3 : retrait gardes défensives CONFIG_COMPUTE sur rampe glace (règle crash)
@@ -215,9 +222,11 @@ function calculateGeologySurfaces() {
 // ☁️ = CloudFormationIndex ∈ [0, 1] : potentiel de condensation (ni masse ni surface)
 //
 // FORMULE RÉELLE (implémentée) — Schéma Sundqvist 1989 :
-// ☁️ = (1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)) × 🍰💭
-//   où 🍰🫧☔ = humidité relative (q/q_sat), 🍰💭 = CCN (0.3–1.0).
-// À HR=98.9% : ☁️ ≈ 0.93 × 🍰💭. ☁️ n'utilise PAS 🍰🫧💧🌈 (cap. rad. IR, calculée ailleurs).
+// ☁️ = 1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)     où 🍰🫧☔ = humidité relative (q/q_sat).
+// Sundqvist (1989) : la couverture nuageuse ne dépend que de l'humidité relative.
+// À HR=98.9% : ☁️ ≈ 0.93. ☁️ n'utilise PAS 🍰🫧💧🌈 (cap. rad. IR, calculée ailleurs).
+// v-2026-09-23 : le facteur 🍰💭 (« efficacité CCN ») a été retiré — voir le bloc de suppression
+// dans calculateCloudFormationIndex().
 //
 // Note : L'ancienne formule (🍰🫧💧/H2O_VAPOR_REF × f(T) × ...) n'est plus utilisée.
 
@@ -228,15 +237,15 @@ function calculateCloudFormationIndex() {
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
     // 🔒 CALCUL DE 🍰🫧☔ (Humidité relative moyenne globale)
-    // FORMULE : 🍰🫧☔ = clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧮🌧), 0, 1)
+    // FORMULE : 🍰🫧☔ = clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1)
     // où :
     //   🍰🫧💧 = fraction massique de vapeur d'eau dans l'atmosphère
     //   CONST.M_H2O = masse molaire de H2O (0.01802 kg/mol)
     //   🧪 = masse molaire de l'air (DATA['🫧']['🧪'])
-    //   🍰🧮🌧 = fraction molaire maximale de vapeur saturante (P_sat / P_total)
-    //   (CONST.M_H2O / 🧪) × 🍰🧮🌧 = fraction massique saturante q_sat
+    //   🍰🧪🌧 = fraction molaire maximale de vapeur saturante (P_sat / P_total)
+    //   (CONST.M_H2O / 🧪) × 🍰🧪🌧 = fraction massique saturante q_sat
     //   🍰🫧☔ = q / q_sat = humidité relative (RH)
-    const q_sat = (CONST.M_H2O / DATA['🫧']['🧪']) * DATA['💧']['🍰🧮🌧'];  // Fraction massique saturante
+    const q_sat = (CONST.M_H2O / DATA['🫧']['🧪']) * DATA['💧']['🍰🧪🌧'];  // Fraction massique saturante
     DATA['💧']['🍰🫧☔'] = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
     
     // 🔒 CALCUL DE 💭☔ (Seuil critique précipitations)
@@ -244,13 +253,32 @@ function calculateCloudFormationIndex() {
     const temp_factor = (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE;
     DATA['💧']['💭☔'] = Math.max(0.7, Math.min(0.95, 0.75 + 0.05 * temp_factor));
 
-    // 🔒 CALCUL DE 🍰💭 (CCN - Efficacité condensation nuageuse)
-    // FORMULE : 🍰💭 = clamp(0.4 + 0.5×(⚖️🫁/CCN_O2_REF + ⚖️🐄/CCN_CH4_REF) + 0.1×(⚖️✈/CCN_SULFATE_REF), 0.3, 1.0)
-    const ccn_efficiency = Math.max(0.3, Math.min(1.0, 0.4 + 0.5 * (DATA['⚖️']['⚖️🫁'] / CONV.CCN_O2_REF_KG + DATA['⚖️']['⚖️🐄'] / CONV.CCN_CH4_REF_KG) + 0.1 * (DATA['⚖️']['⚖️✈'] / CONV.CCN_SULFATE_REF_KG)));
-    DATA['🫧']['🍰💭'] = ccn_efficiency;
-    
-    // 🔒 FORMULE SUNDQVIST : ☁️ = (1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)) × 🍰💭 (exposant 0.6 Sundqvist 1989)
-    DATA['🪩']['☁️'] = Math.max(0, Math.min(1, (1 - Math.pow(1 - Math.min(DATA['💧']['🍰🫧☔'], 1), 0.6)) * ccn_efficiency));
+    // ── 🍰💭 SUPPRIMÉE le 2026-09-23 ────────────────────────────────────────────────────
+    // Elle valait :
+    //   🍰💭 = clamp(0,4 + 0,5×(⚖️🫁/réf + ⚖️🐄/réf) + 0,1×(⚖️✈/réf), 0,3, 1,0)
+    // et multipliait la fraction nuageuse de Sundqvist. Trois raisons de la retirer, pas une :
+    //
+    // 1. ELLE N'A PAS DE PHYSIQUE. La fraction nuageuse n'est pas fonction des noyaux de
+    //    condensation : elle est fixée par la dynamique et l'humidité. Sundqvist (1989, Mon. Wea.
+    //    Rev. 117:1641) la paramétrise à partir de la SEULE humidité relative. Les CCN agissent
+    //    sur le NOMBRE de gouttelettes — donc sur l'albédo nuageux (Twomey 1977/1991, déjà codé
+    //    plus bas) et sur leur taille — pas sur la couverture.
+    // 2. NI L'O₂ NI LE CH₄ NE SONT DES CCN. La chimie de l'activation est la théorie de Köhler
+    //    (1936), modernisée en κ-Köhler (Petters & Kreidenweis 2007, ACP 7:1961) : terme de Kelvin
+    //    (courbure) + terme de Raoult (soluté), avec κ mesuré par espèce — sulfate d'ammonium 0,61,
+    //    sel de mer 1,1, organiques 0,1–0,2, suie ≈ 0. L'O₂ et le CH₄ n'y figurent pas. Il n'y avait
+    //    donc rien à dériver : cette formule n'était l'approximation de rien.
+    // 3. ELLE ÉTAIT MORTE. Sa valeur brute allait de 1,15 à 6058 selon l'époque : le clamp la
+    //    figeait à 1,000 sur 18 époques sur 19 (doc/AUDIT_CONSTANTES_SANS_SOURCE.md). Elle
+    //    multipliait Sundqvist par la constante 1.
+    //
+    // Ce que devient l'apport des CCN : il passe entièrement par la loi de puissance mesurée
+    // sulfate → gouttelettes (McCoy et al. 2018) puis par Twomey, plus bas dans ce fichier.
+    // ⚠️ Les autres espèces de CCN réelles — sel de mer, organiques, poussière, suie — ne sont pas
+    // suivies par le modèle. McCoy 2018 publie leurs exposants ; il manque leurs masses.
+    //
+    // 🔒 FORMULE SUNDQVIST (1989) : ☁️ = 1 − (1 − min(🍰🫧☔, 1))^0.6, humidité relative seule.
+    DATA['🪩']['☁️'] = Math.max(0, Math.min(1, 1 - Math.pow(1 - Math.min(DATA['💧']['🍰🫧☔'], 1), 0.6)));
     
     // 🔒 CALCUL DE ⏳☔ (Inverse du temps de résidence global de la vapeur)
     // Littérature : temps de résidence vapeur ~8–10 j (Nature Rev. Earth Env. 2021; HESS 2017).
@@ -260,10 +288,10 @@ function calculateCloudFormationIndex() {
     // 🔒 INITIALISATION DE 🔺⏳ (1 jour). En phase eau, tuning SOLVER.DELTA_T_ACCELERATION_DAYS (8–10 j) peut l’augmenter.
     DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY;
     
-    // 🔒 CALCUL DE 🍰⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
+    // 🔒 CALCUL DE 🧲⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
     const rh_excess = DATA['💧']['🍰🫧☔'] - DATA['💧']['💭☔'];
     const ramp = rh_excess <= 0 ? 0 : Math.min(1, rh_excess / 0.2);
-    DATA['💧']['🍰⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
+    DATA['💧']['🧲⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
 
     return DATA['🪩']['☁️'];
 }
@@ -594,18 +622,18 @@ function calculateAlbedo() {
     // Les biomes dépendent uniquement de température et pluie, robuste pour d'autres planètes
     //
     // 1. Calculer précipitations annuelles P_ann (mm/an)
-    // P_ann ∝ 🍰🧮🌧 × 🍰🪩🌊 × F_conv × facteur_échelle
-    // Où 🍰🧮🌧 = max vapor fraction (potentiel de précipitation)
+    // P_ann ∝ 🍰🧪🌧 × 🍰🪩🌊 × F_conv × facteur_échelle
+    // Où 🍰🧪🌧 = max vapor fraction (potentiel de précipitation)
     //    🍰🪩🌊 = couverture océanique (source d'évaporation)
     //    F_conv = facteur de convection (fonction de température)
     // 🔒 CORRECTION : Le facteur d'échelle était trop faible
-    // Sur Terre : 🍰🧮🌧 ≈ 0.017, 🍰🪩🌊 ≈ 0.71, F_conv ≈ 1.0
+    // Sur Terre : 🍰🧪🌧 ≈ 0.017, 🍰🪩🌊 ≈ 0.71, F_conv ≈ 1.0
     // P_ann_base = 0.017 × 0.71 × 1.0 = 0.01207
     // Pour obtenir H ≈ 1.0 à 15°C : H = P_ann / (1000 × exp(0.05 × 15)) = P_ann / 2117
     // Donc P_ann ≈ 2117 mm/an pour H = 1.0
     // Facteur d'échelle : 2117 / 0.01207 ≈ 175000
     const F_conv = Math.max(0.1, Math.min(2.0, 1.0 + (DATA['🧮']['🧮🌡️'] - 288.15) / 50));  // Facteur convection (T optimal ~15°C = 288.15 K)
-    const P_ann = DATA['💧']['🍰🧮🌧'] * ocean_coverage * F_conv * CONV.P_ANN_SCALE_MM_AN;  // mm/an (tuning CONV.P_ANN_SCALE_MM_AN)
+    const P_ann = DATA['💧']['🍰🧪🌧'] * ocean_coverage * F_conv * CONV.P_ANN_SCALE_MM_AN;  // mm/an (tuning CONV.P_ANN_SCALE_MM_AN)
 
     // 🔒 ÉTAPE 4 : Calculer ☁️ (index de formation nuageuse) AVANT de calculer les biomes
     // calculateCloudFormationIndex() calcule aussi 🍰🫧☔ (humidité relative) nécessaire pour les biomes
