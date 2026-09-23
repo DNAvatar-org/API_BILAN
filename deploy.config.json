@@ -113,6 +113,10 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/dico.html"
     },
     {
+      "src": "demo/parametres.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/parametres.html"
+    },
+    {
       "src": "demo/epoch_bench.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/epoch_bench.html"
     },
@@ -221,16 +225,8 @@
       "dest": "pages/bilan_radiatif/API_BILAN/doc/ALPHABET_ET_DICO.txt"
     },
     {
-      "src": "doc/Algorithmes.html",
-      "dest": "pages/bilan_radiatif/API_BILAN/doc/Algorithmes.html"
-    },
-    {
       "src": "doc/BIBLIOGRAPHIE.html",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/BIBLIOGRAPHIE.html"
-    },
-    {
-      "src": "doc/algorithmes.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/doc/algorithmes.css"
     },
     {
       "src": "doc/equation.css",
