@@ -1,6 +1,6 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.6.0
+// Version 0.7.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: [September 18, 2026]
@@ -9,6 +9,10 @@
 //   <script> par une page → il se publie dans window.__SPECTRAL_WORKER_MAIN__, ce qui permet à worker_pool.js
 //   d'en faire un Blob. C'est le SEUL chemin possible en file:// : Chrome refuse new Worker('file://…')
 //   (origine 'null') et importScripts d'un file://, mais accepte un blob:. Code de calcul inchangé.
+// - v0.7.0 runSliceTransfer : l'attribution EDS devient un SPECTRE. Les quatre scalaires
+//   sum_blocked_{CO2,H2O,CH4,clouds} deviennent quatre Float64Array(nL) accumulés par λ et
+//   renvoyés en Transferable. Les totaux se retrouvent en sommant côté pool — mêmes nombres.
+//   ⚠️ runSlice et runSliceShared n'ont PAS été changés : le pool n'envoie que 'slice_transfer'.
 // - v0.5.0 ch4_eds_scale (Haqq-Misra 2008) appliqué sur kappa_CH4 dans les 3 fonctions (runSlice / runSliceShared / runSliceTransfer). Défaut 1.0 si param absent ou non-fini.
 // - v0.4.1 Retrait guards abusifs (Number.isFinite, != null, || fallbacks) dans runSliceShared/Transfer (regle-js-crash)
 // - v0.4.0 Add slice_transfer message type: Transferable Float32Array (compatible prod, sans headers COOP/COEP)
@@ -234,7 +238,17 @@ function spectralSliceWorkerMain() {
         // Float32Array local : transféré (zero-copy) après calcul
         var resultBuf = new Float32Array(nZ * nL);
         var flux_in = earth_flux.slice();
-        var sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
+        // Attribution EDS PAR LONGUEUR D'ONDE (v0.6.0). C'étaient quatre scalaires ; ce sont
+        // maintenant quatre spectres, sommés sur les couches mais pas sur λ. Les totaux se
+        // retrouvent en sommant à la fin — mêmes nombres, à l'ordre d'addition près.
+        // Coût : on remplace 4 `+=` scalaires par 4 `+=` sur Float64Array dans la boucle interne,
+        // et 4 allocations de nL par tranche. Pas d'accumulateur supplémentaire.
+        // Sert à deux choses : voir DANS QUELLE BANDE chaque gaz piège (le spectre d'émission
+        // affiche la part d'EDS par intervalle) et diagnostiquer les nuages, dont le piégeage
+        // ne vit que dans la fenêtre 8-12 µm et se noyait dans un scalaire.
+        var blk_CO2 = new Float64Array(nL), blk_H2O = new Float64Array(nL);
+        var blk_CH4 = new Float64Array(nL), blk_cld = new Float64Array(nL);
+        var sum_blocked_CIA = 0;
 
         for (var i = 0; i < nZ; i++) {
             var L = layers[i];
@@ -266,29 +280,30 @@ function spectralSliceWorkerMain() {
                     var em_flux = emissivity * Math.PI * planck(lambda, T, cstUse) * effective_delta_lambda * lambda_weights[j];
                     var out = flux_in[j] * transmission + em_flux;
                     upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
-                    sum_blocked_CO2 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
-                    sum_blocked_H2O += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
-                    sum_blocked_CH4 += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
-                    sum_blocked_clouds += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
+                    blk_CO2[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
+                    blk_H2O[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
+                    blk_CH4[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
+                    blk_cld[j] += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
                     sum_blocked_CIA += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CIA * delta_z_real)));
                 }
                 resultBuf[i * nL + j] = upval;
                 flux_in[j] = upval;
             }
         }
-        // Transférer l'ownership du buffer (zero-copy : le worker perd l'accès après postMessage)
+        // Transférer l'ownership des buffers (zero-copy : le worker perd l'accès après postMessage)
         self.postMessage({
             type: 'sliceTransferDone',
             id: p.id,
             buf: resultBuf.buffer,
             jStart: p.jStart,
             jEnd: p.jEnd,
-            sum_blocked_CO2: sum_blocked_CO2,
-            sum_blocked_H2O: sum_blocked_H2O,
-            sum_blocked_CH4: sum_blocked_CH4,
-            sum_blocked_clouds: sum_blocked_clouds,
+            // Spectres d'attribution de la tranche (index local 0..jEnd-jStart-1)
+            blk_CO2: blk_CO2.buffer,
+            blk_H2O: blk_H2O.buffer,
+            blk_CH4: blk_CH4.buffer,
+            blk_cld: blk_cld.buffer,
             sum_blocked_CIA: sum_blocked_CIA
-        }, [resultBuf.buffer]); // Transferable : ownership move, zéro copie
+        }, [resultBuf.buffer, blk_CO2.buffer, blk_H2O.buffer, blk_CH4.buffer, blk_cld.buffer]);
     }
 
     self.onmessage = function (e) {

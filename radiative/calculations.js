@@ -1,6 +1,6 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.3.7
+// Version 1.3.9
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // - v1.3.7: maxDichotomyIterations — lecture sécurisée (nombre fini > 0) ; si absent/NaN → 30 (iter >= undefined ne stoppe jamais).
@@ -26,6 +26,15 @@
 // - v1.2.2: getSpectralResultFromDATA — effective_temperature : si total_flux≤0 ou absent, même repli T_surface que sync_panels (évite null après Object.assign → plot)
 // - v1.2.3: calculateRadiativeCapacities crash-first : suppression gardes isFinite dans kappa_CO2/H2O/CH4 (masquage silencieux de NaN en 0 → capacités 🌈 toujours nulles)
 // - v1.2.4: calculateRadiativeCapacities — sonde firstBad {lambda,z,n_air,kappa,...} → __RAD_CAP_LAST_DBG__ pour localiser la 1re δτ non-finie ou négative (cause integral=-Infinity)
+// Logs: v1.3.9 - RADIATIVE.computeEdsRemovalShares() : l'attribution EDS par gaz passe à la MÉTHODE DE
+//   RETRAIT (Schmidt 2010 / Lacis 2010) — on enlève un absorbeur à T figée et on lit la remontée d'OLR.
+//   L'ancienne (Σ des interceptions par couche) donnait les nuages à 3 % quand le retrait en mesure 37 %.
+//   5 passes spectrales de plus (4 retraits + 1 remise en état), une fois par époque à la convergence.
+//   CONFIG_COMPUTE.edsAttributionByRemoval.
+// Logs: v1.3.8 - window.EDS_SPECTRAL : l'attribution EDS résolue PAR LONGUEUR D'ONDE (worker v0.7.0,
+//   pool v1.2.0). Les quatre sum_blocked_* étaient des scalaires ; ce sont maintenant quatre spectres,
+//   dont les totaux sont la somme. Hors DATA à dessein (snapshotEdsForConvergence deep-copie DATA['📛']).
+//   Sert au diagnostic des nuages et à l'affichage de la part d'EDS par bande sur le spectre d'émission.
 // Logs: v1.0.2 - kappa_H2O × H2O_VAPOR_EDS_SCALE (évite masquage CO2, doc/API/VAPEUR_VS_NUAGES.md)
 // Logs: v1.0.3 - Attribution EDS Schmidt 2010 : transfert overlap/2 de H2O vers CO2 à chaque (couche,λ), total 100%
 // Logs: v1.0.4 - Nuages EDS : τ_cloud (corps gris) ∝ 🍰🪩⛅ (albédo), réparti troposphère ; eds_breakdown.Clouds
@@ -430,6 +439,7 @@ async function calculateFluxForT0() {
     // (flux_init, ychange, YCHANGE_THR initialisés après earth_flux — voir ci-dessous)
     const final_lambda_length = lambda_range.length;
     let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
+    let edsSpectra = null;   // attribution EDS par longueur d'onde (worker v0.7.0)
 
     // Log du calcul spectral (désactivé pour réduire la taille des logs)
     // console.log(`📊 [calculateFluxForT0@calculations.js] Calcul spectral:`);
@@ -478,12 +488,18 @@ async function calculateFluxForT0() {
         }
     }
 
-    // Nuages EDS : ☁️ × τ_ref. τ_LW ∝ CCN (🍰💭) : plus de noyaux → gouttelettes plus petites → τ plus grand.
-    // Calibré : 🍰💭=1.0 → τ_ref=2.6 ; 🍰💭=0.4 → τ_ref=1.04.
-    // Réf. : Stephens 1978 (τ overcast 0.5–2) ; Chylek & Ramaswamy 1982 (idem) ; Liou 1986 (stratus 5–20, cirrus 0.1–2) ; Loeb et al. 2018 CERES (CRE_LW ~27 W/m²).
+    // Nuages EDS : τ_LW total = ☁️ × CLOUD_LW_TAU_REF, réparti sur la troposphère.
+    // v-2026-09-23 : la modulation « × 🍰💭 » est retirée avec 🍰💭 elle-même (calculations_albedo
+    // v1.2.66). Elle ne modulait rien — 🍰💭 valait 1,000 sur 18 époques sur 19 — et son argument
+    // (« plus de noyaux → gouttelettes plus petites → τ plus grand ») passait par une formule où
+    // l'O₂ et le CH₄ comptaient pour 5 fois le sulfate, ce qui n'a pas de sens microphysique.
+    // ⚠️ CLOUD_LW_TAU_REF = 2,6 reste SANS SOURCE : c'est une calibration interne.
+    //    La physique s'écrit τ_abs = κ_abs × LWP, avec κ_abs ≈ 0,13 m²/g mesuré en laboratoire
+    //    (Stephens 1978, J. Atmos. Sci. 35:2123) — mais le modèle ne calcule pas d'eau liquide
+    //    nuageuse (LWP), donc la dérivation n'est pas branchable en l'état. À faire.
+    //    Repère de mesure : CRE_LW ≈ 26–30 W/m² (Loeb et al. 2021, CERES EBAF).
     const cloud_index = (DATA['🪩'] != null && DATA['🪩']['☁️'] != null && Number.isFinite(DATA['🪩']['☁️'])) ? DATA['🪩']['☁️'] : 0;
-    const ccn = (DATA['🫧'] != null && DATA['🫧']['🍰💭'] != null && Number.isFinite(DATA['🫧']['🍰💭'])) ? DATA['🫧']['🍰💭'] : 1;
-    const CLOUD_LW_TAU_REF = 2.6 * ccn;
+    const CLOUD_LW_TAU_REF = 2.6;
     const tau_cloud_total = Math.max(0, cloud_index * CLOUD_LW_TAU_REF);
     const tau_cloud_per_layer = i_trop > 0 ? tau_cloud_total / i_trop : 0;
 
@@ -607,7 +623,7 @@ async function calculateFluxForT0() {
             const ldz = (li + 1 < nZ) ? (z_range[li + 1] - z_range[li]) : delta_z_troposphere;
             layers_w.push({ T: lT, n_air: ln_air, n_CO2: ln_CO2, n_H2O: ln_H2O, n_CH4: ln_CH4, pressureBroadening: lpb, delta_z_real: ldz });
         }
-        const { resultBuf, sums } = await window.spectralWorkerPool.dispatch({
+        const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
             cross_section_CO2, cross_section_H2O, cross_section_CH4, cia_CO2,
             earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale, cia_co2_scale,
@@ -617,6 +633,7 @@ async function calculateFluxForT0() {
         }, nZ, nL);
         sum_blocked_CO2 = sums.CO2; sum_blocked_H2O = sums.H2O;
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
+        edsSpectra = spectra;
         sum_blocked_CIA = sums.CIA || 0;   // diagnostic CIA (n'entre PAS dans la normalisation des 3 EDS)
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
@@ -692,6 +709,45 @@ async function calculateFluxForT0() {
             pct_of_co2: (sum_blocked_CO2 > 1e-20) ? (sum_blocked_CIA / sum_blocked_CO2) : 0
         }
     };
+
+    // ─── ATTRIBUTION EDS PAR LONGUEUR D'ONDE ───────────────────────────────────
+    // Exposée hors de DATA À DESSEIN : snapshotEdsForConvergence() fait un
+    // JSON.parse(JSON.stringify(DATA['📛'])) à chaque pas de convergence, et y mettre quatre
+    // spectres de nL bins recopierait tout ça des dizaines de fois par époque. Même statut que
+    // window._hystDiag : un diagnostic vivant, lu par l'affichage, jamais par la physique.
+    //
+    // Unités : `blocked` est en W/m² de flux de surface intercepté, exactement ce que somment
+    // sum_blocked_*. Le total EDS (earth_flux_total − total_flux) n'est PAS la même chose — la
+    // part d'un gaz dans l'EDS vaut EDS × blocked[j] / sum_blocked, c'est la normalisation que
+    // fait déjà `pct()` juste au-dessus. On expose les deux pour que l'affichage n'ait pas à
+    // redériver la convention.
+    //
+    // ⚠️ Le continuum MT_CKD n'est PAS résolu en λ (c'est une formule paramétrique intégrée,
+    // pas un calcul raie par raie). Il est compté dans H₂O pour les totaux, mais il manque des
+    // spectres ci-dessous. Il vit dans la fenêtre 8–12 µm ; `continuum_Wm2` le donne à part
+    // pour que l'affichage puisse le signaler au lieu de le dissimuler.
+    if (edsSpectra) {
+        window.EDS_SPECTRAL = {
+            lambda_m: lambda_range,
+            blocked: {
+                '🏭': edsSpectra.CO2,      // CO₂
+                '💧': edsSpectra.H2O,      // H₂O (raies HITRAN seules)
+                '🐄': edsSpectra.CH4,      // CH₄
+                '⛅': edsSpectra.clouds     // nuages (gris, τ réparti sur la troposphère)
+            },
+            // Le flux ÉMIS PAR LA SURFACE et le flux QUI SORT, bin par bin. Leur différence est
+            // l'EDS à cette longueur d'onde — exacte, sans schéma d'attribution, et sa somme sur
+            // tout λ vaut EDS_Wm2 par construction. C'est la seule grandeur par bande qui ne
+            // dépende d'aucune convention de partage entre espèces.
+            surface_flux: earth_flux,
+            olr_flux: flux_in,
+            sum_blocked: sum_blocked,          // Σ sur λ ET sur les 4 espèces (+ continuum)
+            EDS_Wm2: EDS,                      // l'effet de serre total, ce que les % rapportent
+            continuum_Wm2: mtCkdTrap,          // H₂O, fenêtre 8–12 µm, non résolu en λ
+            T_surf_K: DATA['🧮']['🧮🌡️'],
+            epochId: DATA['📜'] ? DATA['📜']['🗿'] : null
+        };
+    }
 
     // Log du delta (flux sortant - flux entrant initial)
     const delta_spectral = total_flux - earth_flux_total;
@@ -790,6 +846,102 @@ function getSpectralResultFromDATA() {
 }
 
 var RADIATIVE = window.RADIATIVE = window.RADIATIVE || {};
+/**
+ * ─── ATTRIBUTION EDS PAR RETRAIT ───────────────────────────────────────────────────────────
+ *
+ * Combien chaque absorbeur retient-il RÉELLEMENT ? On l'enlève, à température figée, et on
+ * regarde de combien l'OLR remonte. C'est la méthode de Schmidt et al. (2010, JGR 115:D20106)
+ * et Lacis et al. (2010, Science 330:356) — celle dont sortent les chiffres qu'on lit partout
+ * (vapeur ~50 %, nuages ~25 %, CO₂ ~20 %).
+ *
+ * ─── POURQUOI ELLE REMPLACE L'ANCIENNE ────────────────────────────────────────────────────
+ * Jusqu'au 2026-09-22, DATA['📛'] venait de `sum_blocked_X`, accumulé dans le worker :
+ *
+ *     sum_blocked_X += flux_in[j] × (1 − exp(−τ_X,couche))      sommé sur ~50 couches
+ *
+ * Cette somme compte, à CHAQUE couche traversée, ce que l'espèce intercepterait seule. Une
+ * bande saturée est donc recomptée cinquante fois, une fenêtre transparente une seule. Mesuré
+ * sur 📱 : Σblocked = 11 569 W/m² pour un EDS de 147,5 — un facteur 78. Ce n'était pas une
+ * attribution d'effet de serre, c'était un comptage de traversées de couches, et il donnait :
+ *
+ *     nuages 4,6 W/m² (3 %)   quand le retrait en mesure 54,9 (37 %)
+ *     CO₂   54,6 W/m² (37 %)  quand le retrait en mesure 21,6 (15 %)
+ *     H₂O   88,3 W/m² (60 %)  quand le retrait en mesure 24,5 (17 %)
+ *
+ * ─── CE QU'ELLE NE DIT PAS ────────────────────────────────────────────────────────────────
+ * Les effets de retrait NE SOMMENT PAS à l'EDS : sur 📱, 54,9 + 24,5 + 21,6 + 1,0 = 102 pour un
+ * EDS de 147,5. Les 45 W/m² manquants sont le RECOUVREMENT — quand on retire un absorbeur, les
+ * autres reprennent une partie de son travail, donc chaque retrait sous-estime. C'est inhérent
+ * à la méthode, pas un bug. Schmidt le contourne en moyennant « retirer un seul » et « ne
+ * garder qu'un seul » ; on ne fait ici que le premier, et on normalise pour que les parts
+ * ferment à 100 %. Les effets bruts restent exposés dans window.EDS_ATTRIBUTION, non normalisés.
+ *
+ * ─── COÛT ─────────────────────────────────────────────────────────────────────────────────
+ * CINQ passes spectrales de plus, UNE FOIS par époque à la convergence — pas à chaque itération
+ * du solveur. Quatre retraits, plus une passe de remise en état (les retraits laissent DATA['📊']
+ * et window.EDS_SPECTRAL dans l'état du dernier absorbeur enlevé). Désactivable par CONFIG_COMPUTE.edsAttributionByRemoval = false.
+ *
+ * @returns {Promise<object|null>} { pct, effects_Wm2, sum_effects_Wm2, olr_ref_Wm2, T_K }
+ */
+async function computeEdsRemovalShares() {
+    const DATA = window.DATA;
+    const EARTH = window.EARTH;
+    if (!DATA || !DATA['📊'] || !Number.isFinite(DATA['📊'].total_flux)) return null;
+    const T_K = DATA['🧮']['🧮🌡️'];
+    const olrRef = DATA['📊'].total_flux;
+    const save = {
+        cloud: DATA['🪩']['☁️'],
+        co2:   DATA['🫧']['🍰🫧🏭'],
+        h2oSc: EARTH.H2O_EDS_SCALE,
+        ch4Sc: EARTH.CH4_EDS_SCALE
+    };
+    const restore = function () {
+        DATA['🪩']['☁️']    = save.cloud;
+        DATA['🫧']['🍰🫧🏭'] = save.co2;
+        EARTH.H2O_EDS_SCALE = save.h2oSc;
+        EARTH.CH4_EDS_SCALE = save.ch4Sc;
+        DATA['🧮']['🧮🌡️']  = T_K;
+    };
+    const olrSans = async function (poser) {
+        restore();
+        poser();
+        DATA['🧮']['🧮🌡️'] = T_K;   // T FIGÉE : on mesure un forçage, pas une réponse
+        await calculateFluxForT0();
+        return DATA['📊'].total_flux;
+    };
+    const eff = {};
+    try {
+        eff['⛅'] = (await olrSans(function () { DATA['🪩']['☁️'] = 0; }))    - olrRef;
+        eff['🏭'] = (await olrSans(function () { DATA['🫧']['🍰🫧🏭'] = 0; })) - olrRef;
+        eff['💧'] = (await olrSans(function () { EARTH.H2O_EDS_SCALE = 0; })) - olrRef;
+        eff['🐄'] = (await olrSans(function () { EARTH.CH4_EDS_SCALE = 0; })) - olrRef;
+    } finally {
+        // ⚠️ Les quatre passes ont laissé DATA['📊'] (total_flux, upward_flux, lambda_range…) et
+        // window.EDS_SPECTRAL dans l'état de la DERNIÈRE, c'est-à-dire « sans CH₄ ». Le spectre
+        // affiché et getSpectralResultFromDATA() liraient ça. D'où une cinquième passe, tout
+        // remis, dont le seul rôle est de rendre l'état de référence. C'est le prix de la méthode.
+        restore();
+        await calculateFluxForT0();
+    }
+    const keys = ['🏭', '💧', '🐄', '⛅'];
+    let sum = 0;
+    for (let i = 0; i < keys.length; i++) {
+        // Un effet négatif n'a pas de sens physique ici (retirer un absorbeur ne peut pas faire
+        // baisser l'OLR) ; s'il arrive, c'est du bruit numérique, on le met à zéro plutôt que de
+        // le laisser fausser la normalisation.
+        if (!(eff[keys[i]] > 0)) eff[keys[i]] = 0;
+        sum += eff[keys[i]];
+    }
+    if (!(sum > 0)) return null;
+    const pct = {};
+    for (let i = 0; i < keys.length; i++) pct[keys[i]] = eff[keys[i]] / sum;
+    const out = { pct: pct, effects_Wm2: eff, sum_effects_Wm2: sum, olr_ref_Wm2: olrRef, T_K: T_K,
+                  epochId: DATA['📜'] ? DATA['📜']['🗿'] : null };
+    window.EDS_ATTRIBUTION = out;
+    return out;
+}
+RADIATIVE.computeEdsRemovalShares = computeEdsRemovalShares;
+
 RADIATIVE.getSpectralResultFromDATA = getSpectralResultFromDATA;
 
 // ============================================================================
@@ -1177,7 +1329,7 @@ async function simulateRadiativeTransfer() {
     
     const CO2_ppm = CO2_fraction * 1e6;
     const CH4_ppm = CH4_fraction * 1e6;
-    const H2O_percent = DATA['💧']['🍰🧮🌧'] * 100;
+    const H2O_percent = DATA['💧']['🍰🧪🌧'] * 100;
     
 
     const lambda_min = 0.1e-6;

@@ -1,7 +1,7 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.106
+// Version 1.2.107
 // Date: [May 07, 2026]
 // Logs:
 // - v1.2.106: detectDeltaPeriod2Stall — sur 4 pas, signes strictement alternés et Δ[i]≈Δ[i−2] (hystérésis type
@@ -39,6 +39,11 @@
 // - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
 // - v1.2.92: (obliquité) plumbing EPOCH['⚾'] → EARTH.computeIceTempFactor(opts.obliquity_deg) pour ice_formula_epoch ; même contrat que albedo v1.2.49 / h2o v1.0.21.
 // - v1.2.91: ice_formula_epoch UNIFIÉ avec albedo v1.2.48 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT (EARTH.POLAR_AMP_POL_K/MID_K). Remplace l'ancienne formule mono-zone (T_NO_POLAR_ICE − T_epoch)/RANGE qui divergeait de la formule albédo et saturait à 1.0 dans la plage utile. Pas de dépendance par époque (constantes géophysiques globales).
+// - v1.2.107: attribution EDS par RETRAIT à la convergence (RADIATIVE.computeEdsRemovalShares, calculations
+//   v1.3.9). Les 🍰📛❀/🧲📛❀ posés par buildEdsBreakdown depuis `sum_blocked` sont écrasés par la mesure :
+//   on enlève chaque absorbeur à T figée et on lit la remontée d'OLR (Schmidt 2010, Lacis 2010). L'ancienne
+//   voie sommait les interceptions couche par couche — les nuages y valaient 4,6 W/m² sur 📱 quand le retrait
+//   en mesure 54,9. Coût : 4 passes spectrales par époque, une seule fois. Flag edsAttributionByRemoval.
 // - v1.2.90: avant 1er calculateFluxForT0 — updateAtmosphereHeightFromCurrentT + calculateH2OParameters en phase Search (restauration phase). Corrige 🍰🫧💧≈0 après cycles (Init+précip ou spin-up+🔺⏳ long) → OLR trop haute / EDS H2O affiché 0% alors que C–C à T impose vapeur >0.
 // - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
 // - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
@@ -1155,6 +1160,28 @@ async function computeRadiativeTransfer(callback, options) {
                 if (DATA['📊'] && DATA['📊'].eds_breakdown) {
                     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
                     if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
+                }
+            }
+            // ── ATTRIBUTION EDS PAR RETRAIT ──────────────────────────────────────────────
+            // Ici et nulle part ailleurs : l'époque est convergée, à sa température finale et à sa
+            // résolution spectrale finale. Quatre passes de plus, pas quarante.
+            // Écrase les 🍰📛❀ / 🧲📛❀ que buildEdsBreakdown vient de poser depuis `sum_blocked`,
+            // qui compte les traversées de couches et pas l'effet de serre : il donnait les nuages
+            // à 3 % de l'EDS quand le retrait en mesure 37 %. Voir doc/DIAGNOSTIC_ATTRIBUTION_EDS.md.
+            if (CONFIG_COMPUTE.edsAttributionByRemoval && DATA['📛']) {
+                const shares = await window.RADIATIVE.computeEdsRemovalShares();
+                if (shares && shares.pct) {
+                    const E = DATA['📛']['🧲📛'];
+                    DATA['📛']['🍰📛🏭'] = shares.pct['🏭'];
+                    DATA['📛']['🍰📛💧'] = shares.pct['💧'];
+                    DATA['📛']['🍰📛🐄'] = shares.pct['🐄'];
+                    DATA['📛']['🍰📛⛅'] = shares.pct['⛅'];
+                    DATA['📛']['🧲📛🏭'] = E * shares.pct['🏭'];
+                    DATA['📛']['🧲📛💧'] = E * shares.pct['💧'];
+                    DATA['📛']['🧲📛🐄'] = E * shares.pct['🐄'];
+                    DATA['📛']['🧲📛⛅'] = E * shares.pct['⛅'];
+                    // 🔺📛💧 (ΔF H₂O) se dérive de 🧲📛💧 : à refaire après l'écrasement.
+                    window.H2O.calculateH2OGreenhouseForcing();
                 }
             }
             window.CONVERGENCE_DEBUG = { bins: DATA['🧮']['🔬🌈'], step: DATA['🧮']['🧮🔄☀️'], delta: DATA['🧲']['🔺🧲'] };

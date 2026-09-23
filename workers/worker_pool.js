@@ -3,11 +3,13 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.1.6
+// Version 1.2.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: April 23, 2026
 // Logs:
+// - v1.2.0 dispatch renvoie `spectra` — l'attribution EDS résolue par longueur d'onde (worker v0.7.0),
+//   recollée depuis les tranches. `sums` en est désormais la somme, plus un scalaire envoyé par le worker.
 // - v1.1.6 dispatch non réentrant : throw si un dispatch est encore en cours. worker.onmessage est réaffecté à chaque appel
 //   et le filtre msg.id === k ne distingue pas les appels → 2 calculs concurrents mélangeaient des tranches de T différentes.
 // - v1.1.5 passage de ch4_eds_scale (EARTH.CH4_EDS_SCALE) au worker slice_transfer (parallèle à h2o_eds_scale).
@@ -74,7 +76,8 @@
     // dispatch: répartit les nL lambdas sur nWorkers tranches équitables.
     // Chaque worker calcule sa tranche et transfère son Float32Array[nZ * sliceSize] au main thread.
     // Le main thread fusionne les tranches dans resultBuf[nZ * nL].
-    // Retourne Promise<{resultBuf: Float32Array, sums: {CO2, H2O, CH4, clouds}}>.
+    // Retourne Promise<{resultBuf, sums: {CO2,H2O,CH4,clouds,CIA}, spectra: {CO2,H2O,CH4,clouds}}>.
+    // `spectra` = la même attribution, résolue PAR LONGUEUR D'ONDE (worker v0.7.0).
     var dispatchPending = false;
 
     function dispatch(params, nZ, nL) {
@@ -88,6 +91,15 @@
         var sums = { CO2: 0, H2O: 0, CH4: 0, clouds: 0, CIA: 0 };
         // Buffer de résultat final (flat, accumulé au fur et à mesure des réponses)
         var resultBuf = new Float32Array(nZ * nL);
+        // Spectres d'attribution EDS (worker v0.7.0) : chaque tranche renvoie son morceau,
+        // on les recolle ici à leur place absolue. Les totaux `sums` en sont la somme —
+        // c'est bien la même grandeur qu'avant, sommée dans un autre ordre.
+        var spectra = {
+            CO2:    new Float64Array(nL),
+            H2O:    new Float64Array(nL),
+            CH4:    new Float64Array(nL),
+            clouds: new Float64Array(nL)
+        };
 
         return new Promise(function (resolve, reject) {
             workers.forEach(function (worker, k) {
@@ -107,15 +119,26 @@
                                 resultBuf[i * nL + msg.jStart + j] = sliceView[i * sliceNL + j];
                             }
                         }
-                        sums.CO2 += msg.sum_blocked_CO2;
-                        sums.H2O += msg.sum_blocked_H2O;
-                        sums.CH4 += msg.sum_blocked_CH4;
-                        sums.clouds += msg.sum_blocked_clouds;
+                        var bCO2 = new Float64Array(msg.blk_CO2);
+                        var bH2O = new Float64Array(msg.blk_H2O);
+                        var bCH4 = new Float64Array(msg.blk_CH4);
+                        var bCld = new Float64Array(msg.blk_cld);
+                        for (var jj = 0; jj < sliceNL; jj++) {
+                            var ja = msg.jStart + jj;
+                            spectra.CO2[ja]    = bCO2[jj];
+                            spectra.H2O[ja]    = bH2O[jj];
+                            spectra.CH4[ja]    = bCH4[jj];
+                            spectra.clouds[ja] = bCld[jj];
+                            sums.CO2    += bCO2[jj];
+                            sums.H2O    += bH2O[jj];
+                            sums.CH4    += bCH4[jj];
+                            sums.clouds += bCld[jj];
+                        }
                         sums.CIA += (msg.sum_blocked_CIA || 0);
                         doneCount++;
                         if (doneCount === activeWorkers) {
                             dispatchPending = false;
-                            resolve({ resultBuf: resultBuf, sums: sums });
+                            resolve({ resultBuf: resultBuf, sums: sums, spectra: spectra });
                         }
                     } else if (msg.type === 'sliceError') {
                         dispatchPending = false;
@@ -154,7 +177,7 @@
 
             if (activeWorkers === 0) {
                 dispatchPending = false;
-                resolve({ resultBuf: resultBuf, sums: sums });
+                resolve({ resultBuf: resultBuf, sums: sums, spectra: spectra });
             }
         });
     }
