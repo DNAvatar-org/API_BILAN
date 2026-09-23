@@ -376,7 +376,6 @@ function calculateT0() {
     const EPOCH = window.TIMELINE[epochIndex];
     DATA['🧮']['🧮⚧'] = 'Init'; // Phase d'initialisation
     DATA['🧮']['🧮☯'] = 0;
-    DATA['🧮']['🧮🔄'] = 0; // Réinitialiser le compteur d'itérations
     delete DATA['🧮']['🧮🌡️🔽'];
     delete DATA['🧮']['🧮🌡️🔼'];
     DATA['🧲']['🧲☀️🔽'] = 0;

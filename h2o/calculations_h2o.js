@@ -408,18 +408,17 @@ function calculateWaterPartition() {
 }
 
 // 🔒 FONCTION : Feedback précipitation (appelée dans la boucle externe)
-// Calcule 🍰🫧☔, 💭☔, ⏳☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
+// Calcule 🍰🫧☔, 💭☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
 function calculatePrecipitationFeedback() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const ALBEDO = window.ALBEDO;
 
-    // 1. Calculer 🍰🫧☔, 💭☔, ⏳☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
+    // 1. Calculer 🍰🫧☔, 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
     ALBEDO.calculateCloudFormationIndex();
     
     const relative_humidity = DATA['💧']['🍰🫧☔'];
     // const precip_threshold = DATA['💧']['💭☔']; // inutilisé (nettoyage)
-    // const precip_time_constant = DATA['💧']['⏳☔']; // inutilisé (nettoyage)
     const precipitation_rate = DATA['💧']['🧲⚖️💦'];
     // const cloud_index = DATA['🪩']['☁️']; // inutilisé (nettoyage)
 
@@ -544,11 +543,10 @@ function calculateH2OParametersWithIteration() {
         const relative_humidity = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
         DATA['💧']['🍰🫧☔'] = relative_humidity;
         
-        // 🔒 ÉTAPE 2 : Calculer 💭☔, ⏳☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
-        // ⚠️ IMPORTANT : calculateCloudFormationIndex() calcule 💭☔, ⏳☔, 🧲⚖️💦
+        // 🔒 ÉTAPE 2 : Calculer 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
+        // ⚠️ IMPORTANT : calculateCloudFormationIndex() calcule 💭☔, 🧲⚖️💦
         ALBEDO.calculateCloudFormationIndex();
         // const precip_threshold = DATA['💧']['💭☔'] || 0; // inutilisé (nettoyage)
-        // const precip_time_constant = DATA['💧']['⏳☔'] || 0; // inutilisé (nettoyage)
         // const cloud_index = DATA['🪩']['☁️']; // inutilisé (nettoyage)
 
         // [OBS/CALIB] Précip convective (EARTH.PRECIP_CONVECTIVE_*). Lit. Held & Soden 2006, IPCC AR6.

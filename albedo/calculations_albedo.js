@@ -280,10 +280,9 @@ function calculateCloudFormationIndex() {
     // 🔒 FORMULE SUNDQVIST (1989) : ☁️ = 1 − (1 − min(🍰🫧☔, 1))^0.6, humidité relative seule.
     DATA['🪩']['☁️'] = Math.max(0, Math.min(1, 1 - Math.pow(1 - Math.min(DATA['💧']['🍰🫧☔'], 1), 0.6)));
     
-    // 🔒 CALCUL DE ⏳☔ (Inverse du temps de résidence global de la vapeur)
-    // Littérature : temps de résidence vapeur ~8–10 j (Nature Rev. Earth Env. 2021; HESS 2017).
-    // Relation : P = W/τ → taux précipitation (kg/m²/s) = colonne vapeur (kg/m²) / τ (s).
-    DATA['💧']['⏳☔'] = 1 / CONV.TAU_VAPOR_GLOBAL_S;
+    // ⏳☔ (= 1 / CONV.TAU_VAPOR_GLOBAL_S) retirée le 2026-09-23 : écrite ici, lue nulle part (ses deux
+    // lecteurs étaient déjà commentés « inutilisé » dans calculations_h2o.js). τ reste lu directement
+    // par 🧲⚖️💦 ci-dessous : P = W/τ (temps de résidence ~8–10 j, Nature Rev. Earth Env. 2021 ; HESS 2017).
     
     // 🔒 INITIALISATION DE 🔺⏳ (1 jour). En phase eau, tuning SOLVER.DELTA_T_ACCELERATION_DAYS (8–10 j) peut l’augmenter.
     DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY;

@@ -3,9 +3,12 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.0
+// Version 2.0.1
 // Date: [September 19, 2026]
 // logs :
+//   - v2.0.1 (2026-09-23): 4 clés mortes retirées — ⏳☔ (lue seulement dans des lignes commentées),
+//     🧮🔄 (remise à 0, jamais lue), 🎈┴💧 et 🌡️┴💧 (jamais des valeurs de DATA : le code lit
+//     CONST.P_TRIPLE_WATER / CONST.T_TRIPLE_WATER ; la famille 💎 disparaît avec elles).
 //   - v2.0.0: séparation définitions / rendu. Ce fichier revient dans API_BILAN — son en-tête l'y plaçait
 //     depuis toujours (« File: API_BILAN/data/dico.js ») alors qu'il vivait dans CO2/static/compute/.
 //     KEYS est la seule chose que le moteur lise vraiment (initDATA.js) ; DESC et FORM justifient les calculs.
@@ -27,13 +30,13 @@ const KEYS = {
     // Composition atmosphérique
     '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈'],   // 🍰💭 retirée le 2026-09-23 avec sa formule (pas de physique CCN dans la couverture nuageuse)
     // Cycle de l'eau
-    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🫧☔', '🧲⚖️💦', '💭☔', '⏳☔'],
+    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🫧☔', '🧲⚖️💦', '💭☔'],
     // Albédo
     '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '☁️'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
     '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
     // Convergence
-    '🧮': ['🧮🌡️', '🧮⚧', '🧮☯', '🧲🔬', '🔬🌈', '🔬🫧', '🧮🔄', '🧮🔄☀️', '🧮🔄🌊'],
+    '🧮': ['🧮🌡️', '🧮⚧', '🧮☯', '🧲🔬', '🔬🌈', '🔬🫧', '🧮🔄☀️', '🧮🔄🌊'],
     // Soleil
     '☀️': ['🧲☀️', '🧲☀️🎱', '🔋☀️'],
     // Noyau
@@ -44,7 +47,6 @@ const KEYS = {
     // Géologie (Surfaces géologiques - Couche A)
     '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍'],
     // Constantes physiques
-    '💎': ['🎈┴💧', '🌡️┴💧'],
     // Albédo matériau (EARTH['🪩🍰'], override EPOCH['🪩🍰'])
     '🪩🍰': ['🪩🍰❄️', '🪩🍰🧊', '🪩🍰🏊']
 };
@@ -132,7 +134,6 @@ const DESC = {
         '🍰🫧☔': 'Humidité relative de surface (sans dimension) = 🍰🫧💧 / q_sat',
         '☁️': 'Index de formation nuageuse [0,1]',
         '💭☔': 'Seuil critique précipitations [0.7,0.9]',
-        '⏳☔': '1/τ_global (s⁻¹), τ ~10 j litt.',
         '🧲⚖️💦': 'Flux de masse d\'eau précipitée (kg/m²/s), P = W/τ',
     },
     '🧲': {
@@ -150,7 +151,6 @@ const DESC = {
         '🧲🔬': '!Précision en Flux',
         '🔬🌈': 'Résolution spectrale (🔺λ)',
         '🔬🫧': 'Résolution atm. (🔺z)',
-        '🧮🔄': 'Complexité O(🔬🌈×🔬🫧)',
         '🧮🔄☀️': 'Cycle radiatif (crossings 0°C/T_boil)',
         '🧮🔄🌊': 'Cycle eau (0=init, 1+=après crossing)',
     },
@@ -211,7 +211,6 @@ const FORM = {
         '🧲🔬': '!Précision en Flux',
         '🔬🌈': 'Résolution spectrale',
         '🔬🫧': 'Résolution atmosphérique',
-        '🧮🔄': 'Complexité O(🔬🌈×🔬🫧)',
         '🧮🔄☀️': 'Cycle radiatif (nombre de crossings 0°C/T_boil)',
         '🧮🔄🌊': 'Cycle eau (0=après init, 1+=après crossing)',
         '🧮🌡️🚩': 'T° initiale (T0)'
@@ -240,12 +239,11 @@ const FORM = {
     '💧': {
         '🍰💧🧊': 'Si T < ❄️ alors toute l\'eau restante (après vapeur) est glace, sinon glace polaire (10% à 0°C → 0% à 20°C) - ❄️ = 271.15K - (P-1)×1.0',
         '🍰💧🌊': 'Océan',
-        '🍰🧪🌧': '🎈🌧 / 🎈 — fraction MOLAIRE (mol/mol)<br>🎈🌧 = 🎈┴💧 × exp(L_v/R_v × (1/🌡️┴💧 - 1/🧮🌡️)) [Clausius-Clapeyron]<br>🎈┴💧 = 611.657 Pa, 🌡️┴💧 = 273.16 K (point triple, IAPWS),<br>L_v = 2.5e6 J/kg (chaleur latente vaporisation H2O), R_v = 461.5 J/(kg·K) = R/M_H2O, 🧮🌡️ = température actuelle',
+        '🍰🧪🌧': '🎈🌧 / 🎈 — fraction MOLAIRE (mol/mol)<br>🎈🌧 = P_tr × exp(L_v/R_v × (1/T_tr - 1/🧮🌡️)) [Clausius-Clapeyron]<br>P_tr = CONST.P_TRIPLE_WATER = 611.657 Pa, T_tr = CONST.T_TRIPLE_WATER = 273.16 K (point triple, IAPWS),<br>L_v = 2.5e6 J/kg (chaleur latente vaporisation H2O), R_v = 461.5 J/(kg·K) = R/M_H2O, 🧮🌡️ = température actuelle',
         '🍰🫧💧': 'max(0, min(🍰🧪🌧 × (CONST.M_H2O / 🧪), ⚖️💧 / ⚖️🫧) - (🧲⚖️💦 × (4 × π × (📐 × 1000)²) × 🔺⏳) / ⚖️🫧) - Fraction massique de vapeur',
         '🍰🫧☔': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
         '☁️': '1 - (1 - min(🍰🫧☔, 1))^0.6 — Sundqvist (1989) : couverture nuageuse à partir de la SEULE humidité relative [sans dimension, 0-1]',
         '💭☔': 'clamp(0.75 + 0.05 × (🧮🌡️ - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE, 0.7, 0.95) - Seuil critique précipitations [0.7,0.9]',
-        '⏳☔': '1/τ_global (s⁻¹), τ_global = 10 j (litt. 8–10 j, Nature Rev. Earth Env. 2021; HESS 2017)',
         '🧲⚖️💦': 'W/τ_global × ramp(RH−💭☔, 0.2) quand RH > 💭☔ ; W = masse_vapeur_par_m² (kg/m²) ; P = W/τ (litt. ~2,7 mm/j GPCP) - Taux précipitation (kg/m²/s)'
     },
     '📅': {
@@ -271,10 +269,6 @@ const FORM = {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',
         '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles, géologie)',
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents, géologie)'
-    },
-    '💎': {
-        '🎈┴💧': 'Pression au point triple de l\'eau = CONST.P_TRIPLE_WATER = 611,657 Pa (IAPWS)',
-        '🌡️┴💧': 'Température au point triple de l\'eau = CONST.T_TRIPLE_WATER = 273,16 K (IAPWS)'
     },
     '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique) = f(époque) : Hadéen=1.0, Archéen=0.80, Moderne=0.71',
