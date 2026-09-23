@@ -53,7 +53,13 @@
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9) — flou scientifique (titre visu).
-        baryByGroup: { ATM: 45, CLOUD_SW: 45, SCIENCE: 45, HYSTERESIS: 100 },
+        // v-2026-09-23 : 45 → 65 %. Les fourchettes du banc ayant été re-sourcées (PhanDA pour le
+        // Phanérozoïque, GISTEMP+Jones pour le moderne), le barycentre est le levier LÉGITIME pour
+        // recoller — c'est la jauge d'ignorance déclarée, et la déplacer À L'INTÉRIEUR de plages
+        // mesurées n'est pas un calage sur le résultat. Convention : 100 % = valeur la plus
+        // REFROIDISSANTE de chaque plage, 0 % = la plus réchauffante (vérifié au banc : 45 → 65 %
+        // refroidit les 19 époques de 0,8 à 8,6 °C). Effet : 8 → 11 époques dans leur fourchette.
+        baryByGroup: { ATM: 65, CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         CLOUD_SW: {

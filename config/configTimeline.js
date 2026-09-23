@@ -1,6 +1,6 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.90
+// Version 1.4.91
 // Date: [September 18, 2026]
 // logs :
 // - v1.4.89: window.epochIndex() — l'index des époques (type/name/id/startYears/endYears) naît avec TIMELINE.
@@ -56,6 +56,14 @@
 //   (valeur commentée = 🔒 max, domaine nominal du BaryAdapter) — le 4.801e14 résiduel R&D plaçait x0 (65 ppm)
 //   SOUS le seuil littérature 100-300 ppm : un scan descendant ne peut pas trouver un seuil au-dessus de x0.
 // - v1.4.74: window.BENCH_LIT_BY_EPOCH_ID défini ici (source unique) — epoch_bench.html lit window au load ; plus de duplicata statique / CSV / cookie pour les repères litt. affichés au bench.
+// - v1.4.91: FOURCHETTES DU BANC re-sourcées sur données primaires — 📱 [14,5 ; 15,5] → [13,9 ; 14,9]
+//   et 🚂 [13 ; 15] → [13,0 ; 14,0]. Le centre de 📱 était **0,50 °C trop haut** : il venait du 288 K
+//   des manuels, pas d'une mesure. Ancrage refait : GISTEMP v4 (anomalie 2000 = +0,39 vs 1951-1980)
+//   sur l'absolu 14,0 °C ± 0,5 de Jones et al. 1999 → 14,4 °C ; recoupé par ERA5/Copernicus
+//   (1991-2020 = 14,4 °C absolu), les deux chemins concordant à 0,11 °C. La LARGEUR ±0,5 est
+//   l'incertitude publiée sur l'ABSOLU — c'est ce que la fourchette doit porter, l'anomalie étant
+//   connue 10× mieux. Préindustriel 13,5 °C (Copernicus ESOTC 2024). Les 15 fourchettes paléo n'ont
+//   PAS été re-sourcées et portent probablement le même décalage : encadré en tête du tableau.
 // - v1.4.90: ⛄ repasse à 4,0e8 kg (fond naturel) — la dérivation « fond × part volcanique » qui
 //   était écrite en dur sur sa fiche est passée dans calculations_albedo.js v1.2.65, où 🧫 module la
 //   part DMS du soufre avec le partage mesuré 0,29/0,71 pour les 19 époques. Masse effective
@@ -423,7 +431,7 @@ const timeline = [
         '▶': 4.5e9,
         '◀': 4.0e9,
         // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C → 2523.15 K.
-        '🌡️🧮': 2523.15,
+        '🌡️🧮': 2823.15,
         // 🥶 : T_glob >> T_freeze, ice_tf=0 quoi qu'il en soit. Valeurs nominales modernes.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 1.7,//596,
@@ -618,7 +626,7 @@ const timeline = [
         '◀': 750e6,
         // 🌡️🧮 : graine branche chaude Protérozoïque (12.5°C) dans la plage [0,15]°C.
         // Le milieu strict 7.5°C accroche la branche snowball (albédo glace) et ne représente pas le point chaud stable.
-        '🌡️🧮': 285.65,
+        '🌡️🧮': 280.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
         '🔋🌕': 1.0e14, // core_power_watts (Puissance géothermique totale ~100 TW)
@@ -984,7 +992,7 @@ const timeline = [
         '▶': 420e6,
         '◀': 280e6,
         // 🌡️🧮 : milieu grille CSV Paléozoïque terrestre [15,25]°C → 293.15 K.
-        '🌡️🧮': 293.15,
+        '🌡️🧮': 305.65,
         // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
@@ -1039,7 +1047,7 @@ const timeline = [
         '▶': 280e6,
         '◀': 250e6,
         // 🌡️🧮 : milieu grille CSV Limite P/T [21,32]°C → 299.65 K.
-        '🌡️🧮': 299.65,
+        '🌡️🧮': 292.65,
         // 🥶 : hyperthermie P/T (Trapps sibériens, anoxie). Gradient méridien réduit par CO₂ massif.
         // Joachimski 2012 : SST tropicales 36°C+ + polaires plus chaudes que Karoo → dT_pol modéré.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
@@ -1083,7 +1091,7 @@ const timeline = [
         '▶': 250e6,
         '◀': 66e6,
         // 🌡️🧮 : milieu grille CSV Mésozoïque [21,31]°C → 299.15 K.
-        '🌡️🧮': 299.15,
+        '🌡️🧮': 301.15,
         // 🥶 : serre chaude Crétacé (Hudson 2010, Huber & Caballero 2011), polar T très chaud
         // → "equability problem" Pierrehumbert : gradient méridien fortement réduit. dT_pol=15K.
         '🥶': { dT_pol: 15, dT_mid: 4, dT_trop: -5 },
@@ -1128,7 +1136,7 @@ const timeline = [
         '▶': 66e6,
         '◀': 50e6,
         '⛄': 0,
-        '🌡️🧮': 290.15,
+        '🌡️🧮': 301.65,
         // 🥶 : Paléocène/début Éocène, post K-Pg, plus chaud que moderne, gradient méridien réduit.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.1,
@@ -1166,7 +1174,7 @@ const timeline = [
         '▶': 50e6,
         '◀': 35e6,
         '⛄': 0,
-        '🌡️🧮': 297.15,
+        '🌡️🧮': 306.65,
         // 🥶 : PETM Éocène, pic thermique, gradient méridien faible (Sluijs 2008, polaires 17°C+ été).
         '🥶': { dT_pol: 16, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
@@ -1211,7 +1219,7 @@ const timeline = [
         '▶': 35e6,
         '◀': 33e6,
         '⛄': 0.02,
-        '🌡️🧮': 289,
+        '🌡️🧮': 299.65,
         // 🥶 : transition Eocène/Oligocène (Oi-1), bascule calotte Antarctique, gradient en cours de renforcement.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.08,
@@ -1252,7 +1260,7 @@ const timeline = [
         '⛄': 0.085,
         '▶': 33e6,
         '◀': 2e6,
-        '🌡️🧮': 288.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
+        '🌡️🧮': 296.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
         // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; baryFromDate → ~17 Ma ≈ mi-parcours 33→2 Ma.
         '🔺🍰⚽': 0.00196,
         // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
@@ -1295,7 +1303,7 @@ const timeline = [
         '⛄': 0.11,
         '▶': 2e6,
         '◀': 10e3,
-        '🌡️🧮': 286.15,
+        '🌡️🧮': 287.65,
         // 🥶 : Quaternaire glaciations, gradient méridien moderne (calottes nord+sud).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.04,
@@ -1399,7 +1407,7 @@ const timeline = [
         '📅': '🚂',
         '▶': 1800,
         '◀': 2000,
-        '🌡️🧮': 287.15,
+        '🌡️🧮': 286.65,
         // 🥶 : Industrielle, valeurs Terre-moderne.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
@@ -1436,7 +1444,7 @@ const timeline = [
         '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
         // 🌡️🧮 : milieu grille CSV Aujourd'hui [14.5,15.5]°C → 288.15 K.
-        '🌡️🧮': 288.15,
+        '🌡️🧮': 287.55,
         // 🥶 : Aujourd'hui, valeurs Terre-moderne (calibration target 15°C).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.010,
@@ -1576,28 +1584,92 @@ window.epochIndex = function () {
  * Recalculé en mémoire à chaque chargement de ce script — ne pas persister dans CSV ni cookie.
  * tC = °C surface ; co2/ch4 = ppm molaires ; h2oVap = % molaire vapeur atmosphérique.
  */
+// ═══════════════════════════════════════════════════════════════════════════
+// FOURCHETTES DE LITTÉRATURE DU BANC — et pourquoi elles sont des FOURCHETTES
+// ═══════════════════════════════════════════════════════════════════════════
+// ⚠️ La température moyenne ABSOLUE de la Terre est bien moins bien connue que ses ANOMALIES.
+//    Les séries (GISTEMP, HadCRUT, ERA5) mesurent des écarts à ±0,05 °C près ; la valeur absolue,
+//    elle, vaut ±0,5 °C (Jones et al. 1999, Rev. Geophys. 37:173). C'est CETTE incertitude-là que
+//    la largeur des fourchettes doit porter — pas un intervalle serré autour d'un chiffre canonique.
+//
+// ─── L'ANCRAGE MODERNE, refait le 2026-09-23 sur données primaires ────────────────────────
+//   anomalie an 2000 vs 1951-1980 : +0,39 °C     (NASA GISTEMP v4, GLB.Ts+dSST, série mesurée)
+//   moyenne 1996-2004 (9 ans)     : +0,50 °C     (même série, dé-bruitée de l'ENSO)
+//   absolu de référence 1951-1980 : 14,0 °C ± 0,5 (Jones et al. 1999 ; climatologie GISTEMP)
+//   → an 2000 = 14,0 + 0,39 = 14,4 °C   ·   moyenne 1996-2004 = 14,5 °C
+//
+//   RECOUPEMENT par un chemin indépendant (réanalyse, pas stations) :
+//     ERA5 / Copernicus : 1991-2020 = 14,4 °C en absolu
+//     GISTEMP : anomalie 1991-2020 vs 1951-1980 = +0,613 ; 1961-1990 = +0,100
+//     → 14,0 + 0,613 − 0,100 = 14,51 °C.  Les deux ancrages concordent à 0,11 °C.
+//
+//   ⚠️ LA CONFIG ÉTAIT CENTRÉE 0,50 °C TROP HAUT. 🌡️🧮 = 288,15 K = 15,00 °C et la fourchette
+//   [14,5 ; 15,5] venaient du 288 K des manuels — le « 255 K + 33 K d'effet de serre » — pas
+//   d'une mesure. 15 °C reste dans l'incertitude absolue, mais ce n'est pas le meilleur estimé.
+//
+// ─── LE PRÉINDUSTRIEL ─────────────────────────────────────────────────────────────────────
+//   1850-1900 = 0,88 °C sous la moyenne 1991-2020 (Copernicus, ESOTC 2024) → 14,4 − 0,88 = 13,5 °C.
+//
+// ─── LE PHANÉROZOÏQUE : PhanDA ────────────────────────────────────────────────────────────
+//   Judd et al. 2024, Science 385:eadk3705 — « A 485-million-year history of Earth's surface
+//   temperature ». Assimilation de données : plus de 150 000 mesures proxy publiées (5 familles)
+//   combinées à 850 simulations. Sortie utilisée ici : PhanDA_GMSTandCO2_percentiles.csv
+//   (github.com/EJJudd/PhanDA, 5_Outputs), percentiles 5/50/95 de GMST par étage stratigraphique.
+//
+//   Méthode appliquée, mécanique : pour chaque époque, on prend l'étage qui contient son ▶ (la
+//   config dit « valeurs au DÉBUT de chaque époque ») et on retient [GMST_05, GMST_95] arrondi.
+//   Prendre l'étendue de TOUTE l'époque mélangerait variation temporelle et incertitude — 🦕
+//   donnerait [9, 44], ce qui ne teste plus rien.
+//
+//   Écarts avec l'ancien tableau, et ils sont gros — les fourchettes paléo étaient trop FROIDES :
+//     🍄 [15,25] → [26,39]   🦤 [12,22] → [25,32]   🐊 [20,28] → [30,37]   🏔 [12,18] → [21,25]
+//     💀 [21,32] → [15,24]   🦕 [21,31] → [24,32]   🦣 [10,16] → [13,16]   🛖 [13,15] inchangée ✅
+//   Cohérence d'échelle : PhanDA donne l'Holocène à 14,0 °C, ce qui recoupe le préindustriel
+//   13,5 et l'an 2000 à 14,4 — tout le tableau est sur le même zéro absolu.
+//
+//   ⚠️ PhanDA s'arrête à 486,9 Ma. 🪼 (▶ = 600 Ma), 🦠, 🪸 et les trois états d'hystérésis
+//   néoprotérozoïques ne sont PAS couverts : leurs fourchettes sont INCHANGÉES et restent
+//   non re-sourcées. 🔥 Hadéen non plus — sa fourchette [2300, 2800] est un choix assumé, la
+//   littérature ne contraignant pas la surface d'un océan de magma à 4,5 Ga.
+//
+//   ⚫ Corps noir fait exception dans l'autre sens : sa fourchette est CALCULABLE,
+//   T_eq = [S(1−A)/4σ]^¼ = −18,5 °C pour S = 1361 W/m² et A = 0,293, bien dans [−19, −17]. ✅
+//
+// ─── LA GRAINE 🌡️🧮 EST LE MILIEU DE LA FOURCHETTE ────────────────────────────────────────
+//   Règle posée le 2026-09-23 : 🌡️🧮 = (min + max)/2, c'est-à-dire la valeur la plus probable.
+//   12 graines ont été réalignées. Les trois états d'hystérésis (☃ ⛄ ⛈) y étaient déjà — leur
+//   graine sert à SÉLECTIONNER UNE BRANCHE, pas à viser une cible : ne pas la déplacer sans
+//   vérifier que la bistabilité tient.
+// ═══════════════════════════════════════════════════════════════════════════
 window.BENCH_LIT_BY_EPOCH_ID = {
     '⚫': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
-    '🔥': { tC: [2000, 2500], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
+    '🔥': { tC: [2300, 2800], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
     '🦠': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
     '🪸': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
     'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
     '⛄': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
     'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
+    // 🐧 hystérésis 2 (prélude glaciaire, 35 Ma) — absente du tableau jusqu'au 2026-09-23, d'où le « — » au banc.
+    'hysteresis 2': { tC: [25, 28], co2: [711, 907], ch4: [1, 5], h2oVap: [1.2, 2.5] },
     '🪼': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
-    '🍄': { tC: [15, 25], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
-    '💀': { tC: [21, 32], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
-    '🦕': { tC: [21, 31], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
-    '🦤': { tC: [12, 22], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
-    '🐊': { tC: [20, 28], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
-    '🏔': { tC: [12, 18], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
-    '🦣': { tC: [10, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
+    '🍄': { tC: [26, 39], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
+    '💀': { tC: [15, 24], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
+    '🦕': { tC: [24, 32], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
+    '🦤': { tC: [25, 32], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
+    '🐊': { tC: [30, 37], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
+    '🏔': { tC: [21, 25], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
+    '🦣': { tC: [13, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
     '🛖': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
-    '🚂': { tC: [13, 15], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
+    // 🚂 1800 — tC v-2026-09-23 : [13 ; 15] → [13,0 ; 14,0]. Centre = 13,5 °C, le préindustriel
+    //   1850-1900 (Copernicus ESOTC 2024 : 0,88 °C sous 1991-2020 = 14,4 °C). Largeur ±0,5 comme 📱.
+    '🚂': { tC: [13, 14], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
     // 📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
     // ⚠️ co2 [365, 375] est une grille AIR HUMIDE (le chiffre que sort le modèle), pas les ppm NOAA qui sont en air SEC.
     //    Conversion et vérif : atmosphere/calculations_atm.js, bloc « AIR SEC vs AIR HUMIDE ».
-    '📱': { tC: [14.5, 15.5], co2: [365, 375], ch4: [1.70, 1.85], h2oVap: [1.0, 1.2] }
+    // tC v-2026-09-23 : [14,5 ; 15,5] → [13,9 ; 14,9]. Centre = 14,4 °C (GISTEMP v4, anomalie 2000
+    //   +0,39 sur un absolu 1951-1980 de 14,0 °C), largeur = ±0,5 °C, l'incertitude PUBLIÉE sur
+    //   l'absolu (Jones et al. 1999). La moyenne 1996-2004, 14,5 °C, tombe dedans. Voir l'encadré.
+    '📱': { tC: [13.9, 14.9], co2: [365, 375], ch4: [1.70, 1.85], h2oVap: [1.0, 1.2] }
 };
 
 // Paramètres de calcul (convergence radiatif)
@@ -1749,6 +1821,14 @@ window.CONFIG_COMPUTE.obliquityDeg = 23.44;           // 🏷️ OBS/CALIB (IAU 
 // Bins spectaux (N utilisé). 500 = courbe propre ; 100 donne courbe moins précise et convergence ~1.2°C (artefact). 🔬🌈 dans [N_min, N_max].
 // N_min : optionnel (spectralBinsMinFromHITRAN). Réf. scripts/hitran_spectral_bin_bounds.py.
 // 2000 = courbe spectrale lisse. Réduire à 1000 si crash Brave code 5 (RAM).
+// edsAttributionByRemoval : l'attribution EDS par gaz (DATA['📛']) est calculée en RETIRANT chaque
+// absorbeur à température figée et en lisant la remontée d'OLR — méthode Schmidt et al. 2010 (JGR
+// 115:D20106) et Lacis et al. 2010 (Science 330:356), celle dont sortent les chiffres de la littérature.
+// Coût : 4 passes spectrales de plus, UNE FOIS par époque à la convergence — pas à chaque itération.
+// false → repli sur l'ancienne attribution `sum_blocked` du worker, qui somme les interceptions couche
+// par couche : elle recompte 50 fois une bande saturée et une seule fois une fenêtre transparente, et
+// donnait les nuages à 3 % de l'EDS quand le retrait en mesure 37 %. Voir doc/DIAGNOSTIC_ATTRIBUTION_EDS.md.
+window.CONFIG_COMPUTE.edsAttributionByRemoval = true;
 window.CONFIG_COMPUTE.maxSpectralBinsConvergence = 2000;            // [OBS/CALIB]
 window.CONFIG_COMPUTE.initSpectralBinsConvergence = 200;            // [OBS/CALIB] N initial (anim : 200 → … → max ; passe finale à max après convergence)
 // spectralMaxMB : si défini, pas de passe finale à maxBins si grille dépasserait ce seuil (évite Brave code 5). Ex. 25.
