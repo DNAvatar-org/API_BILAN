@@ -47,7 +47,7 @@ Donc `'converged'` = « le bilan est assez proche de zéro ». Ce n'est pas un �
 | 🍰🪩📿 | 30 % | ~29 % | OK |
 | ☁️ | 62 % | 60–70 % | OK |
 | 🍰🫧💧 (vapor) | 0,9 % | 0,25–1 % | OK |
-| 🍰🫧☔ (RH) | 79,9 % | 70–80 % | OK |
+| 🍰🌧💧 (RH) | 79,9 % | 70–80 % | OK |
 
 ---
 

@@ -151,6 +151,8 @@ const CHARS = {
 //     🍰🗻…  proportion de SURFACE (géologie)      (m²/m²)   ex. 🍰🗻🌊
 //     🍰📛…  proportion d'ÉNERGIE (effet de serre) (W/W)     ex. 🍰📛🏭
 //     🍰🧪…  proportion MOLAIRE                    (mol/mol) ex. 🍰🧪🌧
+//     🍰🌧…  proportion de la SATURATION (q/q_sat)  (kg/kg ÷ kg/kg) ex. 🍰🌧💧 = humidité relative
+//            (v-2026-09-23 : ex-🍰🫧☔, dont le 🫧 la faisait passer pour une fraction massique de l'air)
 //
 // ⚠️ v-2026-09-23 : deux clés violaient la règle, et ce sont exactement les deux qui ont produit
 // des bugs répétés (voir doc/DIAGNOSTIC_RETROACTION_VAPEUR.md) :
@@ -173,7 +175,7 @@ const CHARS = {
 const CHARS_DESC = {
     // Unités
     '📿': 'Cardinal (#)',
-    '🍰': 'Proportion sans dimension [0,1] — le 2ᵉ caractère dit de quoi : 🫧💧 massique, 🪩🗻 surfacique, 📛 énergétique, 🧪 molaire',
+    '🍰': 'Proportion sans dimension [0,1] — le 2ᵉ caractère dit de quoi : 🫧💧 massique, 🪩🗻 surfacique, 📛 énergétique, 🧪 molaire, 🌧 de la saturation',
     '📏': 'Longueur (km)',
     '⚖️': 'Masse (kg)',
     '🎈': 'Pression (atm)',

@@ -30,7 +30,7 @@ const KEYS = {
     // Composition atmosphérique
     '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈'],   // 🍰💭 retirée le 2026-09-23 avec sa formule (pas de physique CCN dans la couverture nuageuse)
     // Cycle de l'eau
-    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🫧☔', '🧲⚖️💦', '💭☔'],
+    '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🌧💧', '🧲⚖️💦', '💭☔'],
     // Albédo
     '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '☁️'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
@@ -131,7 +131,7 @@ const DESC = {
         '🍰💧🌊': 'Océan',
         '🍰🧪🌧': 'Fraction MOLAIRE de vapeur à saturation (mol/mol) = 🎈🌧/🎈',
         '🍰🫧💧': 'Fraction MASSIQUE de vapeur, à la SURFACE (kg/kg) — ⚠️ pas une moyenne de colonne',
-        '🍰🫧☔': 'Humidité relative de surface (sans dimension) = 🍰🫧💧 / q_sat',
+        '🍰🌧💧': 'Humidité relative de surface (sans dimension) = 🍰🫧💧 / q_sat',
         '☁️': 'Index de formation nuageuse [0,1]',
         '💭☔': 'Seuil critique précipitations [0.7,0.9]',
         '🧲⚖️💦': 'Flux de masse d\'eau précipitée (kg/m²/s), P = W/τ',
@@ -241,8 +241,8 @@ const FORM = {
         '🍰💧🌊': 'Océan',
         '🍰🧪🌧': '🎈🌧 / 🎈 — fraction MOLAIRE (mol/mol)<br>🎈🌧 = P_tr × exp(L_v/R_v × (1/T_tr - 1/🧮🌡️)) [Clausius-Clapeyron]<br>P_tr = CONST.P_TRIPLE_WATER = 611.657 Pa, T_tr = CONST.T_TRIPLE_WATER = 273.16 K (point triple, IAPWS),<br>L_v = 2.5e6 J/kg (chaleur latente vaporisation H2O), R_v = 461.5 J/(kg·K) = R/M_H2O, 🧮🌡️ = température actuelle',
         '🍰🫧💧': 'max(0, min(🍰🧪🌧 × (CONST.M_H2O / 🧪), ⚖️💧 / ⚖️🫧) - (🧲⚖️💦 × (4 × π × (📐 × 1000)²) × 🔺⏳) / ⚖️🫧) - Fraction massique de vapeur',
-        '🍰🫧☔': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
-        '☁️': '1 - (1 - min(🍰🫧☔, 1))^0.6 — Sundqvist (1989) : couverture nuageuse à partir de la SEULE humidité relative [sans dimension, 0-1]',
+        '🍰🌧💧': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
+        '☁️': '1 - (1 - min(🍰🌧💧, 1))^0.6 — Sundqvist (1989) : couverture nuageuse à partir de la SEULE humidité relative [sans dimension, 0-1]',
         '💭☔': 'clamp(0.75 + 0.05 × (🧮🌡️ - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE, 0.7, 0.95) - Seuil critique précipitations [0.7,0.9]',
         '🧲⚖️💦': 'W/τ_global × ramp(RH−💭☔, 0.2) quand RH > 💭☔ ; W = masse_vapeur_par_m² (kg/m²) ; P = W/τ (litt. ~2,7 mm/j GPCP) - Taux précipitation (kg/m²/s)'
     },
@@ -253,8 +253,8 @@ const FORM = {
         '🍰🪩📿': '1 − (1−A_geo)(1−🍰⚽) ; A_geo = 🍰🪩🎾×🪩🍰🎾+…+contributions glace/nuages (voir runtime)',
         '🍰🪩🎾': 'volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)',
         '🍰🪩🌊': '(🍰💧🌊 × ⚖️💧 / CONST.RHO_WATER) / (📏🌊 × 1000) / (4 × π × (📐 × 1000)²)',
-        '🍰🪩🌳': 'min(🍰🪩🌍_, 🗻.🍰🗻🌍 × clamp((🧮🌡️_C - 0)/30, 0, 1) × clamp((🍰🫧☔ - 0.5)/0.3, 0, 1) × clamp((1 - ☁️), 0, 1) × 0.6) où 🍰🪩🌍_ = 1 - 🍰🗻🌊 - 🍰🪩🧊 - Forêts dépendent de température (optimum 0-30°C), humidité relative (RH > 0.5-0.8) et nuages (moins de forêts si trop de nuages)',
-        '🍰🪩🏜️': '🍰🪩🌍_ × (base_aridité + variabilité_régionale) où base_aridité = max(0, 1 - min(1, P_ann/1000)) × max(0, 1 - min(1, 🍰🫧☔/0.6)) et variabilité_régionale = 0.6 × max(0.5, min(1, (🧮🌡️_C-5)/10)) × max(0.5, 1-🍰🫧☔×0.6) - Déserts basés sur précipitations (P_ann < 1000 mm/an) et humidité relative (RH < 0.6) avec variabilité régionale',
+        '🍰🪩🌳': 'min(🍰🪩🌍_, 🗻.🍰🗻🌍 × clamp((🧮🌡️_C - 0)/30, 0, 1) × clamp((🍰🌧💧 - 0.5)/0.3, 0, 1) × clamp((1 - ☁️), 0, 1) × 0.6) où 🍰🪩🌍_ = 1 - 🍰🗻🌊 - 🍰🪩🧊 - Forêts dépendent de température (optimum 0-30°C), humidité relative (RH > 0.5-0.8) et nuages (moins de forêts si trop de nuages)',
+        '🍰🪩🏜️': '🍰🪩🌍_ × (base_aridité + variabilité_régionale) où base_aridité = max(0, 1 - min(1, P_ann/1000)) × max(0, 1 - min(1, 🍰🌧💧/0.6)) et variabilité_régionale = 0.6 × max(0.5, min(1, (🧮🌡️_C-5)/10)) × max(0.5, 1-🍰🌧💧×0.6) - Déserts basés sur précipitations (P_ann < 1000 mm/an) et humidité relative (RH < 0.6) avec variabilité régionale',
         '🍰🪩🌍': 'land_coverage = L - 🍰🪩🌳 - 🍰🪩🏜️ où L = terre libre de glace. Absorbe automatiquement : steppes, prairies, toundras, montagnes (albedo ~0.18)',
         '🍰🪩🧊': 'min(🗻.🍰🗻🏔, EARTH.ICE_FORMULA_MAX_FRACTION × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K) - Glace polaire (0% si T > T_NO_POLAR_ICE_K)',
         '🍰🪩⛅': 'cloud_fraction = clamp((0.19 + 0.11×☁️) × cloud_optical_efficiency, 0, 0.75), avec cloud_optical_efficiency = (1.10 + 0.45×(ccn_ratio-1)) × pressure_factor × oxidation_soft_factor × temp_factor',

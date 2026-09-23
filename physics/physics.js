@@ -220,7 +220,8 @@ EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // [°] défaut si l'epoch n'a pas de '⚾'
 // calibrés POUR son ε de config (ex. Archéen 45°) : à ε inchangé, le terme est nul et le banc ne bouge pas.
 EARTH.EBM_B_W_PER_M2_K = 2.0;  // [W/(m²·K)]
 EARTH.EBM_ALBEDO_REF = 0.30;  // [W/W (flux réfléchi / flux incident)]
-EARTH.SOLAR_CONSTANT_REF_W = 1361;  // [W/m² (⚠️ le suffixe _W du nom est faux)]
+// v-2026-09-23 : renommée depuis SOLAR_CONSTANT_REF_W — c'est un flux (W/m²), pas une puissance.
+EARTH.SOLAR_CONSTANT_REF_W_PER_M2 = 1361;  // [W/m²]
 
 /** Insolation journalière moyenne (W/m²) à la latitude lat pour une déclinaison dec (degrés). */
 function dailyMeanInsolation(lat_deg, dec_deg) {
@@ -228,7 +229,7 @@ function dailyMeanInsolation(lat_deg, dec_deg) {
     var phi = lat_deg * toRad, dec = dec_deg * toRad;
     var x = -Math.tan(phi) * Math.tan(dec);
     var H = x >= 1 ? 0 : (x <= -1 ? Math.PI : Math.acos(x));
-    return EARTH.SOLAR_CONSTANT_REF_W / Math.PI
+    return EARTH.SOLAR_CONSTANT_REF_W_PER_M2 / Math.PI
         * (H * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(H));
 }
 

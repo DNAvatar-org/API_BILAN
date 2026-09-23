@@ -408,16 +408,16 @@ function calculateWaterPartition() {
 }
 
 // 🔒 FONCTION : Feedback précipitation (appelée dans la boucle externe)
-// Calcule 🍰🫧☔, 💭☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
+// Calcule 🍰🌧💧, 💭☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
 function calculatePrecipitationFeedback() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const ALBEDO = window.ALBEDO;
 
-    // 1. Calculer 🍰🫧☔, 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
+    // 1. Calculer 🍰🌧💧, 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
     ALBEDO.calculateCloudFormationIndex();
     
-    const relative_humidity = DATA['💧']['🍰🫧☔'];
+    const relative_humidity = DATA['💧']['🍰🌧💧'];
     // const precip_threshold = DATA['💧']['💭☔']; // inutilisé (nettoyage)
     const precipitation_rate = DATA['💧']['🧲⚖️💦'];
     // const cloud_index = DATA['🪩']['☁️']; // inutilisé (nettoyage)
@@ -538,10 +538,10 @@ function calculateH2OParametersWithIteration() {
         }
         DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays : CONV.SECONDS_PER_DAY;
         
-        // 🔒 ÉTAPE 1 : Calculer 🍰🫧☔ (RH) depuis la vapeur actuelle
+        // 🔒 ÉTAPE 1 : Calculer 🍰🌧💧 (RH) depuis la vapeur actuelle
         const q_sat = mass_ratio * max_vapor_fraction;
         const relative_humidity = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
-        DATA['💧']['🍰🫧☔'] = relative_humidity;
+        DATA['💧']['🍰🌧💧'] = relative_humidity;
         
         // 🔒 ÉTAPE 2 : Calculer 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
         // ⚠️ IMPORTANT : calculateCloudFormationIndex() calcule 💭☔, 🧲⚖️💦

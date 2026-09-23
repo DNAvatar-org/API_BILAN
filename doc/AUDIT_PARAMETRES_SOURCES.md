@@ -151,7 +151,7 @@ Le gros bloc, et le plus sale : le cycle de l'eau est presque entièrement compo
 | `OBLIQUITY_DEG_DEFAULT` | 23.44 | ° | M | ·/·/· | Obliquité par défaut si l'époque n'en déclare pas. | Obliquité actuelle mesurée : 23,4393° (éphémérides UAI ; Laskar et al. 1993 pour son histoire — **[laskar1993] en biblio**). |
 | `EBM_B_W_PER_M2_K` | 2 | W/m²/K | M | ·/·/· | Pente OLR(T) de l'EBM linéaire de Budyko. | Ajustement EMPIRIQUE de l'OLR mesurée contre la température de surface : B = 1,45–2,2 selon la régression (Budyko 1969 — **[budyko1969] en biblio** ; Sellers 1969 — **[sellers1969]**). C'est une mesure, pas une équation. |
 | `EBM_ALBEDO_REF` | 0.3 | — | M | ·/·/· | Albédo planétaire de référence de l'EBM 0D. | Albédo planétaire mesuré par CERES EBAF : 0,293 (Loeb et al. 2021 — **[loeb2021] en biblio**). 0,30 est l'arrondi usuel. |
-| `SOLAR_CONSTANT_REF_W` | 1361 | W/m² | M | ·/·/· | TSI de référence de l'EBM 0D. | Kopp & Lean 2011 — voir CONST.SOLAR_CONSTANT. |
+| `SOLAR_CONSTANT_REF_W_PER_M2` | 1361 | W/m² | M | ·/·/· | TSI de référence de l'EBM 0D. | Kopp & Lean 2011 — voir CONST.SOLAR_CONSTANT. |
 | `EVAPORATION_E0` | 0.001 | kg/m²/s | ⚠️ | ·/·/· | Taux d'évaporation de référence. | ⚠️ SANS SOURCE. L'évaporation globale mesurée vaut ~2,8 mm/j ≈ 3,2e−5 kg·m⁻²·s⁻¹ — 32× la valeur du code. |
 | `EVAPORATION_T_SCALE` | 20 | K | ⚠️ | ·/·/· | Largeur de la rampe en température de l'évaporation. | ⚠️ SANS SOURCE. 20 K, chiffre rond. |
 | `H2O_VAPOR_REALISTIC_MAX_REF` | 0.0052 | kg/kg | ⚠️ | ·/·/· | Second plafond de vapeur, « réaliste ». | ⚠️ SANS SOURCE, et redondant avec H2O_VAPOR_CAP_REF sans que la différence soit expliquée. |
@@ -278,7 +278,7 @@ grandeur. Le point de comparaison n'existe même pas.
 |---|---|
 | `CONV.CCN_SULFATE_REF_KG` | La loi de McCoy 2018 s'écrit CDNC/CDNC_ref = (m/m_ref)^a. C'est sa forme publiée : le terme constant *b* de la régression absorbe les unités et n'est pas utilisable seul. Supprimer la référence exigerait un CDNC absolu que personne ne publie. **Et la référence est une charge mesurée** (Tsigaridis 2006), pas un nombre rond. |
 | `EARTH.MT_CKD_T_REF_K` | 296 K est la température de référence de HITRAN et de MT_CKD. C'est la convention de la base spectroscopique, pas un ancrage sur le présent. |
-| `EARTH.EBM_ALBEDO_REF`, `EARTH.SOLAR_CONSTANT_REF_W` | Point de linéarisation de l'EBM 0D de Budyko, qui est lui-même une régression empirique. La référence y est constitutive du modèle. |
+| `EARTH.EBM_ALBEDO_REF`, `EARTH.SOLAR_CONSTANT_REF_W_PER_M2` | Point de linéarisation de l'EBM 0D de Budyko, qui est lui-même une régression empirique. La référence y est constitutive du modèle. |
 
 ### 4. L'ancrage sur aujourd'hui — la maladie
 
@@ -325,11 +325,11 @@ du modèle, qui existe précisément pour sortir du présent.
 ```
 e_sat(T) = P0_WATER · exp[ (L_VAPORIZATION / RV_WATER) · (1/T0_WATER − 1/T) ]
 q_sat(T) = (M_H2O / 🧪) · e_sat(T) / P
-c_c_max  = 🍰🫧☔ · q_sat(T)
+c_c_max  = 🍰🌧💧 · q_sat(T)
 ```
 
 Plus aucune référence, plus aucun paramètre : quatre constantes de classe **P/M** et l'humidité
-relative que le modèle calcule déjà (`🍰🫧☔`).
+relative que le modèle calcule déjà (`🍰🌧💧`).
 
 ⚠️ **Mais ça déplace les 19 époques**, et ça touche le chantier de la rétroaction vapeur. À lire
 avant : `DIAGNOSTIC_RETROACTION_VAPEUR.md`, qui mesure que la masse de vapeur répond déjà

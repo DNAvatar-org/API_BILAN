@@ -222,7 +222,7 @@ function calculateGeologySurfaces() {
 // ☁️ = CloudFormationIndex ∈ [0, 1] : potentiel de condensation (ni masse ni surface)
 //
 // FORMULE RÉELLE (implémentée) — Schéma Sundqvist 1989 :
-// ☁️ = 1 - Math.pow(1 - min(🍰🫧☔, 1), 0.6)     où 🍰🫧☔ = humidité relative (q/q_sat).
+// ☁️ = 1 - Math.pow(1 - min(🍰🌧💧, 1), 0.6)     où 🍰🌧💧 = humidité relative (q/q_sat).
 // Sundqvist (1989) : la couverture nuageuse ne dépend que de l'humidité relative.
 // À HR=98.9% : ☁️ ≈ 0.93. ☁️ n'utilise PAS 🍰🫧💧🌈 (cap. rad. IR, calculée ailleurs).
 // v-2026-09-23 : le facteur 🍰💭 (« efficacité CCN ») a été retiré — voir le bloc de suppression
@@ -236,17 +236,17 @@ function calculateCloudFormationIndex() {
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
-    // 🔒 CALCUL DE 🍰🫧☔ (Humidité relative moyenne globale)
-    // FORMULE : 🍰🫧☔ = clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1)
+    // 🔒 CALCUL DE 🍰🌧💧 (Humidité relative moyenne globale)
+    // FORMULE : 🍰🌧💧 = clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1)
     // où :
     //   🍰🫧💧 = fraction massique de vapeur d'eau dans l'atmosphère
     //   CONST.M_H2O = masse molaire de H2O (0.01802 kg/mol)
     //   🧪 = masse molaire de l'air (DATA['🫧']['🧪'])
     //   🍰🧪🌧 = fraction molaire maximale de vapeur saturante (P_sat / P_total)
     //   (CONST.M_H2O / 🧪) × 🍰🧪🌧 = fraction massique saturante q_sat
-    //   🍰🫧☔ = q / q_sat = humidité relative (RH)
+    //   🍰🌧💧 = q / q_sat = humidité relative (RH)
     const q_sat = (CONST.M_H2O / DATA['🫧']['🧪']) * DATA['💧']['🍰🧪🌧'];  // Fraction massique saturante
-    DATA['💧']['🍰🫧☔'] = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
+    DATA['💧']['🍰🌧💧'] = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
     
     // 🔒 CALCUL DE 💭☔ (Seuil critique précipitations)
     // FORMULE : 💭☔ = clamp(0.75 + 0.05 × (🧮🌡️ - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE, 0.7, 0.95)
@@ -277,8 +277,8 @@ function calculateCloudFormationIndex() {
     // ⚠️ Les autres espèces de CCN réelles — sel de mer, organiques, poussière, suie — ne sont pas
     // suivies par le modèle. McCoy 2018 publie leurs exposants ; il manque leurs masses.
     //
-    // 🔒 FORMULE SUNDQVIST (1989) : ☁️ = 1 − (1 − min(🍰🫧☔, 1))^0.6, humidité relative seule.
-    DATA['🪩']['☁️'] = Math.max(0, Math.min(1, 1 - Math.pow(1 - Math.min(DATA['💧']['🍰🫧☔'], 1), 0.6)));
+    // 🔒 FORMULE SUNDQVIST (1989) : ☁️ = 1 − (1 − min(🍰🌧💧, 1))^0.6, humidité relative seule.
+    DATA['🪩']['☁️'] = Math.max(0, Math.min(1, 1 - Math.pow(1 - Math.min(DATA['💧']['🍰🌧💧'], 1), 0.6)));
     
     // ⏳☔ (= 1 / CONV.TAU_VAPOR_GLOBAL_S) retirée le 2026-09-23 : écrite ici, lue nulle part (ses deux
     // lecteurs étaient déjà commentés « inutilisé » dans calculations_h2o.js). τ reste lu directement
@@ -288,7 +288,7 @@ function calculateCloudFormationIndex() {
     DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY;
     
     // 🔒 CALCUL DE 🧲⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
-    const rh_excess = DATA['💧']['🍰🫧☔'] - DATA['💧']['💭☔'];
+    const rh_excess = DATA['💧']['🍰🌧💧'] - DATA['💧']['💭☔'];
     const ramp = rh_excess <= 0 ? 0 : Math.min(1, rh_excess / 0.2);
     DATA['💧']['🧲⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
 
@@ -635,7 +635,7 @@ function calculateAlbedo() {
     const P_ann = DATA['💧']['🍰🧪🌧'] * ocean_coverage * F_conv * CONV.P_ANN_SCALE_MM_AN;  // mm/an (tuning CONV.P_ANN_SCALE_MM_AN)
 
     // 🔒 ÉTAPE 4 : Calculer ☁️ (index de formation nuageuse) AVANT de calculer les biomes
-    // calculateCloudFormationIndex() calcule aussi 🍰🫧☔ (humidité relative) nécessaire pour les biomes
+    // calculateCloudFormationIndex() calcule aussi 🍰🌧💧 (humidité relative) nécessaire pour les biomes
     ALBEDO.calculateCloudFormationIndex();
     
     // 🔒 ÉTAPE 5 : Calculer les terres disponibles (🍰🪩🌍_)
@@ -654,7 +654,7 @@ function calculateAlbedo() {
     //   - Dévonien → moderne : 0.31 (forêts établies, cf. FAO 2020)
     // Réf paléobotanique : Kenrick & Crane 1997 (Nature), Gensel 2008 (Ann Rev E E&S),
     //                     Stein et al. 2012 (Gilboa, PNAS — Archaeopteris).
-    const relative_humidity = DATA['💧']['🍰🫧☔'];
+    const relative_humidity = DATA['💧']['🍰🌧💧'];
     const temp_suitability = Math.max(0.4, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - 268.15) / 25));
     const forest_potential = EPOCH['🌱'] * land_available * temp_suitability;
     const forest_coverage = (DATA['📜']['🗿'] === '⚫') ? 0 : Math.min(land_available, forest_potential);
@@ -996,7 +996,7 @@ function calculateAlbedo() {
             DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
         );
         const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
-        // [OBS/CALIB] Référence moderne explicite : O2=21%, biomasse efficace ~3%, anthro courant.
+        // [OBS/CALIB] Référence moderne explicite : O₂ = 0,2313 kg/kg (massique, = 21 % molaire), biomasse efficace ~3%, anthro courant.
         // On compare les époques en relatif, plutôt qu'en absolu, pour éviter d'écraser le moderne.
         const ccn_ref_modern = DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🎚️'].CLOUD_SW.MODERN_REF_O2 * (1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🎚️'].CLOUD_SW.MODERN_REF_FOREST) * anthro_factor;
         const ccn_ratio = ccn_proxy / ccn_ref_modern;

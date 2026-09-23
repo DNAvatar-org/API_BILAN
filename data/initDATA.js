@@ -59,7 +59,13 @@
         // mesurées n'est pas un calage sur le résultat. Convention : 100 % = valeur la plus
         // REFROIDISSANTE de chaque plage, 0 % = la plus réchauffante (vérifié au banc : 45 → 65 %
         // refroidit les 19 époques de 0,8 à 8,6 °C). Effet : 8 → 11 époques dans leur fourchette.
-        baryByGroup: { ATM: 65, CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 },
+        // v-2026-09-23 (soir) : 65 → 60 %. Balayage 40–80 % au banc : 60 % minimise l'écart à 1800
+        // et 2000 (RMS 0,08 °C aux milieux 13,5 / 14,4 °C, GISTEMP+Jones), sans perdre d'époque
+        // dans sa fourchette (8/15 depuis la Sturtienne, contre 7/15 à 65 %).
+        // v-2026-09-23 : 60 → 62 %. La correction de MODERN_REF_O2 (molaire → massique) réchauffe le
+        // moderne de ~0,1 °C ; rebalayé 55–65 % par pas de 1 avec tictime : 62 % donne 1800 = 13,58 °C
+        // et 2000 = 14,32 °C (RMS 0,083 °C), 8/15 époques dans leur fourchette depuis la Sturtienne.
+        baryByGroup: { ATM: 62, CLOUD_SW: 62, SCIENCE: 62, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
@@ -78,9 +84,11 @@
             // et son plafond posé à la main sont remplacés par la loi de puissance mesurée de
             // McCoy 2018 (aerosols/sulfate_ccn.js). Une loi de puissance sature toute seule.
             SULFATE_CCN_EXPONENT: 0.29,      // [sans dimension (exposant de McCoy 2018)] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
-            // ⚠️ MODERN_REF_O2 est lue à côté de 🍰🫧🫁, qui est MASSIQUE (règle de l'alphabet). Or 0,21
-            // est la fraction MOLAIRE de l'O₂ ; la massique vaut 0,2314. Signalé, pas corrigé (banc requis).
-            MODERN_REF_O2: 0.21,             // [kg/kg (massique, comme 🍰🫧🫁) — ⚠️ valeur molaire]
+            // MODERN_REF_O2 est lue à côté de 🍰🫧🫁, qui est MASSIQUE (règle de l'alphabet) : elle doit
+            // l'être aussi. v-2026-09-23 : valait 0,21, la fraction MOLAIRE — formule non homogène.
+            //   w_O₂ = x_O₂ · M_O₂ / M_air = 0,209390 × 31,9988 / 28,96546 = 0,23132 kg/kg
+            //   x_O₂ et M_air : air sec de référence CIPM-2007 (Picard et al. 2008, Metrologia 45:149).
+            MODERN_REF_O2: 0.23132,          // [kg/kg (massique, comme 🍰🫧🫁)]
             MODERN_REF_FOREST: 0.03,         // [m²/m² (surfacique, comme 🍰🪩🌳)]
             PRESSURE_FACTOR_MAX: 1.2,        // [atm (plafond de 🎈)]
             OXIDATION_BASE: 0.3,             // [sans dimension]
