@@ -76,8 +76,11 @@ function calculateSaturatedVaporPressure() {
     // const L_v = 2.501e6 - 2300 * (temp_K - CONST.T0_WATER);
     const L_v = CONST.L_VAPORIZATION; // Utiliser la constante pour l'instant
     
-    const exponent = (L_v / CONST.RV_WATER) * (1 / CONST.T0_WATER - 1 / temp_K);
-    const P_sat = CONST.P0_WATER * Math.exp(exponent);
+    // Clausius-Clapeyron intégrée, ancrée au POINT TRIPLE de l'eau (273,16 K / 611,657 Pa, IAPWS) :
+    // une propriété mesurée de la substance, pas un point du climat actuel. v-2026-09-23 — avant,
+    // l'ancrage était (273,15 K / 611,2 Pa), soit la saturation à 0 °C, annoncée à tort « point triple ».
+    const exponent = (L_v / CONST.RV_WATER) * (1 / CONST.T_TRIPLE_WATER - 1 / temp_K);
+    const P_sat = CONST.P_TRIPLE_WATER * Math.exp(exponent);
     return P_sat;
 }
 
@@ -87,8 +90,8 @@ function getBoilingPointKFromPressure(P_atm) {
     const CONST = window.CONST;
     const P_total_Pa = P_atm * CONV.STANDARD_ATMOSPHERE_PA;
     if (P_total_Pa <= 0) return CONST.T_BOIL;
-    const ln_P = Math.log(P_total_Pa / CONST.P0_WATER);
-    const inv_T = 1 / CONST.T0_WATER - (CONST.RV_WATER / CONST.L_VAPORIZATION) * ln_P;
+    const ln_P = Math.log(P_total_Pa / CONST.P_TRIPLE_WATER);
+    const inv_T = 1 / CONST.T_TRIPLE_WATER - (CONST.RV_WATER / CONST.L_VAPORIZATION) * ln_P;
     if (inv_T <= 0) return CONST.T_BOIL;
     return 1 / inv_T;
 }
@@ -99,7 +102,7 @@ function calculateMaxH2OVaporFraction() {
     const CONST = window.CONST;
     const P_sat = calculateSaturatedVaporPressure();
     const P_total = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
-    DATA['💧']['🍰🧮🌧'] = Math.min(P_sat / P_total, 1.0);
+    DATA['💧']['🍰🧪🌧'] = Math.min(P_sat / P_total, 1.0);
     
     return true;
 }
@@ -151,7 +154,7 @@ function calculateWaterPartition() {
     const isCorpsNoirTimeline = epochIdH2o === '⚫';
     const atmMassKg = DATA['⚖️'] && DATA['⚖️']['⚖️🫧'];
     if (!atmMassKg || atmMassKg === 0 || isCorpsNoirTimeline) {
-        DATA['💧']['🍰🧮🌧'] = 0;
+        DATA['💧']['🍰🧪🌧'] = 0;
         DATA['💧']['🍰🫧💧'] = 0;
         if (DATA['⚖️']['⚖️💧'] <= 0) {
             DATA['💧']['🍰💧🧊'] = 0;
@@ -186,7 +189,7 @@ function calculateWaterPartition() {
     const hasNoAtmosphere = DATA['🫧']['🧪'] === 0 || DATA['🫧']['🎈'] === 0 || DATA['🫧']['🎈'] <= 0;
     if (hasNoAtmosphere) {
         // Sans atmosphère : toute l'eau est soit glace (si T < 0°C) soit liquide (océan)
-        DATA['💧']['🍰🧮🌧'] = 0;  // Pas de vapeur sans atmosphère
+        DATA['💧']['🍰🧪🌧'] = 0;  // Pas de vapeur sans atmosphère
         DATA['💧']['🍰🫧💧'] = 0;
         if (DATA['🧮']['🧮🌡️'] < CONST.T0_WATER && h2o_total_fraction > 0) {
             // T < 0°C : toute l'eau est glace
@@ -205,7 +208,7 @@ function calculateWaterPartition() {
     // ou par calculateH2OParametersWithIteration() et doit être préservée
     DATA['💧']['🍰💧🧊'] = 0;
     DATA['💧']['🍰💧🌊'] = 0;
-    DATA['💧']['🍰🧮🌧'] = 0;
+    DATA['💧']['🍰🧪🌧'] = 0;
     // 🍰🫧💧 n'est PAS réinitialisée ici, elle est préservée depuis l'appel précédent
 
     // Calculer la pression de vapeur saturante
@@ -213,8 +216,8 @@ function calculateWaterPartition() {
     const P_total = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
     const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
 
-    // Stocker la fraction molaire maximale (🍰🧮🌧)
-    DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
+    // Stocker la fraction molaire maximale (🍰🧪🌧)
+    DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
 
     // 🔒 ÉTAPE 2 : Déterminer la glace selon la température ET les surfaces disponibles
     // Deux régimes :
@@ -405,19 +408,19 @@ function calculateWaterPartition() {
 }
 
 // 🔒 FONCTION : Feedback précipitation (appelée dans la boucle externe)
-// Calcule 🍰🫧☔, 💭☔, ⏳☔, 🍰⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
+// Calcule 🍰🫧☔, 💭☔, ⏳☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
 function calculatePrecipitationFeedback() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const ALBEDO = window.ALBEDO;
 
-    // 1. Calculer 🍰🫧☔, 💭☔, ⏳☔, 🍰⚖️💦 (via calculateCloudFormationIndex)
+    // 1. Calculer 🍰🫧☔, 💭☔, ⏳☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
     ALBEDO.calculateCloudFormationIndex();
     
     const relative_humidity = DATA['💧']['🍰🫧☔'];
     // const precip_threshold = DATA['💧']['💭☔']; // inutilisé (nettoyage)
     // const precip_time_constant = DATA['💧']['⏳☔']; // inutilisé (nettoyage)
-    const precipitation_rate = DATA['💧']['🍰⚖️💦'];
+    const precipitation_rate = DATA['💧']['🧲⚖️💦'];
     // const cloud_index = DATA['🪩']['☁️']; // inutilisé (nettoyage)
 
     // 2. Précipitations convectives renforcées (EARTH.PRECIP_CONVECTIVE_*). Lit. Held & Soden 2006, IPCC AR6 ; réponse plus lente que C-C.
@@ -426,13 +429,13 @@ function calculatePrecipitationFeedback() {
     const humidity_factor_precip = Math.pow(Math.max(0, humidity_ratio_precip), EARTH.PRECIP_CONVECTIVE_RH_EXPONENT);
     const precip_rate_enhanced = precipitation_rate * temp_factor_precip * humidity_factor_precip;
 
-    // 3. Mise à jour 🍰🫧💧 = 🍰⚖️💦 × Surface × 🔺⏳ / ⚖️🫧
+    // 3. Mise à jour 🍰🫧💧 = 🧲⚖️💦 × Surface × 🔺⏳ / ⚖️🫧
     // VÉRIFICATION HOMOGÉNÉITÉ :
-    // 🍰⚖️💦 : kg/m²/s (taux de précipitation)
+    // 🧲⚖️💦 : kg/m²/s (taux de précipitation)
     // Surface : m²
     // 🔺⏳ : s (temps)
     // ⚖️🫧 : kg (masse atmosphérique)
-    // (🍰⚖️💦 × Surface × 🔺⏳) / ⚖️🫧 = (kg/m²/s × m² × s) / kg = kg / kg = sans dimension ✓
+    // (🧲⚖️💦 × Surface × 🔺⏳) / ⚖️🫧 = (kg/m²/s × m² × s) / kg = kg / kg = sans dimension ✓
     const vapor_before = DATA['💧']['🍰🫧💧'];
     const atm_mass_total = DATA['⚖️']['⚖️🫧'];
     let precipitation_loss_fraction = 0;
@@ -465,7 +468,7 @@ function calculatePrecipitationFeedback() {
 
 // 🔒 FONCTION D'ITÉRATION EN PHASE INIT : Calcul correct avec condensation
 // Ordre recommandé :
-// 1. Calculer 🍰🧮🌧 (saturation via T et P)
+// 1. Calculer 🍰🧪🌧 (saturation via T et P)
 // 2. Calculer vapeur potentielle = min(disponible, saturation massique)
 // 3. Calculer ☁️ (via RH)
 // 4. Réduire la vapeur effective : 🍰🫧💧 = vapeur_potentielle × (1 - ☁️ × efficacité_condensation)
@@ -491,11 +494,11 @@ function calculateH2OParametersWithIteration() {
     COMPUTE.getMasses();
     ATM.calculatePressureAtm();
     
-    // 🔒 ÉTAPE 2 : Calculer 🍰🧮🌧 (saturation via T et P)
+    // 🔒 ÉTAPE 2 : Calculer 🍰🧪🌧 (saturation via T et P)
     const P_sat = calculateSaturatedVaporPressure();
     const P_total = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
     const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
-    DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
+    DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     
     // 🔒 ÉTAPE 3 : Calculer vapeur potentielle = min(disponible, saturation massique)
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
@@ -505,8 +508,13 @@ function calculateH2OParametersWithIteration() {
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
-    // [OBS/CALIB] Cap vapeur Clausius-Clapeyron exponentiel (ERA5/AIRS). Ne tombe jamais à zéro.
-    const c_c_max = EARTH.H2O_VAPOR_CAP_REF * Math.exp(EARTH.H2O_VAPOR_CAP_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
+    // [EQ] Plafond de vapeur = rapport colonne/saturation × saturation EXACTE.
+    // `max_vapor_mass_fraction` deux lignes plus haut EST q_sat(T) : P_sat(T)/P × M_H2O/M_air, avec
+    // P_sat de calculateSaturatedVaporPressure() — Clausius-Clapeyron intégrée, sans linéarisation.
+    // Avant le 2026-09-22 cette ligne recalculait la MÊME chose en linéarisé autour de 288 K
+    // (0,0065 × exp[0,065 × (T−288)]), c'est-à-dire l'équation déguisée en deux constantes sans
+    // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
+    const c_c_max = EARTH.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur potentielle = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_potentielle = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
@@ -536,8 +544,8 @@ function calculateH2OParametersWithIteration() {
         const relative_humidity = q_sat > 0 ? Math.max(0, Math.min(1, DATA['💧']['🍰🫧💧'] / q_sat)) : 0;
         DATA['💧']['🍰🫧☔'] = relative_humidity;
         
-        // 🔒 ÉTAPE 2 : Calculer 💭☔, ⏳☔, 🍰⚖️💦 (via calculateCloudFormationIndex)
-        // ⚠️ IMPORTANT : calculateCloudFormationIndex() calcule 💭☔, ⏳☔, 🍰⚖️💦
+        // 🔒 ÉTAPE 2 : Calculer 💭☔, ⏳☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
+        // ⚠️ IMPORTANT : calculateCloudFormationIndex() calcule 💭☔, ⏳☔, 🧲⚖️💦
         ALBEDO.calculateCloudFormationIndex();
         // const precip_threshold = DATA['💧']['💭☔'] || 0; // inutilisé (nettoyage)
         // const precip_time_constant = DATA['💧']['⏳☔'] || 0; // inutilisé (nettoyage)
@@ -547,9 +555,9 @@ function calculateH2OParametersWithIteration() {
         const temp_factor_precip_inner = Math.pow(Math.max(0, DATA['🧮']['🧮🌡️'] / EARTH.PRECIP_CONVECTIVE_T_REF_K), EARTH.PRECIP_CONVECTIVE_T_EXPONENT);
         const humidity_ratio_precip_inner = relative_humidity > 0 ? relative_humidity / EARTH.PRECIP_CONVECTIVE_RH_REF : 0;
         const humidity_factor_precip_inner = Math.pow(Math.max(0, humidity_ratio_precip_inner), EARTH.PRECIP_CONVECTIVE_RH_EXPONENT);
-        const precip_rate_enhanced_inner = DATA['💧']['🍰⚖️💦'] * temp_factor_precip_inner * humidity_factor_precip_inner;
+        const precip_rate_enhanced_inner = DATA['💧']['🧲⚖️💦'] * temp_factor_precip_inner * humidity_factor_precip_inner;
 
-        // 🔒 ÉTAPE 3 : Mise à jour 🍰🫧💧 = 🍰🫧💧 - (🍰⚖️💦 × Surface × 🔺⏳) / ⚖️🫧
+        // 🔒 ÉTAPE 3 : Mise à jour 🍰🫧💧 = 🍰🫧💧 - (🧲⚖️💦 × Surface × 🔺⏳) / ⚖️🫧
         const vapor_before_precipitation = DATA['💧']['🍰🫧💧'];
         let precipitation_loss_fraction = 0;
         // Calculer la perte de précipitation (sans if, crash si valeurs manquantes selon REGLE_JS_CRASH.md)
@@ -601,7 +609,10 @@ function calculateH2OParametersWithIteration() {
     calculateCloudAlbedoContribution();
 
     // Limite dynamique réaliste observée Clausius-Clapeyron (AIRS/ERA5) sur la vapeur finale Init.
-    const realistic_vapor_max = EARTH.H2O_VAPOR_REALISTIC_MAX_REF * Math.exp(EARTH.H2O_VAPOR_REALISTIC_MAX_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
+    // [EQ] Même remplacement : rapport × saturation exacte, au lieu d'une exponentielle linéarisée
+    // autour de 288 K dont le taux (0,013 K⁻¹) ne venait de nulle part et n'était pas Clausius-Clapeyron.
+    const q_sat_init = (DATA['💧']['🍰🧪🌧'] || 0) * (CONST.M_H2O / (DATA['🫧']['🧪'] || CONV.molar_mass_air_ref));
+    const realistic_vapor_max = EARTH.H2O_SURFACE_RH_INIT_01 * q_sat_init;
     DATA['💧']['🍰🫧💧'] = Math.min(realistic_vapor_max, DATA['💧']['🍰🫧💧']);
     
     return true;
@@ -641,7 +652,7 @@ H2O.calculateH2OParameters = function () {
     const P_sat = calculateSaturatedVaporPressure();
     const P_total = P * CONV.STANDARD_ATMOSPHERE_PA;
     const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
-    DATA['💧']['🍰🧮🌧'] = max_vapor_fraction;
+    DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     // 🔒 M_dry depuis masses (air sec) : évite dépendance circulaire avec 🍰🫧💧 (M_air = f(🍰🫧💧) → 🍰🫧💧 = f(M_air))
     const M_dry = DATA['⚖️']['⚖️🫧'] > 0
         ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
@@ -650,8 +661,13 @@ H2O.calculateH2OParameters = function () {
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
-    // [OBS/CALIB] Cap vapeur Clausius-Clapeyron exponentiel (ERA5/AIRS). Ne tombe jamais à zéro.
-    const c_c_max = EARTH.H2O_VAPOR_CAP_REF * Math.exp(EARTH.H2O_VAPOR_CAP_RATE_PER_K * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF));
+    // [EQ] Plafond de vapeur = rapport colonne/saturation × saturation EXACTE.
+    // `max_vapor_mass_fraction` deux lignes plus haut EST q_sat(T) : P_sat(T)/P × M_H2O/M_air, avec
+    // P_sat de calculateSaturatedVaporPressure() — Clausius-Clapeyron intégrée, sans linéarisation.
+    // Avant le 2026-09-22 cette ligne recalculait la MÊME chose en linéarisé autour de 288 K
+    // (0,0065 × exp[0,065 × (T−288)]), c'est-à-dire l'équation déguisée en deux constantes sans
+    // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
+    const c_c_max = EARTH.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur effective = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_result = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.

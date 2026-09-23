@@ -103,3 +103,127 @@ Rien de tout ça ne se corrige isolément. Chaque piste déplace les 19 époques
 l'hystérésis snowball qui a demandé une session entière. Ordre proposé : d'abord comprendre
 l'absorption par molécule (point 1), puis corriger unité + colonne + absorption **en un seul
 bloc**, puis re-caler, puis re-benchmarker. Pas avant.
+
+---
+
+# 2026-09-23 — la deuxième erreur, trouvée sur commande
+
+Objection de l'utilisateur, et elle est logiquement imparable :
+
+> « les deux se compensent, mais un seul est faux ???? non, si y'a une erreur, y'en a forcément 2.
+> cherche »
+
+Il avait raison, et **le chiffre que j'avais avancé la veille était faux**. J'avais annoncé que
+`H2O_COLUMN_SAT_RATIO` = 0,623 était « 2,7× trop haut contre 0,232 mesuré ». C'était une comparaison
+entre deux grandeurs différentes : 0,623 est un rapport **de surface**, 0,232 un rapport **de
+colonne**. Le vrai repère est l'humidité relative de surface, mesurée à ~0,70–0,75 : **0,623 est un
+peu bas, pas 2,7× trop haut.**
+
+## Le vrai défaut : une variable, trois lectures
+
+`🍰🫧💧` est **produite** par `calculateWaterPartition()` comme
+`(P_sat/P_total) × (M_H2O/M_dry) × ratio` : une fraction **MASSIQUE** à la température et à la
+pression de **SURFACE**. C'est sans ambiguïté ce que la formule calcule.
+
+Elle est ensuite **consommée** de trois façons incompatibles :
+
+| lieu | lecture | juste ? |
+|---|---|---|
+| `radiative/calculations.js` `waterVaporFractionAtZ(z)` = `🍰🫧💧 · exp(−z/H)` | massique, surface | ✅ |
+| `atmosphere/calculations_atm.js` `calculatePressureAtm` : `m_vap = ⚖️🫧 · q/(1−q)` | massique, **colonne entière** | ❌ ×6,3 |
+| `atmosphere/calculations_atm.js` `calculateMolarMassAir` : `M = Σ frac_i·M_i` | **molaire**, colonne | ❌ ×1,6 **et** ×6,3 |
+| `radiative/calculations.js` `computePWV()` | **molaire**, surface | ❌ ×1,6 |
+
+Mesuré au banc sur 📱 (T = 15,5 °C) :
+
+```
+🍰🫧💧            = 0,006884          H_air = 8477 m   H_H2O = 1599 m
+q_sat surface     = 0,011094          H_eff = 1345 m   H_eff/H_air = 0,159
+q / q_sat         = 0,621   ← c'est l'humidité relative de SURFACE, mesurée ~0,70–0,75
+colonne d'air     = 10 172 kg/m²      M_air/M_H2O = 1,602
+```
+
+et les trois PWV qu'on obtient selon la lecture :
+
+| lecture de `🍰🫧💧` | PWV | vs 25 kg/m² mesurés |
+|---|---|---|
+| fraction massique de **colonne** | **70,03** | ×2,8 trop |
+| fraction massique de **surface** (la bonne) | **11,11** | ×2,25 trop peu |
+| ce que `computePWV()` calcule | **6,94** | ×3,6 trop peu |
+
+`computePWV` développée donne `colonne × r₀ × (M_H2O/M_air) × (H_eff/H_air)`. Le facteur
+`M_H2O/M_air` convertit molaire → massique — appliqué à une grandeur **déjà massique**. D'où
+11,11 / 1,602 = 6,94. C'est **exactement le même bug massique/molaire** que celui trouvé sur
+`ln_H2O` le 2026-09-20 : il n'est pas isolé, il frappe partout où `🍰🫧💧` sort du module H₂O.
+
+## Donc : deux erreurs, et elles ne se compensent pas entre elles
+
+1. **Massique lue comme molaire** — facteur **1,602** ;
+2. **Surface lue comme colonne** (ou l'inverse selon le site) — facteur **6,3**.
+
+Elles **s'ajoutent** : ×10,1 entre la lecture « colonne » et ce que `computePWV` renvoie. Ce qui
+compense, c'est le troisième terme déjà identifié : **l'absorption par molécule trop forte**. Le
+total d'effet de serre tombe juste parce qu'une colonne 3,6× trop mince rencontre une absorption
+par molécule ~4× trop forte.
+
+Et il reste un écart qui n'est ni l'un ni l'autre : même avec la bonne lecture, PWV = 11,1 contre
+25. **La hauteur d'échelle de la vapeur est ~2,25× trop courte** — `H_eff/H_air` = 0,159 quand
+l'observation impose 25/(10 172 × 0,006884) = **0,357**. `computeH2OScaleHeight()` donne
+H_H2O = R·T²/(L·Γ) = 1599 m ; il faudrait ~4700 m pour retrouver la colonne observée. La formule
+suppose un profil exponentiel pur et une seule température, alors que la colonne réelle est dominée
+par les tropiques chauds et humides — **la même erreur de convexité** qu'à la solubilité océanique
+et au plafond de vapeur. Troisième occurrence.
+
+## Ce que ça change pour le bloc à corriger
+
+Le diagnostic demandait « unité + colonne + absorption en un seul bloc ». Le contenu est maintenant
+précis :
+
+1. **Nommer les deux grandeurs séparément** au lieu d'une seule clé pour trois usages :
+   `🍰🫧💧` = fraction massique de SURFACE, et une seconde clé pour la fraction massique de colonne
+   (= surface × H_eff/H_air), utilisée par `calculatePressureAtm`.
+2. **Convertir explicitement** massique ↔ molaire là où il le faut (`calculateMolarMassAir`,
+   `computePWV`, `ln_H2O`, `ln_CO2`, `ln_CH4`), au lieu de le faire implicitement ou pas du tout.
+3. **Corriger la hauteur d'échelle** ou renoncer au profil exponentiel à température unique.
+4. **Puis** regarder l'absorption par molécule, qui n'aura plus rien à compenser.
+
+⚠️ Rien de tout ça ne doit être fait pièce par pièce : chaque terme seul fait s'effondrer ou
+exploser l'effet de serre total. La consigne de 2026-09-20 tient toujours.
+
+## Troisième occurrence du même bug — la masse molaire de l'air
+
+Trouvée en repassant sur le dictionnaire, comme demandé. `calculateMolarMassAir()` faisait :
+
+```js
+M_air = Σ frac_i × M_i     // avec en commentaire « approximation : fractions volumiques ≈ molaires »
+```
+
+Or **aucune des `🍰🫧❀` n'est une fraction volumique ni molaire** : elles sont toutes calculées
+comme `masse_❀ / ⚖️🫧` (`calculateAtmosphereComposition`). Pour des fractions MASSIQUES wᵢ, la
+masse molaire moyenne est la moyenne **harmonique** :
+
+```
+n_total = Σ (mᵢ/Mᵢ) = m_total · Σ (wᵢ/Mᵢ)     ⟹     M = 1 / Σ (wᵢ/Mᵢ)
+```
+
+Erreur mesurée au banc sur les 19 époques (🧪 du modèle contre 1/Σ(wᵢ/Mᵢ)) :
+
+| époque | 🧪 modèle | correct | erreur |
+|---|--:|--:|--:|
+| 🔥 Hadéen | 0,033522 | 0,031406 | **+6,74 %** |
+| 🦠 Archéen | 0,031189 | 0,030077 | **+3,70 %** |
+| ⛄ Snowball | 0,028038 | 0,028030 | +0,03 % |
+| 📱 Aujourd'hui | 0,028858 | 0,028721 | +0,48 % |
+
+L'erreur est petite sur les atmosphères N₂/O₂ — M_N2 = 0,028 et M_O2 = 0,032 sont si proches que
+les deux moyennes coïncident presque — et grande dès que l'atmosphère est **hétérogène** : CO₂ à
+0,044 mélangé à de la vapeur à 0,018. C'est-à-dire précisément sur les époques profondes.
+
+Corrigé le 2026-09-23 (`calculations_atm` v1.2.6). Effet au banc : **🔥 +38,7 °C**, **🦠 +3,6 °C**,
++0,10 à +0,36 °C ailleurs. 🧪 entre dans la pression, la hauteur d'échelle, la densité de molécules
+et toutes les conversions massique ↔ molaire : l'erreur se propageait partout.
+
+**C'est la troisième fois que la même confusion massique/molaire apparaît** — `ln_H2O` (2026-09-20),
+`computePWV` (2026-09-23), `calculateMolarMassAir` (2026-09-23). Ce n'est plus une série de bugs,
+c'est un défaut de convention : rien dans le nom des symboles ne dit s'ils sont massiques ou
+molaires, donc l'erreur se reproduit à chaque nouveau consommateur.

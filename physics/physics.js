@@ -58,13 +58,26 @@ CONST.M_CH4 = 0.01604;  // CH₄ kg/mol
 CONST.M_H2O = 0.01802;  // H₂O kg/mol
 CONST.M_AR = 0.03995;   // Ar kg/mol
 CONST.RHO_WATER = 1000;  // Densité eau kg/m³
-CONST.P0_WATER = 611.2;  // Pression point triple eau (Pa)
+// ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
+// C-C est une équation DIFFÉRENTIELLE : de/dT = L·e/(R_v·T²). L'intégrer donne ln e = −L/(R_v T) + C,
+// et cette constante d'intégration doit être fixée par UN point de la courbe de coexistence.
+// Ce point est une propriété de la SUBSTANCE, mesurée en laboratoire — pas un ancrage sur le
+// climat actuel. C'est toute la différence avec les 288 K qu'on vient de retirer du plafond de vapeur.
+//   Point triple de l'eau : 273,16 K et 611,657 Pa (IAPWS ; exact par définition du kelvin avant
+//   la réforme SI de 2019, mesuré depuis).
+// v-2026-09-23 : P0_WATER valait 611,2 Pa à T0_WATER = 273,15 K, c'est-à-dire la saturation à
+//   0 °C — proche du point triple mais ni l'un ni l'autre exactement, et son commentaire annonçait
+//   « point triple » sur une valeur qui n'en était pas une.
+CONST.T_TRIPLE_WATER = 273.16;      // K   — point triple de l'eau (IAPWS)
+CONST.P_TRIPLE_WATER = 611.657;     // Pa  — pression de vapeur au point triple (IAPWS)
+CONST.P0_WATER = CONST.P_TRIPLE_WATER;   // alias historique, mêmes usages  // Pression point triple eau (Pa)
 CONST.L_VAPORIZATION = 2.5e6;  // Chaleur latente vaporisation (J/kg)
 CONST.RV_WATER = 461.5;  // R vapeur d'eau J/(kg·K)
 CONST.L_V = 40660;  // Chaleur latente (J/mol)
 CONST.CP_AIR = 1005;  // Capacité calorifique air sec J/(kg·K)
 CONST.T_BOIL = 373.15;  // Ébullition eau 1 atm (K)
-CONST.T0_WATER = 273.15;  // Point triple eau (K) — seule occurrence 273.15
+CONST.T0_WATER = 273.15;  // K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
+// triple (273,16 K, cf. CONST.T_TRIPLE_WATER) : l'ancien commentaire le disait à tort.
 CONST.T_LAVA_START = 1000;   // Transition lave (K)
 CONST.T_LAVA_COMPLETE = 2373;  // Lave complète (K)
 CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // CO₂ 15 μm
@@ -86,10 +99,15 @@ CONV.molar_mass_air_ref = 0.029;
 CONV.SECONDS_PER_DAY = 86400;
 CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;
 CONV.P_ANN_SCALE_MM_AN = 200000;
-CONV.O2_REF_MASS = 1e18;
-CONV.CH4_REF_MASS = 1e13;
-CONV.CCN_O2_REF_KG = 1.08e18;
-CONV.CCN_CH4_REF_KG = 5.2e12;
+// CONV.O2_REF_MASS (1e18 kg) et CONV.CH4_REF_MASS (1e13 kg) SUPPRIMÉES le 2026-09-22 :
+// deux masses de référence sans source (des ordres de grandeur ronds) et surtout **lues nulle
+// part** — grep sur tout le projet : zéro usage hors leur propre définition. Du code mort qui
+// figurait à l'audit comme deux paramètres sans source de plus.
+// CONV.CCN_O2_REF_KG (1,08e18 kg) et CONV.CCN_CH4_REF_KG (5,2e12 kg) SUPPRIMÉES le 2026-09-23,
+// avec la formule 🍰💭 qui les consommait (calculations_albedo v1.2.66). Elles normalisaient un
+// « proxy CCN » où l'O₂ et le CH₄ pesaient cinq fois le sulfate — or ni l'un ni l'autre n'intervient
+// dans l'activation d'un noyau de condensation (théorie de Köhler 1936 ; κ-Köhler, Petters &
+// Kreidenweis 2007). Il n'y avait pas de référence à corriger : il n'y avait pas de formule.
 // CCN_SULFATE_REF_KG : charge de sulfate de RÉFÉRENCE dans 🍰💭, c'est-à-dire celle d'aujourd'hui —
 //   exactement comme CCN_O2_REF_KG (1,08e18 = O₂ préindustriel) et CCN_CH4_REF_KG (5,2e12 ≈ CH₄ moderne).
 //   Le terme 0,1 × (⚖️✈/CCN_SULFATE_REF_KG) se lit donc « sulfate relatif à aujourd'hui ».
@@ -99,7 +117,9 @@ CONV.CCN_CH4_REF_KG = 5.2e12;
 //   elle n'avait pas de source et 📱 y donnait 0,80 au lieu de 1,00. Voir configTimeline.js v1.4.89,
 //   encadré « MASSES DE SULFATE », et doc/MASSES_SULFATE_PAR_EPOQUE.md.
 CONV.CCN_SULFATE_REF_KG = 1.05e9;
-CONV.H2O_VAPOR_REF = 0.01;
+// CONV.H2O_VAPOR_REF (0,01 kg/kg) SUPPRIMÉE le 2026-09-22 : sans source, et morte. Seule trace
+// restante, un commentaire de calculations_albedo.js:222 qui dit que la formule qui l'utilisait
+// « n'est plus utilisée ». Elle a survécu à sa propre formule.
 CONV.ALPHA_OCEAN = 0.3;
 CONV.SCALE_CLOUD = 0.4;
 
@@ -371,11 +391,45 @@ EARTH.EVAPORATION_E0 = 0.001;
 EARTH.EVAPORATION_T_REF = 288;
 EARTH.EVAPORATION_T_SCALE = 20;
 /** Cap vapeur dynamique Clausius-Clapeyron (ERA5/AIRS). calculations_h2o.js : c_c_max = REF × exp(RATE × (T - T_REF)). */
-EARTH.H2O_VAPOR_CAP_REF = 0.0065;        // fraction massique vapeur à T_ref (~0.65 %, ERA5/AIRS)
-EARTH.H2O_VAPOR_CAP_RATE_PER_K = 0.065;  // taux exponentiel /K — C-C ≈ Lv/(Rv×T²) ≈ 6.5 %/K à 288 K
-/** Cap vapeur final Init (AIRS/ERA5). calculations_h2o.js : realistic_vapor_max = REF × exp(RATE × (T - T_REF)). */
-EARTH.H2O_VAPOR_REALISTIC_MAX_REF = 0.0052;
-EARTH.H2O_VAPOR_REALISTIC_MAX_RATE_PER_K = 0.013;
+// ─── PLAFOND DE VAPEUR : plus de Clausius-Clapeyron linéarisée ────────────────────────────
+// Supprimés le 2026-09-22 :
+//   EARTH.H2O_VAPOR_CAP_REF                  = 0,0065 kg/kg
+//   EARTH.H2O_VAPOR_CAP_RATE_PER_K           = 0,065  K⁻¹
+//   EARTH.H2O_VAPOR_REALISTIC_MAX_REF        = 0,0052 kg/kg
+//   EARTH.H2O_VAPOR_REALISTIC_MAX_RATE_PER_K = 0,013  K⁻¹
+// Les deux premiers étaient les paramètres SANS SOURCE les plus sensibles du modèle (3,46 °C et
+// 1,43 °C à +10 % au banc). Ils écrivaient :
+//     c_c_max = 0,0065 · exp[ 0,065 · (T − 288) ]
+// Or, avec les constantes de ce fichier :
+//     L/(R_v·T²) à 288 K = 0,06531 K⁻¹   ← c'est le 0,065, à 0,5 % près
+//     q_sat(288 K, 1 atm) = 0,010430 kg/kg ; 0,0065 / q_sat = 0,623
+// Autrement dit ce n'étaient pas deux paramètres mais **Clausius-Clapeyron linéarisée autour de
+// 288 K**, multipliée par un rapport constant. Une équation déguisée en constantes, et un modèle
+// ancré sur la Terre d'aujourd'hui — juste à 288 K (+2 %), faux partout ailleurs :
+//     −56 °C (⛄) : +376 %   ·   0 °C : +8 %   ·   +80 °C : +119 %
+// C'est exactement là que ce modèle travaille.
+//
+// Remplacé par la C-C EXACTE, que calculations_h2o.js calculait déjà deux lignes plus haut
+// (`max_vapor_mass_fraction` = q_sat, via calculateSaturatedVaporPressure). Il ne reste qu'un
+// nombre, celui-ci, et il a un sens physique explicite au lieu d'être caché dans un exposant.
+//
+// H2O_SURFACE_RH_01 : HUMIDITÉ RELATIVE À LA SURFACE, sans dimension, dans [0,1].
+//   q(surface) = H2O_SURFACE_RH_01 × q_sat(T_surface, P_surface)
+// Le suffixe _01 dit la plage, comme seaIceStrength01 / iceImpactFactor01 ailleurs dans le projet.
+// ⚠️ v-2026-09-23 : renommée depuis H2O_COLUMN_SAT_RATIO, qui était un CONTRESENS. 🍰🫧💧 est
+// produite à la température ET à la pression de SURFACE ; ce rapport est donc une humidité
+// relative de surface, pas un rapport de colonne. L'erreur de nom avait produit une erreur
+// d'analyse (comparaison à 0,232, un rapport de colonne) — voir
+// doc/DIAGNOSTIC_RETROACTION_VAPEUR.md § « la deuxième erreur, trouvée sur commande ».
+// Repère de mesure : humidité relative de surface moyenne globale ~0,70–0,75 (ERA5). Le modèle
+// est à 0,623, donc un peu BAS. Non modifié ici : ce serait un calage.
+EARTH.H2O_SURFACE_RH_01 = 0.623;
+// Humidité relative de surface imposée en fin d'Init seulement (calculations_h2o.js). Remplace
+// H2O_VAPOR_REALISTIC_MAX_REF/RATE, dont le taux (0,013 K⁻¹) n'était PAS Clausius-Clapeyron et ne
+// venait de nulle part. Valeur = 0,0052/q_sat(288 K), pour que l'Init soit inchangée à 288 K.
+// ⚠️ Ce plafond fait doublon avec le précédent, en plus serré. Deux plafonds pour la même grandeur,
+// avec deux nombres différents et aucune source : à supprimer ou à justifier. SANS SOURCE.
+EARTH.H2O_SURFACE_RH_INIT_01 = 0.4986;
 /** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
 EARTH.IRIS_STRENGTH = 0.02;   // amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
 EARTH.IRIS_T_SCALE_K = 10;    // échelle thermique (par 10 K)

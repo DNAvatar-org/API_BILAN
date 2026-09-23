@@ -1,6 +1,6 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.2.5
+// Version 1.2.6
 // Date: [April 25, 2026]
 // logs :
 // - v1.2.5: miroir debugMirrorConfigLogToFile('logCo2RadiativeDiagnostic', …) → _logs/co2Rad.txt
@@ -29,6 +29,10 @@
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
 // - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
 // - v1.1.6 : CONFIG_COMPUTE.logCo2RadiativeDiagnostic → console 🔎 DIAG CO2 (⚖️🏭, 🍰🫧🏭, ppm)
+// - v1.2.6 : 🧪 = 1/Σ(wᵢ/Mᵢ) — moyenne HARMONIQUE. Les 🍰🫧❀ sont des fractions MASSIQUES ; le code
+//   faisait Σ(wᵢ·Mᵢ) en les prenant pour des fractions molaires. Erreur mesurée : 0,5 % sur 📱,
+//   3,7 % sur 🦠, 6,7 % sur 🔥. 🧪 entre dans la pression, la hauteur d'échelle et toutes les
+//   conversions massique ↔ molaire. Voir doc/DIAGNOSTIC_RETROACTION_VAPEUR.md § deuxième erreur.
 // - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
 //
 // ============================================================================
@@ -117,13 +121,29 @@ function calculateMolarMassAir() {
     const frac_O2 = DATA['🫧']['🍰🫧🫁'] || 0;
     const frac_N2 = DATA['🫧']['🍰🫧💨'] || 0;
     const frac_H2O = DATA['💧']['🍰🫧💧'] || 0;
-    // Masse molaire moyenne pondérée par les fractions molaires (approximation : fractions volumiques ≈ fractions molaires)
-    // M_air = Σ(fraction_i × M_i)
-    const M_air = frac_CO2 * CONST.M_CO2 + 
-                   frac_CH4 * CONST.M_CH4 + 
-                   frac_O2 * CONST.M_O2 + 
-                   frac_N2 * CONST.M_N2 + 
-                   frac_H2O * CONST.M_H2O;
+    // ⚠️ CES FRACTIONS SONT MASSIQUES, PAS MOLAIRES.
+    // 🍰🫧❀ = masse_❀ / ⚖️🫧 (calculateAtmosphereComposition, quelques lignes plus haut) et
+    // 🍰🫧💧 = fraction massique de vapeur. Pour des fractions MASSIQUES wᵢ, la masse molaire
+    // moyenne est la moyenne HARMONIQUE, pas l'arithmétique :
+    //
+    //     n_total = Σ nᵢ = Σ (mᵢ/Mᵢ) = m_total · Σ (wᵢ/Mᵢ)
+    //     M = m_total / n_total = 1 / Σ (wᵢ/Mᵢ)
+    //
+    // v-2026-09-23 : le code faisait Σ(wᵢ·Mᵢ), avec en commentaire « approximation : fractions
+    // volumiques ≈ fractions molaires » — mais ce ne sont pas des fractions volumiques. Erreur
+    // mesurée au banc sur les 19 époques : 0,03 à 0,6 % sur les atmosphères N₂/O₂ (M_N2 et M_O2
+    // sont proches, les deux moyennes coïncident presque), mais **3,7 % sur 🦠 Archéen et 6,7 %
+    // sur 🔥 Hadéen**, où l'atmosphère est dominée par le CO₂ et mélangée à de la vapeur : plus
+    // les masses molaires diffèrent, plus les deux moyennes s'écartent.
+    // 🧪 entre dans la pression, la hauteur d'échelle, la densité de molécules et toutes les
+    // conversions massique ↔ molaire : l'erreur se propage partout.
+    let inv_M = 0;
+    if (frac_CO2 > 0) inv_M += frac_CO2 / CONST.M_CO2;
+    if (frac_CH4 > 0) inv_M += frac_CH4 / CONST.M_CH4;
+    if (frac_O2  > 0) inv_M += frac_O2  / CONST.M_O2;
+    if (frac_N2  > 0) inv_M += frac_N2  / CONST.M_N2;
+    if (frac_H2O > 0) inv_M += frac_H2O / CONST.M_H2O;
+    const M_air = inv_M > 0 ? 1 / inv_M : 0;
     
     // Si pas d'atmosphère, utiliser la valeur de référence
     DATA['🫧']['🧪'] = M_air > 0 ? M_air : CONV.molar_mass_air_ref;
@@ -220,7 +240,7 @@ function calculateAtmosphereComposition() {
     }
         
     // H2O atmosphérique (vapeur) : sera calculé dans calculateWaterPartition()
-    // 🍰🫧💧 = ⚖️💧 × 🍰🧮🌧 / ⚖️🫧 (sera calculé après)
+    // 🍰🫧💧 = ⚖️💧 × 🍰🧪🌧 / ⚖️🫧 (sera calculé après)
     DATA['💧']['🍰🫧💧'] = 0;
         
     // Vérifier que la somme des fractions de l'air sec = 1.0 (avec tolérance)
