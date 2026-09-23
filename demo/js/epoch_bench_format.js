@@ -1,7 +1,17 @@
 // File: API_BILAN/demo/epoch_bench_format.js
 // Desc: Formatage des cellules : temperatures, ages, plages litterature, snapshot ATM, chemin radiatif.
-// Version 1.0.0
-// Date: 2026-09-20
+// Version 1.1.0
+// Date: 2026-09-23
+// Logs:
+// - v1.2.0: chaque fourchette affiche son statut (✅ mesure · 🧮 équation · ⚠️ non sourcée · 🔀 hystérésis),
+//   la référence en infobulle — champ src de BENCH_LIT_BY_EPOCH_ID (configTimeline.js).
+// - v1.1.0: CO₂ et CH₄ en fraction molaire d'AIR SEC. Les mesures (NOAA, carottes de glace, proxies)
+//   sont toutes en air sec ; la conversion passait par 🧪, masse molaire de l'air HUMIDE (vapeur
+//   incluse), et comparait donc deux grandeurs différentes : 📱 affichait 363 ppm pour 2,887e15 kg
+//   de CO₂, soit 369 ppm en air sec — exactement la valeur NOAA posée en config. Formule :
+//     x_sec = (w_gaz / M_gaz) / (1/M_air − w_H₂O / M_H₂O)
+//   où w = fraction massique (🍰🫧…) et 1/M_air = Σ w_i / M_i (moyenne harmonique, calculations_atm).
+//   La vapeur, elle, reste en fraction de l'air humide : c'est sa définition.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -86,9 +96,18 @@ function benchLitRangeBracket(lo, hi) {
         if (ax >= 1000) return (x / 1000).toFixed(x % 1000 === 0 ? 0 : 1).replace(/\.0$/, '') + 'k';
         if (ax >= 100) return String(Math.round(x));
         if (ax >= 10) return x.toFixed(1).replace(/\.0$/, '');
+        if (ax > 0 && ax < 0.1) return x.toPrecision(2);   // ⛄ : 0,00076 % ne doit pas s'afficher 0,00
         return x.toFixed(2);
     }
     return '[' + f(lo) + ',' + f(hi) + ']';
+}
+
+/** Statut d'une fourchette (1er symbole de L.src[cle]) avec la référence complète en infobulle. */
+function benchSrcMark(L, cle) {
+    var t = L && L.src && L.src[cle];
+    if (!t) return '';
+    var ico = Array.from(t)[0] === '⚠' ? '⚠️' : Array.from(t)[0];
+    return ' <span class="bench-src" title="' + String(t).replace(/"/g, '&quot;') + '">' + ico + '</span>';
 }
 
 /** T init : ligne 1 = T\u2080 (\u00b0C) ; ligne 2 = fourchette CSV [Tmin,Tmax] ; note \u00e9ventuelle (ligne 3). */
@@ -100,7 +119,7 @@ function fmtTinitCell(epoch) {
     if (!('tC' in L)) {
         return tNum + '<br><span class="bench-sub">' + L.note + '</span>';
     }
-    var out = tNum + '<br><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>';
+    var out = tNum + '<br><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>' + benchSrcMark(L, 'tC');
     if (L.note) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
     }
@@ -117,32 +136,35 @@ function fmtConvAtmSnapshot(snap, epochId) {
     var L = (epochId != null && epochId !== '') ? BENCH_LIT_BY_EPOCH_ID[epochId] : null;
     var hasLitGaz = L && ('tC' in L);
     var parts = [];
+    // Moles d'air SEC par kg d'air humide : 1/M_air − w_H₂O/M_H₂O (voir en-tête v1.1.0).
+    var molDryPerKg = (M_air ? 1 / M_air : 0)
+        - ((typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST) ? snap.h2oFrac / CONST.M_H2O : 0);
     if (typeof snap.co2Frac === 'number' && isFinite(snap.co2Frac) && CONST && M_air) {
-        var ppmCO2 = snap.co2Frac * (M_air / CONST.M_CO2) * 1e6;
+        var ppmCO2 = (snap.co2Frac / CONST.M_CO2) / molDryPerKg * 1e6;   // air SEC
         var sCo2 = '<span class="bench-key">CO\u2082</span>\u2248' + benchWrapRange(
             (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm'),
             ppmCO2, hasLitGaz ? L.co2 : null);
         if (hasLitGaz) {
-            sCo2 += ' <span class="bench-sub">' + benchLitRangeBracket(L.co2[0], L.co2[1]) + '</span>';
+            sCo2 += ' <span class="bench-sub">' + benchLitRangeBracket(L.co2[0], L.co2[1]) + '</span>' + benchSrcMark(L, 'co2');
         }
         parts.push(sCo2);
     }
     if (typeof snap.ch4Frac === 'number' && isFinite(snap.ch4Frac) && CONST && M_air) {
-        var ppmCH4 = snap.ch4Frac * (M_air / CONST.M_CH4) * 1e6;
+        var ppmCH4 = (snap.ch4Frac / CONST.M_CH4) / molDryPerKg * 1e6;   // air SEC
         var sCh4 = '<span class="bench-key">CH\u2084</span>\u2248' + benchWrapRange(
             (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm'),
             ppmCH4, hasLitGaz ? L.ch4 : null);
         if (hasLitGaz) {
-            sCh4 += ' <span class="bench-sub">' + benchLitRangeBracket(L.ch4[0], L.ch4[1]) + '</span>';
+            sCh4 += ' <span class="bench-sub">' + benchLitRangeBracket(L.ch4[0], L.ch4[1]) + '</span>' + benchSrcMark(L, 'ch4');
         }
         parts.push(sCh4);
     }
     if (typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST && M_air) {
         var molH2O = snap.h2oFrac * (M_air / CONST.M_H2O);
         var sH2o = '<span class="bench-key">H\u2082O</span>\u2248' + benchWrapRange(
-            (molH2O * 100).toFixed(2) + '% vapmol.', molH2O * 100, hasLitGaz ? L.h2oVap : null);
+            (molH2O * 100 >= 0.1 ? (molH2O * 100).toFixed(2) : (molH2O * 100).toPrecision(2)) + '% vapmol.', molH2O * 100, hasLitGaz ? L.h2oVap : null);
         if (hasLitGaz) {
-            sH2o += ' <span class="bench-sub">' + benchLitRangeBracket(L.h2oVap[0], L.h2oVap[1]) + '</span>';
+            sH2o += ' <span class="bench-sub">' + benchLitRangeBracket(L.h2oVap[0], L.h2oVap[1]) + '</span>' + benchSrcMark(L, 'h2oVap');
         }
         parts.push(sH2o);
     }

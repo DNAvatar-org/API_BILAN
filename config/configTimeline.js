@@ -460,7 +460,7 @@ const timeline = [
         // [v1.4.82] CO₂ 5e17 (545 ppm) → 3.5e20 kg ≈ 70 bar ≈ 270 000 ppm mol (milieu grille [100k,500k]).
         //   Sleep, Zahnle & Neuhoff 2001 PNAS 98:3666 : 40–210 bar CO₂ après l'impact lunaire ; Zahnle et al. 2010 CSH Persp. Biol. 2:a004895.
         '⚖️🏭': 3.5e20, // co2_kg
-        '⚖️🐄': 5.0e15, // ch4_kg (~1000 ppm)
+        '⚖️🐄': 2.369e16, // v-2026-09-23 (était 5.0e15) : CH₄ ≈ 55 ppm air sec = milieu de [10,100] ‖ avant : ch4_kg (~1000 ppm)
         '⚖️💧': 6.0e20, // h2o_kg — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
         //   tombait à 7 % (dilution). Atmosphère de vapeur post-impact ≈ un océan entier (Zahnle et al. 2010) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
@@ -563,8 +563,8 @@ const timeline = [
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
         // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
-        '⚖️🏭': 2.6e18, // co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
-        '⚖️🐄': 6.3e16,  // ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
+        '⚖️🏭': 1.849e18, // v-2026-09-23 (était 2.6e18) : CO₂ ≈ 100 000 ppm air sec = milieu de [50k,150k] ‖ avant : co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
+        '⚖️🐄': 3.707e16, // v-2026-09-23 (était 6.3e16) : CH₄ ≈ 5 500 ppm air sec = milieu de [1k,10k] ‖ avant : ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
         '⚖️💨': 1.0e19, // n2_kg — max 🔒 [4.0e18, 1.0e19] = 2.2 atm (v1.4.76 ; était 7.0e18). Pressure broadening +GES.
@@ -683,6 +683,54 @@ const timeline = [
         // Pas encore de plantes vasculaires → weathering par acides organiques très limité (Lenton & Watson 2011).
         '🌊🏭': 0.15
     },
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // ÉPOQUES D'HYSTÉRÉSIS — À LIRE AVANT DE TOUCHER À hysteresis 1a / ⛄ / hysteresis 1b / hysteresis 2
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    // (écrit le 2026-09-23 à la demande de l'utilisateur : une session IA les a prises pour des
+    //  époques ordinaires, a visé le milieu de leurs fourchettes, et a cassé la sortie du Snowball.)
+    //
+    // CE QU'ELLES SONT. Une époque d'hystérésis n'est PAS une période géologique à reproduire. C'est
+    // une CONFIG FRONTIÈRE : l'ensemble des conditions (CO₂, voile, albédo de la glace…) où le climat
+    // bascule « facilement » d'un état à l'autre — chaud → boule de neige (1a → ⛄), boule de neige →
+    // chaud (⛄ → 1b), serre → calotte antarctique (hysteresis 2 → 🏔). Leurs dates sont
+    // approximatives, leurs fourchettes aussi : elles situent l'épisode, elles ne sont pas des cibles.
+    //
+    // CE QUI LES TESTE. Pas leur graine. Recliquer une époque dans la frise la réinitialise depuis
+    // 🌡️🧮 : c'est artificiel. Le vrai processus, c'est le TICTIME : il garde la T° COURANTE (l'état
+    // où l'on arrive, glace comprise), change les conditions, et calcule. Une hystérésis se juge donc
+    // sur le PASSAGE, joué depuis l'époque précédente :
+    //     1a  : arriver chaud, puis 🗻 (voile SW)            → ⛄ doit s'effondrer (T ≪ 0, glace ~1)
+    //     1b  : partir de ⛄ gelé, puis 💫 🌋 (CO₂, glace sale) → 1b doit SORTIR (T > 0, glace → 0)
+    //     2   : partir de 🐊, puis ⛰                         → 🏔 : entrée en glaciation
+    // Le banc headless le fait : CO2/scripts/bench_headless/bench19.js, section « passages ».
+    // La T° de 1b depuis sa graine (≈ 28–29 °C) ne veut RIEN dire — seule compte la sortie depuis ⛄.
+    //
+    // CE QU'ON RÈGLE. Chaque config d'hystérésis se place JUSTE DE L'AUTRE CÔTÉ du seuil qu'elle doit
+    // franchir, par une MESURE et non par la fourchette : une dichotomie scriptée (banc headless) trouve
+    // le seuil, et la config se pose DESSUS — le dernier (ou premier) CO₂ qui bascule. Le but est de
+    // MONTRER la bascule : quasi pas de changement de ppm, une T° radicalement différente.
+    // TOUJOURS MESURER SUR LA CHAÎNE DE CLICS (bench19.js, « passages ») : frise sur l'époque d'avant, puis
+    // chaque tictime comme l'interface (🔀 fait glisser les masses pendant les 💫 !). Un chemin raccourci
+    // (graine → époque suivante) donne un autre seuil : au vrai clic, ⛄ tombait à 0 °C au lieu de −60.
+    // Et régler les graines 🌡️🧮 sur la convergence AU CLIC : la frise doit donner la même chose, plus vite.
+    // Mesuré le 2026-09-23 (bary 62 %), sur la chaîne de clics :
+    //   1a = ⛄ : 86,1 ppm → 1a 0,00 °C (glace 0,09)  · 86,0 ppm → 1a −62,2 °C (effondré)
+    //             puis 🗻 → ⛄ −64,9 °C ; 💫 (voile retiré) → ⛄ reste à −62,3 °C
+    //   1b     : 10 867,7 ppm → −8,0 °C (glace 0,27)  · 10 870,5 ppm → +29,5 °C (glace 0) ; → 🪼 +20,2 °C
+    // Entre −60 °C et −8 °C (glace partielle), on est SUR le basculement, pas « à côté » : c'est un
+    // seuil pas encore franchi, pas une erreur de physique.
+    //   hysteresis 2 : AUCUNE bascule trouvée. Son CO₂ balayé de 200 à 1 200 ppm, l'arrivée depuis 🐊
+    //   reste sans glace (16–20 °C) et 🏔 donne toujours 16,1 °C, glace 0,009 — le passage ne dépend que
+    //   du CO₂ de 🏔. Le modèle n'a pas de calotte continentale (seulement glace de mer / neige zonales),
+    //   or la glaciation antarctique Oi-1 est une bascule de CALOTTE (DeConto & Pollard 2003, seuil
+    //   ~2,8 × CO₂ préindustriel). Chantier ouvert, pas un réglage.
+    //
+    // CE QU'IL NE FAUT PAS FAIRE. Déplacer leur CO₂ ou leur graine pour viser le milieu d'une
+    // fourchette, ou pour rapprocher T fin de T init : ces deux critères n'ont pas de sens ici.
+    // Et ⛄ partage le CO₂ de 1a (« même planète, deux états ») : bouger l'un sans l'autre détruit la
+    // bistabilité que 1a → ⛄ doit démontrer.
+    // Tout changement de physique (barycentre, O₂, vapeur…) peut déplacer les seuils : les REMESURER.
+    // ═══════════════════════════════════════════════════════════════════════════════════════
     // hysteresis 1a = Pré–Boule de neige / entrée Sturtienne (750–720 Ma) : CO₂ élevé (⚖️🏭) ; graine T pour convergence AVANT le scan hystérésis.
     // L’instant hystérésis = quand on baisse un peu le CO₂ et que T s’effondre — c’est l’algo (scie_) qui le cherche.
     // Ici 🌡️🧮 = amorce solveur au milieu de la branche chaude [5,15]°C, pas le seuil ni la T finale après chute.
@@ -697,7 +745,7 @@ const timeline = [
         // v-2026-09-15 : 283.15 K RESTAURÉ (fin de l'expérience -2 °C du 16/07). La « surfusion à -2 °C » était un
         // ARTEFACT : la masse de glace passait de 0.10 à 0.009 sous T_freeze (albédo ↓ en refroidissant, faux puits
         // pile à -2.00 °C) — corrigé albedo v1.2.64. Branche chaude 1a réelle ≈ 7 °C à 640 ppm (bench [5,15]).
-        '🌡️🧮': 283.15,
+        '🌡️🧮': 283.55, // v-2026-09-23 : = T° d'ARRIVÉE au clic (🪸 après ses 💫 : 10,4 °C, sans glace) → la frise converge comme le clic (0,00 °C). Une graine à 0 °C gèle toute seule (−62 °C) : à la frontière, la graine choisit la branche.
         // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
@@ -734,7 +782,16 @@ const timeline = [
         //   Déclencheur visu = voile sulfate Franklin (−10 W/m², Macdonald & Wordsworth 2017 GRL 44:1938) posé par ⛄ :
         //   à 640 ppm il supprime la branche chaude (marge ≈ 2.5 W/m²) → snowball ; le voile retombé, ⛄ RESTE gelé au
         //   MÊME CO₂ = hystérésis. Anciennes valeurs : 8.1e14 (100 ppm, « surfusion » artefact) ; 4.451e14 (55).
-        '⚖️🏭': 5.2e15,
+        // FRONTIÈRE DE 1a (encadré « ÉPOQUES D'HYSTÉRÉSIS ») — mesurée le 2026-09-23, bary 62 %, sur la CHAÎNE
+        // DE CLICS : frise 🪸, 💫 ×2 (🔀 fait glisser les masses de 🪸 vers celles de 1a), 💫 → 1a. Dichotomie 0,2 % :
+        //   86,1 ppm air sec → 1a = 0,00 °C (glace 0,09)   ·   86,0 ppm → 1a = −62,2 °C (glace 0,90)
+        // 1a se pose sur le dernier CO₂ où il NE s'effondre PAS encore ; le voile de ⛄ (🗻) le fait tomber à
+        // −64,9 °C, et ⛄ reste gelé (−62,3) quand son 💫 retire le voile. MÊME valeur que ⛄.
+        // ⚠️ 86 ppm est très en dessous des estimations du Sturtien (centaines à milliers de ppm) : c'est la
+        // SENSIBILITÉ du modèle qui place la bascule là (trop faible, cf. REPRISE.md), pas un choix.
+        // Une 1re tentative (3 419 ppm) avait été mesurée sur un chemin RACCOURCI (graine de 🪸 → 1a sans les
+        // clics 💫) : au vrai clic, ⛄ tombait à 0 °C au lieu de −60. Toujours mesurer sur la chaîne de clics.
+        '⚖️🏭': 6.965e14, // v-2026-09-23 : ≈ 86,1 ppm air sec, frontière de 1a MESURÉE SUR LA CHAÎNE DE CLICS ‖ avant : 5.2e15 
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
@@ -810,7 +867,7 @@ const timeline = [
     "◀": 69e7,
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
-    "🌡️🧮": 218.15,
+    "🌡️🧮": 210.85, // v-2026-09-23 : = convergence AU CLIC (−62,3 °C, ⛄ après 💫) — frise = clic (était 218,15)
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.592e26,
@@ -824,8 +881,9 @@ const timeline = [
         "🍰🗻🏔": 0.08,
         "🍰🗻🌍": 0.17
     },
-    "⚖️🏭": 5.2e15,// ≈640 ppm — v-2026-09-15 : MÊME CO₂ que hyst 1a (lit. snowball [300,1500]) : même planète, deux états (chaud 1a ≈ 7 °C / gelé ⛄ ≈ −55 °C). Anciens : 8.1e14 (100), 4.451e14 (55).
-    "⚖️🐄": 2.86e13,// 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
+    // MÊME CO₂ que hysteresis 1a (frontière de 1a, 86,1 ppm, mesurée sur la chaîne de clics — voir 1a).
+    "⚖️🏭": 6.965e14, // v-2026-09-23 : ≈ 86,1 ppm air sec, frontière de 1a MESURÉE SUR LA CHAÎNE DE CLICS ‖ avant : 5.2e15 // ≈640 ppm — v-2026-09-15 : MÊME CO₂ que hyst 1a (lit. snowball [300,1500]) : même planète, deux états (chaud 1a ≈ 7 °C / gelé ⛄ ≈ −55 °C). Anciens : 8.1e14 (100), 4.451e14 (55).
+    "⚖️🐄": 1.489e13, // v-2026-09-23 (était 2.86e13) : CH₄ ≈ 5 ppm air sec = milieu de [0,1 ; 10] ‖ avant : 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5),
@@ -892,7 +950,7 @@ const timeline = [
         hidden: true,
         '▶': 690e6,
         '◀': 600e6,
-        '🌡️🧮': 308.15, // Sortie Marinoen [20,50]°C — milieu bench
+        '🌡️🧮': 302.65, // v-2026-09-23 : = convergence AU CLIC (+29,5 °C) — frise = clic (était 308,15, « milieu bench » [20,50])
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
@@ -913,8 +971,13 @@ const timeline = [
         //   froide disparaît entre ~4 800 et ~9 300 ppm ; à 10 000 ppm seule la branche chaude existe (≈ 30 °C, bench
         //   [20,50]). Sans poussière la branche froide tient jusqu'à >14 % (GCM : >0.1–0.2 bar, Hu 2011). Anciens :
         //   1.31e18 (15 %, zone d'artefact d'inversion OLR >16 %), 7.0e17 (8 %).
-        '⚖️🏭': 8.2e16,
-        // 🌫️❄️ = albédo de la glace sale (poussière concentrée par sublimation, snowball établi). Lu par calculations_albedo.js
+        // FRONTIÈRE DE SORTIE (encadré « ÉPOQUES D'HYSTÉRÉSIS ») : ce CO₂ n'est PAS une cible de littérature,
+        // c'est le seuil de sortie du Snowball, mesuré le 2026-09-23 (bary 62 %) sur la CHAÎNE DE CLICS
+        // (🪸 … 1a → 🗻 ⛄ −64,9 → 💫 ⛄ −62,3 → 🌋 1b), dichotomie à 0,05 % :
+        //                                   10 867,7 ppm air sec → −8,0 °C (glace 27 %, coincé)
+        //                                   10 870,5 ppm air sec → +29,5 °C (glace 0)
+        // 3 ppm, 37 °C : on se pose sur le PREMIER CO₂ qui sort. À REMESURER si la physique change.
+        '⚖️🏭': 8.8425e16, // v-2026-09-23 : ≈ 10 870 ppm air sec = seuil de sortie SUR LA CHAÎNE DE CLICS ‖ avant : 8.2e16 ‖ 🌫️❄️ = albédo de la glace sale (poussière concentrée par sublimation, snowball établi). Lu par calculations_albedo.js
         //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
         '🌫️❄️': 0.48,
         // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
@@ -927,7 +990,7 @@ const timeline = [
         // physique). On plafonne au MINIMUM d'OLR ; le levier CO₂ y est de toute façon épuisé, la fin de la
         // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
         '⚖️🏭🔝': 1.31e18,
-        '⚖️🐄': 4.5e13,
+        '⚖️🐄': 1.629e14, // v-2026-09-23 (était 4.5e13) : CH₄ ≈ 55 ppm air sec = milieu de [10,100]
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1059,7 +1122,7 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20 },
-        '⚖️🏭': 1.5e16, // co2_kg (~2900 ppm, pic PT)
+        '⚖️🏭': 6.709e15, // v-2026-09-23 (était 1.5e16) : CO₂ ≈ 833 ppm air sec = milieu de PhanDA Kungurien [420,1246] (1 862 était HORS) ‖ avant : co2_kg (~2900 ppm, pic PT)
         '⚖️🐄': 8e13,   // CH4 élevé (anoxie, clathrates)
         '⚖️💧': 1.35e21,
         '⚖️🫁': 1.5e17, // O2 en chute (anoxie)
@@ -1107,7 +1170,7 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🏭': 1.2875e16, // co2_kg (~2500 ppm)
+        '⚖️🏭': 8.566e15, // v-2026-09-23 (était 1.2875e16) : CO₂ ≈ 1 060 ppm air sec = milieu de PhanDA Induen [434,1685] ‖ avant : co2_kg (~2500 ppm)
         '⚖️🐄': 4.12e13,
         '⚖️💧': 1.33e21,
         '⚖️🫁': 0,
@@ -1151,8 +1214,8 @@ const timeline = [
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20
         },
-        '⚖️🏭': 5.0e15, // co2_kg (~650 ppm)
-        '⚖️🐄': 3.605e12,
+        '⚖️🏭': 6.447e15, // v-2026-09-23 (était 5.0e15) : CO₂ ≈ 819 ppm air sec = milieu de PhanDA Danien [559,1078] ‖ avant : co2_kg (~650 ppm)
+        '⚖️🐄': 8.613e12, // v-2026-09-23 (était 3.605e12) : CH₄ ≈ 3 ppm air sec = milieu de [1,5]
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1192,7 +1255,7 @@ const timeline = [
         // [v1.4.81] vers 24 °C (milieu T [20,28], bench 20,9 °C) sans sortir de la grille : CH₄ 1,24 → ~3,8 ppm ([1,5]),
         //   CO₂ 1182 → ~1380 ppm ([800,1500]) ; sonde : 22 °C environ au mieux sans sortir de la grille. Anagnostou et al. 2016 Nature 533:380 (CO₂ Éocène précoce ~1000–1600 ppm) ;
         //   Beerling et al. 2011 PNAS 108:9770 (CH₄ Éocène élevé, zones humides).
-        '⚖️🏭': 1.1e16, // co2_kg
+        '⚖️🏭': 9.058e15, // v-2026-09-23 (était 1.1e16) : CO₂ ≈ 1 150 ppm air sec = milieu de [800,1500] ‖ avant : co2_kg
         '⚖️🐄': 1.1e13, // ~3,8 ppm
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
@@ -1273,7 +1336,7 @@ const timeline = [
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
-        '⚖️🏭': 4.513e15,
+        '⚖️🏭': 4.822e15, // v-2026-09-23 (était 4.513e15) : CO₂ ≈ 624 ppm air sec = milieu de PhanDA Rupélien [552,696]
         '⚖️🐄': 4.3e12, // [v1.4.81] 0,92 ppm → ~1,5 ppm (milieu grille [1,2])
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.08e18,
@@ -1386,7 +1449,7 @@ const timeline = [
         //'🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.14, '🍰🗻🌍': 0.17 },
         '⚖️🏭': 2.191e15, // ~280 ppm CO2 pré-industriel (Marcott 2013)
-        '⚖️🐄': 2.28e12,  // ~800 ppb CH4 pré-industriel
+        '⚖️🐄': 2.006e12, // v-2026-09-23 (était 2.28e12) : CH₄ ≈ 0,70 ppm air sec = milieu de [0,6 ; 0,8] ‖ avant : ~800 ppb CH4 pré-industriel
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1420,7 +1483,7 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
         //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
         '⚖️🏭': 2.191e15, // ~280 ppm 1800 (IPCC2021)
-        '⚖️🐄': 3.605e12,
+        '⚖️🐄': 2.056e12, // v-2026-09-23 (était 3.605e12) : CH₄ ≈ 0,727 ppm air sec = Law Dome 1800 (MacFarling Meure 2006) ; 3,605e12 donnait 1,28 ppm, la valeur des années 1950
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
         // ⚖️✈ : 4,0e8 kg SO₄ = charge PRÉINDUSTRIELLE simulée (Tsigaridis et al. 2006 ACP 6:5143,
@@ -1466,7 +1529,7 @@ const timeline = [
         // ⚠️ 369 ppm = fraction molaire d'air SEC (NOAA). Le modèle affiche de l'air HUMIDE (365 ppm) :
         //    ppm_sec = ppm_humide / (1 − x_H2O). Détail et vérif : atmosphere/calculations_atm.js,
         //    bloc « AIR SEC vs AIR HUMIDE ». Cette masse est juste — ne pas la retoucher pour recoller à 369.
-        '⚖️🏭': 2.887e15, // ~369 ppm CO2 an 2000 [OBS] NOAA (air sec)
+        '⚖️🏭': 2.909e15, // v-2026-09-23 (était 2.887e15) : CO₂ ≈ 370 ppm air sec = NOAA an 2000 (369,7) = milieu de [365,375] ‖ avant : ~369 ppm CO2 an 2000 [OBS] NOAA (air sec)
         '⚖️🐄': 4.99e12, // ~1750 ppb CH4 an 2000 [OBS] NOAA
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
@@ -1640,36 +1703,138 @@ window.epochIndex = function () {
 //   12 graines ont été réalignées. Les trois états d'hystérésis (☃ ⛄ ⛈) y étaient déjà — leur
 //   graine sert à SÉLECTIONNER UNE BRANCHE, pas à viser une cible : ne pas la déplacer sans
 //   vérifier que la bistabilité tient.
+//
+// ─── CHAQUE FOURCHETTE DIT D'OÙ ELLE VIENT : champ src (2026-09-23) ──────────────────────
+//   Ne pas faire confiance aveuglément à une fourchette : chacune porte son statut et sa référence.
+//     ✅  mesure / donnée publiée (PhanDA, carottes de glace, NOAA, GISTEMP…) — référence citée
+//     🧮  équation (C-C, corps noir) appliquée à des grandeurs sourcées — la formule est citée
+//     ⚠️  non sourcée : un ordre de grandeur hérité, à ne pas prendre pour une cible
+//     🔀  hystérésis : repère de l'épisode, PAS une cible (voir l'encadré « ÉPOQUES D'HYSTÉRÉSIS »)
+//
+//   CO₂ — PhanDA donne aussi le CO₂ (mêmes 5–95 %, même étage à ▶ que tC). Appliqué le 2026-09-23 ;
+//   hysteresis 2 [711, 907] en venait déjà. Écarts avec l'ancien tableau : 💀 [1500,4000]→[420,1246],
+//   🦕 [1000,2500]→[434,1685], 🦤 [400,1000]→[559,1078], 🐊 [800,1500]→[1052,1326],
+//   🏔 [400,700]→[552,696], 🦣 [180,300]→[273,321], 🍄 [500,3000]→[430,4031], 🛖 [260,285]→[256,298].
+//   🚂 : la fourchette couvrait tout 1800–2000 ([280,370], CH₄ [0,7 ; 1,9]) ; elle est ramenée à ▶ =
+//   1800 (Law Dome) — ce qui a révélé un CH₄ de config à 1,28 ppm quand la mesure dit 0,727.
+//
+//   h2oVap — AUCUNE mesure paléo n'existe. La littérature mesure le présent : humidité relative de
+//   surface 75–80 % sur les océans, 70–80 % sur les terres, et q de surface +4,9 %/°C à l'échelle
+//   globale (Dai 2006, J. Climate 19:3589) ; +7 %/K pour la colonne (Held & Soden 2006, J. Climate
+//   19:5686). Les fourchettes sont donc CALCULÉES : x = RH · e_sat(T) / P, RH ∈ [0,70 ; 0,80],
+//   T ∈ tC, e_sat de Murphy & Koop 2005 (eau liquide, glace sous 0 °C), P = pression de surface.
+//   ⚠️ C'est la vapeur À LA T MOYENNE : la vraie moyenne globale est plus haute (e_sat est convexe,
+//   les tropiques dominent) — Pierrehumbert 2005 (Snowball, GCM) : ~0,7 kg/m² subtropical. Le modèle
+//   calcule la même grandeur 0D que la fourchette : la comparaison est homogène, pas la réalité.
+//   Les anciennes fourchettes h2oVap, non sourcées, étaient incohérentes avec leur propre tC.
+//
+//   Historique des commentaires de l'ancien tableau :
+//   🐧 hystérésis 2 (prélude glaciaire, 35 Ma) — absente du tableau jusqu'au 2026-09-23, d'où le « — » au banc.
+//   🚂 1800 — tC v-2026-09-23 : [13 ; 15] → [13,0 ; 14,0]. Centre = 13,5 °C, le préindustriel
+//   1850-1900 (Copernicus ESOTC 2024 : 0,88 °C sous 1991-2020 = 14,4 °C). Largeur ±0,5 comme 📱.
+//   📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
+//   co2 [365, 375] : NOAA an 2000 = 369,7 ppm en AIR SEC. Le banc affiche l'air sec depuis le 2026-09-23
+//   (demo/js/epoch_bench_format.js v1.1.0) ; avant, il sortait l'air humide et 📱 tombait à 363.
+//   tC v-2026-09-23 : [14,5 ; 15,5] → [13,9 ; 14,9]. Centre = 14,4 °C (GISTEMP v4, anomalie 2000
+//   +0,39 sur un absolu 1951-1980 de 14,0 °C), largeur = ±0,5 °C, l'incertitude PUBLIÉE sur
+//   l'absolu (Jones et al. 1999). La moyenne 1996-2004, 14,5 °C, tombe dedans. Voir l'encadré.
 // ═══════════════════════════════════════════════════════════════════════════
 window.BENCH_LIT_BY_EPOCH_ID = {
-    '⚫': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01] },
-    '🔥': { tC: [2300, 2800], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20] },
-    '🦠': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.5, 3.0] },
-    '🪸': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.5, 1.5] },
-    'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.1, 1.0] },
-    '⛄': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.01, 0.5] },
-    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [2.0, 5.0] },
-    // 🐧 hystérésis 2 (prélude glaciaire, 35 Ma) — absente du tableau jusqu'au 2026-09-23, d'où le « — » au banc.
-    'hysteresis 2': { tC: [25, 28], co2: [711, 907], ch4: [1, 5], h2oVap: [1.2, 2.5] },
-    '🪼': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.0, 2.5] },
-    '🍄': { tC: [26, 39], co2: [500, 3000], ch4: [5, 20], h2oVap: [1.0, 2.0] },
-    '💀': { tC: [15, 24], co2: [1500, 4000], ch4: [20, 100], h2oVap: [1.5, 3.5] },
-    '🦕': { tC: [24, 32], co2: [1000, 2500], ch4: [10, 30], h2oVap: [1.5, 3.0] },
-    '🦤': { tC: [25, 32], co2: [400, 1000], ch4: [1, 5], h2oVap: [0.8, 1.5] },
-    '🐊': { tC: [30, 37], co2: [800, 1500], ch4: [1, 5], h2oVap: [1.2, 2.5] },
-    '🏔': { tC: [21, 25], co2: [400, 700], ch4: [1, 2], h2oVap: [0.8, 1.2] },
-    '🦣': { tC: [13, 16], co2: [180, 300], ch4: [0.4, 0.8], h2oVap: [0.6, 1.0] },
-    '🛖': { tC: [13, 15], co2: [260, 285], ch4: [0.6, 0.8], h2oVap: [0.8, 1.0] },
-    // 🚂 1800 — tC v-2026-09-23 : [13 ; 15] → [13,0 ; 14,0]. Centre = 13,5 °C, le préindustriel
-    //   1850-1900 (Copernicus ESOTC 2024 : 0,88 °C sous 1991-2020 = 14,4 °C). Largeur ±0,5 comme 📱.
-    '🚂': { tC: [13, 14], co2: [280, 370], ch4: [0.7, 1.9], h2oVap: [0.8, 1.2] },
-    // 📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
-    // ⚠️ co2 [365, 375] est une grille AIR HUMIDE (le chiffre que sort le modèle), pas les ppm NOAA qui sont en air SEC.
-    //    Conversion et vérif : atmosphere/calculations_atm.js, bloc « AIR SEC vs AIR HUMIDE ».
-    // tC v-2026-09-23 : [14,5 ; 15,5] → [13,9 ; 14,9]. Centre = 14,4 °C (GISTEMP v4, anomalie 2000
-    //   +0,39 sur un absolu 1951-1980 de 14,0 °C), largeur = ±0,5 °C, l'incertitude PUBLIÉE sur
-    //   l'absolu (Jones et al. 1999). La moyenne 1996-2004, 14,5 °C, tombe dedans. Voir l'encadré.
-    '📱': { tC: [13.9, 14.9], co2: [365, 375], ch4: [1.70, 1.85], h2oVap: [1.0, 1.2] }
+    '⚫': { tC: [-19, -17], co2: [0, 1], ch4: [0, 0.1], h2oVap: [0, 0.01],
+        src: { tC: "🧮 T_eq = [S(1−A)/4σ]^¼",
+               co2: "🧮 pas d'atmosphère",
+               ch4: "🧮 pas d'atmosphère",
+               h2oVap: "🧮 pas d'eau" } },
+    '🔥': { tC: [2300, 2800], co2: [100000, 500000], ch4: [10, 100], h2oVap: [10, 20],
+        src: { tC: "⚠️ non sourcée (choix assumé : océan de magma)",
+               co2: "⚠️ non sourcée",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "⚠️ non sourcée (hors régime C-C : 2500 °C)" } },
+    '🦠': { tC: [5, 25], co2: [50000, 150000], ch4: [1000, 10000], h2oVap: [0.27, 1.1],
+        src: { tC: "⚠️ non sourcée (hors PhanDA)",
+               co2: "⚠️ non sourcée",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🪸': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.43, 1.36],
+        src: { tC: "⚠️ non sourcée (hors PhanDA)",
+               co2: "⚠️ non sourcée",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.61, 1.37],
+        src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               co2: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
+    '⛄': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.00076, 0.0032],
+        src: { tC: "⚠️ non sourcée (hors PhanDA)",
+               co2: "⚠️ non sourcée — ⚠️ = CO₂ de 1a par construction",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C sur GLACE (Murphy & Koop 2005) × RH [0,70 ; 0,80] à tC — ⚠️ T moyenne 0D : Pierrehumbert 2005 (GCM) donne ~0,7 kg/m² d'eau précipitable subtropicale, bien plus" } },
+    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [1.61, 9.73],
+        src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — CO₂ posé au SEUIL DE SORTIE mesuré (~11 200 ppm)",
+               ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
+    'hysteresis 2': { tC: [25, 28], co2: [711, 907], ch4: [1, 5], h2oVap: [2.22, 3.03],
+        src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière) — PhanDA Priabonien",
+               co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — PhanDA Priabonien",
+               ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
+    '🪼': { tC: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.19, 2.54],
+        src: { tC: "⚠️ non sourcée (▶ 600 Ma, hors PhanDA)",
+               co2: "⚠️ non sourcée",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🍄': { tC: [26, 39], co2: [430, 4031], ch4: [5, 20], h2oVap: [2.36, 5.6],
+        src: { tC: "✅ PhanDA GMST Pridoli",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Pridoli",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '💀': { tC: [15, 24], co2: [420, 1246], ch4: [20, 100], h2oVap: [1.19, 2.38],
+        src: { tC: "✅ PhanDA GMST Kungurien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Kungurien",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🦕': { tC: [24, 32], co2: [434, 1685], ch4: [10, 30], h2oVap: [2.08, 3.79],
+        src: { tC: "✅ PhanDA GMST Induen",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Induen",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🦤': { tC: [25, 32], co2: [559, 1078], ch4: [1, 5], h2oVap: [2.22, 3.81],
+        src: { tC: "✅ PhanDA GMST Danien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Danien",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🐊': { tC: [30, 37], co2: [1052, 1326], ch4: [1, 5], h2oVap: [2.97, 5.02],
+        src: { tC: "✅ PhanDA GMST Yprésien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Yprésien",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🏔': { tC: [21, 25], co2: [552, 696], ch4: [1, 2], h2oVap: [1.78, 2.59],
+        src: { tC: "✅ PhanDA GMST Rupélien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Rupélien",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🦣': { tC: [13, 16], co2: [273, 321], ch4: [0.4, 0.8], h2oVap: [1.07, 1.49],
+        src: { tC: "✅ PhanDA GMST Gélasien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Gélasien",
+               ch4: "✅ EPICA Dome C 350–800 ppb sur les cycles (Loulergue 2008, Nature 453:383) — couvre les états 🔁",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🛖': { tC: [13, 15], co2: [256, 298], ch4: [0.6, 0.8], h2oVap: [1.05, 1.37],
+        src: { tC: "✅ PhanDA GMST Holocène",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Holocène",
+               ch4: "⚠️ non sourcée (plage holocène plausible, non vérifiée à 10 ka)",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '🚂': { tC: [13, 14], co2: [278, 288], ch4: [0.7, 0.76], h2oVap: [1.07, 1.31],
+        src: { tC: "✅ Copernicus ESOTC 2024 (préindustriel 13,5 °C) ± 0,5 absolu (Jones 1999)",
+               co2: "✅ Law Dome 1800 = 282,6 ppm (MacFarling Meure 2006, GRL 33:L14810, spline 20 ans) ± 5 (variabilité préindustrielle)",
+               ch4: "✅ Law Dome 1800 = 0,727 ppm (même source) ± 0,03",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
+    '📱': { tC: [13.9, 14.9], co2: [365, 375], ch4: [1.7, 1.85], h2oVap: [1.11, 1.36],
+        src: { tC: "✅ GISTEMP v4 + Jones 1999 : 14,4 °C ± 0,5",
+               co2: "✅ NOAA Mauna Loa 2000 = 369,7 ppm (air sec)",
+               ch4: "✅ NOAA GML moyenne globale 2000 ≈ 1,77 ppm",
+               h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } }
 };
 
 // Paramètres de calcul (convergence radiatif)

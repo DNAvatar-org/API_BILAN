@@ -250,3 +250,4 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
 #bench-ft-content .bench-ft-sec { margin-bottom: 10px; }
 #bench-ft-content .bench-ft-line { margin: 2px 0; padding-left: 2px; }
 #bench-ft-content strong { color: #c9c9c9; }
+.bench-src { cursor: help; font-size: .85em; }   /* statut de la fourchette (src), référence en infobulle */

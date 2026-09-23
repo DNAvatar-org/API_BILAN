@@ -58,7 +58,8 @@
     <a href="#sec-co2">Cycle du CO₂</a> ·
     <a href="#sec-orbital">Paramètres orbitaux</a> ·
     <a href="#sec-quaternary">Quaternaire</a> ·
-    <a href="#sec-epochs">Compositions d'époques</a>
+    <a href="#sec-epochs">Compositions d'époques</a> ·
+    <a href="#sec-bench">Fourchettes du banc</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -253,7 +254,7 @@
     <div class="title">Climate dynamics of a hard snowball Earth</div>
     <div class="venue">Journal of Geophysical Research Atmospheres, 110:D01111 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2004JD005162">10.1029/2004JD005162</a></div>
-    <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Fonde la modulation de l'albédo glace par la <strong>fraction couverte</strong> dans <code>calculations_albedo.js</code> : neige polaire propre (~0.85) tant que f ≤ 0.5, puis rampe vers 0.60 quand f→1 (glace nue tropicale, ligne de glace < 30° ⇔ f > 0.5) [<code>seuil F_BARE_ONSET</code>]. Bifurcation continue.</div>
+    <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Fonde la modulation de l'albédo glace par la <strong>fraction couverte</strong> dans <code>calculations_albedo.js</code> : neige polaire propre (~0.85) tant que f ≤ 0.5, puis rampe vers 0.60 quand f→1 (glace nue tropicale, ligne de glace < 30° ⇔ f > 0.5) [<code>seuil F_BARE_ONSET</code>]. Bifurcation continue. Aussi : eau précipitable subtropicale ~0,7 kg/m² en Snowball dur (GCM) — cité dans la fourchette h2oVap de ⛄ (<code>BENCH_LIT_BY_EPOCH_ID</code>) comme limite de la vapeur calculée à T moyenne.</div>
 </article>
 
 <article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
@@ -993,7 +994,7 @@
     <div class="title">Orbital and millennial-scale features of atmospheric CH₄ over the past 800,000 years</div>
     <div class="venue">Nature, 453:383–386 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature06950">10.1038/nature06950</a></div>
-    <div class="used-in">CH₄ glaciaire–interglaciaire 350–800 ppb → 🦣 ⚖️🐄 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">CH₄ glaciaire–interglaciaire 350–800 ppb → 🦣 ⚖️🐄 et fourchette ch4 ✅ de 🦣 (<code>configTimeline.js</code>, <code>BENCH_LIT_BY_EPOCH_ID</code>).</div>
 </article>
 
 <article class="ref" id="luthi2008" data-tags="quaternary co2 ice-core epica">
@@ -1044,5 +1045,106 @@
     <div class="used-in">Atmosphère de vapeur post-impact → 🔥 ⚖️💧 (<code>configTimeline.js</code>).</div>
 </article>
 
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-bench">11. Fourchettes du banc &amp; données de référence</h2>
+
+<article class="ref" id="judd2024" data-tags="phanerozoic gmst co2 data-assimilation">
+    <div class="cite-key">[judd2024]</div>
+    <div class="authors">Judd, E. J., Tierney, J. E., Lunt, D. J., Montañez, I. P., Huber, B. T., Wing, S. L. &amp; Valdes, P. J.</div>
+    <div class="title">A 485-million-year history of Earth's surface temperature (PhanDA)</div>
+    <div class="venue">Science, 385:eadk3705 (2024)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.adk3705">10.1126/science.adk3705</a></div>
+    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong> (depuis le 2026-09-23), étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu.</div>
+</article>
+
+<article class="ref" id="jones1999" data-tags="modern gmst absolute">
+    <div class="cite-key">[jones1999]</div>
+    <div class="authors">Jones, P. D., New, M., Parker, D. E., Martin, S. &amp; Rigor, I. G.</div>
+    <div class="title">Surface air temperature and its changes over the past 150 years</div>
+    <div class="venue">Reviews of Geophysics, 37(2):173–199 (1999)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/1999RG900002">10.1029/1999RG900002</a></div>
+    <div class="used-in">Absolu 1951–1980 = 14,0 ± 0,5 °C : centre et LARGEUR des fourchettes tC 🚂 📱 <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="lenssen2019" data-tags="modern gmst gistemp">
+    <div class="cite-key">[lenssen2019]</div>
+    <div class="authors">Lenssen, N. J. L., Schmidt, G. A., Hansen, J. E., Menne, M. J., Persin, A., Ruedy, R. &amp; Zyss, D.</div>
+    <div class="title">Improvements in the GISTEMP uncertainty model</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 124:6307–6326 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2018JD029522">10.1029/2018JD029522</a></div>
+    <div class="used-in">GISTEMP v4 : anomalie an 2000 = +0,39 °C vs 1951–1980 → 📱 = 14,4 °C <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="copernicusEsotc2024" data-tags="modern gmst preindustrial">
+    <div class="cite-key">[copernicusEsotc2024]</div>
+    <div class="authors">Copernicus Climate Change Service (C3S)</div>
+    <div class="title">European State of the Climate 2024</div>
+    <div class="venue">C3S / WMO (2025)</div>
+    <div class="doi"><a href="https://climate.copernicus.eu/esotc/2024">https://climate.copernicus.eu/esotc/2024</a></div>
+    <div class="used-in">Préindustriel 1850–1900 = 0,88 °C sous 1991–2020 (14,4 °C) → 🚂 = 13,5 °C <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="macfarlingMeure2006" data-tags="ice-core co2 ch4 law-dome preindustrial">
+    <div class="cite-key">[macfarlingMeure2006]</div>
+    <div class="authors">MacFarling Meure, C., Etheridge, D., Trudinger, C., Steele, P., Langenfelds, R., van Ommen, T., Smith, A. &amp; Elkins, J.</div>
+    <div class="title">Law Dome CO₂, CH₄ and N₂O ice core records extended to 2000 years BP</div>
+    <div class="venue">Geophysical Research Letters, 33:L14810 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2006GL026152">10.1029/2006GL026152</a></div>
+    <div class="used-in">Données lues dans <code>law2006.txt</code> (NOAA/NCEI), splines 20 ans : 1800 = <strong>282,6 ppm CO₂, 0,727 ppm CH₄</strong> → fourchettes 🚂 et ⚖️🐄 de 🚂 corrigé (était 1,28 ppm) <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="noaaGml" data-tags="modern co2 ch4 observations">
+    <div class="cite-key">[noaaGml]</div>
+    <div class="authors">NOAA Global Monitoring Laboratory</div>
+    <div class="title">Trends in atmospheric CO₂ (Mauna Loa) and CH₄ (global)</div>
+    <div class="venue">NOAA GML (consulté 2026)</div>
+    <div class="doi"><a href="https://gml.noaa.gov/ccgg/trends/">https://gml.noaa.gov/ccgg/trends/</a></div>
+    <div class="used-in">An 2000 : CO₂ 369,7 ppm (air sec, Mauna Loa), CH₄ ≈ 1,77 ppm (moyenne globale) → fourchettes et ⚖️🏭 de 📱 <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="dai2006" data-tags="surface-humidity relative-humidity observations">
+    <div class="cite-key">[dai2006]</div>
+    <div class="authors">Dai, A.</div>
+    <div class="title">Recent climatology, variability, and trends in global surface humidity</div>
+    <div class="venue">Journal of Climate, 19(15):3589–3606 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI3816.1">10.1175/JCLI3816.1</a></div>
+    <div class="used-in">Humidité relative de surface 75–80 % (océans), 70–80 % (terres) ; q de surface +4,9 %/°C à l'échelle globale (observé) → RH ∈ [0,70 ; 0,80] des fourchettes h2oVap <code>API_BILAN/config/configTimeline.js</code>. Repère contre <code>EARTH.H2O_SURFACE_RH_01</code> = 0,623 (physics.js), trop bas.</div>
+</article>
+
+<article class="ref" id="heldSoden2006" data-tags="water-vapor clausius-clapeyron hydrological-cycle">
+    <div class="cite-key">[heldSoden2006]</div>
+    <div class="authors">Held, I. M. &amp; Soden, B. J.</div>
+    <div class="title">Robust responses of the hydrological cycle to global warming</div>
+    <div class="venue">Journal of Climate, 19(21):5686–5699 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI3990.1">10.1175/JCLI3990.1</a></div>
+    <div class="used-in">Vapeur de colonne ≈ +7 %/K (Clausius-Clapeyron à RH constante, confirmé par satellite) : justifie de CALCULER les fourchettes h2oVap par C-C faute de mesure paléo <code>API_BILAN/config/configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="murphyKoop2005" data-tags="saturation-vapor-pressure ice liquid">
+    <div class="cite-key">[murphyKoop2005]</div>
+    <div class="authors">Murphy, D. M. &amp; Koop, T.</div>
+    <div class="title">Review of the vapour pressures of ice and supercooled water for atmospheric applications</div>
+    <div class="venue">Quarterly Journal of the Royal Meteorological Society, 131:1539–1565 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1256/qj.04.94">10.1256/qj.04.94</a></div>
+    <div class="used-in">e_sat sur eau liquide (éq. 10) et sur glace (éq. 7) : fourchettes h2oVap <code>API_BILAN/config/configTimeline.js</code> ; ⛄ : ≤ 0,004 % même à saturation à −50 °C.</div>
+</article>
+
+<article class="ref" id="picard2008" data-tags="air-composition molar-mass metrology">
+    <div class="cite-key">[picard2008]</div>
+    <div class="authors">Picard, A., Davis, R. S., Gläser, M. &amp; Fujii, K.</div>
+    <div class="title">Revised formula for the density of moist air (CIPM-2007)</div>
+    <div class="venue">Metrologia, 45(2):149–155 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1088/0026-1394/45/2/004">10.1088/0026-1394/45/2/004</a></div>
+    <div class="used-in">x_O₂ = 0,209390 et M_air = 28,96546 g/mol → <code>CLOUD_SW.MODERN_REF_O2</code> = 0,23132 kg/kg (<code>API_BILAN/data/initDATA.js</code>).</div>
+</article>
+
+<article class="ref" id="decontoPollard2003" data-tags="eocene-oligocene antarctic-ice-sheet co2-threshold hysteresis">
+    <div class="cite-key">[decontoPollard2003]</div>
+    <div class="authors">DeConto, R. M. &amp; Pollard, D.</div>
+    <div class="title">Rapid Cenozoic glaciation of Antarctica induced by declining atmospheric CO₂</div>
+    <div class="venue">Nature, 421:245–249 (2003)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature01290">10.1038/nature01290</a></div>
+    <div class="used-in">Encadré « ÉPOQUES D'HYSTÉRÉSIS » (<code>API_BILAN/config/configTimeline.js</code>) : la bascule Oi-1 (hysteresis 2 → 🏔) est une bascule de CALOTTE continentale, seuil ~2,8 × CO₂ préindustriel — mécanisme absent du modèle, d'où l'absence de bascule mesurée.</div>
+</article>
 </body>
 </html>
