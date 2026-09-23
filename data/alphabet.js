@@ -161,6 +161,15 @@ const CHARS = {
 //
 // Aucun emoji nouveau n'a été créé : 🧪 (molaire) et 🧲⚖️ (flux de masse) composent des
 // caractères d'unité qui existaient déjà, comme ┴ compose (🎈,🌡️).
+//
+// PRÉFIXES (v-2026-09-23) — ils ne portent pas d'unité, ils la laissent au caractère qui suit :
+//     🔺…  variation : 🔺⚖️🏭 = Δ kg          🧮…  valeur courante du calcul : 🧮🌡️ = K
+//     🔁…  imposé par l'état de cycle : 🔁⚖️ = objet { ⚖️… : kg }
+// Le LIEU vient APRÈS l'unité, jamais avant : ⚖️🌊🏭, donc 🔺⚖️🌊🏭 (et non 🌊🔺⚖️🏭, renommée
+// ce jour avec 🌳🔺⚖️🏭 → 🔺⚖️🌳🏭 : leur 1ᵉʳ caractère était un lieu, et la page 🔎 affichait
+// « unité inconnue »). ⚾ porte sa propre unité (degré), comme 🍎 ou 🧪.
+// Clés d'INTERFACE, pas des grandeurs mais typées quand même : 📝 texte, 🖼 🌙 chemin d'image,
+// 🔘 identifiant de bouton, ⚧ phase, ☯ signe, 🔄 compteur.
 const CHARS_DESC = {
     // Unités
     '📿': 'Cardinal (#)',

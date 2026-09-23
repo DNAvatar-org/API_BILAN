@@ -42,21 +42,21 @@
 var CONST = window.CONST = window.CONST || {};
 
 // ========== 1. FONDAMENTALES (universelles, sans ref terrestre) ==========
-CONST.PLANCK_H = 6.62607015e-34;      // Planck, J·s (CODATA 2018)
-CONST.SPEED_OF_LIGHT = 2.998e8;       // c, m/s
-CONST.BOLTZMANN_KB = 1.380649e-23;    // Boltzmann, J/K (CODATA 2018)
-CONST.STEFAN_BOLTZMANN = 5.670374419e-8; // Stefan-Boltzmann, W/(m²·K⁴)
-CONST.SOLAR_CONSTANT = 1361;              // TSI W/m² (Kopp & Lean 2011, TSIS-1). 🔒 = L☉/(4π×AU²) = 3.828e26/(4π×1.496e11²)
-CONST.MAX_PLANCK_SAFE = 1e30;         // Cap Planck (W/(m²·sr·m)) pour workers / transfert radiatif
+CONST.PLANCK_H = 6.62607015e-34;      // [J·s] Planck, J·s (CODATA 2018)
+CONST.SPEED_OF_LIGHT = 2.998e8;       // [m/s] c, m/s
+CONST.BOLTZMANN_KB = 1.380649e-23;    // [J/K] Boltzmann, J/K (CODATA 2018)
+CONST.STEFAN_BOLTZMANN = 5.670374419e-8; // [W/(m²·K⁴)] Stefan-Boltzmann, W/(m²·K⁴)
+CONST.SOLAR_CONSTANT = 1361;              // [W/m²] TSI W/m² (Kopp & Lean 2011, TSIS-1). 🔒 = L☉/(4π×AU²) = 3.828e26/(4π×1.496e11²)
+CONST.MAX_PLANCK_SAFE = 1e30;         // [W/(m²·sr·m)] Cap Planck (W/(m²·sr·m)) pour workers / transfert radiatif
 
 // ========== 2. PHYSIQUE DURE (propriétés intrinsèques) ==========
-CONST.R_GAS = 8.314;  // Gaz parfaits, J/(mol·K)
-CONST.M_N2 = 0.02801;   // N₂ kg/mol
-CONST.M_O2 = 0.03200;   // O₂ kg/mol
-CONST.M_CO2 = 0.04401;  // CO₂ kg/mol
-CONST.M_CH4 = 0.01604;  // CH₄ kg/mol
-CONST.M_H2O = 0.01802;  // H₂O kg/mol
-CONST.RHO_WATER = 1000;  // Densité eau kg/m³
+CONST.R_GAS = 8.314;  // [J/(mol·K)] Gaz parfaits, J/(mol·K)
+CONST.M_N2 = 0.02801;   // [kg/mol] N₂ kg/mol
+CONST.M_O2 = 0.03200;   // [kg/mol] O₂ kg/mol
+CONST.M_CO2 = 0.04401;  // [kg/mol] CO₂ kg/mol
+CONST.M_CH4 = 0.01604;  // [kg/mol] CH₄ kg/mol
+CONST.M_H2O = 0.01802;  // [kg/mol] H₂O kg/mol
+CONST.RHO_WATER = 1000;  // [kg/m³] Densité eau kg/m³
 // ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
 // C-C est une équation DIFFÉRENTIELLE : de/dT = L·e/(R_v·T²). L'intégrer donne ln e = −L/(R_v T) + C,
 // et cette constante d'intégration doit être fixée par UN point de la courbe de coexistence.
@@ -67,24 +67,24 @@ CONST.RHO_WATER = 1000;  // Densité eau kg/m³
 // v-2026-09-23 : P0_WATER valait 611,2 Pa à T0_WATER = 273,15 K, c'est-à-dire la saturation à
 //   0 °C — proche du point triple mais ni l'un ni l'autre exactement, et son commentaire annonçait
 //   « point triple » sur une valeur qui n'en était pas une.
-CONST.T_TRIPLE_WATER = 273.16;      // K   — point triple de l'eau (IAPWS)
-CONST.P_TRIPLE_WATER = 611.657;     // Pa  — pression de vapeur au point triple (IAPWS)
-CONST.L_VAPORIZATION = 2.5e6;  // Chaleur latente vaporisation (J/kg)
-CONST.RV_WATER = 461.5;  // R vapeur d'eau J/(kg·K)
-CONST.CP_AIR = 1005;  // Capacité calorifique air sec J/(kg·K)
-CONST.T_BOIL = 373.15;  // Ébullition eau 1 atm (K)
-CONST.T0_WATER = 273.15;  // K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
+CONST.T_TRIPLE_WATER = 273.16;      // [K] K   — point triple de l'eau (IAPWS)
+CONST.P_TRIPLE_WATER = 611.657;     // [Pa] Pa  — pression de vapeur au point triple (IAPWS)
+CONST.L_VAPORIZATION = 2.5e6;  // [J/kg] Chaleur latente vaporisation (J/kg)
+CONST.RV_WATER = 461.5;  // [J/(kg·K)] R vapeur d'eau J/(kg·K)
+CONST.CP_AIR = 1005;  // [J/(kg·K)] Capacité calorifique air sec J/(kg·K)
+CONST.T_BOIL = 373.15;  // [K] Ébullition eau 1 atm (K)
+CONST.T0_WATER = 273.15;  // [K] K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
 // triple (273,16 K, cf. CONST.T_TRIPLE_WATER) : l'ancien commentaire le disait à tort.
-CONST.T_LAVA_START = 1000;   // Transition lave (K)
-CONST.T_LAVA_COMPLETE = 2373;  // Lave complète (K)
-CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // CO₂ 15 μm
-CONST.LAMBDA_H2O_1 = 6.3e-6;
-CONST.LAMBDA_H2O_2 = 17.0e-6;
-CONST.LAMBDA_CH4_1 = 7.7e-6;
+CONST.T_LAVA_START = 1000;   // [K] Transition lave (K)
+CONST.T_LAVA_COMPLETE = 2373;  // [K] Lave complète (K)
+CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // [m] CO₂ 15 μm
+CONST.LAMBDA_H2O_1 = 6.3e-6;  // [m]
+CONST.LAMBDA_H2O_2 = 17.0e-6;  // [m]
+CONST.LAMBDA_CH4_1 = 7.7e-6;  // [m]
 
 // ========== 3. CONVERSION TEMPÉRATURE (DATA = K ; °C/°F = affichage) ==========
-CONST.KELVIN_TO_CELSIUS = CONST.T0_WATER;  // 273.15
-CONST.K2C = function (K) { return K - CONST.KELVIN_TO_CELSIUS; };
+CONST.KELVIN_TO_CELSIUS = CONST.T0_WATER;  // [K] 273.15
+CONST.K2C = function (K) { return K - CONST.KELVIN_TO_CELSIUS; };  // [ƒ K → °C]
 
 // ─── 12 CONSTANTES MORTES RETIRÉES le 2026-09-23 ──────────────────────────────────────────
 // Définies et jamais lues — ni dans le moteur, ni dans l'interface, ni dans les scripts inline
@@ -100,12 +100,12 @@ CONST.K2C = function (K) { return K - CONST.KELVIN_TO_CELSIUS; };
 // Banc : aucun écart, par construction — rien ne les lisait.
 // ========== CONV (convention : unités, références) ==========
 var CONV = window.CONV = window.CONV || {};
-CONV.AU_M = 1.496e11;
-CONV.STANDARD_ATMOSPHERE_PA = 101325;
-CONV.molar_mass_air_ref = 0.029;
-CONV.SECONDS_PER_DAY = 86400;
-CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;
-CONV.P_ANN_SCALE_MM_AN = 200000;
+CONV.AU_M = 1.496e11;  // [m]
+CONV.STANDARD_ATMOSPHERE_PA = 101325;  // [Pa]
+CONV.molar_mass_air_ref = 0.029;  // [kg/mol]
+CONV.SECONDS_PER_DAY = 86400;  // [s]
+CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;  // [s]
+CONV.P_ANN_SCALE_MM_AN = 200000;  // [mm/an]
 // CONV.O2_REF_MASS (1e18 kg) et CONV.CH4_REF_MASS (1e13 kg) SUPPRIMÉES le 2026-09-22 :
 // deux masses de référence sans source (des ordres de grandeur ronds) et surtout **lues nulle
 // part** — grep sur tout le projet : zéro usage hors leur propre définition. Du code mort qui
@@ -123,7 +123,7 @@ CONV.P_ANN_SCALE_MM_AN = 200000;
 //   ⚠️ L'ancienne valeur, 1,0e14, accompagnait le « proxy CCN » de configTimeline (📱 = 8,0e13) ;
 //   elle n'avait pas de source et 📱 y donnait 0,80 au lieu de 1,00. Voir configTimeline.js v1.4.89,
 //   encadré « MASSES DE SULFATE », et doc/MASSES_SULFATE_PAR_EPOQUE.md.
-CONV.CCN_SULFATE_REF_KG = 1.05e9;
+CONV.CCN_SULFATE_REF_KG = 1.05e9;  // [kg (de SO₄)]
 // CONV.H2O_VAPOR_REF (0,01 kg/kg) SUPPRIMÉE le 2026-09-22 : sans source, et morte. Seule trace
 // restante, un commentaire de calculations_albedo.js:222 qui dit que la formule qui l'utilisait
 // « n'est plus utilisée ». Elle a survécu à sa propre formule.
@@ -133,12 +133,12 @@ CONV.CCN_SULFATE_REF_KG = 1.05e9;
 var EARTH = window.EARTH = window.EARTH || {};
 // 🏷️ LEGACY — T_NO_POLAR_ICE_K = 293K était calibré comme seuil de T_GLOBALE (plus utilisé dans la formule 3-zones ;
 // conservé pour rétro-compat outils externes / logs). La formule glace utilise désormais T_FREEZE_SEAWATER + dT.
-EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // largeur de rampe ice_temp_factor (utilisée)
+EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // [K] largeur de rampe ice_temp_factor (utilisée)
 /** Plafond absolu ice_temp_factor. Depuis v2.0.15 = 1.0 (formule 3 zones normalisée par construction).
  *  Ancien 0.46 (≤ v2.0.14) : artefact Terre-moderne qui empêchait Snowball en capant la glace à 46%.
  *  Nouvelle formule (pol+mid+trop, Σf_z = 1.0) rend ce plafond physique et sûr à 1.0. */
-EARTH.ICE_FORMULA_MAX_FRACTION = 1.0;
-EARTH.T_ICE_TRANSITION_RANGE_K = 20;
+EARTH.ICE_FORMULA_MAX_FRACTION = 1.0;  // [m²/m² (fraction de surface englacée)]
+EARTH.T_ICE_TRANSITION_RANGE_K = 20;  // [K]
 
 // ─── Amplification latitudinale (EBM 0D 3 zones, Budyko-Sellers) — v2.0.15 ─────
 // Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où T_locale < T_freeze.
@@ -173,22 +173,22 @@ EARTH.T_ICE_TRANSITION_RANGE_K = 20;
 //   Mid (30°–60°)  = sin 60° − sin 30° = 0.366
 //   Trop (0°–30°)  = sin 30° − sin 0°  = 0.500
 //   Σ = 1.000  (cap physique correct, remplace l'artefact ICE_FORMULA_MAX_FRACTION=0.46)
-EARTH.POLAR_ZONE_FRAC    = 0.134;                              // fraction surface polaire
-EARTH.MIDLAT_ZONE_FRAC   = 0.366;                              // fraction surface mi-latitude
-EARTH.TROPICAL_ZONE_FRAC = 0.500;                              // fraction surface tropicale (0°–30°)
+EARTH.POLAR_ZONE_FRAC    = 0.134;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface polaire
+EARTH.MIDLAT_ZONE_FRAC   = 0.366;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface mi-latitude
+EARTH.TROPICAL_ZONE_FRAC = 0.500;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface tropicale (0°–30°)
 
 // ─── Amplitude saisonnière : largeur physique de la rampe glace ────────────────
 // Amplitude saisonnière pic-à-pic divisée par 2 (half-range été-hiver), CALIBRÉES à ε_REF.
 // Sources : ERA5 reanalysis 1991-2020 (T_mensuelles min/max) ; Peixoto & Oort 1992 ch.7.
 // 🏷️ FLOU SCIENTIFIQUE — l'amplitude dépend aussi de la capacité thermique (océan/continent),
 // circulation atmosphérique, ère glaciaire vs interglaciaire. Valeurs ci-dessous = Terre-moderne.
-EARTH.SEASONAL_AMP_POL_K  = 15;  // pôle : amplitude annuelle 2× (été + 15 K, hiver − 15 K) autour de la moyenne
-EARTH.SEASONAL_AMP_MID_K  = 25;  // mi-lat continentale : amplitude plus large (effet continentalité)
+EARTH.SEASONAL_AMP_POL_K  = 15;  // [K] pôle : amplitude annuelle 2× (été + 15 K, hiver − 15 K) autour de la moyenne
+EARTH.SEASONAL_AMP_MID_K  = 25;  // [K] mi-lat continentale : amplitude plus large (effet continentalité)
 // Tropical : faible saisonnalité (3 K pic-à-demi), dominée par océan chaud inertiel.
 //   Réf. ERA5 1991-2020, Peixoto & Oort 1992 ch.7 : ΔT mensuel tropical ≈ ±3 K.
 //   Combiné à dT_trop=-5 K → seuil haut T_trop_thresh_high = 271.15 + (-5) + 3 = 269.15 K (-4°C).
 //   Rampe étroite (largeur 6 K) → pente forte → bifurcation Budyko-Sellers classique.
-EARTH.SEASONAL_AMP_TROP_K = 3;   // tropical : amplitude annuelle faible (océan thermique)
+EARTH.SEASONAL_AMP_TROP_K = 3;   // [K] tropical : amplitude annuelle faible (océan thermique)
 
 // ─── Couplage obliquité ε (activé) ─────────────────────────────────────────────
 // ε = obliquité axiale (clé epoch '⚾'). Terre 2025 : ε_REF = 23.44°.
@@ -196,8 +196,8 @@ EARTH.SEASONAL_AMP_TROP_K = 3;   // tropical : amplitude annuelle faible (océan
 // Source : insolation annuelle latitude-dépendante f(ε) — Berger 1978, Laskar et al. 2004.
 // Hypothèse Archéen : Williams 1993 suggère ε ~ 45–70° (expliquerait glaciations basse-latitude
 // du Protérozoïque sans invoquer un Snowball global).
-EARTH.OBLIQUITY_DEG_REF = 23.44;     // référence où SEASONAL_AMP_*_K sont calibrés
-EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // défaut si l'epoch n'a pas de '⚾'
+EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont calibrés
+EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // [°] défaut si l'epoch n'a pas de '⚾'
 
 // ─── Redistribution méridienne de l'insolation par ε (Milankovitch) — v2.0.18 ──────────────
 // L'amplitude saisonnière ci-dessus ne dit QUE la moitié de l'histoire : une obliquité forte
@@ -218,9 +218,9 @@ EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // défaut si l'epoch n'a pas de '⚾'
 //
 // ⚠️ APPLIQUÉ EN ÉCART SEULEMENT : ΔT_z = f(ε_courant) − f(ε_époque). Les 🥶 de chaque époque sont
 // calibrés POUR son ε de config (ex. Archéen 45°) : à ε inchangé, le terme est nul et le banc ne bouge pas.
-EARTH.EBM_B_W_PER_M2_K = 2.0;
-EARTH.EBM_ALBEDO_REF = 0.30;
-EARTH.SOLAR_CONSTANT_REF_W = 1361;
+EARTH.EBM_B_W_PER_M2_K = 2.0;  // [W/(m²·K)]
+EARTH.EBM_ALBEDO_REF = 0.30;  // [W/W (flux réfléchi / flux incident)]
+EARTH.SOLAR_CONSTANT_REF_W = 1361;  // [W/m² (⚠️ le suffixe _W du nom est faux)]
 
 /** Insolation journalière moyenne (W/m²) à la latitude lat pour une déclinaison dec (degrés). */
 function dailyMeanInsolation(lat_deg, dec_deg) {
@@ -391,9 +391,9 @@ EARTH.computeIceTempFactor = function (T_glob_K, opts) {
         obliquity_ref_deg: obliquity_ref_deg, dT_obliquity: dT_oblq
     };
 };
-EARTH.EVAPORATION_E0 = 0.001;
-EARTH.EVAPORATION_T_REF = 288;
-EARTH.EVAPORATION_T_SCALE = 20;
+EARTH.EVAPORATION_E0 = 0.001;  // [kg/(m²·s)]
+EARTH.EVAPORATION_T_REF = 288;  // [K]
+EARTH.EVAPORATION_T_SCALE = 20;  // [K]
 /** Cap vapeur dynamique Clausius-Clapeyron (ERA5/AIRS). calculations_h2o.js : c_c_max = REF × exp(RATE × (T - T_REF)). */
 // ─── PLAFOND DE VAPEUR : plus de Clausius-Clapeyron linéarisée ────────────────────────────
 // Supprimés le 2026-09-22 :
@@ -427,35 +427,35 @@ EARTH.EVAPORATION_T_SCALE = 20;
 // doc/DIAGNOSTIC_RETROACTION_VAPEUR.md § « la deuxième erreur, trouvée sur commande ».
 // Repère de mesure : humidité relative de surface moyenne globale ~0,70–0,75 (ERA5). Le modèle
 // est à 0,623, donc un peu BAS. Non modifié ici : ce serait un calage.
-EARTH.H2O_SURFACE_RH_01 = 0.623;
+EARTH.H2O_SURFACE_RH_01 = 0.623;  // [Pa/Pa (humidité relative e/e_sat)]
 // Humidité relative de surface imposée en fin d'Init seulement (calculations_h2o.js). Remplace
 // H2O_VAPOR_REALISTIC_MAX_REF/RATE, dont le taux (0,013 K⁻¹) n'était PAS Clausius-Clapeyron et ne
 // venait de nulle part. Valeur = 0,0052/q_sat(288 K), pour que l'Init soit inchangée à 288 K.
 // ⚠️ Ce plafond fait doublon avec le précédent, en plus serré. Deux plafonds pour la même grandeur,
 // avec deux nombres différents et aucune source : à supprimer ou à justifier. SANS SOURCE.
-EARTH.H2O_SURFACE_RH_INIT_01 = 0.4986;
+EARTH.H2O_SURFACE_RH_INIT_01 = 0.4986;  // [Pa/Pa (humidité relative e/e_sat)]
 /** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
-EARTH.IRIS_STRENGTH = 0.02;   // amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
-EARTH.IRIS_T_SCALE_K = 10;    // échelle thermique (par 10 K)
-EARTH.IRIS_FACTOR_MIN = 0.7;  // plancher iris_factor (évite sur-assèchement)
-EARTH.T_FREEZE_SEAWATER_K = 271.15;
-EARTH.T_WATER_CYCLE_MIN_C = -10;
-EARTH.T_WATER_CYCLE_MAX_C = 150;
-EARTH.T_WATER_CYCLE_FREEZE_K_PER_ATM = 1;
-EARTH.T_WATER_CYCLE_MARGIN_GEL_K = 5;
-EARTH.T_WATER_CYCLE_EVAP_LOW_K = 323.15;
-EARTH.T_WATER_CYCLE_HIGH_K_PER_ATM = 5;
+EARTH.IRIS_STRENGTH = 0.02;   // [sans dimension (coefficient de ΔT/IRIS_T_SCALE_K)] amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
+EARTH.IRIS_T_SCALE_K = 10;    // [K] échelle thermique (par 10 K)
+EARTH.IRIS_FACTOR_MIN = 0.7;  // [sans dimension (plancher d'un facteur multiplicatif)] plancher iris_factor (évite sur-assèchement)
+EARTH.T_FREEZE_SEAWATER_K = 271.15;  // [K]
+EARTH.T_WATER_CYCLE_MIN_C = -10;  // [°C]
+EARTH.T_WATER_CYCLE_MAX_C = 150;  // [°C]
+EARTH.T_WATER_CYCLE_FREEZE_K_PER_ATM = 1;  // [K/atm]
+EARTH.T_WATER_CYCLE_MARGIN_GEL_K = 5;  // [K]
+EARTH.T_WATER_CYCLE_EVAP_LOW_K = 323.15;  // [K]
+EARTH.T_WATER_CYCLE_HIGH_K_PER_ATM = 5;  // [K/atm]
 /** Seuils pour recalcul partition eau (calculations_h2o.js) : recalcul seulement si ΔT > DELTA_T_K ou ΔP > DELTA_P_ATM. */
-EARTH.WATER_PARTITION_DELTA_T_K = 5;
-EARTH.WATER_PARTITION_DELTA_P_ATM = 1;
+EARTH.WATER_PARTITION_DELTA_T_K = 5;  // [K]
+EARTH.WATER_PARTITION_DELTA_P_ATM = 1;  // [atm]
 /** Précip convective (calculations_h2o.js) : facteur temp = (T / T_REF)^EXP_T, facteur RH = (RH / RH_REF)^EXP_RH. Lit. Held & Soden 2006, IPCC AR6 ; réponse précip plus lente que C-C. */
-EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // T ref (réutilise EVAPORATION_T_REF)
-EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // adouci vs C-C (~7%/K) pour éviter sur-assèchement
-EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // seuil RH convective typique (~70 %)
-EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // exposant facteur humidité (calib v1.0.8)
+EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // [K] T ref (réutilise EVAPORATION_T_REF)
+EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // [sans dimension (exposant)] adouci vs C-C (~7%/K) pour éviter sur-assèchement
+EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // [Pa/Pa (humidité relative)] seuil RH convective typique (~70 %)
+EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposant facteur humidité (calib v1.0.8)
 // Facteur κ_H2O global dans EDS. Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
 // Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré v2.0.10 (double-comptait pressure broadening HITRAN).
-EARTH.H2O_EDS_SCALE = 0.60;
+EARTH.H2O_EDS_SCALE = 0.60;  // [sans dimension (facteur sur κ_H₂O)]
 
 // ─── Facteur κ_CH4 global dans EDS (pressure broadening / saturation bandes) ─────
 // Parallèle à H2O_EDS_SCALE. Ajouté pour permettre un tuning fin du méthane sans toucher le line-by-line HITRAN.
@@ -469,7 +469,7 @@ EARTH.H2O_EDS_SCALE = 0.60;
 //     non-linéarité ; un scalar supplémentaire reste utile pour caler EDS_CH4 sur cible litt.
 // Plage tolérée pour tuning : [0.3, 1.5] (0.3 = bandes fortement saturées / overlap H2O, 1.5 = bonus Haqq-Misra bandes mineures).
 // NB : le seuil haze CH4/CO2 = 0.1 peut être vérifié dans calculateAlbedo (SW) plus tard.
-EARTH.CH4_EDS_SCALE = 1.0;
+EARTH.CH4_EDS_SCALE = 1.0;  // [sans dimension (facteur sur κ_CH₄)]
 
 // ─── Collision-Induced Absorption (CIA) CO₂–CO₂ / CO₂–N₂ ───────────────────────────────────
 // Réfs : Gruszka & Borysow 1997 (Icarus 129:172) ; Wordsworth et al. 2010 (Icarus 210:992) ; Hu et al. 2011.
@@ -478,7 +478,7 @@ EARTH.CH4_EDS_SCALE = 1.0;
 // Unité [m⁻¹ par amagat²]. Ordre de grandeur Gruszka-Borysow (pic far-IR ~1e-6 cm⁻¹/amagat² ≈ 1e-4 m⁻¹/amagat²).
 // Négligeable à bas CO₂ (∝ n_CO₂²) → n'affecte PAS la Terre moderne ni les époques ≤ quelques % CO₂.
 // À CALIBRER (par test) pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6 (Hu et al. 2011). 0 = désactivé.
-EARTH.CIA_CO2_SCALE = 1.0e-2;   // v-2026-07-15 : 1e-4→1e-2 (×100) TEST — la serre CO₂ s'inversait encore à 1e-4 (CIA trop faible OU pas branchée). Si ×100 casse l'inversion (EDS CO₂ MONTE avec le CO₂) → calibrer à la baisse. Si ça inverse TOUJOURS → la CIA n'atteint pas le worker (bug de branchement à déboguer).
+EARTH.CIA_CO2_SCALE = 1.0e-2;   // [m⁻¹·amagat⁻²] v-2026-07-15 : 1e-4→1e-2 (×100) TEST — la serre CO₂ s'inversait encore à 1e-4 (CIA trop faible OU pas branchée). Si ×100 casse l'inversion (EDS CO₂ MONTE avec le CO₂) → calibrer à la baisse. Si ça inverse TOUJOURS → la CIA n'atteint pas le worker (bug de branchement à déboguer).
 
 // ─── Seuil de brume organique (Haqq-Misra 2008 Fig. 1) ─────────────────────────
 // Rapport molaire CH4/CO2 au-delà duquel le méthane polymérise en Tholin (brume organique)
@@ -505,13 +505,13 @@ EARTH.CIA_CO2_SCALE = 1.0e-2;   // v-2026-07-15 : 1e-4→1e-2 (×100) TEST — l
 //   3. Baisser H2O_EDS_SCALE (jauge Science via fine_tuning_bounds) jusqu'à T_moderne ≈ 15°C
 //      Estimation : 0.948 → ~0.80 (réduit EDS HITRAN de 12 W/m² pour compenser MT_CKD apporté)
 //   4. Run bench Proté/Archéen, vérifier que la branche chaude existe maintenant
-EARTH.MT_CKD_ENABLED = false;
-EARTH.MT_CKD_SCALE = 1.71;
-EARTH.MT_CKD_T_REF_K = 296;
-EARTH.MT_CKD_T_EXPONENT = 4.25;
+EARTH.MT_CKD_ENABLED = false;  // [booléen]
+EARTH.MT_CKD_SCALE = 1.71;  // [(W/m²)/(g/cm²)² — piégeage par PWV²]
+EARTH.MT_CKD_T_REF_K = 296;  // [K]
+EARTH.MT_CKD_T_EXPONENT = 4.25;  // [sans dimension (exposant)]
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
-EARTH.CP_AIR_MOIST_J_KG_K = 1005;
+EARTH.CP_AIR_MOIST_J_KG_K = 1005;  // [J/(kg·K)]
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.42, '🪩🍰🌍': 0.18, // ⛅ v-2026-09-15 : 0.50→0.42 = réflectance nuage r_c de la méthode d'addition 2 couches (albedo v1.2.64) ; même α nuageux moderne (α_s≈0.18) que l'ancien 0.50 linéaire. Plage lit. 0.4–0.6.

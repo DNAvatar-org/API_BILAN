@@ -19,14 +19,14 @@
 
 /**
  * Contenu des réservoirs océaniques (kg CO₂), même ordre que CARBON_SINKS.oceanBoxes.
- * Hors DATA à dessein : neuf endroits du modèle remettent 📜🌊🔺⚖️🏭 à 0 pour purger le puits océan
+ * Hors DATA à dessein : neuf endroits du modèle remettent 📜🔺⚖️🌊🏭 à 0 pour purger le puits océan
  * (setEpoch, scie, hysteresis, search…) sans connaître ce découpage. Plutôt que d'aller les modifier
  * tous — et d'en oublier un —, syncOceanBoxes() se recale sur ce total à chaque appel : total 0 ⇒ tout
  * à zéro, total ≠ somme ⇒ remise à l'échelle. Le découpage est un détail du puits, pas un état du modèle.
  */
 var oceanBoxKg = null;
 
-/** Réaligne les réservoirs sur 📜🌊🔺⚖️🏭 (seule source de vérité du total absorbé). */
+/** Réaligne les réservoirs sur 📜🔺⚖️🌊🏭 (seule source de vérité du total absorbé). */
 function syncOceanBoxes(totalKg, boxes) {
     if (!oceanBoxKg || oceanBoxKg.length !== boxes.length) oceanBoxKg = boxes.map(function () { return 0; });
     if (!(totalKg > 0)) { oceanBoxKg = boxes.map(function () { return 0; }); return; }
@@ -101,7 +101,7 @@ function zonalSolubilityFactor() {
  * Un pas d'absorption océanique. Chaque réservoir relaxe vers k_i·A, A = excès resté dans l'air.
  * À l'équilibre ΣO = (Σratio/R)·A, soit exactement la partition de l'ancienne boîte unique :
  * même capacité, mais atteinte en 1 an / 50 ans / 350 ans selon le réservoir au lieu de 50 pour tout.
- * Écrit 📜🌊🔺⚖️🏭 (total absorbé) ; airExcess est fourni par l'orchestrateur.
+ * Écrit 📜🔺⚖️🌊🏭 (total absorbé) ; airExcess est fourni par l'orchestrateur.
  *
  * @param {number} dtYears    durée du pas (années)
  * @param {number} airExcess  E_cum − L − ΣO : excès de CO₂ resté dans l'air (kg)
@@ -120,7 +120,7 @@ function advanceOceanSinkStep(dtYears, airExcess, ppm_mid) {
         oceanBoxKg[i] = O_eq + (oceanBoxKg[i] - O_eq) * Math.exp(-dtYears / box.tauYears);
         newTotal += oceanBoxKg[i];
     }
-    DATA['📜']['🌊🔺⚖️🏭'] = newTotal;
+    DATA['📜']['🔺⚖️🌊🏭'] = newTotal;
 }
 
 /** Total actuellement dans les réservoirs (kg CO₂). */

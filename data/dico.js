@@ -19,7 +19,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['🌡️🧮', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔺🍰⚽', '🔺⚖️🏭', '🌊🔺⚖️🏭', '🌳🔺⚖️🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
+    '📜': ['🌡️🧮', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮','📿💫', '🔺⏳'],
     // Masses
@@ -64,8 +64,8 @@ const DESC = {
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
         '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction, 🌋)',
         '🔺⚖️🏭': 'Cumul CO₂ injecté par événements 📱 ⛽/🛢 (kg)',
-        '🌊🔺⚖️🏭': 'CO₂ injecté absorbé par l’océan (kg, Henry/Revelle)',
-        '🌳🔺⚖️🏭': 'CO₂ injecté stocké par les forêts (kg, fertilisation)',
+        '🔺⚖️🌊🏭': 'CO₂ injecté absorbé par l’océan (kg, Henry/Revelle)',
+        '🔺⚖️🌳🏭': 'CO₂ injecté stocké par les forêts (kg, fertilisation)',
         '⚾': 'Obliquité ε courante (°, 0 = celle de l’époque) — cycles de Milankovitch',
         '🔁⚖️': 'Masses imposées par l’état de cycle courant (🕰.🔁, ex. glaciaire/interglaciaire)',
         '🔁📝': 'Pourquoi de l’état de cycle courant (texte alt2sec de l’événement)',

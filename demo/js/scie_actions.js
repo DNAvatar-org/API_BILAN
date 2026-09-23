@@ -245,7 +245,7 @@ function initializeGlobals() {
     
     // Initialiser les valeurs dans DATA
     window.DATA['📜']['📿💫'] = 0;
-    window.DATA['📜']['🔺⚖️🏭'] = 0; window.DATA['📜']['🌊🔺⚖️🏭'] = 0; window.DATA['📜']['🌳🔺⚖️🏭'] = 0;
+    window.DATA['📜']['🔺⚖️🏭'] = 0; window.DATA['📜']['🔺⚖️🌊🏭'] = 0; window.DATA['📜']['🔺⚖️🌳🏭'] = 0;
     window.DATA['📜']['🔺⚖️💧'] = 0;
     window.DATA['📜']['🔺🍰⚽'] = 0;
     // IMPORTANT: Si animation activée, on NE TOUCHE PAS à DATA['🧮']['🧮🌡️']

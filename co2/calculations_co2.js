@@ -14,7 +14,7 @@
 // - v1.2.7: océan en 3 réservoirs (CONFIG_COMPUTE.CARBON_SINKS.oceanBoxes) au lieu d'une boîte unique.
 //   Chacun relaxe vers k_i·A avec A = excès resté dans l'air ; Σratio inchangé (capacité totale identique),
 //   seuls les temps diffèrent. Les 3 réservoirs ne vivent PAS dans DATA : neuf points du modèle remettent
-//   📜🌊🔺⚖️🏭 à 0 sans les connaître. Ils sont donc resynchronisés sur ce total à chaque appel.
+//   📜🔺⚖️🌊🏭 à 0 sans les connaître. Ils sont donc resynchronisés sur ce total à chaque appel.
 // - v1.2.6: advanceCarbonSinks INTÈGRE À L'ANNÉE (CARBON_SINKS.stepYears = 1) au lieu d'un seul pas de Δt.
 //   Un clic de 25 ans versait la totalité de l'émission à l'instant zéro puis laissait les puits agir
 //   25 ans dessus : le CO₂ émis en 2024 avait autant de temps d'absorption que celui de 2000. Le pas
@@ -178,7 +178,7 @@ function calculateCO2Partition() {
 
 /**
  * Puits de carbone du CO₂ INJECTÉ (📜🔺⚖️🏭 = E, kg CO₂) — appelé UNE fois par événement de durée dtYears.
- * État : O = 📜🌊🔺⚖️🏭 (absorbé océan, ocean/sinks_ocean.js), L = 📜🌳🔺⚖️🏭 (stocké forêts,
+ * État : O = 📜🔺⚖️🌊🏭 (absorbé océan, ocean/sinks_ocean.js), L = 📜🔺⚖️🌳🏭 (stocké forêts,
  * land/sinks_land.js). Atmosphère = ⚖️🏭 époque + E − O − L (compute.js getMasses).
  * Ce fichier n'ORCHESTRE que : il découpe le temps, calcule le CO₂ de milieu de pas, et appelle
  * les deux puits. Leur physique respective vit dans leur propre fichier.
@@ -192,8 +192,8 @@ function advanceCarbonSinks(dtYears, emittedKg) {
     const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
     const P = window.DATA['📜'];
     window.OCEAN_SINK.assertOceanCapacity(CS.oceanBoxes);
-    window.OCEAN_SINK.syncOceanBoxes(P['🌊🔺⚖️🏭'], CS.oceanBoxes);
-    window.LAND_SINK.syncLandStocks(P['🌳🔺⚖️🏭']);
+    window.OCEAN_SINK.syncOceanBoxes(P['🔺⚖️🌊🏭'], CS.oceanBoxes);
+    window.LAND_SINK.syncLandStocks(P['🔺⚖️🌳🏭']);
     const nSteps = Math.max(1, Math.round(dtYears / CS.stepYears));
     const dt = dtYears / nSteps;
     const emitPerStep = emittedKg / nSteps;
@@ -205,7 +205,7 @@ function advanceCarbonSinks(dtYears, emittedKg) {
 
 /**
  * Un pas d'intégration des puits. E_cum = cumul émis À LA FIN du pas (kg CO₂), emitStep = ce qu'a versé le pas.
- * Ne touche pas à 📜🔺⚖️🏭 : seuls O (📜🌊🔺⚖️🏭) et L (📜🌳🔺⚖️🏭) avancent.
+ * Ne touche pas à 📜🔺⚖️🏭 : seuls O (📜🔺⚖️🌊🏭) et L (📜🔺⚖️🌳🏭) avancent.
  * Forêts d'abord, océan ensuite : l'océan ne voit que ce que la biosphère n'a pas pris.
  */
 function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
@@ -215,14 +215,14 @@ function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     const P = DATA['📜'];
     const C0 = EPOCH['⚖️🏭'];                        // équilibre de l'époque (kg)
     // CO₂ atmosphérique au MILIEU du pas (émission étalée sur dt)
-    const C_mid = C0 + E_cum - emitStep / 2 - P['🌊🔺⚖️🏭'] - P['🌳🔺⚖️🏭'];
+    const C_mid = C0 + E_cum - emitStep / 2 - P['🔺⚖️🌊🏭'] - P['🔺⚖️🌳🏭'];
     // ppm via composition du dernier calcul (fraction massique × M_air / M_CO2)
     const ppmPerKg = (DATA['🫧']['🍰🫧🏭'] * 1e6 * DATA['🫧']['🧪'] / CONST.M_CO2) / DATA['⚖️']['⚖️🏭'];
     const ppm_mid = C_mid * ppmPerKg;
 
     window.LAND_SINK.advanceLandSinkStep(dtYears, C_mid, C0, emitStep);
 
-    const airExcess = E_cum - P['🌳🔺⚖️🏭'] - window.OCEAN_SINK.totalKg();
+    const airExcess = E_cum - P['🔺⚖️🌳🏭'] - window.OCEAN_SINK.totalKg();
     window.OCEAN_SINK.advanceOceanSinkStep(dtYears, airExcess, ppm_mid);
 }
 

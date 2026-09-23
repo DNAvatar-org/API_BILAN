@@ -20,12 +20,12 @@
 /**
  * Les trois stocks (kg CO₂) et le temps écoulé depuis le début de l'époque (années).
  * Hors DATA pour la même raison que les réservoirs océaniques : neuf endroits du modèle remettent
- * 📜🌳🔺⚖️🏭 à 0 sans connaître ce découpage. syncLandStocks() se recale sur ce total à chaque appel.
+ * 📜🔺⚖️🌳🏭 à 0 sans connaître ce découpage. syncLandStocks() se recale sur ce total à chaque appel.
  */
 var landStocksKg = null;   // { fert, ndep, regrow }
 var landElapsedYears = 0;
 
-/** Réaligne les stocks sur 📜🌳🔺⚖️🏭 (seule source de vérité du total stocké). */
+/** Réaligne les stocks sur 📜🔺⚖️🌳🏭 (seule source de vérité du total stocké). */
 function syncLandStocks(totalKg) {
     if (!landStocksKg) landStocksKg = { fert: 0, ndep: 0, regrow: 0 };
     if (!(totalKg > 0)) {
@@ -61,7 +61,7 @@ function effectiveBeta() {
 }
 
 /**
- * Un pas de stockage terrestre. Écrit 📜🌳🔺⚖️🏭 (total stocké), somme des trois mécanismes.
+ * Un pas de stockage terrestre. Écrit 📜🔺⚖️🌳🏭 (total stocké), somme des trois mécanismes.
  *
  * @param {number} dtYears   durée du pas (années)
  * @param {number} C_mid     masse de CO₂ atmosphérique au milieu du pas (kg)
@@ -95,7 +95,7 @@ function advanceLandSinkStep(dtYears, C_mid, C0, emitStepKg) {
         * Math.exp(-landElapsedYears / CS.landRegrowthTauYears) * dtYears;
 
     landElapsedYears += dtYears;
-    DATA['📜']['🌳🔺⚖️🏭'] = landStocksKg.fert + landStocksKg.ndep + landStocksKg.regrow;
+    DATA['📜']['🔺⚖️🌳🏭'] = landStocksKg.fert + landStocksKg.ndep + landStocksKg.regrow;
 }
 
 /** Détail par mécanisme (kg CO₂) — diagnostic / affichage. */

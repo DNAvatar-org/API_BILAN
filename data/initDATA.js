@@ -62,21 +62,38 @@
         baryByGroup: { ATM: 65, CLOUD_SW: 65, SCIENCE: 65, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
+        // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
+        // 🔎 Paramètres (CO2/scripts/params_doc/generate.py) la lit là et REFUSE d'écrire si elle manque.
         CLOUD_SW: {
-            CCN_BASE: 0.15, CCN_O2_WEIGHT: 0.85, BIOMASS_GAIN: 4.0,
-            ANTHRO_RISE_START_YEAR: 1900, ANTHRO_RISE_WINDOW_YEARS: 80, ANTHRO_RISE_MAX: 0.25,
-            ANTHRO_DECAY_START_YEAR: 1980, ANTHRO_DECAY_WINDOW_YEARS: 40, ANTHRO_DECAY_MAX: 0.15,
+            CCN_BASE: 0.15,                  // [sans dimension (proxy CCN relatif)]
+            CCN_O2_WEIGHT: 0.85,             // [(kg/kg)⁻¹ — multiplie 🍰🫧🫁, massique]
+            BIOMASS_GAIN: 4.0,               // [(m²/m²)⁻¹ — multiplie 🍰🪩🌳, surfacique]
+            ANTHRO_RISE_START_YEAR: 1900,    // [an (calendrier) — ⚠️ comparé à EPOCH['▶']]
+            ANTHRO_RISE_WINDOW_YEARS: 80,    // [an]
+            ANTHRO_RISE_MAX: 0.25,           // [sans dimension (hausse relative du proxy CCN)]
+            ANTHRO_DECAY_START_YEAR: 1980,   // [an (calendrier) — ⚠️ comparé à EPOCH['▶']]
+            ANTHRO_DECAY_WINDOW_YEARS: 40,   // [an]
+            ANTHRO_DECAY_MAX: 0.15,          // [sans dimension (baisse relative du proxy CCN)]
             // SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX supprimés (2026-09-22) : le facteur linéaire
             // et son plafond posé à la main sont remplacés par la loi de puissance mesurée de
             // McCoy 2018 (aerosols/sulfate_ccn.js). Une loi de puissance sature toute seule.
-            SULFATE_CCN_EXPONENT: 0.29,   // = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
-            MODERN_REF_O2: 0.21, MODERN_REF_FOREST: 0.03,
-            PRESSURE_FACTOR_MAX: 1.2, OXIDATION_BASE: 0.3, OXIDATION_O2_GAIN: 4.0,
+            SULFATE_CCN_EXPONENT: 0.29,      // [sans dimension (exposant de McCoy 2018)] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            // ⚠️ MODERN_REF_O2 est lue à côté de 🍰🫧🫁, qui est MASSIQUE (règle de l'alphabet). Or 0,21
+            // est la fraction MOLAIRE de l'O₂ ; la massique vaut 0,2314. Signalé, pas corrigé (banc requis).
+            MODERN_REF_O2: 0.21,             // [kg/kg (massique, comme 🍰🫧🫁) — ⚠️ valeur molaire]
+            MODERN_REF_FOREST: 0.03,         // [m²/m² (surfacique, comme 🍰🪩🌳)]
+            PRESSURE_FACTOR_MAX: 1.2,        // [atm (plafond de 🎈)]
+            OXIDATION_BASE: 0.3,             // [sans dimension]
+            OXIDATION_O2_GAIN: 4.0,          // [(kg/kg)⁻¹ — multiplie 🍰🫧🫁, massique]
             // TEMP_FACTOR_* supprimés (v1.1.1) : remplacés par la partition de phase
             // Hu & Stamnes (1993) codée en dur dans calculations_albedo.js (calib stable).
-            OPTICAL_EFF_BASE: 1.20, OPTICAL_EFF_CCN_GAIN: 0.60,
-            OXIDATION_SOFT_BASE: 0.85, OXIDATION_SOFT_GAIN: 0.15,
-            CLOUD_FRACTION_BASE: 0.23, CLOUD_FRACTION_INDEX_GAIN: 0.14, CLOUD_FRACTION_MAX: 0.75
+            OPTICAL_EFF_BASE: 1.20,          // [sans dimension (facteur d'efficacité optique)]
+            OPTICAL_EFF_CCN_GAIN: 0.60,      // [sans dimension] ⚠️ lue par AUCUNE formule (seulement des libellés d'UI)
+            OXIDATION_SOFT_BASE: 0.85,       // [sans dimension]
+            OXIDATION_SOFT_GAIN: 0.15,       // [sans dimension]
+            CLOUD_FRACTION_BASE: 0.23,       // [m²/m² (fraction du globe couverte de nuages)]
+            CLOUD_FRACTION_INDEX_GAIN: 0.14, // [m²/m² par unité de cloud_index]
+            CLOUD_FRACTION_MAX: 0.75         // [m²/m² (plafond de la fraction nuageuse)]
         },
 
         // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →

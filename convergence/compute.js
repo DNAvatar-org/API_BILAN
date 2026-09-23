@@ -153,7 +153,7 @@ function getMasses() {
     // (Perdu au refactor d92a02e du 20/04/2026 : les clics ne changeaient plus le CO₂.)
     if (EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(k => !isNaN(Number(k)))) {
         // Conservation : injecté − absorbé océan − stocké forêts (CO2.advanceCarbonSinks, calculations_co2.js)
-        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'] - DATA['📜']['🌊🔺⚖️🏭'] - DATA['📜']['🌳🔺⚖️🏭'];
+        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'] - DATA['📜']['🔺⚖️🌊🏭'] - DATA['📜']['🔺⚖️🌳🏭'];
     }
 
     syncDryAtmosphereMassKg(base);

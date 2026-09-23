@@ -1694,7 +1694,7 @@ window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
 
 // ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢/🪾) — v1.4.92 ────────────────
 // Modèle de PERTURBATION : la composition de chaque époque (config) est un équilibre ; seul le CO₂ injecté E
-// (📜🔺⚖️🏭) est partagé entre atmosphère, océan (O = 📜🌊🔺⚖️🏭) et forêts (L = 📜🌳🔺⚖️🏭).
+// (📜🔺⚖️🏭) est partagé entre atmosphère, océan (O = 📜🔺⚖️🌊🏭) et forêts (L = 📜🔺⚖️🌳🏭).
 // Atmosphère = ⚖️🏭 époque + E − O − L (conservation, compute.js getMasses). CO2.advanceCarbonSinks intègre
 // l'événement par pas de stepYears, remis à 0 avec E au changement d'époque (setEpoch).
 //
