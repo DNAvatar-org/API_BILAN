@@ -3,9 +3,13 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.1.0
+// Version 2.2.1
 // Date: [September 19, 2026]
 // logs :
+//   - v2.2.1: 📅 = date en ANNÉES (était « Ma », faux : 📜📅, ▶ et ◀ sont en années) ; 📅🌕 / 📅🧊🌕 = âges de l'intérieur.
+//   - v2.2.0: le Cryogénien a DEUX glaciations (Hoffman et al. 2017) : ⛄ Snowball Sturtien (717–659),
+//     🌦 hysteresis 1b Sortie Sturtienne + interglaciaire (659–639), 🏂 Snowball Marinoen (639–635,2),
+//     ⛈ hysteresis 1c Sortie Marinoenne (635,2–538,8). Avant, un seul Snowball fusionnait les deux.
 //   - v2.1.0: LA RÈGLE DE L'ALPHABET écrite (1ᵉʳ caractère = unité ; pour 🍰, le 2ᵉ dit la nature du
 //     rapport). ⚗ quitte la colonne Unités pour Événements — c'est une action d'interface. 🧪 devient
 //     le marqueur MOLAIRE, 🧲⚖️ le flux de masse. Deux clés renommées pour respecter la règle :
@@ -96,9 +100,12 @@ const CHARS = {
     PROTEROZOIC: '🪸', // Protérozoïque (2500–750 Ma) : corail (multicellularité, eucaryotes)
     HYSTERESIS_1A: 'hysteresis 1a', // Sturtienne (750–720 Ma) — bascule albédo↓ (id stable, logo ☃)
     SNOWBALL_ENTRY: '☃', // Entrée Sturtienne (alias affichage hyst 1a)
-    SNOWBALL: '⛄',  // Plein Snowball (720–690 Ma) : accumulation CO₂ sous glace
-    HYSTERESIS_1B: 'hysteresis 1b', // Sortie Marinoen (690–600 Ma) — hyst 1b (id stable, logo ⛈)
-    SNOWBALL_EXIT: '⛈', // Sortie Marinoen (alias affichage hyst 1b) : déglaciation brutale, pluies acides
+    SNOWBALL: '⛄',  // Snowball Sturtien (717–659 Ma) : accumulation CO₂ sous glace
+    HYSTERESIS_1B: 'hysteresis 1b', // Sortie Sturtienne + interglaciaire (659–639 Ma) — hyst 1b (id stable, logo 🌦)
+    CRYO_INTERLUDE: '🌦', // Sortie Sturtienne / interglaciaire cryogénien (alias affichage hyst 1b)
+    SNOWBALL_MARINOAN: '🏂', // Snowball Marinoen (639–635,2 Ma) : 2ᵉ glaciation globale
+    HYSTERESIS_1C: 'hysteresis 1c', // Sortie Marinoenne (635,2–538,8 Ma) — hyst 1c (logo ⛈)
+    SNOWBALL_EXIT: '⛈', // Sortie Marinoenne (alias affichage hyst 1c) : déglaciation brutale, pluies acides
     PALEOZOIC_MARINE: '🪼', // Paléozoïque marin (600–420 Ma) : méduse (vie marine, explosion cambrienne)
     PALEOZOIC_LAND: '🍄', // Paléozoïque terrestre (420–280 Ma) : champignon (Prototaxites, forêts Dévonien)
     PERMIAN_TRIASSIC: '💀', // Extinction permienne (280–250 Ma) : crise Permien-Trias −252 Ma, Trapps sibériens
@@ -244,8 +251,10 @@ const CHARS_DESC = {
     '🦠': 'Archéen',
     '🪸': 'Protérozoïque',
     '☃': 'Sturtienne',
-    '⛄': 'Plein Snowball',
+    '⛄': 'Snowball Sturtien',
+    '🏂': 'Snowball Marinoen',
     '⛈': 'Sortie Marinoen',
+    '🌦': 'Sortie Sturtienne',
     '🪼': 'Paléozoïque marin',
     '🍄': 'Paléozoïque terrestre',
     '💀': 'Extinction permienne',
@@ -255,7 +264,8 @@ const CHARS_DESC = {
     '🐧': 'Eocène-Oligocène',
     '⛰': 'Montagne (relief)',
     'hysteresis 1a': 'Sturtienne',
-    'hysteresis 1b': 'Sortie Marinoen',
+    'hysteresis 1b': 'Sortie Sturtienne',
+    'hysteresis 1c': 'Sortie Marinoen',
     'hysteresis 2': 'Eocène-Oligocène',
     '🏔': 'Grande Coupure',
     '🦣': 'Quaternaire',
@@ -268,7 +278,7 @@ const CHARS_DESC = {
     '🌙': 'Carte de nuit (superposée)',
     '⚾': 'Obliquité ε (°)',
     '⏩': 'Transition',
-    '📅': 'Date (Ma)',
+    '📅': 'Date (années : avant 2025 pour une époque géologique, calendaires pour 🛖 🚂 📱)',
     '📐': 'Rayon planète',
     '🍎': 'Gravité (m/s²)',
     '┴': 'Point triple de l\'eau (🎈,🌡️) = 611,657 Pa à 273,16 K (IAPWS)'

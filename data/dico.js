@@ -3,9 +3,11 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.1
-// Date: [September 19, 2026]
+// Version 2.0.2
+// Date: [September 24, 2026]
 // logs :
+//   - v2.0.2 (2026-09-24): 🌕 porte l'état de l'INTÉRIEUR (🌡️🌕, 📅🌕, 📅🧊🌕 — geology/interieur.js) ; 🔺🧲🌕💫 retirée
+//     (rampe de flux par tic : remplacée par le bilan d'énergie).
 //   - v2.0.1 (2026-09-23): 4 clés mortes retirées — ⏳☔ (lue seulement dans des lignes commentées),
 //     🧮🔄 (remise à 0, jamais lue), 🎈┴💧 et 🌡️┴💧 (jamais des valeurs de DATA : le code lit
 //     CONST.P_TRIPLE_WATER / CONST.T_TRIPLE_WATER ; la famille 💎 disparaît avec elles).
@@ -22,7 +24,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['🌡️🧮', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🧲🌕💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
+    '📜': ['🌡️🧮', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮','📿💫', '🔺⏳'],
     // Masses
@@ -40,7 +42,7 @@ const KEYS = {
     // Soleil
     '☀️': ['🧲☀️', '🧲☀️🎱', '🔋☀️'],
     // Noyau
-    '🌕': ['🧲🌕', '🔋🌕'],
+    '🌕': ['🧲🌕', '🔋🌕', '🌡️🌕', '📅🌕', '📅🧊🌕'],
     // EDS breakdown (🧲📛, 🍰📛❀, 🧲📛❀) ; 🔺📛❀ = diagnostic ΔF (convention affichage, pas calcul T)
     // 🔺📛🏭, 🔺📛🐄 et 🔺📿📛 retirées le 2026-09-23 : jamais écrites ni lues (page 🔎 Paramètres).
     '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧'],
@@ -61,7 +63,6 @@ const DESC = {
         '📿☄️': 'Nombre de météore',
         '🔺⚖️💧☄️': 'Masse H₂O / météore',
         '🔺🌡️💫': 'Delta t° / ticTime',
-        '🔺🧲🌕💫': 'Delta Geoth / ticTime',
         '📿🕰': 'Nombre d’entrées de 🕰.order déjà consommées dans l’époque (curseur ; la config n’est pas modifiée)',
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
         '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction, 🌋)',
@@ -155,8 +156,11 @@ const DESC = {
         '🧮🔄🌊': 'Cycle eau (0=init, 1+=après crossing)',
     },
     '🌕': {
-        '🧲🌕': 'Flux géothermique',
-        '🔋🌕': 'Puissance du noyau',
+        '🧲🌕': 'Flux géothermique (flux de l\'intérieur à la surface)',
+        '🔋🌕': 'Puissance perdue par l\'intérieur',
+        '🌡️🌕': 'Température potentielle de l\'intérieur (état porté d\'un clic à l\'autre)',
+        '📅🌕': 'Date de cet état (années avant 2025)',
+        '📅🧊🌕': 'Date de solidification de l\'océan de magma (années avant 2025 ; 0 = pas encore)',
     },
     '📛': {
         '🧲📛': 'EDS (effet de serre) W/m² = 🧲🌑🔼 − 🧲🌈🔼. OLR = 🧲🌈🔼 = flux IR sortant au sommet ; EDS = flux « bloqué » par l’atmosphère. EDS insuffisant ⟺ OLR trop élevé (même T surface).',
@@ -221,8 +225,11 @@ const FORM = {
         '🔋☀️': 'Puissance totale du soleil (W)'
     },
     '🌕': {
-        '🧲🌕': '🔋🌕 / (4π × R²) = Flux géothermique (W/m²), où R = rayon planète (m)',
-        '🔋🌕': 'Puissance totale du noyau (W)'
+        '🧲🌕': '🔋🌕 / (4π × R²) = Flux géothermique (W/m²), où R = rayon planète (m). Intérieur fondu : 🧲🌈🔼 − 🧲☀️🔽 (surface = magma)',
+        '🔋🌕': 'Q(🌡️🌕) = Q₀ (ΔT/ΔT₀)^(1+β) (η(T₀)/η(T))^β, convection sous couche limite (W) — geology/interieur.js',
+        '🌡️🌕': 'C(T) dT/dt = H(t) − Q(T) : radiogénique U, Th, K moins la perte en surface (K)',
+        '📅🌕': 'Âge de l\'état 🌡️🌕 (années avant 2025)',
+        '📅🧊🌕': 'Âge où 🌡️🌕 franchit la transition rhéologique T_sol + 0,4 (T_liq − T_sol) (années avant 2025)'
     },
     '🫧': {
         '🎈': 'P = ((⚖️🫧 + m_vapeur) × 🍎) / (4π×(📐×1000)²) / CONV.STANDARD_ATMOSPHERE_PA, avec m_vapeur = ⚖️🫧×🍰🫧💧/(1-🍰🫧💧) - Pression atmosphérique (air sec + vapeur)',

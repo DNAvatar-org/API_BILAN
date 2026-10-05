@@ -1,9 +1,13 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.2.107
-// Date: [May 07, 2026]
+// Version 1.2.108
+// Date: [September 24, 2026]
 // Logs:
+// - v1.2.108: INTÉRIEUR (geology/interieur.js) — au 1er passage, l'état thermique de l'intérieur est amené à la
+//   date courante (bilan d'énergie) ; tant qu'il est fondu, la surface EST le magma (T de départ = 🌡️🌕) et le
+//   flux intérieur 🧲🌕 = OLR − solaire absorbé, lu sur le transfert radiatif de l'init. olrNetA(T) : OLR − S à
+//   T imposée, pour intégrer le refroidissement de l'océan de magma.
 // - v1.2.106: detectDeltaPeriod2Stall — sur 4 pas, signes strictement alternés et Δ[i]≈Δ[i−2] (hystérésis type
 //   −0,68/+1,79/−0,60/+1,72). Chaîne boucle branchée : hist 🧮🌡️Hist, stagnation T vs n−1/n−2/n−3,
 //   detectOscillationStallOnTrace après trace (plus seulement au max_iter). Fin max_iter utilise le même agrégat.
@@ -722,6 +726,13 @@ async function computeRadiativeTransfer(callback, options) {
     if (currentWaterPass === 0) {
         window._fromCrossing = false;
         DATA['🧮']['🧮🔄🪩'] = 0;
+        // Intérieur amené à la date courante (bilan d'énergie, geology/interieur.js). Fondu : la surface EST le
+        // magma — la T de départ est celle de l'intérieur, et le flux intérieur sortira du radiatif de l'init.
+        await window.INTERIEUR.avancer(DATA, olrNetA);
+        if (window.INTERIEUR.estFondu(DATA)) {
+            const Tm = DATA['🌕']['🌡️🌕'];
+            DATA['🧮']['🧮🌡️'] = Tm; DATA['🧮']['🧮🌡️⏮'] = Tm; DATA['🧮']['🧮🌡️🚩'] = Tm;
+        }
     }
 
     // Spin-up climatologique : cycles et refs confirmés en config (majuscules). Poids = ratio clampé [0,1].
@@ -828,11 +839,16 @@ async function computeRadiativeTransfer(callback, options) {
     const T_input_K = DATA['🧮']['🧮🌡️'];
     const albedo_init = (DATA['🪩'] && Number.isFinite(DATA['🪩']['🍰🪩📿'])) ? DATA['🪩']['🍰🪩📿'] : 0;
     const flux_solaire_absorbe_init = DATA['☀️']['🧲☀️🎱'] * (1 - albedo_init);
-    const flux_entrant_init = flux_solaire_absorbe_init + DATA['🌕']['🧲🌕'];
 
     const calcFluxInitOk = await window.calculateFluxForT0();
     if (calcFluxInitOk !== true) return Promise.reject(new Error('calculateFluxForT0() a échoué'));
     const spectral_result_init = window.RADIATIVE.getSpectralResultFromDATA();
+    // Intérieur fondu : ce qu'il perd est ce qui part vers l'espace moins ce que le Soleil apporte (surface = magma).
+    if (currentWaterPass === 0 && window.INTERIEUR.estFondu(DATA)) {
+        DATA['🌕']['🧲🌕'] = spectral_result_init.total_flux - flux_solaire_absorbe_init;
+        DATA['🌕']['🔋🌕'] = DATA['🌕']['🧲🌕'] * 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
+    }
+    const flux_entrant_init = flux_solaire_absorbe_init + DATA['🌕']['🧲🌕'];
     if (spectral_result_init.lambda_range && spectral_result_init.z_range) {
         const bins = spectral_result_init.lambda_range.length;
         const layers = spectral_result_init.z_range.length;
@@ -1546,6 +1562,34 @@ CONVERGE.updateConvergenceBounds = updateConvergenceBounds;
 CONVERGE.computeRadiativeTransfer = computeRadiativeTransfer; // async (RAF yield indispensable), callback optionnel, options({renderMode})
 CONVERGE.newDate = newDate;
 CONVERGE.snapshotEdsForConvergence = snapshotEdsForConvergence;
+
+// ── OLR − SOLAIRE ABSORBÉ À T IMPOSÉE (v1.2.108) ────────────────────────────────────────────────────
+// Ce qu'une surface à T_K perd net vers l'espace [W/m²], avec l'atmosphère et l'albédo COURANTS : mêmes
+// fonctions que la convergence (préparation de la sonde ci-dessous). Sert à intégrer le refroidissement de
+// l'océan de magma (INTERIEUR.avancer). L'état de DATA est rendu tel qu'il était.
+async function olrNetA(T_K) {
+    const DATA = window.DATA;
+    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'] };
+    const pin = (T) => { DATA['🧮']['🧮🌡️'] = T; DATA['🧮']['🧮🌡️⏮'] = T; DATA['🧮']['🧮🌡️🚩'] = T; };
+    const preparer = () => {
+        window.ATM.calculateAtmosphereComposition();
+        window.ATM.updateAtmosphereHeightFromCurrentT();
+        window.H2O._lastH2OParamsCache = null;
+        window.H2O.calculateH2OParameters();
+        window.ALBEDO.calculateAlbedo();
+    };
+    try {
+        pin(T_K); preparer(); pin(T_K);
+        if (await window.calculateFluxForT0() !== true) throw new Error('[olrNetA] calculateFluxForT0 a échoué à ' + T_K + ' K');
+        const OLR = window.RADIATIVE.getSpectralResultFromDATA().total_flux;
+        const Sabs = DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']);
+        return OLR - Sabs;
+    } finally {
+        pin(save.T); DATA['🧮']['🧮🌡️⏮'] = save.Tp; DATA['🧮']['🧮🌡️🚩'] = save.Tf;
+        preparer();
+    }
+}
+CONVERGE.olrNetA = olrNetA;
 
 // ── SONDE DIAGNOSTIC : OLR(CO₂) à T FIGÉE (v-2026-07-16) ───────────────────────────────────────
 // But : isoler la réponse RADIATIVE PURE de la boucle de convergence. Sur la branche froide, si l'OLR

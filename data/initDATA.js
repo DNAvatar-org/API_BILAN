@@ -5,9 +5,10 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.8
+// Version 1.3.9
 // Date: [July 16, 2026]
 // Logs:
+// - v1.3.9: plus de cas 🔺🧲🌕💫 (clé retirée : le flux intérieur sort de geology/interieur.js).
 // - v1.3.8: DATA['🔘'] = { '🔘🎞': false } — init hors KEYS/dico (catégorie 🔘 retirée du dico ; anim reste runtime)
 // - v1.3.7: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 45 % (flou scientifique / jauge titre visu).
 // - v1.3.6: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 13 % (calage utilisateur flou) ; miroir CONFIG_COMPUTE.baryByGroupDefault.
@@ -184,8 +185,6 @@
                 DATA[categoryKey][fullKey] = '';
             } else if (fullKey.includes('☯')) {
                 DATA[categoryKey][fullKey] = 0;
-            } else if (fullKey === '🔺🧲🌕💫') {
-                DATA[categoryKey][fullKey] = { '▶': 0, '◀': 0 };
             } else {
                 DATA[categoryKey][fullKey] = 0.0;
             }

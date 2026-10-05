@@ -1,8 +1,9 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.3.9
+// Version 1.3.10
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
+// - v1.3.10: flux géothermique lu dans DATA['🌕']['🧲🌕'] (geology/interieur.js) — plus EPOCH['🧲🌕'] ni EPOCH.geothermal_flux.
 // - v1.3.7: maxDichotomyIterations — lecture sécurisée (nombre fini > 0) ; si absent/NaN → 30 (iter >= undefined ne stoppe jamais).
 // - v1.3.6: plafond dichotomie T0 — CONFIG_COMPUTE.maxDichotomyIterations (défaut 30) au lieu de 20 codé en dur (max_iterations + sortie iter).
 // - v1.3.5: miroir debugMirrorConfigLogToFile('logEdsDiagnostic', …) des lignes DIAG CO2 / workers / performDichotomy → _logs/eds.txt
@@ -1148,7 +1149,7 @@ function displayDichotomyStep(CO2_fraction, T0_test, result, iteration, isInitia
     // 
     const h2o_enabled = true;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const geo_flux = EPOCH['🧲🌕'];
+    const geo_flux = DATA['🌕']['🧲🌕'];   // flux intérieur : UNE source (geology/interieur.js)
     const ch4_enabled = true;
     const CH4_fraction = DATA['🫧']['🍰🫧🐄'];
 
@@ -1553,7 +1554,7 @@ async function simulateRadiativeTransfer() {
                         return;
                     }
                     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-                    const geo_flux = EPOCH.geothermal_flux || null;
+                    const geo_flux = DATA['🌕']['🧲🌕'];   // flux intérieur : UNE source (geology/interieur.js)
                     // 🔒 CORRECTION : Utiliser DATA directement, pas le bouton
                     const solar_flux_absorbed = window.ALBEDO.calculateSolarFluxAbsorbed();
 
@@ -2151,7 +2152,7 @@ function finalizeResults(final_result, final_T0, CO2_fraction, resolve) {
     // 🔒 SEUL l'état du bouton compte pour déterminer si H2O est activé (pas de booléens en trop)
     const h2o_enabled = cellH2O && cellH2O.classList.contains('checked');
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const geo_flux = EPOCH.geothermal_flux || (window.GEOLOGY ? window.GEOLOGY.calculateGeothermalFlux(EPOCH.core_temperature, EPOCH.geothermal_diffusion_factor) : null);
+    const geo_flux = DATA['🌕']['🧲🌕'];   // flux intérieur : UNE source (geology/interieur.js)
     // Récupérer CH4 pour détecter le cas du corps noir
     const ch4_enabled = window.UI_STATE.methaneEnabled;
     // Dans finalizeResults, on n'a pas accès direct à CH4_fraction depuis options
@@ -2271,7 +2272,7 @@ function finalizeResultsSync(result, T0, lambda_range, lambda_weights, z_range, 
     // 🔒 SEUL l'état du bouton compte pour déterminer si H2O est activé (pas de booléens en trop)
     const h2o_enabled = cellH2O && cellH2O.classList.contains('checked');
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const geo_flux = EPOCH.geothermal_flux || (window.GEOLOGY ? window.GEOLOGY.calculateGeothermalFlux(EPOCH.core_temperature, EPOCH.geothermal_diffusion_factor) : null);
+    const geo_flux = DATA['🌕']['🧲🌕'];   // flux intérieur : UNE source (geology/interieur.js)
     const solar_flux_absorbed = calculateSolarFluxAbsorbed(T0, h2o_enabled, geo_flux);
     if (h2o_enabled) {
         const h2o_total_percent = DATA['💧']['🍰🫧💧'] * 100;

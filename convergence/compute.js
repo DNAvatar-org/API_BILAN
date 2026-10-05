@@ -1,9 +1,11 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.28
-// Date: [September 17, 2026]
+// Version 1.0.29
+// Date: [September 24, 2026]
 // logs :
+// - v1.0.29: getNoyau publie l'état de l'INTÉRIEUR (geology/interieur.js, bilan d'énergie) — plus de 🧲🌕/🔋🌕
+//   par époque, plus de rampe 🔺🧲🌕💫, plus de barycentre '🌕' (🔀 qui le liste = crash : il écraserait l'état).
 // - v1.0.28: 🕰.'🌙' → 📜🌙 (carte de nuit superposée, lue par organigramme.js).
 // - v1.0.27: 🕰.'🖼' = suite d'images parcourue par 📿💫 (modulo) → 📜🖼. Remplace le 🖼 par état 🔁 (une seule clé de config).
 // - v1.0.26: état 🔁 — clé '🖼' publiée dans 📜🖼 (texture de la planète pour l'état ; lue par organigramme.js).
@@ -221,15 +223,11 @@ function getEpochDateConfig() {
         DATA['📜']['🔺⚖️💧☄️'] = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
     }
 
-    // Delta température et flux géothermique par TicTime — depuis config 💫
+    // Delta température par TicTime — depuis config 💫 (le flux intérieur ne se configure plus : geology/interieur.js)
     let deltaTicTime_per_tic = 0;
     if (EPOCH['🕰'] && EPOCH['🕰']['💫']) {
         const raw = EPOCH['🕰']['💫']['🔺🌡️💫'];
         deltaTicTime_per_tic = (typeof raw === 'number' && Number.isFinite(raw)) ? raw : 0;
-        const star = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
-        DATA['📜']['🔺🧲🌕💫'] = star ? { '▶': star['▶'], '◀': star['◀'] } : { '▶': 0, '◀': 0 };
-    } else {
-        DATA['📜']['🔺🧲🌕💫'] = { '▶': 0, '◀': 0 };
     }
 
     // Mettre à jour DATA directement (source unique de vérité)
@@ -350,14 +348,15 @@ function getEpochDateConfig() {
                         if (k.indexOf('⚖️') === 0 && EPOCH[k] != null && typeof nextEp[k] === 'number') endObj[k] = nextEp[k];
                     }
                 } else if (groupKey === '🌕') {
-                    for (const sk of ['🧲🌕', '🔋🌕']) {
-                        if (typeof nextEp[sk] === 'number' && EPOCH[sk] != null) endObj[sk] = nextEp[sk];
-                    }
+                    throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + epochId + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
                 }
                 if (Object.keys(endObj).length) built[groupKey] = endObj;
             }
             if (Object.keys(built).length) interpolEnd = built;
         }
+    }
+    if (interpolKeys && interpolKeys.indexOf('🌕') !== -1) {
+        throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + epochId + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
     }
     if (interpolKeys && interpolEnd) {
         let refDeltaMa = 0;
@@ -492,46 +491,12 @@ function getSoleil() {
 
 //Calcule les valeurs du noyau géothermique (utilise DATA directement)
 function getNoyau() {
+    // Source UNIQUE de DATA['🌕'] : l'état de l'intérieur (geology/interieur.js), amené à la date courante par
+    // CONVERGE.computeRadiativeTransfer (bilan d'énergie). Ici on ne fait que le publier : flux [W/m²] = puissance /
+    // (4πR²) au rayon courant 📜📐. Intérieur fondu → NaN jusqu'au radiatif de l'init (surface = magma).
     const DATA = window.DATA;
-    const CONST = window.CONST;
     if (!DATA || !DATA['📜']) throw new Error('getNoyau: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
-    if (!window.TIMELINE) throw new Error('getNoyau: window.TIMELINE manquant — configTimeline.js non chargé ?');
-    const epochId = DATA['📜']['🗿'];
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH) throw new Error('getNoyau: époque "' + epochId + '" introuvable dans TIMELINE');
-    if (!DATA['🌕']) DATA['🌕'] = {};
-    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('🌕') && DATA['🌕'] && (DATA['🌕']['🧲🌕'] != null || DATA['🌕']['🔋🌕'] != null);
-    if (useInterpolated) {
-        // Garder DATA['🌕'] déjà rempli par getEpochDateConfig (interpolation bary)
-        return true;
-    }
-    // Flux géothermique en W/m² (depuis TIMELINE)
-    if (EPOCH['🕰'] && EPOCH['🕰']['💫'] && EPOCH['🕰']['💫']['🔺🧲🌕💫']) {
-        const geo = EPOCH['🕰']['💫']['🔺🧲🌕💫'];
-        const tic = DATA['📜']['📿💫'];
-        const durationMa = EPOCH['🕰']['💫']['🔺⏳'];
-        const spanYears = Math.max(0, EPOCH['▶'] - EPOCH['◀']);
-        const maxTics = durationMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / durationMa)) : 1;
-        const f = Math.min(1, tic / maxTics);
-        DATA['🌕']['🧲🌕'] = (geo['▶'] != null && geo['◀'] != null) ? geo['▶'] + f * (geo['◀'] - geo['▶']) : (geo['▶'] != null ? geo['▶'] : EPOCH['🧲🌕']);
-    } else if (EPOCH['🧲🌕'] !== undefined) {
-        // Flux directement dans l'époque (ex: Hadéen)
-        DATA['🌕']['🧲🌕'] = EPOCH['🧲🌕'];
-    } else {
-        // Calculer depuis la puissance du noyau si disponible (rayon effectif depuis DATA['📜']['📐'] si défini)
-        const planet_radius_m = DATA['📜']['📐'] * 1000;
-        const surface_area = 4 * Math.PI * Math.pow(planet_radius_m, 2);
-        DATA['🌕']['🧲🌕'] = EPOCH['🔋🌕'] / surface_area;
-    }
-    
-    // Puissance totale du noyau (en Watts) - depuis 🔋🌕
-    DATA['🌕']['🔋🌕'] = EPOCH['🔋🌕'];
-    
-    // console.log(`🌕 [getNoyau@compute.js]`);
-    // console.log(`noyau=${JSON.stringify(DATA['🌕'])}`);
-    
-    // Retourner true car DATA a été modifié
+    window.INTERIEUR.publier(DATA);
     return true;
 }
 

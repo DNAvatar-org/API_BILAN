@@ -1,8 +1,13 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.91
-// Date: [September 18, 2026]
+// Version 1.4.93
+// Date: [September 24, 2026]
 // logs :
+// - v1.4.93: plus AUCUN flux ni puissance intérieurs par époque (🔋🌕, 🧲🌕, 🍰🧲🌕, rampe 🔺🧲🌕💫 de 🔥, 🔀 '🌕' de 🦠,
+//   ◀ '🌕' de 🦠 et 📱) : l'intérieur a une histoire thermique (geology/interieur.js), seule condition initiale
+//   🌡️🌕 de 🔥 (océan de magma, 2550 °C, Sleep et al. 2001).
+// - v1.4.92: epochIndex() rend les entrées TIMELINE elles-mêmes (alias = accesseurs non énumérables), plus de copies ;
+//   🔥 🔺🧲🌕💫.◀ = 🧲🌕 de 🦠 (≈ 0,294 W/m², était 0,3).
 // - v1.4.89: window.epochIndex() — l'index des époques (type/name/id/startYears/endYears) naît avec TIMELINE.
 //   Il était construit par CO2/static/ui/loader_panels.js dans configOrganigramme.timeline, ce qui obligeait
 //   API_BILAN/geology à lire la config du diagramme de l'application pour résoudre une époque.
@@ -366,15 +371,13 @@ const timeline = [
     {// Corps noir
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
-        '◀': 4.5e9, // Fin
+        '◀': 4510e6, // v-2026-09-24 : vraie date — impact géant / formation de la Lune ~4,51 Ga (Barboni et al. 2017) (était 4.5e9) ‖ Fin
         // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → 255.15 K
         '🌡️🧮': 255.15,
         // 🥶 : valeurs Terre-moderne nominales — pas d'atmosphère donc ice_tf inactif sur le radiatif.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.3,
         '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
-        '🔋🌕': 0, // core_temperature (Pas de noyau en K)
-        '🍰🧲🌕': 0.0, // geothermal_diffusion_factor (Facteur de diffusion du noyau vers la surface 0-1)
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
         '🍎': 8.3, // Gravité en m/s²
         '📏🌊': 0.0, // Profondeur moyenne océans en km (valeur par défaut, pas d'eau pour cette époque)
@@ -428,18 +431,19 @@ const timeline = [
     },
     {// Hadéen
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
-        '▶': 4.5e9,
-        '◀': 4.0e9,
+        '▶': 4510e6, // v-2026-09-24 : vraie date — impact géant ~4,51 Ga (était 4.5e9)
+        '◀': 4031e6, // v-2026-09-24 : vraie date — base de l'Archéen, ICS 2023 (était 4.0e9)
         // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C → 2523.15 K.
         '🌡️🧮': 2823.15,
         // 🥶 : T_glob >> T_freeze, ice_tf=0 quoi qu'il en soit. Valeurs nominales modernes.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
-        '🔋🌕': 1.23e21, // core_power_watts (Puissance géothermique totale calculée depuis 🧲🌕 = 2 MW/m² et R = 7008.1 km)
-        // Flux géothermique colossal (2 MW/m²) pour maintenir la surface en fusion (~2400K)
-        // Phase immédiate post-impact (océan de magma rayonnant) ; le temps peut avancer dans la simu
-        '🧲🌕': 2500000, // geothermal_flux (W/m²) - hardcodé pour cette époque
+        // 🌡️🌕 : CONDITION INITIALE de l'intérieur (geology/interieur.js) — l'histoire thermique commence au ▶ de
+        //   l'époque qui la porte (une seule). Après l'impact géant la surface EST l'océan de magma : 2300–2800 °C
+        //   (Sleep, Zahnle & Neuhoff 2001, PNAS 98:3666) → milieu, 2550 °C. Le flux n'est plus posé (il était de
+        //   2 MW/m², sans source) : tant que l'intérieur est fondu, il vaut OLR − solaire absorbé à cette T.
+        '🌡️🌕': 2823.15,
         '📐': 7008.1, // Rayon de la planète en km
         '🍎': 9.8, // Gravité en m/s²
         '📏🌊': 0.0, // Profondeur moyenne océan de magma en km (Hadéen)
@@ -474,14 +478,10 @@ const timeline = [
         magma_coverage: 1.0, // Spécifique Hadéen - TODO: trouver logo combo
         volcanoFactor: 10.0, // Spécifique Hadéen - TODO: trouver logo combo
         // Événements interactifs
-        // Hadéen dure 500 Ma (▶ 4.5 Ga → ◀ 4.0 Ga). Courbes : T° = 🌡️🧮 + 🔺🌡️💫×tic ; 🧲🌕 = ▶→◀ ; gaz fixes.
+        // Hadéen (▶ 4,51 Ga → ◀ 4,031 Ga). Gaz fixes ; l'intérieur refroidit par bilan d'énergie (geology/interieur.js).
         '🕰': {
             '💫': {
-                '🔺🌡️💫': -300, // delta T° par tic (K) — refroidissement linéaire
-                '🔺🧲🌕💫': {
-                    '▶': 2000000, // flux géothermique début (W/m²)
-                    '◀': 0.3     // flux géothermique fin (W/m²) — interpolation selon tic
-                },
+                '🔺🌡️💫': 0,  // v-2026-09-24 : était −300 K/tic, un refroidissement PRESCRIT ; le refroidissement sort du bilan d'énergie
                 '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
                 '🔺⏳': 100,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
             },
@@ -500,7 +500,7 @@ const timeline = [
     },
     {// Archéen
         '📅': '🦠', // Archéen — début (4 Ga) = Archéen précoce
-        '▶': 4.0e9,
+        '▶': 4031e6, // v-2026-09-24 : vraie date — base de l'Archéen, ICS 2023 (était 4.0e9)
         '◀': 2.5e9,
         //
         // --- FOURCHETTES TOLÉRABLES (bench / litt. synthèse) — DUPLICATA de la ligne CSV « Archéen » dans la GRILLE du haut de ce fichier ---
@@ -515,9 +515,6 @@ const timeline = [
         '🌡️🧮': 288.15,
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
         '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
-        '🔋🌕': 1.5e14, // core_power_watts (Puissance géothermique totale ~150 TW)
-        // Flux surfacique au début ▶ : requis si 🕰.🔀 inclut '🌕' (compute.js interp startVal = EPOCH[subkey])
-        '🧲🌕': 1.5e14 / (4 * Math.PI * Math.pow(6371e3, 2)), // ≈ 0,294 W/m² = 🔋🌕/(4πR²), R=📐 km ; fin 🕰.◀.🌕 → 0,127
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         // ⚾ OBLIQUITÉ ε — plages acceptables (cf. commentaire global '⚾' en bas de fichier) :
@@ -597,14 +594,13 @@ const timeline = [
         '🕰': {
             '💫': {
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
-                '🔺⏳': 500,       // durée d'un tic en Ma (bouton timeline)
+                '🔺⏳': 510.3333333333333, // durée d'un tic en Ma (bouton timeline) // v-2026-09-24 : 500 → 1531/3 : 2 clics calculés à 1/3 et 2/3 de la rampe, le 3ᵉ passe à 🪸 — comme avant. ⚠️ Avec 511, le 2ᵉ clic atteignait 100 % de la rampe (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga : tout le Protérozoïque restait en boule de neige.
             },
             // Barycentre (📿💫+📿☄️)/maxTics → interpolation des params entre ▶ et ◀
             // 🔒 ☀️ n'est PAS dans 🔀 : luminosité calculée par Gough (1981) depuis la date, pas interpolée linéairement
-            '🔀': ['⚖️', '🌕'],
+            '🔀': ['⚖️'],   // v-2026-09-24 : '🌕' retiré — le flux intérieur sort du bilan d'énergie (geology/interieur.js)
             '◀': {
-                '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 4.0e8, '⚖️💨': 5.138e18 },
-                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
+                '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 4.7e16, '⚖️🐄': 2.85e14, '⚖️🫁': 0, '⚖️✈': 4.0e8, '⚖️💨': 5.138e18 }
             }
         },
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -623,13 +619,12 @@ const timeline = [
     {// Protérozoïque
         '📅': '🪸', // Protérozoïque (multicellularité, eucaryotes, GOE)
         '▶': 2.5e9,
-        '◀': 750e6,
+        '◀': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
         // 🌡️🧮 : graine branche chaude Protérozoïque (12.5°C) dans la plage [0,15]°C.
         // Le milieu strict 7.5°C accroche la branche snowball (albédo glace) et ne représente pas le point chaud stable.
         '🌡️🧮': 280.65,
         '🧲🔬': 0.01,
         '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
-        '🔋🌕': 1.0e14, // core_power_watts (Puissance géothermique totale ~100 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '📏🌊': 3.6, // Profondeur moyenne océans en km (Protérozoïque)
@@ -666,7 +661,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 600 }, // v-2026-09-24 : 🔺⏳ 590 → 600 (2 clics (rampe 50 %, 100 % vers 1a), le 3ᵉ passe — 1780 Ma)
             // v-2026-07-14 : bary ACTIVÉ. 🔀 sans ◀ → cible auto = racine de l'époque suivante (hyst 1a).
             // Rampe les masses ⚖️ le long de 2500→750 Ma : CO₂ 12000→53 ppm, CH₄ 250→7 ppm, O₂ 1.5e16→5e15, etc.
             // Avant : pas de 🔀 → masses figées (saut brutal à −750 Ma constaté en visu). Cf. moteur compute.js même date.
@@ -695,6 +690,14 @@ const timeline = [
     // chaud (⛄ → 1b), serre → calotte antarctique (hysteresis 2 → 🏔). Leurs dates sont
     // approximatives, leurs fourchettes aussi : elles situent l'épisode, elles ne sont pas des cibles.
     //
+    // LE CRYOGÉNIEN A DEUX GLACIATIONS (v-2026-09-24, vraies dates Hoffman et al. 2017) :
+    //   🪸 → ☃ 1a (720–717, frontière d'entrée) → 🗻 → ⛄ Sturtien (717–659) → 🌋 → 🌦 1b (659–639 : sortie
+    //   Sturtienne, puis ses 💫 font glisser le CO₂ vers la frontière d'entrée du Marinoen) → 🏂 Marinoen
+    //   (639–635,2) → 🌋 → ⛈ 1c (635,2–538,8, sortie Marinoenne) → 🪼. Avant, UN seul Snowball fusionnait les
+    //   deux (1a 750 → ⛄ 720–690 → 1b « Sortie Marinoen » 690), faute visible sur l'onglet Histoire.
+    //   Quatre frontières : entrée Sturtien (CO₂ de 1a = ⛄), sortie Sturtien (1b), entrée Marinoen (CO₂
+    //   de 🏂, cible de la rampe de 1b), sortie Marinoen (1c).
+    //
     // CE QUI LES TESTE. Pas leur graine. Recliquer une époque dans la frise la réinitialise depuis
     // 🌡️🧮 : c'est artificiel. Le vrai processus, c'est le TICTIME : il garde la T° COURANTE (l'état
     // où l'on arrive, glace comprise), change les conditions, et calcule. Une hystérésis se juge donc
@@ -713,10 +716,16 @@ const timeline = [
     // chaque tictime comme l'interface (🔀 fait glisser les masses pendant les 💫 !). Un chemin raccourci
     // (graine → époque suivante) donne un autre seuil : au vrai clic, ⛄ tombait à 0 °C au lieu de −60.
     // Et régler les graines 🌡️🧮 sur la convergence AU CLIC : la frise doit donner la même chose, plus vite.
-    // Mesuré le 2026-09-23 (bary 62 %), sur la chaîne de clics :
-    //   1a = ⛄ : 86,1 ppm → 1a 0,00 °C (glace 0,09)  · 86,0 ppm → 1a −62,2 °C (effondré)
-    //             puis 🗻 → ⛄ −64,9 °C ; 💫 (voile retiré) → ⛄ reste à −62,3 °C
-    //   1b     : 10 867,7 ppm → −8,0 °C (glace 0,27)  · 10 870,5 ppm → +29,5 °C (glace 0) ; → 🪼 +20,2 °C
+    // Mesuré le 2026-09-24 (bary 62 %, vraies dates), sur la chaîne de clics, dichotomie 0,05 % :
+    //   entrée Sturtien  1a = ⛄ : 72,1 ppm → 1a −0,01 °C (glace 0,09) · 0,1 ppm de moins → −62,2 °C ;
+    //                              puis 🗻 → ⛄ −65,0 °C ; 💫 (voile retiré) → ⛄ reste à −62,5 °C
+    //   sortie Sturtien  1b     : 10 262,5 ppm → +29,5 °C · 10 259,9 ppm → −8,0 °C (glace 0,27)
+    //   entrée Marinoen  🏂     : 1b fait glisser son CO₂ jusqu'à 2 556,7 ppm (23,5 °C) ; le voile de 🏂 fait
+    //                              basculer à −61,9 °C · 2 557,3 ppm → il ne bascule plus (−0,01 °C)
+    //                              ⚠️ 1b SEUL ne gèle jamais, même à 0 ppm : sa glace SALE (🌫️❄️ 0,48) empêche
+    //                              l'emballement glace-albédo — c'est le voile qui fait la bascule.
+    //   sortie Marinoen  1c     : 9 797,1 ppm → +29,6 °C · 9 794,6 ppm → −8,0 °C (glace 0,27)
+    // Chaîne : 🪸 10,3 → 1a 0,0 → ⛄ −65,0 → −62,5 → 1b 29,5 → 27,5 → 23,5 → 🏂 −61,9 → −59,4 → 1c 29,6 → 🪼 21,0 °C
     // Entre −60 °C et −8 °C (glace partielle), on est SUR le basculement, pas « à côté » : c'est un
     // seuil pas encore franchi, pas une erreur de physique.
     //   hysteresis 2 : AUCUNE bascule trouvée. Son CO₂ balayé de 200 à 1 200 ppm, l'arrivée depuis 🐊
@@ -737,15 +746,15 @@ const timeline = [
     {//hysteresis 1a (entrée Sturtienne — bascule albédo↓)
         '📅': 'hysteresis 1a', // id stable (renommé v1.4.0 ; logo affichage ☃)
         hidden: true, // interne (non cliquable / non affiché dans la frise)
-        '▶': 750e6,
-        '◀': 720e6,
+        '▶': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
+        '◀': 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman et al. 2017) (était 720e6)
         // 🌡️🧮 : graine solveur hyst (id stable `hysteresis 1a` — ligne TIMELINE dédiée, hidden: true).
         // L’onglet / carte « Sturtienne » (🪸) est une autre entrée : modifier son 🌡️🧮 ne règle pas la graine du bouton hyst.
         // Ici 283.15 K = 10 °C (milieu CSV) ; T_conv après 1er bilan ≠ cette valeur (équilibre radiatif).
         // v-2026-09-15 : 283.15 K RESTAURÉ (fin de l'expérience -2 °C du 16/07). La « surfusion à -2 °C » était un
         // ARTEFACT : la masse de glace passait de 0.10 à 0.009 sous T_freeze (albédo ↓ en refroidissant, faux puits
         // pile à -2.00 °C) — corrigé albedo v1.2.64. Branche chaude 1a réelle ≈ 7 °C à 640 ppm (bench [5,15]).
-        '🌡️🧮': 283.55, // v-2026-09-23 : = T° d'ARRIVÉE au clic (🪸 après ses 💫 : 10,4 °C, sans glace) → la frise converge comme le clic (0,00 °C). Une graine à 0 °C gèle toute seule (−62 °C) : à la frontière, la graine choisit la branche.
+        '🌡️🧮': 283.43, // v-2026-09-24 : = T° d'ARRIVÉE au clic (🪸 après ses 💫 : 10,3 °C, sans glace) → la frise converge comme le clic (−0,0 °C)
         // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
@@ -753,7 +762,6 @@ const timeline = [
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
-        '🔋🌕': 8.0e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.6,
@@ -791,7 +799,7 @@ const timeline = [
         // SENSIBILITÉ du modèle qui place la bascule là (trop faible, cf. REPRISE.md), pas un choix.
         // Une 1re tentative (3 419 ppm) avait été mesurée sur un chemin RACCOURCI (graine de 🪸 → 1a sans les
         // clics 💫) : au vrai clic, ⛄ tombait à 0 °C au lieu de −60. Toujours mesurer sur la chaîne de clics.
-        '⚖️🏭': 6.965e14, // v-2026-09-23 : ≈ 86,1 ppm air sec, frontière de 1a MESURÉE SUR LA CHAÎNE DE CLICS ‖ avant : 5.2e15 
+        '⚖️🏭': 5.8304e14, // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 72,1 ppm air sec → 1a −0,01 °C (glace 9 %) ; 0,1 ppm de moins → −62,2 °C. FRONTIÈRE D'ENTRÉE du Sturtien. MÊME valeur que ⛄. (était 6,965e14 = 86,1 ppm, avant les vraies dates)
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': 8.57e13,//30 ppm  (ancien 2.0e13 = 7 ppm)
@@ -815,7 +823,7 @@ const timeline = [
         // v-2026-07-16.
         '🕰': {
             'order': ['🗻'],
-            '🗻': { '🔺⏳': 30 },
+            '🗻': { '🔺⏳': 3 }, // v-2026-09-24 : 🔺⏳ 30 → 3 (durée 720→717)
         },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
@@ -863,15 +871,14 @@ const timeline = [
     // 500 Mt SO₂/an, suffisant à 3000 ppm) : 0.05 d’obstruction SW ≈ −10 W/m² sur la branche chaude. À 640 ppm il
     // supprime toute racine chaude (Δmax ≈ −2.5 W/m²) → bascule ; retiré au 1er 💫 (🕰.💫.🍰⚽=0) → ⛄ reste gelé = hystérésis. (ex-0.02)
     "🔺🍰⚽": 0.05,
-    "▶": 72e7,
-    "◀": 69e7,
+    "▶": 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman 2017) (était 72e7)
+    "◀": 659e6, // v-2026-09-24 : vraie date — fin du Sturtien, U-Pb 659,3–658,5 (Hoffman 2017) (était 69e7)
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
-    "🌡️🧮": 210.85, // v-2026-09-23 : = convergence AU CLIC (−62,3 °C, ⛄ après 💫) — frise = clic (était 218,15)
+    "🌡️🧮": 273.14, // v-2026-09-24 : = T° d'ARRIVÉE au clic (1a à −0,01 °C) ; le voile fait basculer → −65,0 °C comme au clic
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.592e26,
-    "🔋🌕": 8e13,
     "📐": 6371,
     "🍎": 9.81,
     "📏🌊": 3.6,
@@ -882,7 +889,7 @@ const timeline = [
         "🍰🗻🌍": 0.17
     },
     // MÊME CO₂ que hysteresis 1a (frontière de 1a, 86,1 ppm, mesurée sur la chaîne de clics — voir 1a).
-    "⚖️🏭": 6.965e14, // v-2026-09-23 : ≈ 86,1 ppm air sec, frontière de 1a MESURÉE SUR LA CHAÎNE DE CLICS ‖ avant : 5.2e15 // ≈640 ppm — v-2026-09-15 : MÊME CO₂ que hyst 1a (lit. snowball [300,1500]) : même planète, deux états (chaud 1a ≈ 7 °C / gelé ⛄ ≈ −55 °C). Anciens : 8.1e14 (100), 4.451e14 (55).
+    "⚖️🏭": 5.8304e14, // v-2026-09-24 : = hysteresis 1a (72,1 ppm, frontière d'entrée du Sturtien) — même planète, deux états
     "⚖️🐄": 1.489e13, // v-2026-09-23 (était 2.86e13) : CH₄ ≈ 5 ppm air sec = milieu de [0,1 ; 10] ‖ avant : 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
@@ -934,28 +941,29 @@ const timeline = [
         "order": ["💫", "🌋"],
         "💫": {
             "🔺🌡️💫": 0,
-            "🔺⏳": 10,
+            "🔺⏳": 29, // v-2026-09-24 : 🔺⏳ 10 → 29 (moitié de 717→659)
             "🍰⚽": 0
         },
-        "🌋": { "🔺⏳": 20 }
+        "🌋": { "🔺⏳": 29 } // v-2026-09-24 : 🔺⏳ 20 → 29 (seconde moitié → 1b)
     },
     "🌱": 0,
     "🧫": 0.05,
     "🌊🏭": 0.5
 },
-    // hysteresis 1b = Sortie Marinoen (690–600 Ma) : déglaciation brutale, hyper-greenhouse, pluies acides.
+    // hysteresis 1b = Sortie Sturtienne (659–639 Ma, v-2026-09-24 ; était « Sortie Marinoen » 690–600) : déglaciation
+    // brutale, hyper-greenhouse, puis l'interglaciaire cryogénien pendant lequel ses 💫 ramènent le CO₂ vers l'entrée
+    // du Marinoen (🏂). La sortie Marinoenne proprement dite est hysteresis 1c.
     // Branche chaude post-Snowball, le scan hystérésis cherche le seuil de sortie (CO₂↑ → saut T).
-    {//hysteresis 1b (sortie Marinoen — hyst ↑)
-        '📅': 'hysteresis 1b', // id stable (logo affichage ⛈)
+    {//hysteresis 1b (sortie Sturtienne — hyst ↑)
+        '📅': 'hysteresis 1b', // id stable (logo affichage 🌦 depuis le 2026-09-24 ; ⛈ passe à 1c)
         hidden: true,
-        '▶': 690e6,
-        '◀': 600e6,
+        '▶': 659e6, // v-2026-09-24 : vraie date — fin du Sturtien (Hoffman 2017) (était 690e6)
+        '◀': 639e6, // v-2026-09-24 : vraie date — début du Marinoen, ≥ 639,0 (Hoffman 2017) (était 600e6)
         '🌡️🧮': 302.65, // v-2026-09-23 : = convergence AU CLIC (+29,5 °C) — frise = clic (était 308,15, « milieu bench » [20,50])
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
-        '🔋🌕': 7.5e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.6,
@@ -977,7 +985,7 @@ const timeline = [
         //                                   10 867,7 ppm air sec → −8,0 °C (glace 27 %, coincé)
         //                                   10 870,5 ppm air sec → +29,5 °C (glace 0)
         // 3 ppm, 37 °C : on se pose sur le PREMIER CO₂ qui sort. À REMESURER si la physique change.
-        '⚖️🏭': 8.8425e16, // v-2026-09-23 : ≈ 10 870 ppm air sec = seuil de sortie SUR LA CHAÎNE DE CLICS ‖ avant : 8.2e16 ‖ 🌫️❄️ = albédo de la glace sale (poussière concentrée par sublimation, snowball établi). Lu par calculations_albedo.js
+        '⚖️🏭': 8.3429e16, // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 10 262,5 ppm → +29,5 °C (glace 0) ; 10 259,9 ppm → −8,0 °C (glace 27 %). PREMIER CO₂ qui sort du Sturtien. (était 8,8425e16)
         //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
         '🌫️❄️': 0.48,
         // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
@@ -998,7 +1006,163 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 90 },
+            // v-2026-09-24 : 🔀 fait glisser les masses de 1b vers celles de 🏂 pendant les 💫 (comme 🪸 → 1a) :
+            //   sortie du Sturtien (CO₂ au seuil de sortie), puis retombée du CO₂ jusqu'à la frontière d'entrée
+            //   du Marinoen. Le 3ᵉ 💫 (21 Ma ≥ 20) passe dans 🏂.
+            '🔀': ['⚖️'],
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 7 }, // v-2026-09-24 : 🔺⏳ 90 → 7 (2 clics (rampe vers 🏂), le 3ᵉ passe — 20 Ma)
+        },
+        '🌱': 0.0,
+        // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
+        // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
+        '🧫': 0.1,
+        // 🌊🏭 : v1.4.77 → 0 (était 2.0). La pompe Urey/cap-carbonates est un drawdown POST-déglaciation ;
+        // active pendant la tentative de fonte (T froide → Henry ↑ → CO₂ atm→océan) elle aspire le CO₂ censé
+        // CAUSER la fonte = à l'envers, empêche la déglaciation en anim. Coupée pour laisser 1b déglacer.
+        // Le vrai drawdown cap-carbonates (80 k → ~1 k ppm sur ~10 Ma ; Higgins & Schrag 2003, Hoffman 2017)
+        // = raffinement ultérieur : réactiver la pompe seulement APRÈS déglaciation (gate T>0 ou nb de tics).
+        '🌊🏭': 0
+    },
+{//"🏂" Snowball Marinoen — v-2026-09-24, 2ᵉ glaciation globale du Cryogénien (copie de ⛄, même logique)
+    "📅": "🏂", // Snowball Marinoen (639 → 635,2 Ma, Hoffman et al. 2017)
+    // Voile : racine 🔺🍰⚽ = impulsion à 📿💫===0 (compute) ; 🕰.💫.🍰⚽ = valeur 📜🔺🍰⚽ après chaque clic 💫 (events).
+    // v-2026-09-15 : voile sulfate Franklin LIP (Macdonald & Wordsworth 2017 GRL 44:1938 : −10 à −12 W/m² pour
+    // 500 Mt SO₂/an, suffisant à 3000 ppm) : 0.05 d’obstruction SW ≈ −10 W/m² sur la branche chaude. À 640 ppm il
+    // supprime toute racine chaude (Δmax ≈ −2.5 W/m²) → bascule ; retiré au 1er 💫 (🕰.💫.🍰⚽=0) → ⛄ reste gelé = hystérésis. (ex-0.02)
+    "🔺🍰⚽": 0.05,
+    "▶": 639e6, // début du Marinoen, ≥ 639,0 Ma (Hoffman 2017)
+    "◀": 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
+    // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
+    // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
+    "🌡️🧮": 296.66, // v-2026-09-24 : = T° d'ARRIVÉE au clic (1b au bout de sa rampe : 23,5 °C) ; le voile fait basculer → −61,9 °C
+    "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
+    "🧲🔬": 0.01,
+    "🔋☀️": 3.613e26, // Gough @ 0,639 Ga (indicatif : getSoleil recalcule depuis la date)
+    "📐": 6371,
+    "🍎": 9.81,
+    "📏🌊": 3.6,
+    "🐚": 1,
+    "🗻": {
+        "🍰🗻🌊": 0.75,
+        "🍰🗻🏔": 0.08,
+        "🍰🗻🌍": 0.17
+    },
+    // CO₂ = FRONTIÈRE D'ENTRÉE du Marinoen (1b fait glisser ses masses vers celles-ci pendant ses 💫) —
+    //   à MESURER sur la chaîne de clics (encadré « ÉPOQUES D'HYSTÉRÉSIS »). Valeur provisoire = ⛄.
+    "⚖️🏭": 2.0725589e16, // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 2 556,7 ppm → 🏂 −61,9 °C (le voile fait basculer) ; 2 557,3 ppm → −0,01 °C. DERNIER CO₂ où le voile fait encore entrer dans le Marinoen. Cible de la rampe de 1b.
+    "⚖️🐄": 1.489e13, // v-2026-09-23 (était 2.86e13) : CH₄ ≈ 5 ppm air sec = milieu de [0,1 ; 10] ‖ avant : 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
+    "⚖️💧": 1.2e21,
+    "⚖️🫁": 15000000000000000,
+    // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5),
+    //   comme toutes les époques sans contrainte propre. La banquise globale coupe la source DMS —
+    //   mais ce n'est plus écrit ici : la dérivation est passée dans calculations_albedo.js v1.2.65,
+    //   où 🧫 (= 0,05 pour ⛄) module la part DMS du soufre avec le partage mesuré volcanique/DMS
+    //   0,29/0,71 (Carn et al. 2017 Sci. Rep. 7:44095 + Lana et al. 2011 GBC 25:GB1004).
+    //   Masse effective vue par la loi sulfate → CCN : 4,0e8 × (0,29 + 0,71 × 0,05) = 1,30e8 kg.
+    //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
+    //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
+    "⚖️✈": 400000000,
+    "⚖️💨": 5132968982000000000,
+    "🔒": {
+        "⚖️🏭": {
+            "min": 792300000000000,
+            "max": 859400000000000,
+            "cools": "min"
+        },
+        "⚖️🐄": {
+            "min": 100000000000000,
+            "max": 20000000000000,
+            "cools": "min"
+        },
+        "⚖️💨": {
+            "min": 5132968982000000000,
+            "max": 5142979000000000000,
+            "cools": "min"
+        },
+        "⚖️🫁": {
+            "min": 15000000000000000,
+            "max": 5000000000000000,
+            "cools": "min"
+        },
+        "⚖️💧": {
+            "min": 1.2e+21,
+            "max": 1.2e+21,
+            "cools": "min"
+        },
+        "⚖️✈": {
+            "min": 400000000,
+            "max": 400000000,
+            "cools": "min"
+        }
+    },
+    // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
+    // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
+    "🕰": {
+        "order": ["💫", "🌋"],
+        "💫": {
+            "🔺🌡️💫": 0,
+            "🔺⏳": 1.9, // moitié de 639 → 635,2
+            "🍰⚽": 0
+        },
+        "🌋": { "🔺⏳": 1.9 } // seconde moitié → hysteresis 1c (sortie Marinoenne)
+    },
+    "🌱": 0,
+    "🧫": 0.05,
+    "🌊🏭": 0.5
+},
+{//hysteresis 1c (sortie Marinoenne — hyst ↑) — v-2026-09-24, copie de 1b pour la 2ᵉ glaciation
+        '📅': 'hysteresis 1c', // sortie Marinoenne (logo affichage ⛈)
+        hidden: true,
+        '▶': 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
+        '◀': 538.8e6, // base du Cambrien, ICS 2023 (l'Édiacarien)
+        '🌡️🧮': 302.65, // v-2026-09-23 : = convergence AU CLIC (+29,5 °C) — frise = clic (était 308,15, « milieu bench » [20,50])
+        // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
+        '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
+        '🧲🔬': 0.01,
+        '🔋☀️': 3.622e26, // Gough @ 0,635 Ga (indicatif)
+        '📐': 6371,
+        '🍎': 9.81,
+        '📏🌊': 3.6,
+        '🐚': 1.0,
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
+        // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
+        // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
+        // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
+        // bas pour déglacer (anim restait à −57 °C) et ne tenait même pas la branche chaude au bench.
+        // v-2026-09-15 : 8.2e16 kg ≈ 9 900 ppm (0.01 bar, haut de la grille CSV Sortie Marinoen [2000,10000]).
+        //   Sortie par glace SALE (clé 🌫️❄️ ci-dessous) : Abbot & Pierrehumbert 2010 (JGR 115:D03104) / Abbot & Halevy
+        //   2010 → la poussière abaisse le CO₂ de déglaciation à 0.01–0.1 bar. Carte Δ(T) : à α_glace 0.48 la branche
+        //   froide disparaît entre ~4 800 et ~9 300 ppm ; à 10 000 ppm seule la branche chaude existe (≈ 30 °C, bench
+        //   [20,50]). Sans poussière la branche froide tient jusqu'à >14 % (GCM : >0.1–0.2 bar, Hu 2011). Anciens :
+        //   1.31e18 (15 %, zone d'artefact d'inversion OLR >16 %), 7.0e17 (8 %).
+        // FRONTIÈRE DE SORTIE (encadré « ÉPOQUES D'HYSTÉRÉSIS ») : ce CO₂ n'est PAS une cible de littérature,
+        // c'est le seuil de sortie du Snowball, mesuré le 2026-09-23 (bary 62 %) sur la CHAÎNE DE CLICS
+        // (🪸 … 1a → 🗻 ⛄ −64,9 → 💫 ⛄ −62,3 → 🌋 1b), dichotomie à 0,05 % :
+        //                                   10 867,7 ppm air sec → −8,0 °C (glace 27 %, coincé)
+        //                                   10 870,5 ppm air sec → +29,5 °C (glace 0)
+        // 3 ppm, 37 °C : on se pose sur le PREMIER CO₂ qui sort. À REMESURER si la physique change.
+        '⚖️🏭': 7.960736e16, // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 9 797,1 ppm → +29,6 °C (glace 0) ; 9 794,6 ppm → −8,0 °C (glace 27 %). PREMIER CO₂ qui sort du Marinoen.
+        //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
+        '🌫️❄️': 0.48,
+        // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
+        //   sale (≈ −9 °C) ; le scan CO₂↑ croise la sortie vers ~0.5–0.9 % puis dicho.
+        '⚖️🏭🔺': 0.25,
+        // ⚖️🏭🔝 = plafond du scan CO₂ hystérésis (kg). v-2026-07-16. C'est le régime de déglaciation 1b
+        // (poussière volcanique) qui impose ce plafond, PAS un cas particulier codé dans le scan. Au-delà de
+        // ~16 % CO₂ (~1.31e18 kg) l'OLR du modèle s'INVERSE (ajouter du CO₂ refroidit — artefact CO₂-gaz-majeur,
+        // cf. probeOLRvsCO2AtFixedT) : le scan positif y plongeait et se sabotait (« FAILED » ~51 % = pas
+        // physique). On plafonne au MINIMUM d'OLR ; le levier CO₂ y est de toute façon épuisé, la fin de la
+        // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
+        '⚖️🏭🔝': 1.31e18,
+        '⚖️🐄': 1.629e14, // v-2026-09-23 (était 4.5e13) : CH₄ ≈ 55 ppm air sec = milieu de [10,100]
+        '⚖️💧': 1.3e21,
+        '⚖️🫁': 1.5e16,
+        // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
+        //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
+        '⚖️✈': 4.0e8,
+        '⚖️💨': 5.107454e18,
+        '🕰': {
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 96.4 }, // durée 635,2 → 538,8
         },
         '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
@@ -1015,8 +1179,8 @@ const timeline = [
     // Ordre chronologique : … Protérozoïque → ☃/⛄/⛈ Snowball → 🪼 → 🍄 → 💀 → Mésozoïque …
     {// Paléozoïque marin 🪼
         '📅': '🪼', // Paléozoïque marin (600–420 Ma) — explosion cambrienne, Hirnantienne
-        '▶': 600e6,
-        '◀': 420e6,
+        '▶': 538.8e6, // v-2026-09-24 : vraie date — base du Cambrien, ICS 2023 (était 600e6)
+        '◀': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
         // 🌡️🧮 : milieu grille CSV Paléozoïque marin [15,25]°C → 293.15 K.
         '🌡️🧮': 293.15,
         // 🥶 : Cambrien/Hirnantien, continents éparpillés en cours de regroupement (Gondwana en formation).
@@ -1024,7 +1188,6 @@ const timeline = [
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
-        '🔋🌕': 6.5e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.6,
@@ -1039,7 +1202,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.986169e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 180 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 119.6 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
         },
         '🌱': 0.0, // Avant -420 Ma : végétation terrestre absente/marginale
         // 🧫 : 🪼 Paléozoïque marin (600→420 Ma) — explosion cambrienne, radiation des
@@ -1052,15 +1215,14 @@ const timeline = [
     },
     {// Paléozoïque terrestre 🍄
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
-        '▶': 420e6,
-        '◀': 280e6,
+        '▶': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
+        '◀': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (trapps de Sibérie) (était 280e6)
         // 🌡️🧮 : milieu grille CSV Paléozoïque terrestre [15,25]°C → 293.15 K.
         '🌡️🧮': 305.65,
         // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
-        '🔋🌕': 6.0e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.6,
@@ -1078,7 +1240,7 @@ const timeline = [
         // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
         // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 35 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 41.75 }, // v-2026-09-24 : 🔺⏳ 35 → 41.75 (3 états 🔁 + transition — 167 Ma)
             // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣.
             // Le drawdown du Dévonien-Carbonifère : racines profondes → altération des silicates, puis
             // enfouissement massif du carbone organique (le charbon). Réfs : Berner & Kothavala 2001
@@ -1107,16 +1269,15 @@ const timeline = [
     },
     {// Limite P/T 💀 (extinction massive, pas hystérésis)
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
-        '▶': 280e6,
-        '◀': 250e6,
+        '▶': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (était 280e6)
+        '◀': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
         // 🌡️🧮 : milieu grille CSV Limite P/T [21,32]°C → 299.65 K.
-        '🌡️🧮': 292.65,
+        '🌡️🧮': 290.65, // v-2026-09-24 : milieu de PhanDA Changhsingien [14,3 ; 20,7] = 17,5 °C ‖ avant : 292.65
         // 🥶 : hyperthermie P/T (Trapps sibériens, anoxie). Gradient méridien réduit par CO₂ massif.
         // Joachimski 2012 : SST tropicales 36°C+ + polaires plus chaudes que Karoo → dT_pol modéré.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
-        '🔋🌕': 6.0e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1134,7 +1295,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.984919e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 30 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.3 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
         },
         '🌱': 0.25,
         // 🧫 : 💀 Limite P/T (280→250 Ma) — extinction massive marine (~96% espèces),
@@ -1151,8 +1312,8 @@ const timeline = [
         '📅': '🦕', // Mésozoïque (252–66 Ma) — texture fonds/00200Ma.png (ancien 250Ma), événement 50 Ma
         // 🦕 Mésozoïque : serre chaude, pas de calottes polaires
         '⛄': 0,
-        '▶': 250e6,
-        '◀': 66e6,
+        '▶': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
+        '◀': 66.0e6, // v-2026-09-24 : vraie date — limite K/Pg, ICS 2023 (était 66e6)
         // 🌡️🧮 : milieu grille CSV Mésozoïque [21,31]°C → 299.15 K.
         '🌡️🧮': 301.15,
         // 🥶 : serre chaude Crétacé (Hudson 2010, Huber & Caballero 2011), polar T très chaud
@@ -1160,7 +1321,6 @@ const timeline = [
         '🥶': { dT_pol: 15, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
-        '🔋🌕': 6.0e13, // core_power_watts (Puissance géothermique totale ~60 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '📏🌊': 3.7, // Profondeur moyenne océans en km (Mésozoïque)
@@ -1182,7 +1342,6 @@ const timeline = [
             '💫': {
                 '🔺🌡️💫': -2,
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
-                '🔺🧲🌕💫': { '▶': 0, '◀': 0 },
             }, // Événement 50 Ma
             '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         },
@@ -1196,15 +1355,14 @@ const timeline = [
     },
     {// Cénozoïque 🦤
         '📅': '🦤', // Cénozoïque — Paléocène / début Éocène (66–50 Ma) ; limite K-Pg (~66 Ma), CO₂ modéré ~650 ppm
-        '▶': 66e6,
-        '◀': 50e6,
+        '▶': 66.0e6, // v-2026-09-24 : vraie date — limite K/Pg, ICS 2023 (était 66e6)
+        '◀': 56.0e6, // v-2026-09-24 : vraie date — PETM / base de l'Éocène, ICS 2023 (était 50e6)
         '⛄': 0,
         '🌡️🧮': 301.65,
         // 🥶 : Paléocène/début Éocène, post K-Pg, plus chaud que moderne, gradient méridien réduit.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
-        '🔋🌕': 5.0e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1223,7 +1381,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063495395e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 10 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
         },
         '🌱': 0.31,
         // 🧫 : 🦤 Cénozoïque (66→50 Ma) — phytoplancton moderne installé, CLAW active.
@@ -1234,15 +1392,14 @@ const timeline = [
     },
     {// Éocène 🐊
         '📅': '🐊', // Éocène (50–35 Ma), pic thermique / CO₂ élevé (ordre PETM) ; puis décroissance (altération silicates, Himalaya)
-        '▶': 50e6,
-        '◀': 35e6,
+        '▶': 56.0e6, // v-2026-09-24 : vraie date — PETM / base de l'Éocène, ICS 2023 (était 50e6)
+        '◀': 34.4e6, // v-2026-09-24 : vraie date — début de la transition Éocène-Oligocène (était 35e6)
         '⛄': 0,
-        '🌡️🧮': 306.65,
+        '🌡️🧮': 307.9, // v-2026-09-24 : milieu de PhanDA PETM [30,3 ; 39,2] = 34,75 °C ‖ avant : 306.65
         // 🥶 : PETM Éocène, pic thermique, gradient méridien faible (Sluijs 2008, polaires 17°C+ été).
         '🥶': { dT_pol: 16, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
-        '🔋🌕': 5.0e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1264,7 +1421,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.059095395e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 15 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 21.6 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
         },
         '🌱': 0.31,
         // 🧫 : 🐊 Éocène (50→35 Ma) — PETM, CLAW moderne.
@@ -1279,15 +1436,14 @@ const timeline = [
     {// hysteresis 2 (Eocène–Oligocène ~35–33 Ma — bascule calotte Antarctique, Oi-1)
         '📅': 'hysteresis 2', // id stable (logo affichage 🐧 ; ex ⛰ prélude glaciaire)
         hidden: true, // même rendu frise que hysteresis 1 (epoch-text, pas epoch-btn)
-        '▶': 35e6,
-        '◀': 33e6,
+        '▶': 34.4e6, // v-2026-09-24 : vraie date — début de l'EOT (était 35e6)
+        '◀': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '⛄': 0.02,
         '🌡️🧮': 299.65,
         // 🥶 : transition Eocène/Oligocène (Oi-1), bascule calotte Antarctique, gradient en cours de renforcement.
         '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.08,
         '🔋☀️': 3.816e26, // 🔒 Gough @ 0.035 Ga
-        '🔋🌕': 4.85e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1306,7 +1462,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063345395e18,
         '🕰': {
-            '⛰': { '🔺🌡️💫': 0, '🔺⏳': 2 },
+            '⛰': { '🔺🌡️💫': 0, '🔺⏳': 0.5 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
         },
         '🌱': 0.31,
         // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
@@ -1321,8 +1477,8 @@ const timeline = [
         '📅': '🏔',
         // 🏔 Grande Coupure : calotte Antarctique (~8.5% surface) — première glaciation polaire moderne
         '⛄': 0.085,
-        '▶': 33e6,
-        '◀': 2e6,
+        '▶': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
+        '◀': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
         '🌡️🧮': 296.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
         // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; baryFromDate → ~17 Ma ≈ mi-parcours 33→2 Ma.
         '🔺🍰⚽': 0.00196,
@@ -1330,7 +1486,6 @@ const timeline = [
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
-        '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1364,14 +1519,13 @@ const timeline = [
     {// Quaternaire 🦣
         '📅': '🦣',
         '⛄': 0.11,
-        '▶': 2e6,
-        '◀': 10e3,
+        '▶': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
+        '◀': 11.7e3, // v-2026-09-24 : vraie date — base de l'Holocène, 11 700 ans b2k, ICS 2023 (était 10e3)
         '🌡️🧮': 287.65,
         // 🥶 : Quaternaire glaciations, gradient méridien moderne (calottes nord+sud).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
-        '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1398,7 +1552,7 @@ const timeline = [
         '🕰': {
             // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
             // Un clic = un DEMI-cycle représentatif, pas un cycle réel de 41 ka (2 Ma en tics de 41 ka = 49 clics).
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.5 },
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.6421 }, // v-2026-09-24 : 🔺⏳ 0.5 → 0.6421 (3 états 🔁 + transition — 2,5683 Ma)
             // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu).
             // Mécanisme générique (compute.js getEpochDateConfig) : '⚾' = obliquité ε courante (→ 📜⚾),
             // clés '⚖️*' = masses imposées pour l'état (→ 📜🔁⚖️, lues par getMasses). AUCUN texte ici :
@@ -1432,15 +1586,14 @@ const timeline = [
     {// Holocène 🛖
         '📅': '🛖',
         '⛄': 0.105,
-        '▶': -10000,
-        '◀': 1800,
+        '▶': -9700, // v-2026-09-24 : vraie date — base de l'Holocène (11 700 b2k = −9700), ICS 2023 (était -10000)
+        '◀': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
         // 🌡️🧮 : milieu grille CSV Holocène [13,15]°C → 287.15 K.
         '🌡️🧮': 287.15,
         // 🥶 : Holocène, valeurs Terre-moderne (référence calibration ERA5/Peixoto&Oort 1992).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.03,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
-        '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
@@ -1457,7 +1610,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.004 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0039 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
@@ -1468,22 +1621,21 @@ const timeline = [
     // Industriel (1800 → 2000) : révolution industrielle, CO₂ 280 → 370 ppm, début signal anthropique
     {// Industriel 🚂
         '📅': '🚂',
-        '▶': 1800,
+        '▶': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
         '◀': 2000,
         '🌡️🧮': 286.65,
         // 🥶 : Industrielle, valeurs Terre-moderne.
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.828e26,
-        '🔋🌕': 4.6e13,
         '📐': 6371,
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
         //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
-        '⚖️🏭': 2.191e15, // ~280 ppm 1800 (IPCC2021)
-        '⚖️🐄': 2.056e12, // v-2026-09-23 (était 3.605e12) : CH₄ ≈ 0,727 ppm air sec = Law Dome 1800 (MacFarling Meure 2006) ; 3,605e12 donnait 1,28 ppm, la valeur des années 1950
+        '⚖️🏭': 2.139e15, // v-2026-09-24 : ≈ 276,8 ppm air sec = Law Dome 1750 (MacFarling Meure 2006) ‖ avant : 2.191e15
+        '⚖️🐄': 1.971e12, // v-2026-09-24 : ≈ 0,697 ppm air sec = Law Dome 1750 ‖ avant : 2.056e12
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.0815e18,
         // ⚖️✈ : 4,0e8 kg SO₄ = charge PRÉINDUSTRIELLE simulée (Tsigaridis et al. 2006 ACP 6:5143,
@@ -1494,7 +1646,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0001 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000
+            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000125 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
         },
         '🌱': 0.31,
         // 🧫 : 🚂 Industriel — CLAW moderne + début SO₂ anthropique (le vrai boost sulfate arrive via anthro_factor).
@@ -1512,7 +1664,6 @@ const timeline = [
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
-        '🔋🌕': 4.6e13, // core_power_watts (Puissance géothermique totale ~46 TW)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '📏🌊': 3.7, // Profondeur moyenne océans en km (Terre moderne)
@@ -1592,8 +1743,7 @@ const timeline = [
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
-                '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 1.05e9, '⚖️💨': 3.97e18 },
-                '🌕': { '🧲🌕': 0.127, '🔋🌕': 6.5e13 }
+                '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.6e12, '⚖️🫁': 1.18e18, '⚖️✈': 1.05e9, '⚖️💨': 3.97e18 }
             }
         },
         // 🌱 : 📱 Aujourd'hui — biosphère terrestre moderne (forêts potentielles ~31% des terres).
@@ -1613,7 +1763,7 @@ window.TIMELINE = timeline;
 
 /**
  * Index des époques : TIMELINE, plus les alias que lisent la géologie et l'interface
- * (type / name / id / startYears / endYears). C'est la même donnée, pas une seconde source.
+ * (type / name / id / startYears / endYears). C'est la même donnée ET les mêmes objets (accesseurs), pas une copie.
  *
  * Il vivait dans configOrganigramme.timeline, recopié par le loader de l'application : la géologie
  * (API_BILAN/geology) devait donc lire une config de DIAGRAMME pour résoudre une époque — l'API ne
@@ -1624,21 +1774,24 @@ window.TIMELINE = timeline;
 window.epochIndex = function () {
     // Les ids non-emoji n'ont pas d'entrée CHARS_DESC : repli explicite, pas de nom inventé.
     const NOMS_HORS_ALPHABET = {
-        'hysteresis 1a': 'Sturtienne', 'hysteresis 1b': 'Sortie Marinoen', 'hysteresis 2': 'Eocène-Oligocène'
+        'hysteresis 1a': 'Sturtienne', 'hysteresis 1b': 'Sortie Sturtienne', 'hysteresis 1c': 'Sortie Marinoen', 'hysteresis 2': 'Eocène-Oligocène'
     };
-    return window.TIMELINE.map(function (item) {
-        if (!item || !item['📅']) return Object.assign({}, item, { type: 'separator' });
-        const epochId = item['📅'];
-        const desc = window.CHARS_DESC ? window.CHARS_DESC[epochId] : undefined;
-        const name = NOMS_HORS_ALPHABET[epochId] || desc || epochId;
-        return Object.assign({}, item, {
-            type: 'epoch',
-            name: name,
-            id: epochId,
-            startYears: item['▶'] != null ? item['▶'] : item.startYears,
-            endYears: item['◀'] != null ? item['◀'] : item.endYears
+    // RÉFÉRENCE UNIQUE : on rend les entrées de TIMELINE ELLES-MÊMES, pas des copies. Les alias sont des
+    // accesseurs non énumérables, lus à la demande dans 📅 / ▶ / ◀ / CHARS_DESC : rien n'est dupliqué, et ils
+    // n'apparaissent ni dans Object.keys, ni dans un JSON, ni dans un { ...epoch }. Avant (v1.4.89), chaque
+    // appel fabriquait des copies figées : une écriture (ex. geothermal_flux de 🔥) s'y perdait, et une
+    // modification de TIMELINE en mémoire (tuning, dichotomie d'hystérésis) n'y arrivait pas.
+    for (const item of window.TIMELINE) {
+        if (Object.prototype.hasOwnProperty.call(item, 'type')) continue;   // déjà indexée
+        Object.defineProperties(item, {
+            type:       { get() { return this['📅'] ? 'epoch' : 'separator'; } },
+            id:         { get() { return this['📅']; } },
+            name:       { get() { const id = this['📅']; return NOMS_HORS_ALPHABET[id] || (window.CHARS_DESC && window.CHARS_DESC[id]) || id; } },
+            startYears: { get() { return this['▶']; } },
+            endYears:   { get() { return this['◀']; } }
         });
-    });
+    }
+    return window.TIMELINE;
 };
 
 /**
@@ -1775,6 +1928,17 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — CO₂ posé au SEUIL DE SORTIE mesuré (~11 200 ppm)",
                ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
                h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
+    // v-2026-09-24 : 2ᵉ glaciation cryogénienne (Marinoen) — mêmes repères que ⛄ / 1b, non sourcés.
+    '🏂': { tC: [-60, -50], co2: [300, 1500], ch4: [0.1, 10], h2oVap: [0.00076, 0.0032],
+        src: { tC: "⚠️ non sourcée (hors PhanDA)",
+               co2: "⚠️ non sourcée — ⚠️ = frontière d\'entrée du Marinoen (1b y glisse)",
+               ch4: "⚠️ non sourcée",
+               h2oVap: "🧮 C-C sur GLACE (Murphy & Koop 2005) × RH [0,70 ; 0,80] à tC — ⚠️ T moyenne 0D : Pierrehumbert 2005 (GCM) donne ~0,7 kg/m² d'eau précipitable subtropicale, bien plus" } },
+    'hysteresis 1c': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [1.61, 9.73],
+        src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — CO₂ posé au SEUIL DE SORTIE mesuré (~11 200 ppm)",
+               ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
+               h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
     'hysteresis 2': { tC: [25, 28], co2: [711, 907], ch4: [1, 5], h2oVap: [2.22, 3.03],
         src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière) — PhanDA Priabonien",
                co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — PhanDA Priabonien",
@@ -1790,9 +1954,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Pridoli",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '💀': { tC: [15, 24], co2: [420, 1246], ch4: [20, 100], h2oVap: [1.19, 2.38],
-        src: { tC: "✅ PhanDA GMST Kungurien",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Kungurien",
+    '💀': { tC: [14.3, 20.7], co2: [484, 1546], ch4: [20, 100], h2oVap: [1.14, 1.95],
+        src: { tC: "✅ PhanDA GMST Changhsingien (▶ = 252,2 Ma, v-2026-09-24)",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Changhsingien",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     '🦕': { tC: [24, 32], co2: [434, 1685], ch4: [10, 30], h2oVap: [2.08, 3.79],
@@ -1805,9 +1969,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Danien",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🐊': { tC: [30, 37], co2: [1052, 1326], ch4: [1, 5], h2oVap: [2.97, 5.02],
-        src: { tC: "✅ PhanDA GMST Yprésien",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Yprésien",
+    '🐊': { tC: [30.3, 39.2], co2: [1074, 1530], ch4: [1, 5], h2oVap: [3.02, 5.66],
+        src: { tC: "✅ PhanDA GMST étage PETM (▶ = 56,0 Ma, v-2026-09-24)",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage PETM",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     '🏔': { tC: [21, 25], co2: [552, 696], ch4: [1, 2], h2oVap: [1.78, 2.59],
@@ -1825,10 +1989,10 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Holocène",
                ch4: "⚠️ non sourcée (plage holocène plausible, non vérifiée à 10 ka)",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🚂': { tC: [13, 14], co2: [278, 288], ch4: [0.7, 0.76], h2oVap: [1.07, 1.31],
+    '🚂': { tC: [13, 14], co2: [272, 282], ch4: [0.67, 0.73], h2oVap: [1.07, 1.31],
         src: { tC: "✅ Copernicus ESOTC 2024 (préindustriel 13,5 °C) ± 0,5 absolu (Jones 1999)",
-               co2: "✅ Law Dome 1800 = 282,6 ppm (MacFarling Meure 2006, GRL 33:L14810, spline 20 ans) ± 5 (variabilité préindustrielle)",
-               ch4: "✅ Law Dome 1800 = 0,727 ppm (même source) ± 0,03",
+               co2: "✅ Law Dome 1750 = 276,8 ppm (MacFarling Meure 2006, spline 20 ans) ± 5 (variabilité préindustrielle)",
+               ch4: "✅ Law Dome 1750 = 0,697 ppm (même source) ± 0,03",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     '📱': { tC: [13.9, 14.9], co2: [365, 375], ch4: [1.7, 1.85], h2oVap: [1.11, 1.36],
         src: { tC: "✅ GISTEMP v4 + Jones 1999 : 14,4 °C ± 0,5",

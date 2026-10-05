@@ -2,9 +2,12 @@
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
 // Logs:
+// - v1.0.5: flux/puissance intérieurs lus dans DATA['🌕'] (geology/interieur.js) pour l'époque courante, NaN ailleurs ;
+//   voie legacy core_temperature × facteur et calculateGeothermalFlux retirées (clés retirées de TIMELINE, plus lues).
+// - v1.0.4: epochIndex() rend les entrées TIMELINE (alias non énumérables) : type/id/name/startYears/endYears reportés.
 // - v1.0.3: lecture de window.epochIndex() (configTimeline.js) au lieu de window.configOrganigramme.timeline.
 //   Seule dépendance du moteur au dépôt CO2 : supprimée.
-// Version 1.0.3
+// Version 1.0.5
 // Date: [May 07, 2026]
 // Logs:
 // - v1.0.2: total_atmosphere_mass_kg — si pas ⚖️🫧 en config, dry sum via COMPUTE.dryAtmosphereMassKgFromComponents(epoch).
@@ -19,7 +22,7 @@ const CRUST_MOLTEN_FACTOR_MIN = 10;  // Facteur minimum (x10) à la fin de la p�
 
 /**
  * Calcule le flux géothermique d'une époque
- * Priorité : geothermal_flux > core_power_watts > (core_temperature * factor)
+ * Priorité : geothermal_flux > core_power_watts (tous deux = DATA['🌕'], geology/interieur.js)
  */
 function computeFluxFromEpoch(epoch) {
     if (!epoch) return 0;
@@ -44,12 +47,6 @@ function computeFluxFromEpoch(epoch) {
         return epoch.core_power_watts / surface;
     }
     
-    // 3. Calcul depuis la température du noyau (Legacy)
-    if (typeof epoch.core_temperature === 'number' && typeof epoch.geothermal_diffusion_factor === 'number') {
-        const CONVERSION_CONSTANT = 0.00457;
-        return epoch.core_temperature * epoch.geothermal_diffusion_factor * CONVERSION_CONSTANT;
-    }
-    
     return 0;
 }
 
@@ -70,10 +67,16 @@ function getGeologicalPeriodByName(periodName) {
 
     if (epoch) {
         // Mapper les clés TIMELINE (🔋🌕, 📐, ⚖️🫧, 🍎, 🧲🌕) vers les noms attendus par computeFluxFromEpoch et updateFluxLabels
+        // Copie VOULUE ici : on y pose des noms legacy (anglais) sans toucher à TIMELINE. Les alias d'epochIndex()
+        // sont des accesseurs non énumérables, que { ...epoch } ne recopie pas : on les reporte explicitement.
+        const courante = epoch.id === window.DATA['📜']['🗿'];
         const epochWithMappings = {
             ...epoch,
-            geothermal_flux: (typeof epoch.geothermal_flux === 'number') ? epoch.geothermal_flux : epoch['🧲🌕'],
-            core_power_watts: (typeof epoch.core_power_watts === 'number') ? epoch.core_power_watts : epoch['🔋🌕'],
+            type: epoch.type, id: epoch.id, name: epoch.name, startYears: epoch.startYears, endYears: epoch.endYears,
+            // Flux et puissance de l'intérieur : UNE source, DATA['🌕'] (geology/interieur.js, bilan d'énergie).
+            // Ils n'existent que pour l'époque COURANTE (état intégré jusqu'à la date courante) ; ailleurs NaN, visible.
+            geothermal_flux: courante ? window.DATA['🌕']['🧲🌕'] : NaN,
+            core_power_watts: courante ? window.DATA['🌕']['🔋🌕'] : NaN,
             planet_radius: (typeof epoch.planet_radius === 'number') ? epoch.planet_radius : (epoch['📐'] != null ? epoch['📐'] * 1000 : undefined),
             total_atmosphere_mass_kg: (typeof epoch.total_atmosphere_mass_kg === 'number') ? epoch.total_atmosphere_mass_kg
                 : (typeof epoch['⚖️🫧'] === 'number' ? epoch['⚖️🫧'] : window.COMPUTE.dryAtmosphereMassKgFromComponents(epoch)),
@@ -180,15 +183,9 @@ function getGeologicalEra(years) {
  * DEPRECATED: Utiliser computeFluxFromEpoch à la place
  * @returns {number} Flux géothermique en W/m²
  */
-function calculateGeothermalFlux(core_temperature_K, geothermal_diffusion_factor) {
-    // Legacy support
-    const CONVERSION_CONSTANT = 0.00457;
-    return core_temperature_K * geothermal_diffusion_factor * CONVERSION_CONSTANT;
-}
 
 var GEOLOGY = window.GEOLOGY = window.GEOLOGY || {};
 GEOLOGY.getGeologicalPeriodByName = getGeologicalPeriodByName;
 GEOLOGY.getGeologicalPeriod = getGeologicalPeriod;
 GEOLOGY.getMoltenCrustFactor = getMoltenCrustFactor;
 GEOLOGY.getGeologicalEra = getGeologicalEra;
-GEOLOGY.calculateGeothermalFlux = calculateGeothermalFlux;
