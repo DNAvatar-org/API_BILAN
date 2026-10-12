@@ -1,9 +1,14 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.0.27
-// Date: [May 06, 2026]
+// Version 1.1.0
+// Date: [October 10, 2026]
 // logs :
+// - v1.1.0: PAS DE GARDES. M_dry dans une seule fonction (dryMolarMassWeighted, recopiée 2 fois) — ⚠️ c'est une
+//   moyenne pondérée PAR LA MASSE Σ(m·M)/Σm, pas la masse molaire de l'air Σm/Σ(m/M) (≈ 29,08 au lieu de 28,96
+//   g/mol pour l'air moderne) : à corriger à part, banc à l'appui. `|| 0` sur des masses et des fractions
+//   toujours définies retirés ; `|| 6371` sur le rayon retiré ; DATA['📛'] existe toujours (KEYS).
+//   computeIceTempFactor(T, EPOCH) : le bloc d'options recopié ici est parti dans physics.js.
 // - v1.0.27: époque ⚫ (Corps noir) — toujours branche sans atmosphère (TIMELINE ⚖️🫧=0) même si DATA['⚖️']['⚖️🫧'] résiduel >0 ; évite 🍰💧🧊 ~74 % « climat » au premier rendu.
 // - v1.0.26: ⚖️🫧=0 — après partition, RUNTIME.h2oIceFractionFromCalculation = 🍰💧🧊 (aligné affichage / globe ; évite fraction climat résiduelle).
 // - v1.0.25: ⚖️🫧=0 + eau météorites + T<0°C — 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) (CONFIG_COMPUTE) ; fini 🍰💧🧊=1 d’un coup.
@@ -110,7 +115,6 @@ function calculateMaxH2OVaporFraction() {
 // Calcule 🔺📛💧 = ΔF H₂O (W/m²), effet changement q_ref→q. Pas part EDS (🧲📛💧).
 function calculateH2OGreenhouseForcing() {
     const DATA = window.DATA;
-    if (!DATA['📛']) DATA['📛'] = {};
     const h2o_vapor_fraction = DATA['💧']['🍰🫧💧'];
     const temp_K = DATA['🧮']['🧮🌡️'];
 
@@ -225,30 +229,8 @@ function calculateWaterPartition() {
     //   T_glob <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
     //
     // v1.0.21 — FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob, opts) — cf. physics.js.
-    // Obliquité ε : lue sur l'objet epoch ('⚾'), sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
     // Cap à 10 % (fraction massique d'eau piégée en calottes polaires).
-    const _EPOCH_h2o = window.TIMELINE && window.TIMELINE[DATA['📜'] && DATA['📜']['👉']];
-    const _epochObliquity_h2o = (_EPOCH_h2o && Number.isFinite(Number(_EPOCH_h2o['⚾']))) ? Number(_EPOCH_h2o['⚾']) : undefined;
-    // EPOCH['🥶'] : override per-époque des paramètres ice (cf. calculations_albedo.js v1.2.50).
-    const _epochIce_h2o = (_EPOCH_h2o && _EPOCH_h2o['🥶'] && typeof _EPOCH_h2o['🥶'] === 'object') ? _EPOCH_h2o['🥶'] : null;
-    const _iceOpts_h2o = {};
-    if (_epochObliquity_h2o !== undefined) _iceOpts_h2o.obliquity_deg = _epochObliquity_h2o;
-    if (Number(DATA['📜']['⚾']) > 0) {
-        _iceOpts_h2o.obliquity_deg = Number(DATA['📜']['⚾']);       // ε courant (Milankovitch)
-        _iceOpts_h2o.obliquity_ref_deg = (Number.isFinite(Number(_epochObliquity_h2o)) ? Number(_epochObliquity_h2o) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT)); // ε de calibration 🥶
-    }
-    if (_epochIce_h2o) {
-        if (Number.isFinite(Number(_epochIce_h2o.dT_pol)))   _iceOpts_h2o.dT_pol   = Number(_epochIce_h2o.dT_pol);
-        if (Number.isFinite(Number(_epochIce_h2o.dT_mid)))   _iceOpts_h2o.dT_mid   = Number(_epochIce_h2o.dT_mid);
-        if (Number.isFinite(Number(_epochIce_h2o.dT_trop)))  _iceOpts_h2o.dT_trop  = Number(_epochIce_h2o.dT_trop);
-        if (Number.isFinite(Number(_epochIce_h2o.amp_pol)))  _iceOpts_h2o.amp_pol  = Number(_epochIce_h2o.amp_pol);
-        if (Number.isFinite(Number(_epochIce_h2o.amp_mid)))  _iceOpts_h2o.amp_mid  = Number(_epochIce_h2o.amp_mid);
-        if (Number.isFinite(Number(_epochIce_h2o.amp_trop))) _iceOpts_h2o.amp_trop = Number(_epochIce_h2o.amp_trop);
-    }
-    const _iceTF_h2o = EARTH.computeIceTempFactor(
-        DATA['🧮']['🧮🌡️'],
-        Object.keys(_iceOpts_h2o).length > 0 ? _iceOpts_h2o : undefined
-    );
+    const _iceTF_h2o = EARTH.computeIceTempFactor(DATA['🧮']['🧮🌡️'], window.TIMELINE[DATA['📜']['👉']]);
     const has_polar_ice = _iceTF_h2o.tf_pol > 0;
     const polar_ice_fraction_climate = 0.10 * _iceTF_h2o.tf_pol;
 
@@ -260,7 +242,7 @@ function calculateWaterPartition() {
         // Régime gel océan : proportion gelée croît linéairement sous T_freeze (~271 K)
         // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
         // Surface supportable = max(highlands, hydrosphère) — hydrosphère = couche eau globale / 10m, cap 0.9
-        const planet_surface_m2 = 4 * Math.PI * Math.pow((DATA['📜']['📐'] || 6371) * 1000, 2);
+        const planet_surface_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
         const hydro_support = Math.max(0, Math.min(0.9,
             (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_m2 : 0) / 10));
         const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydro_support);
@@ -458,9 +440,9 @@ function calculatePrecipitationFeedback() {
         
         const temp_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
         if (temp_C < 0) {
-            DATA['💧']['🍰💧🧊'] = Math.min(1.0, (DATA['💧']['🍰💧🧊'] || 0) + precipitation_fraction_of_total_water);
+            DATA['💧']['🍰💧🧊'] = Math.min(1.0, DATA['💧']['🍰💧🧊'] + precipitation_fraction_of_total_water);
         } else {
-            DATA['💧']['🍰💧🌊'] = Math.min(1.0, (DATA['💧']['🍰💧🌊'] || 0) + precipitation_fraction_of_total_water);
+            DATA['💧']['🍰💧🌊'] = Math.min(1.0, DATA['💧']['🍰💧🌊'] + precipitation_fraction_of_total_water);
         }
     }
 }
@@ -500,10 +482,8 @@ function calculateH2OParametersWithIteration() {
     DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     
     // 🔒 ÉTAPE 3 : Calculer vapeur potentielle = min(disponible, saturation massique)
-    const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
-        : CONV.molar_mass_air_ref;
-    const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
+    const M_dry = dryMolarMassWeighted();
+    const mass_ratio = CONST.M_H2O / M_dry;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
@@ -579,10 +559,10 @@ function calculateH2OParametersWithIteration() {
             const temp_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
             if (temp_C < 0) {
                 // T < 0°C : ajouter à la glace
-                DATA['💧']['🍰💧🧊'] = Math.min(1.0, (DATA['💧']['🍰💧🧊'] || 0) + precipitation_fraction_of_total_water);
+                DATA['💧']['🍰💧🧊'] = Math.min(1.0, DATA['💧']['🍰💧🧊'] + precipitation_fraction_of_total_water);
             } else {
                 // T >= 0°C : ajouter à l'océan
-                DATA['💧']['🍰💧🌊'] = Math.min(1.0, (DATA['💧']['🍰💧🌊'] || 0) + precipitation_fraction_of_total_water);
+                DATA['💧']['🍰💧🌊'] = Math.min(1.0, DATA['💧']['🍰💧🌊'] + precipitation_fraction_of_total_water);
             }
         }
         
@@ -609,14 +589,24 @@ function calculateH2OParametersWithIteration() {
     // Limite dynamique réaliste observée Clausius-Clapeyron (AIRS/ERA5) sur la vapeur finale Init.
     // [EQ] Même remplacement : rapport × saturation exacte, au lieu d'une exponentielle linéarisée
     // autour de 288 K dont le taux (0,013 K⁻¹) ne venait de nulle part et n'était pas Clausius-Clapeyron.
-    const q_sat_init = (DATA['💧']['🍰🧪🌧'] || 0) * (CONST.M_H2O / (DATA['🫧']['🧪'] || CONV.molar_mass_air_ref));
+    const q_sat_init = DATA['💧']['🍰🧪🌧'] * (CONST.M_H2O / DATA['🫧']['🧪']);
     const realistic_vapor_max = EARTH.H2O_SURFACE_RH_INIT_01 * q_sat_init;
     DATA['💧']['🍰🫧💧'] = Math.min(realistic_vapor_max, DATA['💧']['🍰🫧💧']);
     
     return true;
 }
 
-var H2O = window.H2O = window.H2O || {};
+/** M de l'air sec (kg/mol) à partir des masses ⚖️ ; sans atmosphère (⚫), M de référence.
+ *  ⚠️ Σ(m·M)/Σm (pondérée par la masse) — voir le log v1.1.0. */
+function dryMolarMassWeighted() {
+    const DATA = window.DATA;
+    const CONST = window.CONST;
+    const m = DATA['⚖️'];
+    if (m['⚖️🫧'] === 0) return window.CONV.molar_mass_air_ref;
+    return (m['⚖️🏭'] * CONST.M_CO2 + m['⚖️🐄'] * CONST.M_CH4 + m['⚖️🫁'] * CONST.M_O2 + m['⚖️💨'] * CONST.M_N2) / m['⚖️🫧'];
+}
+
+var H2O = window.H2O = {};
 
 //Fonction principale : calcule tous les paramètres H2O
 H2O.calculateH2OParameters = function () {
@@ -652,10 +642,8 @@ H2O.calculateH2OParameters = function () {
     const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
     DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     // 🔒 M_dry depuis masses (air sec) : évite dépendance circulaire avec 🍰🫧💧 (M_air = f(🍰🫧💧) → 🍰🫧💧 = f(M_air))
-    const M_dry = DATA['⚖️']['⚖️🫧'] > 0
-        ? ((DATA['⚖️']['⚖️🏭'] || 0) * CONST.M_CO2 + (DATA['⚖️']['⚖️🐄'] || 0) * CONST.M_CH4 + (DATA['⚖️']['⚖️🫁'] || 0) * CONST.M_O2 + (DATA['⚖️']['⚖️💨'] || 0) * CONST.M_N2) / DATA['⚖️']['⚖️🫧']
-        : CONV.molar_mass_air_ref;
-    const mass_ratio = M_dry > 0 ? CONST.M_H2O / M_dry : 0;
+    const M_dry = dryMolarMassWeighted();
+    const mass_ratio = CONST.M_H2O / M_dry;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
     const vapor_raw = Math.min(max_vapor_mass_fraction, available_water_fraction);
@@ -677,19 +665,15 @@ H2O.calculateH2OParameters = function () {
             + 'C iris_factor=' + iris_factor.toFixed(3)
             + ' vapor=' + vapor_result.toFixed(5);
         console.log(mIris);
-        if (typeof window.debugMirrorConfigLogToFile === 'function') {
-            window.debugMirrorConfigLogToFile('logIrisDiagnostic', mIris);
-        }
+        window.debugMirrorConfigLogToFile('logIrisDiagnostic', mIris);
     }
     // Log cap vapeur (bruyant) : ne log que si logEdsDiagnostic est activé.
-    if (vapor_raw > c_c_max && window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logEdsDiagnostic) {
+    if (vapor_raw > c_c_max && window.CONFIG_COMPUTE.logEdsDiagnostic) {
         const T_C = T - CONST.KELVIN_TO_CELSIUS;
         const mCap = 'H2O cap @' + T_C.toFixed(1) + '°C';
         const line = '[cycle] ' + mCap;
         console.log(line);
-        if (typeof window.debugMirrorConfigLogToFile === 'function') {
-            window.debugMirrorConfigLogToFile('logEdsDiagnostic', line);
-        }
+        window.debugMirrorConfigLogToFile('logEdsDiagnostic', line);
     }
     DATA['💧']['🍰🫧💧'] = vapor_result;
 

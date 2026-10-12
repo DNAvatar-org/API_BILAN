@@ -28,14 +28,11 @@
     var nCPU = navigator.hardwareConcurrency;
     // 1 CPU réservé au rendu ; optionnel : CONFIG_COMPUTE.maxWorkers plafonne (ex. 4) si tu veux limiter
     var rawWorkers = Math.max(1, nCPU - 1);
-    var maxCap = (window.CONFIG_COMPUTE && typeof window.CONFIG_COMPUTE.maxWorkers === 'number')
-        ? Math.max(1, window.CONFIG_COMPUTE.maxWorkers) : rawWorkers;
-    var nWorkers = Math.min(rawWorkers, maxCap);
+    var nWorkers = Math.min(rawWorkers, Math.max(1, window.CONFIG_COMPUTE.maxWorkers));
 
-    // CO2/index : document sous CO2/ → ../API_BILAN/workers/ OK. API_BILAN/demo/epoch_bench : définir window.__SPECTRAL_WORKER_SCRIPT__.
-    var workerPath = (typeof window.__SPECTRAL_WORKER_SCRIPT__ === 'string' && window.__SPECTRAL_WORKER_SCRIPT__)
-        ? window.__SPECTRAL_WORKER_SCRIPT__
-        : '../API_BILAN/workers/spectral_slice_worker.js';
+    // Posé par le loader (BILAN_LOADER, depuis apiBase) ou par la page. PAS de chemin par défaut : un chemin faux
+    // ne lève rien (new Worker → 404 asynchrone), les workers restent muets et la convergence ne finit jamais.
+    var workerPath = window.__SPECTRAL_WORKER_SCRIPT__;
 
     // En file://, Chrome refuse new Worker('file://…') : origine 'null'. Un blob: passe, lui — et comme
     // fetch/XHR sont aussi bloqués, la source ne peut venir que de la page, qui charge le worker en <script>
@@ -47,10 +44,7 @@
         try {
             return new Worker(workerPath);
         } catch (e) {
-            if (typeof window.__SPECTRAL_WORKER_MAIN__ !== 'function') {
-                throw new Error('[worker_pool.js] Worker refusé (' + e.message + ') et pas de repli : la page doit '
-                    + 'charger API_BILAN/workers/spectral_slice_worker.js en <script> pour permettre le mode blob (file://).');
-            }
+            // file:// ou autre origine : la source vient de la page (spectral_slice_worker.js chargé en <script>).
             var src = '(' + window.__SPECTRAL_WORKER_MAIN__.toString() + ')();';
             blobUrl = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
             return new Worker(blobUrl);
@@ -69,9 +63,7 @@
         blob: blobUrl !== null
     };
 
-    if (!window.__EPOCH_BENCH_PAGE__) {
-        console.log('[worker_pool.js] ' + nWorkers + ' workers spectraux créés (' + nCPU + ' CPUs, 1 réservé rendu) — mode Transferable');
-    }
+    console.log('[worker_pool.js] ' + nWorkers + ' workers spectraux (' + nCPU + ' CPUs, 1 réservé rendu, ' + (blobUrl !== null ? 'blob' : 'fichier') + ')');
 
     // dispatch: répartit les nL lambdas sur nWorkers tranches équitables.
     // Chaque worker calcule sa tranche et transfère son Float32Array[nZ * sliceSize] au main thread.
@@ -134,7 +126,7 @@
                             sums.CH4    += bCH4[jj];
                             sums.clouds += bCld[jj];
                         }
-                        sums.CIA += (msg.sum_blocked_CIA || 0);
+                        sums.CIA += msg.sum_blocked_CIA;
                         doneCount++;
                         if (doneCount === activeWorkers) {
                             dispatchPending = false;
@@ -187,8 +179,4 @@
         nWorkers: nWorkers,
         dispatch: dispatch
     };
-
-    if (!window.__EPOCH_BENCH_PAGE__) {
-        console.log('[worker_pool.js] spectralWorkerPool prêt. Mode Transferable (compatible prod, sans headers COOP/COEP).');
-    }
 }());

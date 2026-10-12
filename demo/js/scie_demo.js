@@ -3,8 +3,11 @@
 //       epoque dans la frise, et la MISE EN CHAMPS de cette configuration pour qu'elle soit
 //       modifiable. Cote CO2 la page est une iframe : le parent lui pousse un DATA deja calcule
 //       et elle l'affiche. Ici la page est seule, donc c'est elle qui charge et elle qui edite.
-// Version 1.0.0
-// Date: 2026-09-20
+// Version 1.1.0
+// Date: 2026-10-12
+// logs :
+//   - v1.1.0: prechargerConfigEpoque ne remet plus l'époque à zéro (c'est selectEpoch → CLICS.frise) ;
+//     « retour visuel après un événement » retiré : un clic lance maintenant le vrai calcul (jouerScie).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -13,35 +16,17 @@
 
 // Charge la configuration de l'epoque courante SANS lancer le transfert radiatif.
 //
-// Ce sont les quatre premieres etapes de runTest() (scie_actions.js), celles que son propre
-// commentaire appelle « Config des le debug (sans aucun calcul radiatif) ». On s'arrete juste
-// avant computeRadiativeTransfer : cliquer une epoque doit montrer d'ou on part, pas faire
-// converger — c'est le bouton ▶️ qui fait converger.
+// api.prepare = tout ce que fait api.run AVANT la convergence (API_BILAN/api.js) : cliquer une epoque
+// doit montrer d'ou on part, pas faire converger — c'est le bouton ▶️ qui fait converger.
 function prechargerConfigEpoque() {
-    if (!window.DATA || !window.TIMELINE) return false;
-    try {
-        initializeGlobals();
-        if (window.COMPUTE && window.COMPUTE.getEpochDateConfig) {
-            window.COMPUTE.getEpochDateConfig();
-        }
-        if (!window.DATA['🔘']['🔘🎞']) {
-            window.DATA['🧮']['🧮🌡️'] = window.DATA['📅']['🌡️🧮'];
-        }
-        if (window.CONVERGE && !window.CONVERGE.initForConfig()) {
-            console.error('❌ initForConfig a échoué au préchargement');
-            return false;
-        }
-        displayResults(null);
-        // selectEpoch a deja rafraichi l'affichage, mais AVANT getEpochDateConfig : la date
-        // courante y etait encore celle de l'epoque precedente. On repasse une fois la config
-        // chargee, sinon la frise annonce une date et la configuration une autre.
-        updateTimelineDisplay();
-        afficherConfigEditable();
-        return true;
-    } catch (e) {
-        console.error('❌ Préchargement de la configuration :', e);
-        return false;
-    }
+    if (!window.getBilanRadiatifAPI(window.SCIE_ENGINE_EVENT)
+        .prepare({ epochId: window.DATA['📜']['🗿'], animEnabled: window.DATA['🔘']['🔘🎞'] })) return false;   // interrompu
+    displayResults(null);
+    // selectEpoch a deja rafraichi l'affichage, mais AVANT la preparation : la date courante y etait encore
+    // celle de l'epoque precedente. On repasse une fois la config chargee.
+    updateTimelineDisplay();
+    afficherConfigEditable();
+    return true;
 }
 window.prechargerConfigEpoque = prechargerConfigEpoque;
 
@@ -122,9 +107,9 @@ function afficherConfigEditable() {
             const v = parseFloat(input.value);
             if (!Number.isFinite(v)) { input.value = ligne[cle]; return; }
             ligne[cle] = v;
-            // La configuration affichee plus bas derive de cette ligne : on la recharge pour que
-            // les deux disent la meme chose, sans lancer le transfert radiatif pour autant.
-            prechargerConfigEpoque();
+            // La configuration affichee plus bas derive de cette ligne : on repart de l'epoque modifiee,
+            // sans lancer le transfert radiatif pour autant.
+            selectEpoch(window.DATA['📜']['🗿']);
         });
     });
 }
@@ -141,45 +126,6 @@ function reinitialiserEpoque() {
     Object.keys(origine).forEach(function (cle) {
         if (typeof origine[cle] === 'number') ligne[cle] = origine[cle];
     });
-    prechargerConfigEpoque();
+    selectEpoch(D['📜']['🗿']);
 }
 window.reinitialiserEpoque = reinitialiserEpoque;
-
-
-// ============================================================================
-// RETOUR VISUEL APRES UN EVENEMENT
-// ============================================================================
-//
-// Les boutons d'evenement font leur travail — ils injectent le CO2 dans
-// 📜🔺⚖️🏭, font avancer les puits (advanceCarbonSinks) et le temps — mais ils
-// ne redessinent que la date. La configuration affichee restait celle d'avant
-// le clic, si bien que les boutons avaient l'air de ne rien faire d'autre que
-// decaler l'annee.
-//
-// On ne peut PAS rappeler prechargerConfigEpoque ici : il passe par
-// initializeGlobals, qui remet 📿💫 et les cumuls 📜🔺⚖️🏭 a zero — ce qui
-// effacerait justement le clic qu'on vient de faire. Il faut donc la moitie
-// basse du prechargement, sans la reinitialisation.
-function rafraichirApresEvenement() {
-    if (!window.DATA || !window.CONVERGE) return;
-    try {
-        if (!window.CONVERGE.initForConfig()) return;
-        displayResults(null);
-        updateTimelineDisplay();
-        afficherConfigEditable();
-    } catch (e) {
-        console.error('❌ Rafraîchissement après événement :', e);
-    }
-}
-window.rafraichirApresEvenement = rafraichirApresEvenement;
-
-// Delegation sur le document, en phase de bouillonnement : le gestionnaire du
-// bouton a deja tourne, et updateEpochActions a pu remplacer les boutons sans
-// que l'ecoute soit perdue.
-document.addEventListener('click', function (ev) {
-    const cible = ev.target && ev.target.closest ? ev.target.closest('.btn-events') : null;
-    if (!cible) return;
-    if (!document.getElementById('timeline-events-logos')) return;
-    // Apres la pile d'appels du bouton (getEpochDateConfig, updateEpochActions).
-    setTimeout(rafraichirApresEvenement, 0);
-});

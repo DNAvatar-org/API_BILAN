@@ -3,11 +3,12 @@
 // Desc: La relation publiée entre masse de sulfate et nombre de gouttelettes nuageuses.
 //       C'est une LOI DE PUISSANCE, pas un facteur linéaire. Fichier séparé parce que c'est une
 //       physique à part : l'albédo décide de ce qu'il fait des CCN (Twomey), pas d'où ils viennent.
-// Version 1.2.0
+// Version 1.3.0
 // Date: 2026-09-22
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+// - v1.3.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
 // - v1.2.0: BRANCHÉ dans calculations_albedo.js v1.2.65. SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX et la
 //   porte « ▶ >= 1900 » supprimés ; seule jauge restante = l'exposant a (quartiles mesurés McCoy 2018).
 //   ERFaci vérifié au banc : −0,908 W/m² contre −0,97 (McCoy 2017a) et −1,0 [−1,7 ; −0,3] (AR6).
@@ -113,7 +114,7 @@ function sulfateCcnDeltaLog10(sulfateKg, sulfateRefKg, exponent) {
     return exponent * Math.log10(sulfateKg / sulfateRefKg);
 }
 
-window.AEROSOL = window.AEROSOL || {};
+window.AEROSOL = {};
 window.AEROSOL.sulfateCcnRatio = sulfateCcnRatio;
 window.AEROSOL.sulfateCcnDeltaLog10 = sulfateCcnDeltaLog10;
 /** Exposants mesurés (McCoy 2018 Table 1, 19 régions) — pour les bornes de jauge et la doc. */

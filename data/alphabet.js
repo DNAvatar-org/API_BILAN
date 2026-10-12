@@ -30,8 +30,6 @@
 
 (function () {
     'use strict';
-    if (typeof window !== 'undefined' && window.__alphabetModuleLoaded) return;
-    if (typeof window !== 'undefined') window.__alphabetModuleLoaded = true;
 
 // ============================================================================
 // DÉFINITION DES CARACTÈRES (CHARS)

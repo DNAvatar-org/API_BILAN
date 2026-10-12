@@ -2,12 +2,18 @@
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: Partition CO₂ de fond (atmosphère ↔ océan, Henry) + orchestration des puits du CO₂ injecté.
 //       Physique des puits : ocean/sinks_ocean.js (3 réservoirs) et land/sinks_land.js (biosphère).
-// Version 1.3.0
+// Version 1.4.0
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
 // Date: [April 25, 2026]
 // Logs:
+// - v1.4.0: PAS DE GARDES. Efficacité de pompe = CONFIG_COMPUTE.co2OceanEffPump01 (déclarée 0,1 dans la config ;
+//   les pages hystérésis / search l'écrivent) : plus de clamp01(x, repli) qui fabriquait 0,1 à partir de deux
+//   jauges absentes. ⚠️ DATA['🎚️'].HYSTERESIS.co2OceanEffPump01 (= 1 après le barycentre) existe aussi et
+//   n'est lu par personne : laquelle est la bonne est à trancher, banc à l'appui. ratio_ref sans repli 50 ;
+//   DATA['🌊'] existe toujours (initDATA). Log de chargement du module retiré.
+//   ⚠️ Partition mesurée INERTE (configTimeline v1.4.83) : getMasses réécrit ⚖️🏭 à chaque pas.
 // - v1.3.0: puits océan → ocean/sinks_ocean.js, puits forêts → land/sinks_land.js. Ce fichier garde la
 //   partition Henry de fond et l'ORCHESTRATION des puits (découpage du temps, CO₂ de milieu de pas).
 //   Deux physiques différentes, deux fichiers — et sinks_land.js va accueillir la structure d'âge.
@@ -49,17 +55,11 @@
 // - Make ratio_ref configurable (CONFIG_COMPUTE.co2OceanRatioRef)
 // ============================================================================
 
-// Log de chargement optionnel (ordre d'inclusion des scripts).
-if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logCo2PartitionDiagnostic === true) {
-    const mLoad = 'load calculations_co2.js module loaded';
-    if (typeof window.debugMirrorConfigLogToFile === 'function') window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mLoad);
-}
-
 function calculateCO2Partition() {
     const DATA = window.DATA;
     // Crash-first: DATA['⚖️'] doit exister, sinon ça doit planter.
 
-    const CC = window.CONFIG_COMPUTE || {};
+    const CC = window.CONFIG_COMPUTE;
     // v1.2.0 : POMPE TOUJOURS ACTIVE (user "bench = visu"). Plus de NO-OP global ; les contrôles d'activation
     // sont maintenant : (1) EPOCH['🌊🏭'] facteur par époque (0 = pas de mer / Urey éteint), (2) hasOceanWater
     // (pas d'eau liquide ⇒ rien à faire), (3) effPump01 (jauge UI). L'équilibre à l'init est garanti par
@@ -89,16 +89,9 @@ function calculateCO2Partition() {
     //   1.0   🦣 🛖 🚂 📱 → Urey moderne (référence Henry)
     const epochPumpFactor = Math.max(0, Number(EPOCH['🌊🏭']));
 
-    // Jauges UI — source CONFIG_COMPUTE (jauges hystérésis). Ces clés peuvent être absentes
-    // si aucune jauge n'a écrit dedans (bench pur), d'où fallback légitime (pas défensif contre bug).
-    function clamp01(x, fallback) {
-        const n = Number(x);
-        return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
-    }
-    const pump01 = clamp01(CC.co2OceanPumpOverride01, 1.0);
-    const scale01 = clamp01(CC.co2OceanScale01, 0.1);
-    const effPumpBase = clamp01(CC.co2OceanEffPump01, pump01 * scale01);
-    const partitionFactor01 = Math.max(0, Number(CC.co2OceanPartitionFactor01));
+    // Efficacité de pompe : CONFIG_COMPUTE.co2OceanEffPump01 (config 0,1 ; jauges des pages hystérésis / search).
+    const effPumpBase = Math.max(0, Math.min(1, CC.co2OceanEffPump01));
+    const partitionFactor01 = Math.max(0, CC.co2OceanPartitionFactor01);
     // epochPumpFactor peut dépasser 1 (déglaciation Marinoen ×2) → pas de clamp supérieur.
     const effPump01 = effPumpBase * epochPumpFactor * partitionFactor01;
 
@@ -110,21 +103,14 @@ function calculateCO2Partition() {
             const mNoop = 'NO-OP eff=' + effPump01.toFixed(3)
                 + ' base=' + effPumpBase.toFixed(3)
                 + ' epoch×=' + epochPumpFactor.toFixed(2)
-                + ' pump=' + pump01.toFixed(3)
-                + ' scale=' + scale01.toFixed(3)
                 + ' factor=' + partitionFactor01.toFixed(3)
                 + ' ep=' + epochId
                 + ' hasOceanWater=' + (hasOceanWater ? 1 : 0);
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mNoop);
-            }
+            console.log(mNoop);
+            window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mNoop);
         }
         return true;
     }
-
-    // Initialiser la section océan uniquement si on active le mécanisme.
-    DATA['🌊'] = DATA['🌊'] || {};
-    if (DATA['🌊']['⚖️🌊🏭'] == null) DATA['🌊']['⚖️🌊🏭'] = 0;
 
     if (hasOceanWater) {
         // Le refroidissement profond sous la glace permet toujours l'échange à l'équilibre.
@@ -134,14 +120,12 @@ function calculateCO2Partition() {
         // ----- LOI DE HENRY (Van 't Hoff) -----
         // Constante thermique typique de la solubilité du CO2: ~2400 K
         // Rapport d'équilibre Masse CO2_océan / Masse_CO2_atm = 50 (aujourd'hui)
-        const ratio_ref = (window.CONFIG_COMPUTE && Number.isFinite(Number(window.CONFIG_COMPUTE.co2OceanRatioRef)))
-            ? Math.max(0.1, Number(window.CONFIG_COMPUTE.co2OceanRatioRef))
-            : 50.0;
+        const ratio_ref = Math.max(0.1, CC.co2OceanRatioRef);
         const delta_inv_T = (1.0 / T_ocean) - (1.0 / T_ref);
         const ratio_T = ratio_ref * Math.exp(2400.0 * delta_inv_T);
 
         // Conservation du carbone (état courant) pour éviter les sauts inter-époques
-        const total_carbon_mass = DATA['⚖️']['⚖️🏭'] + (DATA['🌊']['⚖️🌊🏭'] || 0);
+        const total_carbon_mass = DATA['⚖️']['⚖️🏭'] + DATA['🌊']['⚖️🌊🏭'];
 
         // M_atm(T) = M_total / (1 + ratio_T)
         const eq_mass_atm = Math.max(0, total_carbon_mass / (1.0 + ratio_T));
@@ -159,17 +143,14 @@ function calculateCO2Partition() {
             const mApply = 'APPLY eff=' + effPump01.toFixed(3)
                 + ' base=' + effPumpBase.toFixed(3)
                 + ' epoch×=' + epochPumpFactor.toFixed(2)
-                + ' pump=' + pump01.toFixed(3)
-                + ' scale=' + scale01.toFixed(3)
                 + ' factor=' + partitionFactor01.toFixed(3)
                 + ' ep=' + epochId
                 + ' T_K=' + T_curr.toFixed(2)
                 + ' ratio_T=' + ratio_T.toExponential(3)
                 + ' CO2_atm ' + old_mass_atm.toExponential(3) + '→' + new_mass_atm.toExponential(3)
                 + ' CO2_ocean=' + DATA['🌊']['⚖️🌊🏭'].toExponential(3);
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mApply);
-            }
+            console.log(mApply);
+            window.debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', mApply);
         }
     }
 
@@ -226,6 +207,6 @@ function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     window.OCEAN_SINK.advanceOceanSinkStep(dtYears, airExcess, ppm_mid);
 }
 
-window.CO2 = window.CO2 || {};
+window.CO2 = {};
 window.CO2.calculateCO2Partition = calculateCO2Partition;
 window.CO2.advanceCarbonSinks = advanceCarbonSinks;

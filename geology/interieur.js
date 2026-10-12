@@ -157,7 +157,7 @@
 
     /** L'époque qui porte la condition initiale '🌡️🌕' : l'intérieur commence à son ▶. Exactement une. */
     function epoqueInitiale() {
-        const E = window.TIMELINE.filter(e => e && Number.isFinite(e['🌡️🌕']));
+        const E = window.TIMELINE.filter(e => '🌡️🌕' in e);
         if (E.length !== 1) throw new Error('[INTERIEUR] il faut exactement UNE époque avec 🌡️🌕 (condition initiale), trouvé ' + E.length);
         return E[0];
     }

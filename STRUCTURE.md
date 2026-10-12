@@ -117,8 +117,6 @@ Document de référence pour déplacer et ranger les JS de calcul dans `API_BILA
 ```
 API_BILAN/
 ├── api.js                 # Déjà : entrée API, run(config), callback stack
-├── callback_stack.js      # Déjà : pile de callbacks synchrones
-├── receiver.js            # Déjà : dispatch visu/scie
 ├── README.md
 ├── STRUCTURE.md           # Ce fichier
 │
@@ -173,7 +171,7 @@ Ordre de chargement suggéré (pour le loader) :
 7. atmosphere, albedo, h2o
 8. radiative (calculations.js)
 9. convergence (compute.js, calculations_flux.js)
-10. callback_stack.js, api.js, receiver.js
+10. api.js
 
 ---
 

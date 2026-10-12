@@ -1,9 +1,20 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.0.29
-// Date: [September 24, 2026]
+// Version 1.3.0
+// Date: [October 12, 2026]
 // logs :
+// - v1.3.0: getEpochDateConfig ne passe plus à l'époque suivante (ni ne remet ⏳ / 📿 à zéro) : c'était le 3e
+//   mécanisme de passage, avec CLICS.jouer et la frise de l'UI. L'époque est DATA['📜']['👉'], posée par CLICS.
+// - v1.2.0: date = ▶ ∓ 📜⏳ (temps écoulé tenu par CLICS.jouer, convergence/clics.js) au lieu de Σ 📿 × 🔺⏳ des
+//   seules actions comptées (🗻 / ⛰ / 🌋 n'avançaient pas la date du calcul) et du pas unique exigé sur 📱.
+// - v1.1.0: PAS DE GARDES. Les compteurs de tics sont explicites (TIC_COUNTERS = 💫, ☄️ : les seuls 📿 qui
+//   existent) au lieu d'un balayage de 🕰 filtré par typeof. Masses interpolées par 🔀 → 📜🔀⚖️ (comme 📜🔁⚖️) :
+//   getMasses repart toujours de la racine de l'époque, il ne relit plus DATA['⚖️'] (l'eau des météorites s'y
+//   ajoutait à chaque rappel). 🔀 '📜' fusionne EN PLACE dans DATA['📜'] (la copie cassait toute référence tenue
+//   sur DATA['📜'], dont la chaîne du banc). Supprimés : 📜🌡️🧮 (doublon de 📅🌡️🧮, aucun lecteur), code 🏭📊
+//   (aucune époque n'a ce profil) et window._co2ProfileLog, getEnabledStates (rendait true), alias getDateConfig,
+//   reprise 🍎/📐 (DATA['📅'] est fusionné, jamais partiel).
 // - v1.0.29: getNoyau publie l'état de l'INTÉRIEUR (geology/interieur.js, bilan d'énergie) — plus de 🧲🌕/🔋🌕
 //   par époque, plus de rampe 🔺🧲🌕💫, plus de barycentre '🌕' (🔀 qui le liste = crash : il écraserait l'état).
 // - v1.0.28: 🕰.'🌙' → 📜🌙 (carte de nuit superposée, lue par organigramme.js).
@@ -51,35 +62,15 @@
 // - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
 // ============================================================================
 
-// ============================================================================
-// FONCTION HELPER : getLogo() et getLogoKey() sont maintenant dans alphabet.js
-// On utilise window.getLogo et window.getLogoKey exposés par alphabet.js
-// Accès direct (plantera si n'existe pas, comme demandé)
+/** Actions de 🕰 qui ont un compteur 📿 dans DATA['📜'] — les seules dont le nombre de clics fait avancer la date. */
+const TIC_COUNTERS = ['💫', '☄️'];
 
-// ============================================================================
-// VARIABLES GLOBALES D'ÉTAT
-// ============================================================================
-
-// T0 est dans DATA['🧮']['🧮🌡️'], pas besoin de variable globale
-// Phase est dans DATA['🧮']['🧮⚧'], pas besoin de variable globale
-// signeDeltaFirst est dans DATA['🧮']['🧮☯'], pas besoin de variable globale
-// flux_entrant est calculé localement dans computeRadiativeTransfer, pas besoin de variable globale
-
-// ============================================================================
-// FONCTIONS HELPER
-// ============================================================================
-
-// CONST est maintenant centralisé dans physics.js
-// Plus besoin d'initialisation ici, CONST sera créé une seule fois dans physics.js
-
-//Récupère les états activés (utilise DATA directement)
-function getEnabledStates() {
-    // API_BILAN ne pilote plus d'états toggle.
-    // Les modules CO2/CH4/H2O/ALBEDO sont toujours actifs.
-    return true;
+/** 📱 : 🕰 indexé par année (clés numériques '2000', '2025'…), chaque tranche porte ses actions (⛽, 🛢, 🪾). */
+function yearBucketKeys(W) {
+    return Object.keys(W).filter(k => !isNaN(Number(k)));
 }
 
-/** Masse atmosphère « air sec » (kg) = somme des réservoirs gazeux contractuels ; ⚖️💧 = hydrosphère (exclu). */
+/** Masse atmosphère « air sec » (kg) = somme des réservoirs gazeux ; ⚖️💧 = hydrosphère (exclu). */
 function dryAtmosphereMassKgFromComponents(o) {
     return o['⚖️🏭'] + o['⚖️🐄'] + o['⚖️💨'] + o['⚖️🫁'] + o['⚖️✈'];
 }
@@ -88,375 +79,147 @@ function syncDryAtmosphereMassKg(state) {
     state['⚖️🫧'] = dryAtmosphereMassKgFromComponents(state);
 }
 
-//Calcule les masses en tenant compte des événements (meteor, etc.) :: utilise DATA directement
+/** Masses de l'état courant : racine de l'époque, puis interpolation 🔀, eau des météorites, état 🔁, cumul 📱. */
 function getMasses() {
     const DATA = window.DATA;
-    const epochId = DATA['📜']['🗿'];
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    const EPOCH = epochIndex >= 0 ? window.TIMELINE[epochIndex] : null;
-    if (!EPOCH) return false;
-    const useInterpolated = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) && EPOCH['🕰']['🔀'].includes('⚖️') && DATA['⚖️'] && typeof DATA['⚖️'] === 'object';
-
-    let base;
-    if (useInterpolated) {
-        base = DATA['⚖️'];
-    } else {
-        base = {
-            '⚖️🏭': EPOCH['⚖️🏭'],
-            '⚖️🐄': EPOCH['⚖️🐄'],
-            '⚖️💧': EPOCH['⚖️💧'],
-            '⚖️🫁': EPOCH['⚖️🫁'],
-            '⚖️💨': EPOCH['⚖️💨'],
-            '⚖️✈': EPOCH['⚖️✈']
-        };
+    const H = DATA['📜'];
+    const EPOCH = window.TIMELINE.find(item => item['📅'] === H['🗿']);
+    const base = {
+        '⚖️🏭': EPOCH['⚖️🏭'],
+        '⚖️🐄': EPOCH['⚖️🐄'],
+        '⚖️💧': EPOCH['⚖️💧'],
+        '⚖️🫁': EPOCH['⚖️🫁'],
+        '⚖️💨': EPOCH['⚖️💨'],
+        '⚖️✈': EPOCH['⚖️✈']
+    };
+    // 🔀 '⚖️' : masses interpolées le long de l'époque (posées par getEpochDateConfig).
+    Object.assign(base, H['🔀⚖️']);
+    // ⚖️💧 += 📿☄️ × 🔺⚖️💧☄️ (météorites)
+    base['⚖️💧'] += H['🔺⚖️💧☄️'] * H['📿☄️'];
+    // 🔁 état de cycle courant (posé par getEpochDateConfig) : masses imposées pour ce tic.
+    Object.assign(base, H['🔁⚖️']);
+    // 📱 🕰 indexé par année : CO₂ = racine + cumul injecté par les clics ⛽/🛢 − absorbé océan − stocké forêts
+    // (CO2.advanceCarbonSinks). Cumul, pas un delta consommé : getMasses est rappelé à chaque pas de convergence.
+    if (yearBucketKeys(EPOCH['🕰']).length) {
+        base['⚖️🏭'] += H['🔺⚖️🏭'] - H['🔺⚖️🌊🏭'] - H['🔺⚖️🌳🏭'];
     }
-    // ⚖️💧 += 📿☄️ * 🔺⚖️💧☄️ (météorites)
-    let h2o_kg = base['⚖️💧'];
-    h2o_kg += DATA['📜']['🔺⚖️💧☄️'] * DATA['📜']['📿☄️'];
-    base['⚖️💧'] = h2o_kg;
-
-    // 🏭📊 Fraction aéroportée — appliquée ICI (source unique) pour survivre aux rappels getMasses() dans la boucle de convergence
-    const epochEnd = EPOCH['◀'];
-    const isForwardMasses = EPOCH['▶'] < epochEnd;
-    if (!useInterpolated && isForwardMasses && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
-        let deltaMassesTics = 0;
-        if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
-            for (const tk of Object.keys(EPOCH['🕰'])) {
-                if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
-                const cfg = EPOCH['🕰'][tk];
-                if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                    const cnt = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
-                    deltaMassesTics += cnt * cfg['🔺⏳'] * 1e6;
-                }
-            }
-        }
-        const currentYearM = EPOCH['▶'] + deltaMassesTics;
-        const profile = EPOCH['🏭📊'];
-        let cumulGtM = 0;
-        for (let i = 0; i < profile.tranches.length; i++) {
-            const tr = profile.tranches[i];
-            if (currentYearM <= tr.from) break;
-            const span = tr.to - tr.from;
-            const rate = span > 0 ? tr.Gt / span : 0;
-            cumulGtM += rate * (Math.min(currentYearM, tr.to) - tr.from);
-        }
-        const airborneM = profile.airborne;
-        base['⚖️🏭'] += cumulGtM * 1e12 * airborneM;
-    }
-
-    // 🔁 état de cycle courant (📜🔁⚖️, posé par getEpochDateConfig) : masses imposées pour ce tic.
-    const cycleMasses = DATA['📜']['🔁⚖️'];
-    if (cycleMasses) {
-        for (const k of Object.keys(cycleMasses)) base[k] = cycleMasses[k];
-    }
-
-    // 📱 🕰 indexé par année : CO₂ = racine époque + cumul injecté par les clics ⛽/🛢 (events.js → 📜🔺⚖️🏭).
-    // Cumul (pas un delta « consommé ») : getMasses est rappelé à chaque pas de convergence. Partition océan = calculations_co2.js.
-    // (Perdu au refactor d92a02e du 20/04/2026 : les clics ne changeaient plus le CO₂.)
-    if (EPOCH['🕰'] && Object.keys(EPOCH['🕰']).some(k => !isNaN(Number(k)))) {
-        // Conservation : injecté − absorbé océan − stocké forêts (CO2.advanceCarbonSinks, calculations_co2.js)
-        base['⚖️🏭'] += DATA['📜']['🔺⚖️🏭'] - DATA['📜']['🔺⚖️🌊🏭'] - DATA['📜']['🔺⚖️🌳🏭'];
-    }
-
     syncDryAtmosphereMassKg(base);
     DATA['⚖️'] = base;
-
-    // Retourner true car DATA a été modifié
     return true;
 }
 
-//Récupère la configuration de l'époque (utilise DATA directement)
+/** Date courante, voile, rayon, états 🔁, images, interpolation 🔀, puis masses. L'époque est celle posée par
+ *  CLICS (frise / passer) : getEpochDateConfig n'en change jamais — le passage est décidé par le clic. */
 function getEpochDateConfig() {
-    // Utiliser DATA directement (pas de paramètres)
     const DATA = window.DATA;
-    const CONST = window.CONST;
-    let epochId = DATA['📜']['🗿'];
-    let epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    let EPOCH = window.TIMELINE[epochIndex];
-    if (!EPOCH) return false;
+    const H = DATA['📜'];
+    const EPOCH = window.TIMELINE[H['👉']];
+    const W = EPOCH['🕰'];
 
-    // Si date >= ◀(epoch) (en années : date courante <= ◀) → passer à l'époque suivante et remettre tics à 0
-    // dateYears = ▶ - sum( (📿[ticKey] * 🔺⏳[ticKey]) ) * 1e6 pour éviter mélange de pas (ex. ☄️ 100 Ma + 💫 100 Ma)
-    let deltaYearsFromTics = 0;
-    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object' && EPOCH['▶'] != null) {
-        for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
-            const cfg = EPOCH['🕰'][tk];
-            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                const count = (DATA['📜']['📿' + tk] != null && Number.isFinite(DATA['📜']['📿' + tk])) ? DATA['📜']['📿' + tk] : 0;
-                deltaYearsFromTics += count * cfg['🔺⏳'] * 1e6;
-            }
-        }
-    }
-    // 📱 🕰 indexé par année (2000: {⛽: {🔺⏳…}}) : le pas est porté par les actions des tranches, pas par une clé tic.
-    // Chaque clic ⛽/🛢 incrémente 📿💫 → date = ▶ + 📿💫 × pas. Pas unique exigé (sinon date ambiguë → crash).
-    const yearBucketKeys = EPOCH['🕰'] ? Object.keys(EPOCH['🕰']).filter(k => !isNaN(Number(k))) : [];
-    if (yearBucketKeys.length) {
-        const steps = new Set();
-        for (const yk of yearBucketKeys) {
-            for (const act of Object.values(EPOCH['🕰'][yk])) steps.add(act['🔺⏳']);
-        }
-        if (steps.size !== 1) throw new Error('[getEpochDateConfig] 🕰 indexé par année : 🔺⏳ doit être identique pour toutes les actions (' + Array.from(steps).join(',') + ')');
-        deltaYearsFromTics += DATA['📜']['📿💫'] * steps.values().next().value * 1e6;
-    }
-    const epochEnd = EPOCH['◀'];
-    // Detect time direction: geological = backward (▶ > ◀), modern = forward (▶ < ◀)
-    const isForwardTime = EPOCH['▶'] < epochEnd;
+    // Temps écoulé dans l'époque : 📜⏳ (Ma), seule horloge, tenue par CLICS.jouer (somme des 🔺⏳ joués).
+    const deltaYearsFromTics = H['⏳'] * 1e6;
+    // Sens du temps : géologique ▶ > ◀ (années avant le présent), moderne ▶ < ◀ (calendrier).
+    const isForwardTime = EPOCH['▶'] < EPOCH['◀'];
     const dateYears = isForwardTime ? EPOCH['▶'] + deltaYearsFromTics : EPOCH['▶'] - deltaYearsFromTics;
-    const shouldTransition = (epochIndex + 1 < window.TIMELINE.length)
-        && (isForwardTime ? dateYears >= epochEnd : dateYears <= epochEnd);
-    if (shouldTransition) {
-        const nextEpoch = window.TIMELINE[epochIndex + 1];
-        DATA['📜']['🗿'] = nextEpoch['📅'];
-        DATA['📜']['👉'] = epochIndex + 1;
-        DATA['📜']['📿💫'] = 0;
-        DATA['📜']['📿☄️'] = 0;
-        DATA['📜']['_veilTimelinePulseActive'] = false;
-        epochId = nextEpoch['📅'];
-        epochIndex = epochIndex + 1;
-        EPOCH = nextEpoch;
-    }
 
-    // Masse d'eau par météorite — depuis config ☄️ (Corps noir, Hadéen)
-    // ⚠️ Ne pas écraser 📿☄️ ni 📿💫 — compteurs exclusifs des boutons (events.js)
-    if (EPOCH['🕰'] && EPOCH['🕰']['☄️']) {
-        DATA['📜']['🔺⚖️💧☄️'] = EPOCH['🕰']['☄️']['🔺⚖️💧☄️'];
-    }
+    // Masse d'eau par météorite (⚫, 🔥). ⚠️ Ne pas écraser 📿☄️ ni 📿💫 : compteurs des clics (CLICS.jouer).
+    if ('☄️' in W) H['🔺⚖️💧☄️'] = W['☄️']['🔺⚖️💧☄️'];
+    // Delta de température par tictime (graine sans anim : calculateT0).
+    H['🔺🌡️💫'] = ('💫' in W) ? W['💫']['🔺🌡️💫'] : 0;
+    DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];
+    H['🧲🔬'] = EPOCH['🧲🔬'];
 
-    // Delta température par TicTime — depuis config 💫 (le flux intérieur ne se configure plus : geology/interieur.js)
-    let deltaTicTime_per_tic = 0;
-    if (EPOCH['🕰'] && EPOCH['🕰']['💫']) {
-        const raw = EPOCH['🕰']['💫']['🔺🌡️💫'];
-        deltaTicTime_per_tic = (typeof raw === 'number' && Number.isFinite(raw)) ? raw : 0;
-    }
-
-    // Mettre à jour DATA directement (source unique de vérité)
-    DATA['📜']['🌡️🧮'] = EPOCH['🌡️🧮'];
-    DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];                  // Température attendue de l'époque
-    DATA['📜']['🔺🌡️💫'] = deltaTicTime_per_tic;          // Delta température / ticTime (jamais undefined → calculateT0 sans NaN)
-    DATA['📜']['🧲🔬'] = EPOCH['🧲🔬'];
-    DATA['📜']['👉'] = epochIndex;
-    DATA['📜']['🗿'] = epochId;
-
-    // Impulsion voile (racine TIMELINE) : EPOCH['🔺🍰⚽'] → 📜🔺🍰⚽ une fois à 📿💫===0 ; remise au clic 💫 : 🕰.💫.🍰⚽ (events.js).
-    // v1.0.17 — bug fix bench : si la nouvelle époque N'A PAS de clé 🔺🍰⚽, on reset la VALEUR cumulative
-    // 📜🔺🍰⚽ à 0 (et pas seulement le flag _veilTimelinePulseActive). Sinon le pulse 0.02 posé par ⛄
-    // (hyst snowball) persistait sur toutes les époques suivantes en bench séquentiel → albédo +1.45 %
-    // → calibration cassée vs visu (single click = pas de pulse hérité). Cf. _logs/iceSnapshot.txt
-    // POST_CALC ep=📱 phase=Init : alb 0.3019 (bench) vs 0.288 (visu).
-    const wh0 = EPOCH['🕰'];
-    // [FIX voile-action v-2026-07-16] Si l'époque porte une ACTION volcan qui déclare un voile dans 🕰
-    // (🗻 = voile SW entrée / 🌋 = sortie), le voile 📜🔺🍰⚽ est piloté par le CLIC d'action (events.js) et
-    // ne doit PAS être remis à 0 par le compute. Sinon le voile appliqué par l'action était effacé au pas
-    // suivant (1a n'a pas de clé racine 🔺🍰⚽ — voulu : le voile n'apparaît QU'à l'action) → l'entrée snowball
-    // ne se déclenchait jamais (visu 🍰⚽=0 malgré le clic). La protection anti-fuite cross-époque reste active
-    // pour les époques SANS action voile.
-    const hasVeilAction = wh0 && (
-        (wh0['🗻'] && Number.isFinite(Number(wh0['🗻']['🔺🍰⚽']))) ||
-        (wh0['🌋'] && Number.isFinite(Number(wh0['🌋']['🔺🍰⚽'])))
-    );
-    const hasInterpVeil = wh0 && Array.isArray(wh0['🔀']) && wh0['🔀'].indexOf('📜') !== -1
-        && wh0['◀'] && wh0['◀']['📜'] && typeof wh0['◀']['📜']['🔺🍰⚽'] === 'number'
-        && Number.isFinite(Number(wh0['◀']['📜']['🔺🍰⚽']))
-        && Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')
-        && Number.isFinite(Number(EPOCH['🔺🍰⚽']));
-    if (hasInterpVeil) {
-        DATA['📜']['_veilTimelinePulseActive'] = false;
-    } else if (Object.prototype.hasOwnProperty.call(EPOCH, '🔺🍰⚽')) {
-        const pulseVal = Number(EPOCH['🔺🍰⚽']);
-        const ticN = DATA['📜']['📿💫'];
-        const pulseActive = DATA['📜']['_veilTimelinePulseActive'] === true;
-        if (ticN === 0 && !pulseActive) {
-            DATA['📜']['🔺🍰⚽'] = pulseVal;
-            DATA['📜']['_veilTimelinePulseActive'] = true;
+    // Voile SW 📜🔺🍰⚽. Trois sources possibles, par config :
+    //  - 🔀 contient '📜' : rampe le long de l'époque (🏔) — l'interpolation plus bas le pose ;
+    //  - racine EPOCH['🔺🍰⚽'] : impulsion posée une fois à l'entrée (📿💫 = 0), retirée au tic (CLICS.jouer) ;
+    //  - action 🗻 / 🌋 qui déclare 🔺🍰⚽ : le clic la pose (CLICS.jouer), le compute n'y touche pas.
+    // Sinon : le voile hérité d'une époque précédente est effacé.
+    const interpolKeys = ('🔀' in W) ? W['🔀'] : [];
+    const veilAction = ['🗻', '🌋'].some(k => (k in W) && ('🔺🍰⚽' in W[k]));
+    if (interpolKeys.includes('📜')) {
+        H['_veilTimelinePulseActive'] = false;
+    } else if ('🔺🍰⚽' in EPOCH) {
+        if (H['📿💫'] === 0 && H['_veilTimelinePulseActive'] !== true) {
+            H['🔺🍰⚽'] = EPOCH['🔺🍰⚽'];
+            H['_veilTimelinePulseActive'] = true;
         }
-    } else if (!hasVeilAction) {
-        DATA['📜']['_veilTimelinePulseActive'] = false;
-        DATA['📜']['🔺🍰⚽'] = 0; // pas de pulse ni d'action voile → on efface le résiduel cross-époque.
+    } else if (!veilAction) {
+        H['_veilTimelinePulseActive'] = false;
+        H['🔺🍰⚽'] = 0;
     }
 
-    // Rayon effectif : base EPOCH['📐'] + somme des deltas 🔺📐 par tic (générique ; ignorer 🕰['🔀'] et 🕰['◀'])
-    const baseRadiusKm = EPOCH['📐'];
+    // Rayon effectif : EPOCH['📐'] + Σ 📿 × 🔺📐 des actions comptées (accrétion de 🔥).
     let deltaRadiusKm = 0;
-    if (EPOCH['🕰'] && typeof EPOCH['🕰'] === 'object') {
-        for (const ticKey of Object.keys(EPOCH['🕰'])) {
-            if (ticKey === '🔀' || ticKey === '◀' || ticKey === 'order' || ticKey === 'baryFromDate') continue;
-            const ticCfg = EPOCH['🕰'][ticKey];
-            if (ticCfg && typeof ticCfg['🔺📐'] === 'number' && Number.isFinite(ticCfg['🔺📐'])) {
-                const count = (DATA['📜']['📿' + ticKey] != null && Number.isFinite(DATA['📜']['📿' + ticKey])) ? DATA['📜']['📿' + ticKey] : 0;
-                deltaRadiusKm += count * ticCfg['🔺📐'];
-            }
-        }
+    for (const tk of TIC_COUNTERS) {
+        if ((tk in W) && ('🔺📐' in W[tk])) deltaRadiusKm += H['📿' + tk] * W[tk]['🔺📐'];
     }
-    DATA['📜']['📐'] = baseRadiusKm + deltaRadiusKm;
+    H['📐'] = EPOCH['📐'] + deltaRadiusKm;
 
-    // 🔁 ÉTATS PAR TIC (générique, cf. 🦣 Quaternaire) : EPOCH['🕰']['🔁'] = liste d'états.
-    // Index = 📿💫 − 1 (tic 0 = racine de l'époque) ; au-delà de la liste, le dernier état est maintenu.
-    // Un état peut porter : '⚾' (obliquité ε courante → 📜⚾, physics.js), les masses '⚖️*' (→ 📜🔁⚖️, lues
-    // par getMasses) et '📝' (texte du POURQUOI, affiché en alt2sec par events.js). Aucun if par époque.
-    DATA['📜']['⚾'] = 0;
-    DATA['📜']['🔁⚖️'] = null;
-    DATA['📜']['🔁📝'] = '';
-    DATA['📜']['🖼'] = '';
-    DATA['📜']['🌙'] = '';
-    const cycleStates = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔁'])) ? EPOCH['🕰']['🔁'] : null;
-    if (cycleStates && cycleStates.length) {
-        const ticCycle = DATA['📜']['📿💫'];
-        if (ticCycle >= 1) {
-            const state = cycleStates[Math.min(ticCycle - 1, cycleStates.length - 1)];
-            const massOverrides = {};
-            for (const k of Object.keys(state)) {
-                if (k.indexOf('⚖️') === 0) massOverrides[k] = state[k];
-            }
-            if (Number(state['⚾']) > 0) DATA['📜']['⚾'] = Number(state['⚾']);
-            if (Object.keys(massOverrides).length) DATA['📜']['🔁⚖️'] = massOverrides;
-            if (typeof state['📝'] === 'string') DATA['📜']['🔁📝'] = state['📝'];
+    // 🔁 ÉTATS PAR TIC (🍄, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
+    // maintenu. Un état porte '⚾' (obliquité → 📜⚾, physics.js), des masses '⚖️*' (→ 📜🔁⚖️, getMasses), '📝'.
+    H['⚾'] = 0;
+    H['🔁⚖️'] = {};
+    H['🔁📝'] = '';
+    H['🖼'] = '';
+    H['🌙'] = '';
+    if (('🔁' in W) && H['📿💫'] >= 1) {
+        const state = W['🔁'][Math.min(H['📿💫'] - 1, W['🔁'].length - 1)];
+        for (const k of Object.keys(state)) {
+            if (k.indexOf('⚖️') === 0) H['🔁⚖️'][k] = state[k];
         }
+        if ('⚾' in state) H['⚾'] = state['⚾'];
+        if ('📝' in state) H['🔁📝'] = state['📝'];
     }
+    // 🖼 suite d'images imposée par l'époque : index = 📿💫 modulo longueur (sinon texture déduite de la date).
+    if ('🖼' in W) H['🖼'] = W['🖼'][H['📿💫'] % W['🖼'].length];
+    // 🌙 carte de nuit superposée (toute l'époque) : lumières des villes côté ombre.
+    if ('🌙' in W) H['🌙'] = W['🌙'];
 
-    // 🖼 SUITE D'IMAGES imposée par l'époque (EPOCH['🕰']['🖼'], liste de chemins) : index = 📿💫 modulo longueur.
-    // Sans cette clé, 📜🖼 reste vide et la texture est déduite de la date (organigramme.js). Générique : aucune époque nommée.
-    const imgList = (EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🖼'])) ? EPOCH['🕰']['🖼'] : null;
-    if (imgList && imgList.length) {
-        DATA['📜']['🖼'] = imgList[DATA['📜']['📿💫'] % imgList.length];
-    }
-    // 🌙 carte de nuit superposée (toute l'époque) : lumières des villes côté ombre, en même temps que le jour.
-    if (typeof (EPOCH['🕰'] && EPOCH['🕰']['🌙']) === 'string') {
-        DATA['📜']['🌙'] = EPOCH['🕰']['🌙'];
-    }
+    // Date courante (années avant le présent, ou calendrier si ▶ < ◀) — lue par getSoleil (Gough).
+    H['📅'] = dateYears;
 
-    // 🔒 Date courante en années avant le présent (pour Gough dans getSoleil)
-    // Stocké dans 📜 (pas 📅 — sync_panels.js écrase DATA['📅'] avec TIMELINE[idx])
-    DATA['📜']['📅'] = dateYears;
-
-    // Barycentre (📿💫+📿☄️)/maxTics : interpolation des params listés dans 🕰['🔀'] entre epoch (▶) et 🕰['◀']
-    const interpolKeys = EPOCH['🕰'] && Array.isArray(EPOCH['🕰']['🔀']) ? EPOCH['🕰']['🔀'] : null;
-    let interpolEnd = EPOCH['🕰'] && EPOCH['🕰']['◀'] && typeof EPOCH['🕰']['◀'] === 'object' ? EPOCH['🕰']['◀'] : null;
-    // v-2026-07-14 : 🔀 SANS ◀ → cible auto = racine de l'époque suivante TIMELINE[👉+1].
-    // But : rampe DRY sans recopier/désynchroniser un ◀ (cf. Archéen◀ 4.7e16 vs Proté 9.47e16 qui avait divergé).
-    // On ne construit que les groupes listés dans 🔀 ('⚖️' masses, '🌕' noyau), et UNIQUEMENT les sous-clés
-    // présentes aussi dans l'époque courante (sinon startVal=undefined → NaN, ce qui est le comportement voulu _REGLE_JS_CRASH).
-    // Opt-out inchangé : une époque sans 🔀 (Corps noir, hystérésis…) ne rampe pas → arrivée/bifurcation brutale préservée.
-    if (interpolKeys && !interpolEnd) {
-        const nextEp = window.TIMELINE[epochIndex + 1];
-        if (nextEp) {
-            const built = {};
-            for (const groupKey of interpolKeys) {
-                const endObj = {};
-                if (groupKey === '⚖️') {
-                    for (const k of Object.keys(nextEp)) {
-                        if (k.indexOf('⚖️') === 0 && EPOCH[k] != null && typeof nextEp[k] === 'number') endObj[k] = nextEp[k];
-                    }
-                } else if (groupKey === '🌕') {
-                    throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + epochId + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
-                }
-                if (Object.keys(endObj).length) built[groupKey] = endObj;
+    // 🔀 INTERPOLATION entre la racine (▶) et 🕰['◀'] des groupes listés : '⚖️' (masses → 📜🔀⚖️), '📅' (graine
+    // 🌡️🧮), '📜' (voile 🔺🍰⚽). Sans ◀, la cible est la racine de l'époque suivante (masses seulement).
+    H['🔀⚖️'] = {};
+    if (interpolKeys.length) {
+        if (interpolKeys.includes('🌕')) throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + EPOCH['📅'] + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
+        let interpolEnd = W['◀'];
+        if (interpolEnd === undefined) {
+            const nextEp = window.TIMELINE[H['👉'] + 1];
+            const endMasses = {};
+            for (const k of Object.keys(nextEp)) {
+                if (k.indexOf('⚖️') === 0 && (k in EPOCH)) endMasses[k] = nextEp[k];
             }
-            if (Object.keys(built).length) interpolEnd = built;
+            interpolEnd = { '⚖️': endMasses };
         }
-    }
-    if (interpolKeys && interpolKeys.indexOf('🌕') !== -1) {
-        throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + epochId + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
-    }
-    if (interpolKeys && interpolEnd) {
-        let refDeltaMa = 0;
-        for (const tk of Object.keys(EPOCH['🕰'])) {
-            if (tk === '🔀' || tk === '◀' || tk === 'order' || tk === 'baryFromDate') continue;
-            const cfg = EPOCH['🕰'][tk];
-            if (cfg && typeof cfg['🔺⏳'] === 'number' && Number.isFinite(cfg['🔺⏳'])) {
-                refDeltaMa = cfg['🔺⏳'];
-                break;
-            }
-        }
-        const spanYears = Math.max(0, EPOCH['▶'] - EPOCH['◀']);
-        let maxTics = refDeltaMa > 0 && spanYears > 0 ? Math.max(1, Math.floor((spanYears / 1e6) / refDeltaMa)) : 1;
-        const spanOverStep = refDeltaMa > 0 ? (spanYears / 1e6) / refDeltaMa : 0;
-        if (maxTics === 1 && spanOverStep > 1) {
-            maxTics = Math.max(2, Math.ceil(spanOverStep));
-        }
+        // bary ∈ [0,1] : par la date (🏔, baryFromDate) ou par les tics (📿💫 + 📿☄️) / nombre de tics de l'époque.
+        const span = Math.abs(EPOCH['▶'] - EPOCH['◀']);
         let bary;
-        if (EPOCH['🕰'].baryFromDate === true && Number.isFinite(dateYears)) {
-            const a = EPOCH['▶'];
-            const b = EPOCH['◀'];
-            const span = (a != null && b != null) ? Math.abs(a - b) : 0;
-            if (span > 0) {
-                bary = (a < b)
-                    ? Math.max(0, Math.min(1, (dateYears - a) / span))
-                    : Math.max(0, Math.min(1, (a - dateYears) / span));
-            } else {
-                bary = 0;
-            }
+        if (W.baryFromDate === true) {
+            bary = (isForwardTime ? dateYears - EPOCH['▶'] : EPOCH['▶'] - dateYears) / span;
         } else {
-            const totalTicsBary = ((DATA['📜']['📿💫'] != null && Number.isFinite(DATA['📜']['📿💫'])) ? DATA['📜']['📿💫'] : 0) + ((DATA['📜']['📿☄️'] != null && Number.isFinite(DATA['📜']['📿☄️'])) ? DATA['📜']['📿☄️'] : 0);
-            bary = Math.max(0, Math.min(1, totalTicsBary / maxTics));
+            const ticsOverSpan = (span / 1e6) / W['💫']['🔺⏳'];
+            const maxTics = ticsOverSpan > 1 ? Math.max(2, Math.floor(ticsOverSpan)) : 1;
+            bary = (H['📿💫'] + H['📿☄️']) / maxTics;
         }
-        DATA['📜']['bary'] = bary;
-        for (let i = 0; i < interpolKeys.length; i++) {
-            const groupKey = interpolKeys[i];
+        bary = Math.max(0, Math.min(1, bary));
+        H['bary'] = bary;
+        for (const groupKey of interpolKeys) {
             const endObj = interpolEnd[groupKey];
-            if (!endObj || typeof endObj !== 'object') continue;
             const out = {};
             for (const subkey of Object.keys(endObj)) {
-                const startVal = EPOCH[subkey];
-                const endVal = endObj[subkey];
-                if (typeof endVal === 'number' && Number.isFinite(endVal)) {
-                    // _REGLE_JS_CRASH : Aucun fallback ou typeof abusif.
-                    // Si startVal est undefined, le calcul donne NaN et l'application plantera naturellement (ce qui est voulu).
-                    out[subkey] = startVal + bary * (endVal - startVal);
-                } else {
-                    out[subkey] = endVal;
-                }
+                out[subkey] = EPOCH[subkey] + bary * (endObj[subkey] - EPOCH[subkey]);
             }
-            if (groupKey === '📅') {
-                const prev = DATA[groupKey];
-                if (prev != null && typeof prev === 'object' && !Array.isArray(prev)) {
-                    DATA[groupKey] = Object.assign({}, prev, out);
-                } else {
-                    DATA[groupKey] = out;
-                }
-            } else if (groupKey === '📜') {
-                const prev = DATA[groupKey];
-                if (prev != null && typeof prev === 'object' && !Array.isArray(prev)) {
-                    DATA[groupKey] = Object.assign({}, prev, out);
-                } else {
-                    DATA[groupKey] = out;
-                }
-            } else {
-                DATA[groupKey] = out;
-            }
-        }
-        if (DATA['📅'] && typeof DATA['📅']['🌡️🧮'] === 'number' && Number.isFinite(DATA['📅']['🌡️🧮'])) {
-            DATA['📜']['🌡️🧮'] = DATA['📅']['🌡️🧮'];
+            if (groupKey === '⚖️') H['🔀⚖️'] = out;
+            else if (groupKey === '📜') Object.assign(H, out);
+            // DATA['📅'] est l'entrée du TIMELINE (api.run / setEpoch) : on la remplace par une copie fusionnée pour
+            // ne jamais écrire dans la config.
+            else if (groupKey === '📅') DATA['📅'] = Object.assign({}, DATA['📅'], out);
+            else throw new Error('[getEpochDateConfig] 🔀 : groupe inconnu ' + groupKey + ' (époque ' + EPOCH['📅'] + ')');
         }
     }
 
-    // Objet partiel (ex. futures interpolations) : 🍎, 📐 physiques invariants s’il manquent / non fini sur DATA['📅'].
-    if (DATA['📅'] && EPOCH) {
-        for (const k of ['🍎', '📐']) {
-            if (EPOCH[k] != null && (typeof EPOCH[k] === 'number') && Number.isFinite(EPOCH[k])) {
-                if (DATA['📅'][k] == null || (typeof DATA['📅'][k] === 'number' && !Number.isFinite(DATA['📅'][k]))) {
-                    DATA['📅'][k] = EPOCH[k];
-                }
-            }
-        }
-    }
-
-    // Calculer les masses avec getMasses() (met à jour DATA directement)
     getMasses();
-
-    // 🏭📊 : le calcul est maintenant dans getMasses() (source unique, survit aux rappels de la boucle de convergence)
-    // Ici on génère seulement le log si l'époque a un profil d'émissions
-    if (isForwardTime && EPOCH['🏭📊'] && Array.isArray(EPOCH['🏭📊'].tranches)) {
-        const ppm_approx = Math.round(
-            (DATA['⚖️']['⚖️🏭'] * 0.029 / (DATA['⚖️']['⚖️🫧'] * 0.04401)) * 1e6
-        );
-        window._co2ProfileLog = '[🏭📊] ' + Math.round(EPOCH['▶'] + deltaYearsFromTics)
-            + ' → ⚖️🏭=' + DATA['⚖️']['⚖️🏭'].toExponential(3)
-            + ' kg (~' + ppm_approx + ' ppm)';
-        window._co2ProfileLogInjected = false;
-    }
-
-    // Retourner true car DATA a été modifié
     return true;
 }
 
@@ -476,13 +239,8 @@ function goughLuminosity(t_ago_years) {
 //Calcule les valeurs du soleil depuis la date courante via Gough (1981)
 function getSoleil() {
     const DATA = window.DATA;
-    if (!DATA || !DATA['📜']) throw new Error('getSoleil: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
-    // Date courante en années avant le présent (stockée par getEpochDateConfig dans 📜, pas 📅)
-    const dateYears = DATA['📜']['📅'];
-    if (dateYears == null || !Number.isFinite(dateYears)) throw new Error('getSoleil: DATA[📜][📅] invalide (' + dateYears + ') — getEpochDateConfig() doit stocker la date en années');
-    // 🔒 Luminosité exacte via Gough — pas d'interpolation linéaire
-    const P_watts = goughLuminosity(dateYears);
-    if (!DATA['☀️']) DATA['☀️'] = {};
+    // Date courante (posée par getEpochDateConfig dans 📜). 🔒 Luminosité exacte via Gough.
+    const P_watts = goughLuminosity(DATA['📜']['📅']);
     DATA['☀️']['🔋☀️'] = P_watts;
     DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
@@ -494,26 +252,19 @@ function getNoyau() {
     // Source UNIQUE de DATA['🌕'] : l'état de l'intérieur (geology/interieur.js), amené à la date courante par
     // CONVERGE.computeRadiativeTransfer (bilan d'énergie). Ici on ne fait que le publier : flux [W/m²] = puissance /
     // (4πR²) au rayon courant 📜📐. Intérieur fondu → NaN jusqu'au radiatif de l'init (surface = magma).
-    const DATA = window.DATA;
-    if (!DATA || !DATA['📜']) throw new Error('getNoyau: DATA ou DATA[📜] manquant — getEpochDateConfig() non appelé ?');
-    window.INTERIEUR.publier(DATA);
+    window.INTERIEUR.publier(window.DATA);
     return true;
 }
 
 // ============================================================================
 // EXPOSITION GLOBALE
 // ============================================================================
-var COMPUTE = window.COMPUTE = window.COMPUTE || {};
-COMPUTE.getEpochDateConfig = getEpochDateConfig;
-COMPUTE.getDateConfig = getEpochDateConfig;
-COMPUTE.getMasses = getMasses;
-COMPUTE.dryAtmosphereMassKgFromComponents = dryAtmosphereMassKgFromComponents;
-COMPUTE.syncDryAtmosphereMassKg = syncDryAtmosphereMassKg;
-COMPUTE.getEnabledStates = getEnabledStates;
-COMPUTE.getSoleil = getSoleil;
-COMPUTE.goughLuminosity = goughLuminosity;
-COMPUTE.getNoyau = getNoyau;
-// Expositions : tout passe par window.COMPUTE (doublons window.foo retirés).
-// T0 est dans DATA['🧮']['🧮🌡️'], pas besoin de window.T0
-// getLogo et getLogoKey sont exposés par alphabet.js
-
+window.COMPUTE = {
+    getEpochDateConfig: getEpochDateConfig,
+    getMasses: getMasses,
+    dryAtmosphereMassKgFromComponents: dryAtmosphereMassKgFromComponents,
+    syncDryAtmosphereMassKg: syncDryAtmosphereMassKg,
+    getSoleil: getSoleil,
+    goughLuminosity: goughLuminosity,
+    getNoyau: getNoyau
+};

@@ -152,32 +152,19 @@
 // Albédo effectif (surfaces + nuages + voile SW) : cohérence 🍰🪩📿 / 🧲☀️🔽 / 🧲🪩🔼
 // ============================================================================
 function applyVeilToPlanetaryAlbedo01(A_geom) {
-    const A = Number(A_geom);
-    if (!Number.isFinite(A)) return NaN;
-    const a = Math.max(0, Math.min(1, A));
-    const DATA = window.DATA;
-    const w = DATA && DATA['🪩'];
-    let obs = 0;
-    if (w && Number.isFinite(w['🍰⚽'])) {
-        obs = Math.max(0, Math.min(0.95, w['🍰⚽']));
-    }
+    const a = Math.max(0, Math.min(1, A_geom));
+    const obs = Math.max(0, Math.min(0.95, window.DATA['🪩']['🍰⚽']));
     return 1 - (1 - a) * (1 - obs);
 }
 
 // ============================================================================
 // VOILE SW STRATOSPHÉRIQUE : 🍰⚽ (obstruction, source métier) ; 🍰🪩⚽ = 1−🍰⚽ (transmission)
 // ============================================================================
+// Voile = 📜🔺🍰⚽ (impulsion d'époque / rampe / action, compute.js + events.js).
+// (Retirés : terme « racine EPOCH['🍰⚽'] », déclaré par aucune époque, et jauge hystStratosphericVeilExtra01
+// de la page hystérésis supprimée — tous deux valaient toujours 0.)
 function syncStratosphericVeil01(DATA) {
-    if (!DATA || !DATA['📜']) return 0;
-    if (!DATA['🪩']) DATA['🪩'] = {};
-    const epochId = DATA['📜']['🗿'];
-    const tl = window.TIMELINE;
-    const idx = tl ? tl.findIndex(function (item) { return item['📅'] === epochId; }) : -1;
-    const EPOCHv = idx >= 0 ? tl[idx] : null;
-    const base = (EPOCHv && typeof EPOCHv['🍰⚽'] === 'number' && Number.isFinite(EPOCHv['🍰⚽'])) ? EPOCHv['🍰⚽'] : 0;
-    const cum = (DATA['📜']['🔺🍰⚽'] != null && Number.isFinite(DATA['📜']['🔺🍰⚽'])) ? DATA['📜']['🔺🍰⚽'] : 0;
-    const extra = (window.CONFIG_COMPUTE && Number.isFinite(window.CONFIG_COMPUTE.hystStratosphericVeilExtra01)) ? window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 : 0;
-    const obs = Math.min(0.95, Math.max(0, base + cum + extra));
+    const obs = Math.min(0.95, Math.max(0, DATA['📜']['🔺🍰⚽']));
     DATA['🪩']['🍰⚽'] = obs;
     DATA['🪩']['🍰🪩⚽'] = 1 - obs;
     return obs;
@@ -352,10 +339,7 @@ function calculateAlbedo() {
         //   dT_pol lu depuis EPOCH['🥶'].dT_pol (source unique, configTimeline.js). Crash si manquant.
         // Régime 2 (T_K <  T_freeze) : océan gèle → jusqu'à 90% surface en glace de mer, rampe sur 20 K.
         if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
-            if (!EPOCH || !EPOCH['🥶'] || !Number.isFinite(Number(EPOCH['🥶'].dT_pol))) {
-                throw new Error("[calcGlaceEquilibre] EPOCH['🥶'].dT_pol requis (configTimeline.js). Pas de fallback.");
-            }
-            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + Number(EPOCH['🥶'].dT_pol);
+            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + EPOCH['🥶'].dT_pol;
             const stock_factor = Math.max(0, Math.min(1, (T_thresh_pol - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K));
             return Math.max(0, Math.min(1, 0.1 * stock_factor));
         }
@@ -374,18 +358,15 @@ function calculateAlbedo() {
     //   • factor<1   → moins d'inertie (converge plus vite vers glace_equilibre)
     //   • factor=0   → tau_eff = 0 → fraction_fonte = 1 (équilibre instantané)
     // T source = T courante solver (permet feedback T→glace dans scan hystérésis).
-    // Fallback seed config EPOCH['🌡️🧮'] uniquement si 🧮🌡️ absent (premier appel avant initDATA).
     const duree_ans = Math.abs(EPOCH['▶'] - EPOCH['◀']);
-    const iceInertia = Math.max(0, Number.isFinite(CONFIG_COMPUTE.iceInertiaFactor01) ? CONFIG_COMPUTE.iceInertiaFactor01 : 1);
-    const tau_eff = CONFIG_COMPUTE.tauGlaceAns * iceInertia;
+    const tau_eff = CONFIG_COMPUTE.tauGlaceAns * Math.max(0, CONFIG_COMPUTE.iceInertiaFactor01);
+    // factor = 0 → tau_eff = 0 → équilibre instantané (vraie branche de la jauge, pas une garde).
     const fraction_fonte = (tau_eff > 0) ? (1 - Math.exp(-duree_ans / tau_eff)) : 1;
-    const T_for_equil = (Number.isFinite(DATA['🧮']['🧮🌡️']) && DATA['🧮']['🧮🌡️'] > 0) ? DATA['🧮']['🧮🌡️'] : EPOCH['🌡️🧮'];
-    const glace_equilibre = calcGlaceEquilibre(T_for_equil);
+    const glace_equilibre = calcGlaceEquilibre(DATA['🧮']['🧮🌡️']);
     // calcGlaceEquilibre modélise mer/océan gelé (→ ~0,72 à T≈255 K). Sans atmosphère ou sans eau, ou en ⚫,
     // la partition vapeur/glace/liquide est portée par calculations_h2o.calculateWaterPartition uniquement.
-    const _epochIdAlb = DATA['📜'] && DATA['📜']['🗿'];
     const applyIceStockBlend =
-        _epochIdAlb !== '⚫' &&
+        DATA['📜']['🗿'] !== '⚫' &&
         DATA['⚖️']['⚖️🫧'] > 0 &&
         DATA['⚖️']['⚖️💧'] > 0;
     // v1.2.59 — Snapshot pré-Search ANCRÉ SUR LA T SEED DE L'ÉPOQUE (EPOCH['🌡️🧮']), pas sur l'état leaké
@@ -397,41 +378,36 @@ function calculateAlbedo() {
     // Pour le scan hystérésis ⛄, chaque pas CO₂ remet 🧮⚧='Init' → snapshot reste = glace_eq(T_seed) ;
     // le feedback T→glace dans la branche froide (Pierrehumbert 2005 JGR 110:D01111) opère via la cible
     // glace_equilibre(T_courant) dans le terme de droite du blend.
-    const phaseAlb = DATA['🧮'] && DATA['🧮']['🧮⚧'];
+    const phaseAlb = DATA['🧮']['🧮⚧'];
     // Logger glace : appelé en phase Init (snapshot frais) + à chaque Search/Dicho (suivi convergence).
     // Activé via CONFIG_COMPUTE.logIceSnapshotDiagnostic → _logs/iceSnapshot.txt.
     function _logIceSnap(tag) {
-        if (typeof window === 'undefined' || typeof window.debugMirrorConfigLogToFile !== 'function') return;
-        const ep = (DATA['📜'] && DATA['📜']['🗿']) || '?';
-        const T_C = Number.isFinite(DATA['🧮']['🧮🌡️']) ? (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3) : 'NaN';
-        const T_seed_C = (EPOCH && Number.isFinite(EPOCH['🌡️🧮'])) ? (EPOCH['🌡️🧮'] - 273.15).toFixed(3) : 'NaN';
-        const fmtN = (v, p) => (Number.isFinite(v) ? v.toFixed(p ?? 5) : String(v));
-        // Élargi v1.2.59 : on capture aussi vapeur, albedo total, clouds, trap, et flux Δ pour diagnostiquer
-        // les divergences bench vs visu À INPUT GLACE IDENTIQUE (cas 1800/2000 calibration mismatch).
+        if (!CONFIG_COMPUTE.logIceSnapshotDiagnostic) return;
         const line = '[iceSnap] ' + tag
-            + ' ep=' + ep
+            + ' ep=' + DATA['📜']['🗿']
             + ' phase=' + phaseAlb
-            + ' T_C=' + T_C
-            + ' T_seed_C=' + T_seed_C
+            + ' T_C=' + (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3)
+            + ' T_seed_C=' + (EPOCH['🌡️🧮'] - 273.15).toFixed(3)
             + ' duree_ans=' + duree_ans.toFixed(0)
             + ' tau_eff=' + tau_eff.toFixed(0)
-            + ' frac_fonte=' + fmtN(fraction_fonte, 6)
-            + ' iceMassSnap=' + fmtN(STATE._iceMassSnapshotPreSearch01, 5)
-            + ' iceSurfSnap=' + fmtN(STATE._iceSurfSnapshotPreSearch01, 5)
-            + ' iceMassNow=' + fmtN(DATA['💧'] && DATA['💧']['🍰💧🧊'], 5)
-            + ' iceSurfNow=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩🧊'], 5)
-            + ' glaceEqCur=' + fmtN(glace_equilibre, 5)
-            + ' vapMass=' + fmtN(DATA['💧'] && DATA['💧']['🍰🫧💧'], 6)
-            + ' alb=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩📿'], 4)
-            + ' cloud=' + fmtN(DATA['🪩'] && DATA['🪩']['🍰🪩⛅'], 4)
-            + ' trapTot=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛'], 2)
-            + ' trapH2O=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛💧'], 2)
-            + ' trapCO2=' + fmtN(DATA['📛'] && DATA['📛']['🧲📛🏭'], 2)
-            + ' fluxDelta=' + fmtN(DATA['🧲'] && DATA['🧲']['🔺🧲'], 3);
+            + ' frac_fonte=' + fraction_fonte.toFixed(6)
+            + ' iceMassSnap=' + STATE._iceMassSnapshotPreSearch01
+            + ' iceSurfSnap=' + STATE._iceSurfSnapshotPreSearch01
+            + ' iceMassNow=' + DATA['💧']['🍰💧🧊']
+            + ' iceSurfNow=' + DATA['🪩']['🍰🪩🧊']
+            + ' glaceEqCur=' + glace_equilibre
+            + ' vapMass=' + DATA['💧']['🍰🫧💧']
+            + ' alb=' + DATA['🪩']['🍰🪩📿']
+            + ' cloud=' + DATA['🪩']['🍰🪩⛅']
+            + ' trapTot=' + DATA['📛']['🧲📛']
+            + ' trapH2O=' + DATA['📛']['🧲📛💧']
+            + ' trapCO2=' + DATA['📛']['🧲📛🏭']
+            + ' fluxDelta=' + DATA['🧲']['🔺🧲'];
+        console.log(line);
         window.debugMirrorConfigLogToFile('logIceSnapshotDiagnostic', line);
     }
     if (phaseAlb === 'Init') {
-        const T_seed_K = (EPOCH && Number.isFinite(EPOCH['🌡️🧮'])) ? EPOCH['🌡️🧮'] : DATA['🧮']['🧮🌡️'];
+        const T_seed_K = EPOCH['🌡️🧮'];
         STATE._iceMassSnapshotPreSearch01 = calcGlaceEquilibre(T_seed_K);
         // Pour 🍰🪩🧊 : recalcule l'équilibre surface à T_seed via la même formule que ligne ~411
         // (EARTH.ICE_FORMULA_MAX_FRACTION × ice_temp_factor at T_seed), capé par ice_cap_surface
@@ -440,31 +416,13 @@ function calculateAlbedo() {
         const _surfArea = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
         const _hydroSupportSeed = Math.max(0, Math.min(0.9, ((DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _surfArea) / 10));
         const _iceCapSeed = Math.max(DATA['🗻']['🍰🗻🏔'], _hydroSupportSeed);
-        // Reconstruction locale des opts ice (mêmes règles que ligne ~358 plus bas) — _iceOpts n'est pas
-        // encore défini à ce point dans la fonction.
-        const _iceOptsSeed = {};
-        if (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) _iceOptsSeed.obliquity_deg = Number(EPOCH['⚾']);
-        // ε courant piloté dans le temps (Milankovitch) : DATA['📜']['⚾'] ; ε de calibration 🥶 = EPOCH['⚾'].
-        if (Number(DATA['📜']['⚾']) > 0) {
-            _iceOptsSeed.obliquity_deg = Number(DATA['📜']['⚾']);
-            _iceOptsSeed.obliquity_ref_deg = (Number.isFinite(Number(EPOCH && EPOCH['⚾'])) ? Number(EPOCH['⚾']) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT));
-        }
-        if (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') {
-            const _ei = EPOCH['🥶'];
-            if (Number.isFinite(Number(_ei.dT_pol)))   _iceOptsSeed.dT_pol   = Number(_ei.dT_pol);
-            if (Number.isFinite(Number(_ei.dT_mid)))   _iceOptsSeed.dT_mid   = Number(_ei.dT_mid);
-            if (Number.isFinite(Number(_ei.dT_trop)))  _iceOptsSeed.dT_trop  = Number(_ei.dT_trop);
-            if (Number.isFinite(Number(_ei.amp_pol)))  _iceOptsSeed.amp_pol  = Number(_ei.amp_pol);
-            if (Number.isFinite(Number(_ei.amp_mid)))  _iceOptsSeed.amp_mid  = Number(_ei.amp_mid);
-            if (Number.isFinite(Number(_ei.amp_trop))) _iceOptsSeed.amp_trop = Number(_ei.amp_trop);
-        }
-        const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, Object.keys(_iceOptsSeed).length > 0 ? _iceOptsSeed : undefined);
+        const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, EPOCH);
         STATE._iceSurfSnapshotPreSearch01 = Math.min(_iceCapSeed, EARTH.ICE_FORMULA_MAX_FRACTION * _iceTfSeed.ice_tf);
         _logIceSnap('SNAPSHOT_RESET');
     }
-    const iceMassSnap = Number.isFinite(STATE._iceMassSnapshotPreSearch01) ? STATE._iceMassSnapshotPreSearch01 : DATA['💧']['🍰💧🧊'];
+    // Snapshot posé à la phase Init de ce run (calculateT0 → initForConfig → ici) : toujours présent ensuite.
     if (applyIceStockBlend) {
-        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, iceMassSnap * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
+        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, STATE._iceMassSnapshotPreSearch01 * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
     }
     if (phaseAlb !== 'Init') _logIceSnap('BLEND_APPLY');
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
@@ -534,32 +492,8 @@ function calculateAlbedo() {
     // 🏷️ TUNING géophysique : dT_pol = 20 K, dT_mid = 5 K, RANGE = 20 K (Terre-moderne).
     // 🏷️ FLOU SCIENTIFIQUE : couplage obliquité / P_atm non activé (cf. physics.js).
     // ─────────────────────────────────────────────────────────────────────────────
-    // Obliquité ε : lue sur l'objet epoch ('⚾'), sinon fallback CONFIG_COMPUTE.obliquityDeg (23.44°).
-    const _epochObliquity = (EPOCH && Number.isFinite(Number(EPOCH['⚾']))) ? Number(EPOCH['⚾']) : undefined;
-    // EPOCH['🥶'] : SOURCE UNIQUE des paramètres ice per-époque (Williams 1993 EPSL 117:377 —
-    // gradient méridien Précambrien réduit ; arrangement continental low-mid lat. Vaalbara
-    // 2.5 Ga, Rodinia 1.0 Ga). Champs : dT_pol, dT_mid, dT_trop (requis ; throw si manquant).
-    // amp_pol/amp_mid/amp_trop optionnels (défaut = obliquity-scaled). Pas de fallback EARTH.*
-    const _epochIce = (EPOCH && EPOCH['🥶'] && typeof EPOCH['🥶'] === 'object') ? EPOCH['🥶'] : null;
-    const _iceOpts = {};
-    if (_epochObliquity !== undefined) _iceOpts.obliquity_deg = _epochObliquity;
-    // ε courant (tics Milankovitch) vs ε de calibration de l'époque — écart seul → effet (physics.js v2.0.18).
-    if (Number(DATA['📜']['⚾']) > 0) {
-        _iceOpts.obliquity_deg = Number(DATA['📜']['⚾']);
-        _iceOpts.obliquity_ref_deg = (Number.isFinite(Number(_epochObliquity)) ? Number(_epochObliquity) : (Number.isFinite(Number(window.CONFIG_COMPUTE.obliquityDeg)) ? Number(window.CONFIG_COMPUTE.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT));
-    }
-    if (_epochIce) {
-        if (Number.isFinite(Number(_epochIce.dT_pol)))   _iceOpts.dT_pol   = Number(_epochIce.dT_pol);
-        if (Number.isFinite(Number(_epochIce.dT_mid)))   _iceOpts.dT_mid   = Number(_epochIce.dT_mid);
-        if (Number.isFinite(Number(_epochIce.dT_trop)))  _iceOpts.dT_trop  = Number(_epochIce.dT_trop);
-        if (Number.isFinite(Number(_epochIce.amp_pol)))  _iceOpts.amp_pol  = Number(_epochIce.amp_pol);
-        if (Number.isFinite(Number(_epochIce.amp_mid)))  _iceOpts.amp_mid  = Number(_epochIce.amp_mid);
-        if (Number.isFinite(Number(_epochIce.amp_trop))) _iceOpts.amp_trop = Number(_epochIce.amp_trop);
-    }
-    const _iceTF = EARTH.computeIceTempFactor(
-        DATA['🧮']['🧮🌡️'],
-        Object.keys(_iceOpts).length > 0 ? _iceOpts : undefined
-    );
+    // EPOCH['🥶'] (dT_pol / dT_mid / dT_trop) et l'obliquité sont lus par computeIceTempFactor lui-même.
+    const _iceTF = EARTH.computeIceTempFactor(DATA['🧮']['🧮🌡️'], EPOCH);
     const ice_temp_factor = _iceTF.ice_tf;
     const ice_tf_pol = _iceTF.tf_pol;
     const ice_tf_mid = _iceTF.tf_mid;
@@ -567,12 +501,9 @@ function calculateAlbedo() {
     const T_thresh_pol = _iceTF.T_thresh_pol;
     const T_thresh_mid = _iceTF.T_thresh_mid;
     const T_thresh_trop = _iceTF.T_thresh_trop_high;
-    // Debug topic-based : uniquement actif si DEBUG.setTopic('iceFactor') appelé (ou ?debug=iceFactor).
-    if (typeof window !== 'undefined' && window.DEBUG && window.DEBUG.topic === 'iceFactor') {
-        const _T_C = (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(2);
-        window.DEBUG.log(
-            '[iceTF] epoch=' + (DATA['📜'] && DATA['📜']['🗿']) +
-            ' T=' + _T_C + '°C' +
+    if (CONFIG_COMPUTE.logIceFactorDiagnostic) {
+        const mIce = '[iceTF] epoch=' + DATA['📜']['🗿'] +
+            ' T=' + (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(2) + '°C' +
             ' ε=' + _iceTF.obliquity_deg.toFixed(2) + '° (×' + _iceTF.obliquity_factor.toFixed(3) + ')' +
             ' dT_pol=' + _iceTF.dT_pol + ' amp_pol=' + _iceTF.amp_pol.toFixed(2) +
             ' dT_mid=' + _iceTF.dT_mid + ' amp_mid=' + _iceTF.amp_mid.toFixed(2) +
@@ -580,8 +511,9 @@ function calculateAlbedo() {
             ' | tf_pol=' + _iceTF.tf_pol.toFixed(3) +
             ' tf_mid=' + _iceTF.tf_mid.toFixed(3) +
             ' tf_trop=' + _iceTF.tf_trop.toFixed(3) +
-            ' -> ice_tf=' + _iceTF.ice_tf.toFixed(3)
-        );
+            ' -> ice_tf=' + _iceTF.ice_tf.toFixed(3);
+        console.log(mIce);
+        window.debugMirrorConfigLogToFile('logIceFactorDiagnostic', mIce);
     }
     const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
     const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
@@ -594,11 +526,9 @@ function calculateAlbedo() {
     // (calottes), avec τ_calotte ~ 10⁴–10⁵ ans (Marshall & Clark 2002 GRL 29(24):2214). En l'absence de
     // snapshot (premier appel ou hors blend), on retombe sur l'équilibre instantané (rétro-compat).
     const ice_fraction_equilibre = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
-    const iceSurfSnap = (STATE._iceSurfSnapshotPreSearch01 !== null && Number.isFinite(STATE._iceSurfSnapshotPreSearch01))
-        ? STATE._iceSurfSnapshotPreSearch01
-        : null;
-    let ice_fraction_target = (applyIceStockBlend && iceSurfSnap !== null)
-        ? Math.max(0, Math.min(ice_cap_surface, iceSurfSnap * (1 - fraction_fonte) + ice_fraction_equilibre * fraction_fonte))
+    // Snapshot posé à la phase Init de ce run : toujours présent ici.
+    let ice_fraction_target = applyIceStockBlend
+        ? Math.max(0, Math.min(ice_cap_surface, STATE._iceSurfSnapshotPreSearch01 * (1 - fraction_fonte) + ice_fraction_equilibre * fraction_fonte))
         : ice_fraction_equilibre;
     const icePolarFormulaTarget = ice_fraction_target;
 
@@ -717,19 +647,13 @@ function calculateAlbedo() {
             }
         }
         if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
-            const STATE = window.STATE;
-            const lock = (STATE && STATE.iceEpochFixedAlbedoState && STATE.iceEpochFixedAlbedoState.epochId === DATA['📜']['🗿'])
-                ? STATE.iceEpochFixedAlbedoState.value
-                : null;
             const mSea = 'SEA_ICE_BLEND f=' + seaIceFrac.toFixed(3)
                 + ' rangeK=' + seaIceRangeK
                 + ' ep=' + DATA['📜']['🗿']
                 + ' phase=' + DATA['🧮']['🧮⚧']
-                + ' T_K=' + T_K.toFixed(2)
-                + ' lockA=' + (lock == null ? 'null' : Number(lock).toExponential(3));
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
-            }
+                + ' T_K=' + T_K.toFixed(2);
+            console.log(mSea);
+            window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
         }
     }
     const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
@@ -753,9 +677,6 @@ function calculateAlbedo() {
     DATA['🪩']['🍰🪩🧊'] = ice_surface;
     DATA['🪩']['🍰🪩🌍'] = land_surface;
     DATA['🪩']['🍰🪩🏜️'] = desert_surface;
-    if (Object.prototype.hasOwnProperty.call(DATA['🪩'], '🍰🪩🌋')) {
-        delete DATA['🪩']['🍰🪩🌋'];
-    }
 
     if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
         const solI = DATA['🧮']['🧮🔄☀️'];
@@ -775,24 +696,20 @@ function calculateAlbedo() {
             + ' | iceDynamic=' + iceAfterDynamicFeedback.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
             + ' | feedback=common solI=' + solI;
         console.log(msg);
-        if (typeof window.debugMirrorConfigLogToFile === 'function') {
-            window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
-        }
+        window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
     }
 
     // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
     // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
-    const albedo_coeff = { ...EARTH['🪩🍰'], ...(EPOCH['🪩🍰'] || {}) };
+    const albedo_coeff = ('🪩🍰' in EPOCH) ? { ...EARTH['🪩🍰'], ...EPOCH['🪩🍰'] } : { ...EARTH['🪩🍰'] };
 
     // [MUDBALL v1.2.64] Déglaciation 1b : la poussière volcanique/éolienne concentrée par sublimation sur des Ma
     // (Abbot & Pierrehumbert 2010, JGR 115:D03104) assombrit TOUTE la glace — neige profonde 🪩🍰❄️ ET glace nue 🪩🍰🧊.
     // Piloté par la CONFIG d'époque : EPOCH['🌫️❄️'] = albédo de la glace sale (nombre). Époque sans clé → glace propre.
     // La jauge du test hystérésis (CONFIG_COMPUTE.iceMudballAlbedo) ne surcharge QUE les époques qui déclarent la clé
     // (plus de détection par nom d'époque) → 1a / ⛄ / modernes intacts, bench = test = visu.
-    const _mudEpoch = (EPOCH && typeof EPOCH['🌫️❄️'] === 'number') ? EPOCH['🌫️❄️'] : null;
-    const _mudGauge = (window.CONFIG_COMPUTE && typeof window.CONFIG_COMPUTE.iceMudballAlbedo === 'number') ? window.CONFIG_COMPUTE.iceMudballAlbedo : null;
-    const _mudball = (_mudEpoch === null) ? null : ((_mudGauge === null) ? _mudEpoch : _mudGauge);
-    if (_mudball != null) {
+    if ('🌫️❄️' in EPOCH) {
+        const _mudball = EPOCH['🌫️❄️'];
         if (albedo_coeff['🪩🍰❄️'] > _mudball) albedo_coeff['🪩🍰❄️'] = _mudball;
         if (albedo_coeff['🪩🍰🧊'] > _mudball) albedo_coeff['🪩🍰🧊'] = _mudball;
     }
@@ -842,7 +759,6 @@ function calculateAlbedo() {
         ? (w_pol * iceAlbedoSnowDeepPolMid + w_mid * iceAlbedoSnowDeepPolMid + w_trop * iceAlbedoSnowDeepTrop) / w_sum
         : iceAlbedoSnowDeepPolMid;
     const iceAlbedoMeltProgress01 = Math.max(0, Math.min(1, (T_polar_K - 263.15) / 10.0));
-    window._hystDiag = window._hystDiag || {};
     window._hystDiag.T_polar_C = T_polar_K - 273.15;
     window._hystDiag.T_midlat_C = T_midlat_K - 273.15;
     window._hystDiag.T_tropical_C = T_tropical_K - 273.15;
@@ -1048,8 +964,7 @@ function calculateAlbedo() {
         // Limites physiques
         cloud_fraction = Math.max(0, Math.min(DATA['🎚️'].CLOUD_SW.CLOUD_FRACTION_MAX, cloud_fraction));
         // ── Diagnostic hystérésis (stash) : nuages
-        window._hystDiag = window._hystDiag || {};
-        window._hystDiag.cloudIndex = cloud_index;
+            window._hystDiag.cloudIndex = cloud_index;
         window._hystDiag.ccnProxy = ccn_proxy;
         window._hystDiag.ccnRefModern = ccn_ref_modern;
         window._hystDiag.ccnRatio = ccn_ratio;
@@ -1080,9 +995,7 @@ function calculateAlbedo() {
                 + ' opt=' + cloud_optical_efficiency.toFixed(3)
                 + ' cloud_frac=' + cloud_fraction.toFixed(3);
             console.log(mCloud);
-            if (typeof window.debugMirrorConfigLogToFile === 'function') {
-                window.debugMirrorConfigLogToFile('logCloudProxyDiagnostic', mCloud);
-            }
+            window.debugMirrorConfigLogToFile('logCloudProxyDiagnostic', mCloud);
         }
         
         // Stocker la couverture nuageuse dans DATA['🪩']
@@ -1096,7 +1009,6 @@ function calculateAlbedo() {
     // [DIAG v-2026-07-16] Capture pré-nuage + coeff nuage pour tracer la divergence albédo test vs visu.
     const _preCloudAlbedo = albedo;
     const _cloudCoeff = albedo_coeff['🪩🍰⛅'];
-    window._hystDiag = window._hystDiag || {};
     window._hystDiag.preCloudAlbedo = _preCloudAlbedo;
     window._hystDiag.cloudCoeff = _cloudCoeff;
     // [v1.2.64] [EQ] Méthode d'addition 2 couches (nuage non absorbant r_c sur surface α_s, réflexions multiples) :
@@ -1146,7 +1058,6 @@ function calculateAlbedo() {
     // pas le coefficient de config 🪩🍰🧊. Exposé pour que l'affichage montre le nombre réellement utilisé.
     DATA['🪩']['🪩🍰🧊'] = iceAlbedoEff;
     // ── Diagnostic hystérésis (stash) : albédo agrégé
-    window._hystDiag = window._hystDiag || {};
     window._hystDiag.weightedAlbedoBase = weighted_albedo;
     window._hystDiag.finalAlbedo = final_albedo;
     window._hystDiag.blackbodyFactor = blackbody_factor;
@@ -1200,7 +1111,10 @@ function calculateSolarFluxAbsorbed() {
     return solar_flux_average_wm * (1 - albedo);
 }
 
-var ALBEDO = window.ALBEDO = window.ALBEDO || {};
+// Diagnostics lus par le panneau hystérésis (CO2/html/hysteresis_compute.html) : rempli à chaque calculateAlbedo.
+window._hystDiag = {};
+
+var ALBEDO = window.ALBEDO = {};
 ALBEDO.syncStratosphericVeil01 = syncStratosphericVeil01;
 ALBEDO.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 ALBEDO.calculateAlbedo = calculateAlbedo;
@@ -1210,57 +1124,5 @@ ALBEDO.calculateSolarFluxAbsorbed = calculateSolarFluxAbsorbed;
 ALBEDO.calculateGeologySurfaces = calculateGeologySurfaces;
 // Expositions : tout passe par window.ALBEDO (doublons window.foo retirés).
 
-function updateLevelsConfig() {
-    const DATA = window.DATA;
-    const CONST = window.CONST;
-    const EPOCH = DATA['📅'];
-    const isCorpsNoir = DATA['📜']['🗿'] === '⚫';
-    
-    // Initialiser CO2 depuis EPOCH
-    let co2_ppm = 0;
-    if (!isCorpsNoir && EPOCH['⚖️🏭'] > 0) {
-        const co2_fraction = window.ATM.co2KgToFraction(EPOCH['⚖️🏭'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
-        co2_ppm = co2_fraction * 1e6;
-    }
-    
-    // Initialiser CH4 depuis EPOCH
-    let ch4_ppm = 0;
-    if (!isCorpsNoir && EPOCH['⚖️🐄'] > 0) {
-        const ch4_fraction = window.ATM.ch4KgToFraction(EPOCH['⚖️🐄'], DATA['⚖️']['⚖️🫧'], DATA['🫧']['🧪']);
-        ch4_ppm = ch4_fraction * 1e6;
-    }
-    
-    // Initialiser H2O : ⚖️💧 = eau totale (océans), pas vapeur. Utiliser DATA['💧']['🍰🫧💧'] si dispo, sinon 0.
-    let h2o_percent = 0;
-    if (DATA['💧'] && DATA['💧']['🍰🫧💧'] != null && DATA['💧']['🍰🫧💧'] > 0) {
-        h2o_percent = DATA['💧']['🍰🫧💧'] * 100;
-    }
-    
-    // Si maximiseData (appel depuis un événement), prendre le max entre la valeur sauvegardée et la valeur par défaut
-    if (window.UI_STATE.maximiseData) {
-        const savedCO2 = window.UI_STATE.savedCO2;
-        const savedCH4 = window.UI_STATE.savedCH4;
-        const savedH2O = window.UI_STATE.savedH2O;
-        co2_ppm = Math.max(savedCO2, co2_ppm);
-        ch4_ppm = Math.max(savedCH4, ch4_ppm);
-        h2o_percent = Math.max(savedH2O, h2o_percent);
-    }
-    
-    // Mettre à jour plotData
-    if (typeof plotData !== 'undefined') {
-        plotData.co2_ppm = co2_ppm;
-        plotData.ch4_ppm = ch4_ppm;
-    }
-    
-    // Mettre à jour window.RUNTIME_STATE.h2oVaporPercent
-    window.RUNTIME_STATE.h2oVaporPercent = h2o_percent;
-    window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
-    
-    const h2o_total_kg = DATA['⚖️']['⚖️💧'];
-    if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.logLevelsConfig) {
-        console.log('📛 [updateLevelsConfig] 🏭=' + co2_ppm.toFixed(0) + 'ppm 🍰🫧💧(initUI)=' + h2o_percent.toFixed(1) + '% 🐄=' + ch4_ppm.toFixed(0) + 'ppm ⚖️💧=' + h2o_total_kg.toExponential(2) + 'kg');
-    }
-}
 
-ALBEDO.updateLevelsConfig = updateLevelsConfig;
 

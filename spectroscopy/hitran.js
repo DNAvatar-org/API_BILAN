@@ -246,11 +246,9 @@
         return crossSectionFromLines(lines, lambda_m, T_K, P_Pa, CONST.M_CO2, 0, 'CO2');
     }
 
-    function crossSectionH2OFromLines(lambda_m, T_K, P_Pa, X_self) {
+    function crossSectionH2OFromLines(lambda_m, T_K, P_Pa) {
         var lines = getSortedLines("H2O");
-        var x = X_self;
-        if (x === undefined) x = 0;
-        return crossSectionFromLines(lines, lambda_m, T_K, P_Pa, CONST.M_H2O, x, 'H2O');
+        return crossSectionFromLines(lines, lambda_m, T_K, P_Pa, CONST.M_H2O, 0, 'H2O');
     }
 
     function crossSectionCH4FromLines(lambda_m, T_K, P_Pa) {
@@ -265,10 +263,9 @@
      * T_K, P_Pa : référence pour γ (ex. 296 K, 1 atm). Retourne { stepMax_m, nMin } ou null si lignes indisponibles.
      */
     function getSpectralBinBoundsFromHITRAN(lambda_min_m, lambda_max_m, T_K, P_Pa) {
-        if (!CONST || !global.HITRAN_LINES_CO2) return null;
         var nu_max_cm = wavelengthToWavenumber(lambda_min_m);
         var nu_min_cm = wavelengthToWavenumber(lambda_max_m);
-        if (nu_min_cm >= nu_max_cm) return null;
+        if (nu_min_cm >= nu_max_cm) throw new Error('[HITRAN] bornes spectrales inversées : ' + lambda_min_m + ' ≥ ' + lambda_max_m);
         var P_atm = pressurePaToAtm(P_Pa);
         var step_min_m = Infinity;
         var gases = [
@@ -278,7 +275,6 @@
         ];
         for (var g = 0; g < gases.length; g++) {
             var lines = getSortedLines(gases[g].key);
-            if (!lines || lines.length === 0) continue;
             var X_air = 1 - gases[g].X_self;
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i];
@@ -293,7 +289,7 @@
                 if (delta_lambda_m > 0 && delta_lambda_m < step_min_m) step_min_m = delta_lambda_m;
             }
         }
-        if (!isFinite(step_min_m) || step_min_m <= 0) return null;
+        if (step_min_m === Infinity) return null;   // aucune raie dans [λmin, λmax] : vraie branche
         var span_m = lambda_max_m - lambda_min_m;
         var nMin = Math.max(2, Math.ceil(span_m / step_min_m));
         return { stepMax_m: step_min_m, nMin: nMin };
@@ -359,7 +355,7 @@
     }
 
     // Export global (pas de optional chaining, pas de return dans garde)
-    global.HITRAN = global.HITRAN || {};
+    global.HITRAN = {};
     global.HITRAN.C2_CMK = HITRAN_C2_CMK;
     global.HITRAN.T_REF_K = HITRAN_T_REF_K;
     global.HITRAN.P_REF_ATM = HITRAN_P_REF_ATM;
@@ -383,4 +379,4 @@
     global.HITRAN.getSpectralBinBoundsFromHITRAN = getSpectralBinBoundsFromHITRAN;
     global.HITRAN.getSpectralRegionBoundsFromHITRAN = getSpectralRegionBoundsFromHITRAN;
 
-})(typeof window !== 'undefined' ? window : this);
+})(window);

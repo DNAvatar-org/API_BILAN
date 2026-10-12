@@ -1,7 +1,8 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.0.0
-   Date: 2026-09-20
+   Version 1.1.0
+   Date: 2026-10-06
+   logs : v1.1.0 — deux gros boutons .btn-play (Époques vert, Tictimes bleu) ; .epoch-etape (clic joué).
    Copyright 2026 DNAvatar.org - Arnaud Maignan */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,12 +52,18 @@ body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #d0d0d
 
 header { padding: 16px 20px 12px; border-bottom: 2px solid #333; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 header h1 { font-size: 18px; color: #eee; flex: 1 0 auto; }
-#btn-run {
-  background: #1a6e2e; color: #b0ffb0; border: 1px solid #2a8e3e; border-radius: 4px;
-  padding: 8px 20px; font-size: 14px; cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
+.btn-play {
+  display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15;
+  background: #1a6e2e; color: #b0ffb0; border: 1px solid #2a8e3e; border-radius: 6px;
+  padding: 8px 22px; font-size: 17px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 0.5px;
 }
-#btn-run:hover { background: #1f8535; }
-#btn-run:disabled { background: #222; color: #555; cursor: not-allowed; border-color: #333; }
+.btn-play-sub { font-size: 10px; font-weight: normal; color: #8fcf8f; letter-spacing: 0; }
+#btn-run-tic { background: #1a3e6e; color: #b0d0ff; border-color: #2a5e9e; }
+#btn-run-tic .btn-play-sub { color: #8fafdf; }
+.btn-play:hover { filter: brightness(1.25); }
+.btn-play:disabled { background: #222; color: #555; cursor: not-allowed; border-color: #333; filter: none; }
+.btn-play:disabled .btn-play-sub { color: #555; }
+.epoch-etape { font-size: 10px; color: #8fafdf; white-space: nowrap; }
 #progress-label { color: #888; font-size: 12px; }
 
 #progress-bar { height: 3px; background: #222; }

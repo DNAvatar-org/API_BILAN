@@ -3,9 +3,12 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.2
-// Date: [September 24, 2026]
+// Version 2.0.3
+// Date: [October 10, 2026]
 // logs :
+//   - v2.0.4 (2026-10-12): 📜⏳ = temps écoulé dans l'époque, seule horloge (CLICS / getEpochDateConfig / infoTimeMa).
+//   - v2.0.3 (2026-10-10): 📿💫 déclarée dans 📜 (tout le code lit DATA['📜']['📿💫'] ; déclarée dans 📅, elle
+//     valait undefined au démarrage, masqué par des « != null ? : 0 »). 📜🌡️🧮 retirée (doublon de 📅🌡️🧮).
 //   - v2.0.2 (2026-09-24): 🌕 porte l'état de l'INTÉRIEUR (🌡️🌕, 📅🌕, 📅🧊🌕 — geology/interieur.js) ; 🔺🧲🌕💫 retirée
 //     (rampe de flux par tic : remplacée par le bilan d'énergie).
 //   - v2.0.1 (2026-09-23): 4 clés mortes retirées — ⏳☔ (lue seulement dans des lignes commentées),
@@ -24,9 +27,9 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['🌡️🧮', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
+    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
     // Date Époque
-    '📅': ['🌡️🧮','📿💫', '🔺⏳'],
+    '📅': ['🌡️🧮', '🔺⏳'],
     // Masses
     '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
     // Composition atmosphérique
@@ -78,6 +81,7 @@ const DESC = {
     },
     '📅': {
         '🌡️🧮': 't° attendue',
+        '⏳': 'Temps écoulé dans l’époque courante (Ma) — somme des 🔺⏳ des clics joués (CLICS.jouer) ; la date en découle',
         '📿💫': 'Nombre de ticTime',
         '🔺⏳': 'Durée équilibre précipitation (s)',
     },
@@ -265,7 +269,7 @@ const FORM = {
         '🍰🪩🌍': 'land_coverage = L - 🍰🪩🌳 - 🍰🪩🏜️ où L = terre libre de glace. Absorbe automatiquement : steppes, prairies, toundras, montagnes (albedo ~0.18)',
         '🍰🪩🧊': 'min(🗻.🍰🗻🏔, EARTH.ICE_FORMULA_MAX_FRACTION × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K) - Glace polaire (0% si T > T_NO_POLAR_ICE_K)',
         '🍰🪩⛅': 'cloud_fraction = clamp((0.19 + 0.11×☁️) × cloud_optical_efficiency, 0, 0.75), avec cloud_optical_efficiency = (1.10 + 0.45×(ccn_ratio-1)) × pressure_factor × oxidation_soft_factor × temp_factor',
-        '🍰⚽': 'syncStratosphericVeil01 : clamp(0, EPOCH[🍰⚽]+📜[🔺🍰⚽]+CONFIG.hystStratosphericVeilExtra01, 0.95) — obstruction',
+        '🍰⚽': 'syncStratosphericVeil01 : clamp(0, 📜[🔺🍰⚽], 0.95) — obstruction',
         '🍰🪩⚽': '1 − 🍰⚽ (transmission SW après voile, écrit dans DATA[🪩] avec 🍰⚽)',
         '🍰🪩💧': 'min(1, volume d’eau / volume d’une couche globale de 10 m) — A_geo × ce facteur. '
             + 'Sur ⚫ (2 météorites = ~2 m d’eau) il vaut ~0,20 : c’est lui qui fait 15 % d’albédo là où les surfaces en donneraient 78 %.',
@@ -301,11 +305,11 @@ const KEYS_ALT0SEC = {
     '🪩🍰❄️':
         'Albédo plateau neige profonde propre (EARTH[\'🪩🍰\'][\'🪩🍰❄️\'], défaut 0.85 — Warren & Wiscombe 1980 ; Warren 1982).\n\n' +
         'Paramètre α_snow_deep Briegleb pour zones polaire et mi-latitude : glace neuve brillante à l\'entrée snowball (1a).\n\n' +
-        'Sortie snowball (1b, mudball) : plafonné par min(🪩🍰❄️, CONFIG_COMPUTE.iceMudballAlbedo) quand la poussière volcanique assombrit la neige (Abbot & Pierrehumbert 2010).',
+        'Sortie snowball (1b, mudball) : plafonné par min(🪩🍰❄️, EPOCH[🌫️❄️]) quand la poussière volcanique assombrit la neige (Abbot & Pierrehumbert 2010).',
     '🪩🍰🧊':
         'Albédo glace nue / saisonnière froide (EARTH[\'🪩🍰\'][\'🪩🍰🧊\'], défaut 0.70 — CCSM3 / Briegleb cold ice).\n\n' +
         'Segment aging Briegleb (−10 → −5 °C) et plateau α_snow_deep tropical une fois le snowball établi (sublimation, pas de neige pristine — Pierrehumbert 2005).\n\n' +
-        'Mudball 1b : aussi plafonné par iceMudballAlbedo (poussière sur toute la surface gelée).',
+        'Mudball 1b : aussi plafonné par EPOCH[🌫️❄️] (poussière sur toute la surface gelée).',
     '🪩🍰🏊':
         'Albédo bare ice + melt ponds (EARTH[\'🪩🍰\'][\'🪩🍰🏊\'], défaut 0.50 — Perovich SHEBA 2002 ; Briegleb et al. NCAR/TN-463 §5).\n\n' +
         'Segment haut de la courbe Briegleb : T_local ≥ 0 °C → α_melt. Paramètre matériau de l\'équation, pas un réglage d\'époque.'

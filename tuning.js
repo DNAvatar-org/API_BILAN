@@ -3,9 +3,14 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.0.18
-// Date: 2026-04-25
+// Version 1.1.0
+// Date: 2026-10-10
 // Logs:
+// - v1.1.0: PAS DE GARDES. Un seul format de payload ({ baryByGroup }) : le format « { CLOUD_SW: 70, … } »
+//   (applyBaryGroup) et les valeurs directes (CLOUD_SW / updates, aussitôt écrasées par l'interpolation)
+//   n'avaient plus d'appelant. factorTropopause = cible ordinaire avec `fixed` (fine_tuning_bounds v1.3.16) :
+//   plus de cas particulier ni de CONFIG_COMPUTE.radiativeFactorTropopauseFixed. Plus de création de
+//   sous-objets à la volée (DATA['🎚️'] les a tous), plus de tests sur FINE_TUNING_BOUNDS.
 // - v1.0.20: doc `fixed` corrigée — réservé à une valeur déterminée AILLEURS, jamais à geler une
 //   inconnue. Un paramètre sans fondement scientifique RESTE dans le barycentre : c'est justement
 //   son rôle de dire qu'on ne sait pas.
@@ -31,217 +36,72 @@
 (function () {
     'use strict';
 
-    // --- Helpers internes ---
-
     /**
-     * Interpole une valeur entre min et max selon un pourcentage [0–100].
-     * 0 % → min, 100 % → max.
-     */
-    /**
-     * Valeur d'une cible pour un barycentre donné.
+     * Valeur d'une cible pour un barycentre donné (0 % → min, 100 % → max).
      *
      * `fixed` SORT LA CIBLE DU BARYCENTRE — réservé à une valeur DÉTERMINÉE AILLEURS.
-     *
-     * ⚠️ Ce n'est PAS un moyen de geler un paramètre dont on ignore la valeur. Le barycentre est
-     * là pour dire « on ne sait pas, voici la plage » : un paramètre sans fondement scientifique
-     * doit donc y RESTER. Le figer ne le rend pas plus juste, ça ne fait que masquer l'ignorance
-     * derrière un nombre d'apparence décidée — et la v1.3.11/12 a fait exactement cette erreur,
-     * en figeant les deux seuls paramètres qui n'avaient aucune base.
-     *
-     * La règle est l'inverse : ce qu'on CONNAÎT se calcule dans le code à partir de ses vrais
-     * paramètres, et disparaît alors des targets ; ce qu'on IGNORE reste dans le barycentre.
-     * `fixed` ne sert qu'au cas intermédiaire — une valeur fixée par une autre source de vérité
-     * (cf. RADIATIVE.factorTropopause, piloté par CONFIG_COMPUTE).
-     *
-     * Précédents : RADIATIVE.factorTropopause (v1.3.10, via CONFIG_COMPUTE) et TEMP_FACTOR_REF_K
-     * (remplacé par la partition de phase Hu & Stamnes 1993 dans calculations_albedo.js).
+     * ⚠️ Ce n'est PAS un moyen de geler un paramètre dont on ignore la valeur : un paramètre sans fondement
+     * scientifique RESTE dans le barycentre. Ce qu'on CONNAÎT se calcule dans le code et quitte les targets ;
+     * ce qu'on IGNORE reste ici. Seul usage : RADIATIVE.factorTropopause (calage v1.4.51).
      */
     function interpolate(target, baryPercent) {
-        if (target.fixed != null && Number.isFinite(Number(target.fixed))) return Number(target.fixed);
-        var min = Number(target.min);
-        var max = Number(target.max);
-        var alpha = Math.max(0, Math.min(1, Number(baryPercent) / 100));
-        return min + (max - min) * alpha;
-    }
-
-    /**
-     * Retourne les targets FINE_TUNING_BOUNDS filtrées par groupe effectif.
-     * SCIENCE = targets dont baryGroup === 'SCIENCE'.
-     * CLOUD_SW = targets du group CLOUD_SW sans baryGroup ou baryGroup === 'CLOUD_SW'.
-     * Autres = targets dont group === groupKey.
-     */
-    function targetsByGroup(groupKey) {
-        var bounds = window.FINE_TUNING_BOUNDS;
-        if (!bounds || !bounds.targets) return [];
-        if (groupKey === 'SCIENCE') {
-            return bounds.targets.filter(function (t) { return t.baryGroup === 'SCIENCE'; });
-        }
-        if (groupKey === 'CLOUD_SW') {
-            return bounds.targets.filter(function (t) { return t.group === 'CLOUD_SW' && (t.baryGroup == null || t.baryGroup === 'CLOUD_SW'); });
-        }
-        return bounds.targets.filter(function (t) { return t.group === groupKey; });
+        if ('fixed' in target) return target.fixed;
+        const alpha = Math.max(0, Math.min(1, baryPercent / 100));
+        return target.min + (target.max - target.min) * alpha;
     }
 
     /**
      * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
      * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
-     * factorTropopause : lu par ATM.calculateTropopauseHeight si CONFIG_COMPUTE.useFactorTropopause===true (défaut true ; sinon multiplicateur 1).
+     * factorTropopause reste dans DATA['🎚️'] (lu par ATM.calculateTropopauseHeight).
      */
     function syncRadiativeConfig() {
         window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;
     }
 
-    function clampPercent(percentRaw) {
-        return Math.max(0, Math.min(100, Number(percentRaw)));
-    }
-
-    function requireFinitePercent(percentRaw, label) {
-        var value = Number(percentRaw);
-        if (!Number.isFinite(value)) {
-            throw new Error('[tuning.js] ' + label + ' requis et invalide: ' + String(percentRaw));
-        }
-        return value;
-    }
-
-    function normalizeAtmBary(bg) {
-        var atm = clampPercent(requireFinitePercent(bg.ATM, 'baryByGroup.ATM'));
-        bg.ATM = atm;
-        bg.CLOUD_SW = atm;
-        bg.SCIENCE = atm;
-        return atm;
-    }
-
-    /**
-     * Applique le barycentre pour un groupe donné.
-     * Met à jour baryByGroup[groupKey] puis interpole chaque paramètre du groupe.
-     */
-    function applyBaryGroup(groupKey, percentRaw) {
-        var T = window.DATA['🎚️'];
-        var pct = clampPercent(requireFinitePercent(percentRaw, 'percentRaw'));
-        if (groupKey === 'ATM' || groupKey === 'CLOUD_SW' || groupKey === 'SCIENCE') {
-            T.baryByGroup.ATM = pct;
-            T.baryByGroup.CLOUD_SW = pct;
-            T.baryByGroup.SCIENCE = pct;
-            var targetsCloud = targetsByGroup('CLOUD_SW');
-            for (var c = 0; c < targetsCloud.length; c++) {
-                var tc = targetsCloud[c];
-                if (!T[tc.group]) T[tc.group] = {};
-                T[tc.group][tc.key] = interpolate(tc, pct);
-            }
-            var targetsScience = targetsByGroup('SCIENCE');
-            for (var s = 0; s < targetsScience.length; s++) {
-                var ts = targetsScience[s];
-                if (!T[ts.group]) T[ts.group] = {};
-                T[ts.group][ts.key] = interpolate(ts, pct);
-            }
-            var bnds = window.FINE_TUNING_BOUNDS;
-            if (bnds && bnds.targets) applyRadiativeFactorTropopauseAtm(T, pct, bnds);
-            else if (window.CONFIG_COMPUTE && window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed != null) {
-                if (!T.RADIATIVE) T.RADIATIVE = {};
-                T.RADIATIVE.factorTropopause = window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed;
-            }
-            syncRadiativeConfig();
-            return;
-        }
-        T.baryByGroup[groupKey] = pct;
-        var targets = targetsByGroup(groupKey);
-        for (var i = 0; i < targets.length; i++) {
-            var target = targets[i];
-            if (!T[target.group]) T[target.group] = {};
-            T[target.group][target.key] = interpolate(target, pct);
-        }
+    /** % fini, borné à [0, 100] ; un % absent ou non numérique est une erreur. */
+    function requirePercent(percentRaw, label) {
+        if (!Number.isFinite(percentRaw)) throw new Error('[tuning.js] ' + label + ' requis et invalide: ' + String(percentRaw));
+        return Math.max(0, Math.min(100, percentRaw));
     }
 
     /**
      * Remplissage complet DATA['🎚️'].CLOUD_SW / .HYSTERESIS / .RADIATIVE depuis baryByGroup.
-     * RADIATIVE.factorTropopause : fixe si CONFIG_COMPUTE.radiativeFactorTropopauseFixed, sinon interpolation sur atmPct (même jauge qu’ATM/SCIENCE).
+     * Jauge unique ATM : CLOUD_SW et SCIENCE prennent toujours la valeur d'ATM.
      */
-    function applyRadiativeFactorTropopauseAtm(T, atmPct, bounds) {
-        if (!T.RADIATIVE) T.RADIATIVE = {};
-        var cc = window.CONFIG_COMPUTE;
-        if (cc && cc.radiativeFactorTropopauseFixed != null) {
-            T.RADIATIVE.factorTropopause = cc.radiativeFactorTropopauseFixed;
-            return;
-        }
-        for (var k = 0; k < bounds.targets.length; k++) {
-            var tR = bounds.targets[k];
-            if (tR.group === 'RADIATIVE' && tR.key === 'factorTropopause') {
-                var pct0 = clampPercent(requireFinitePercent(atmPct, 'baryByGroup.ATM+SCIENCE (factorTropopause)'));
-                T.RADIATIVE.factorTropopause = interpolate(tR, pct0);
-                return;
-            }
-        }
-    }
-
     function fillDataTuningFromBary() {
-        var T = window.DATA['🎚️'];
-        var bg = T.baryByGroup;
-        var atmPct = normalizeAtmBary(bg);
-        var bounds = window.FINE_TUNING_BOUNDS;
-        if (!bounds || !bounds.targets) return;
-        for (var i = 0; i < bounds.targets.length; i++) {
-            var target = bounds.targets[i];
-            if (target.group === 'RADIATIVE' && target.key === 'factorTropopause') continue;
-            var baryKey = target.baryGroup || target.group;
-            var pctRaw = (baryKey === 'CLOUD_SW' || baryKey === 'SCIENCE') ? atmPct : bg[baryKey];
-            var pct = clampPercent(requireFinitePercent(pctRaw, 'baryByGroup.' + baryKey));
-            if (!T[target.group]) T[target.group] = {};
+        const T = window.DATA['🎚️'];
+        const bg = T.baryByGroup;
+        const atmPct = requirePercent(bg.ATM, 'baryByGroup.ATM');
+        bg.ATM = atmPct;
+        bg.CLOUD_SW = atmPct;
+        bg.SCIENCE = atmPct;
+        const targets = window.FINE_TUNING_BOUNDS.targets;
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            const baryKey = ('baryGroup' in target) ? target.baryGroup : target.group;
+            const pct = requirePercent(bg[baryKey], 'baryByGroup.' + baryKey);
             T[target.group][target.key] = interpolate(target, pct);
         }
-        applyRadiativeFactorTropopauseAtm(T, atmPct, bounds);
         syncRadiativeConfig();
     }
-
-    // --- Fonction publique ---
 
     /**
-     * Point d'entrée : applique un payload de tuning à DATA['🎚️'] puis propage.
-     *
-     * Formats acceptés :
-     *   1. Objet baryByGroup simple : { CLOUD_SW: 70, SCIENCE: 100, HYSTERESIS: 100 }
-     *      → chaque groupe est interpolé indépendamment.
-     *   2. Objet complet (compatibilité CO2 sync_panels) :
-     *      { baryByGroup: { CLOUD_SW: 70, ... }, CLOUD_SW: {...}, updates: [...] }
-     *
-     * @param {object} payload - pourcentages par groupe ou payload complet
+     * Point d'entrée : { baryByGroup: { ATM: %, HYSTERESIS: %, … } } — seuls les groupes présents changent,
+     * puis tout DATA['🎚️'] est réinterpolé.
      */
     function applyTuningPayload(payload) {
-        if (!payload || !window.DATA || !window.DATA['🎚️']) return;
-        var T = window.DATA['🎚️'];
-
-        // Format 2 : payload complet avec baryByGroup + valeurs directes (compatibilité CO2)
-        if (payload.baryByGroup) {
-            if (payload.baryByGroup.ATM !== undefined) T.baryByGroup.ATM = payload.baryByGroup.ATM;
-            if (payload.baryByGroup.CLOUD_SW !== undefined) T.baryByGroup.CLOUD_SW = payload.baryByGroup.CLOUD_SW;
-            if (payload.baryByGroup.SCIENCE !== undefined) T.baryByGroup.SCIENCE = payload.baryByGroup.SCIENCE;
-            if (payload.baryByGroup.HYSTERESIS !== undefined) T.baryByGroup.HYSTERESIS = payload.baryByGroup.HYSTERESIS;
-            // Si valeurs directes fournies, les appliquer
-            if (payload.CLOUD_SW) T.CLOUD_SW = Object.assign({}, T.CLOUD_SW, payload.CLOUD_SW);
-            if (payload.updates && Array.isArray(payload.updates)) {
-                payload.updates.forEach(function (u) {
-                    if (!T[u.group]) T[u.group] = {};
-                    T[u.group][u.key] = u.value;
-                });
-            }
-            // Re-interpoler depuis les baryByGroup (les valeurs directes sont écrasées par l'interpolation)
-            fillDataTuningFromBary();
-            return;
-        }
-
-        // Format 1 : objet simple { CLOUD_SW: 70, SCIENCE: 100, HYSTERESIS: 100 }
-        if (payload.CLOUD_SW !== undefined) applyBaryGroup('CLOUD_SW', payload.CLOUD_SW);
-        if (payload.SCIENCE !== undefined)  applyBaryGroup('SCIENCE', payload.SCIENCE);
-        if (payload.HYSTERESIS !== undefined) applyBaryGroup('HYSTERESIS', payload.HYSTERESIS);
-        syncRadiativeConfig();
+        Object.assign(window.DATA['🎚️'].baryByGroup, payload.baryByGroup);
+        fillDataTuningFromBary();
     }
 
-    // --- Exports namespace TUNING ---
-    window.TUNING = window.TUNING || {};
-    window.TUNING.applyTuningPayload = applyTuningPayload;
-    window.TUNING.fillDataTuningFromBary = fillDataTuningFromBary;
+    window.TUNING = {
+        applyTuningPayload: applyTuningPayload,
+        fillDataTuningFromBary: fillDataTuningFromBary
+    };
 
     // Auto-init : interpole DATA['🎚️'] depuis baryByGroup × FINE_TUNING_BOUNDS dès que le module est chargé.
-    // Pré-requis : initDATA.js + fine_tuning_bounds.js chargés avant (ordre dans loader_panels.js).
+    // Pré-requis : initDATA.js + fine_tuning_bounds.js + physics.js chargés avant (engine_manifest.js).
     fillDataTuningFromBary();
 
 })();

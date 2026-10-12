@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/demo/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.3.0 — 2026-10-10 : chargé par le loader commun (API_BILAN/loader/) ; epoch_bench_boot.js supprimé.
+  Version 1.2.0 — 2026-10-06 : deux gros boutons ▶ à la place de « ▶ Lancer » et des petits ▶️ des jauges :
+  « Époques » (chaque époque depuis sa graine 🌡️🧮) et « Tictimes » (frise ⚫ puis que des clics, la T°
+  initiale de chaque calcul = T° convergée du clic précédent, comme en animation — epoch_bench_chain.js).
   Version 1.1.0 — 2026-09-20 : la page passe de doc/ à demo/ (doc/ = les définitions, demo/ = ce qui
   s'exécute) et son script de 880 lignes est éclaté par responsabilité : boot, host, format, table,
   tuning, run, main, loader, plus la feuille de style. Le HTML n'est plus que le squelette.
@@ -31,8 +35,6 @@
 </head>
 <body>
 
-<!-- Avant le loader : pose les drapeaux d'URL et le chemin du worker. -->
-<script src="js/epoch_bench_boot.js"></script>
 
 <div id="app-loader" class="app-loader" aria-live="polite">
   <div class="app-loader-title">Chargement des modules API…</div>
@@ -46,7 +48,10 @@
     <div id="bench-ft-content" style="display:none;"></div>
   </div>
   <span id="progress-label">—</span>
-  <button id="btn-run" type="button" disabled>▶ Lancer</button>
+  <button id="btn-run" class="btn-play" type="button" disabled
+          title="Chaque époque depuis sa graine 🌡️🧮 de la config (clic sur la frise), sans tictime.">▶ Époques<span class="btn-play-sub">T init = graine</span></button>
+  <button id="btn-run-tic" class="btn-play" type="button" disabled
+          title="Frise ⚫ puis que des clics jusqu'à 2025, comme en animation : la T° initiale de chaque calcul est la T° convergée du clic précédent. Une ligne par clic (~4× plus de calculs).">▶ Tictimes<span class="btn-play-sub">T init = T précédente</span></button>
 </header>
 <div id="progress-bar"><div id="progress-fill"></div></div>
 
@@ -56,7 +61,7 @@
     <tr>
       <th class="cell-icon" title="Pendant le calcul : passer l'époque. Terminé : copier la ligne.">⏭/📋</th>
       <th class="col-epoch">Époque</th>
-      <th class="num fit" title="Ligne 1 : T\u2080 solveur (\u00b0C). Ligne 2 : fourchette litt\u00e9rature CSV [Tmin,Tmax] (configTimeline).">T init</th>
+      <th class="num fit" title="Ligne 1 : T\u2080 solveur (\u00b0C) \u2014 graine \u{1F321}\u{FE0F}\u{1F9EE} en mode \u00c9poques, T\u00b0 converg\u00e9e du clic pr\u00e9c\u00e9dent en mode Tictimes. Ligne 2 : fourchette litt\u00e9rature CSV [Tmin,Tmax] (configTimeline).">T init</th>
       <th class="num fit">T FIN</th>
       <th class="num fit" title="T_fin \u2212 T_graine (\u00b0C) ; T_graine = \u{1F321}\u{FE0F}\u{1F9EE} TIMELINE. Ce n\u2019est pas l\u2019\u00e9cart au milieu de la plage litt\u00e9rature CSV.">Δ T°</th>
       <th title="Ligne 1 : \u0394 = flux entrant \u2212 OLR effective au 1er pas Init (W/m\u00b2), m\u00eame convention que DATA \u{1F53A}\u{1F9F2} (entrant \u2212 sortant). \u0394&lt;0 fr\u00e9quent si la graine T est au-dessus de l\u2019\u00e9quilibre radiatif (OLR &gt; apports). Lignes suivantes : T (\u00b0C) le long de la convergence.">RADIATIF (\u0394 + T\u00b0)</th>
@@ -69,8 +74,10 @@
 
 <footer id="footer-info">Chargement des scripts en cours…</footer>
 
-<!-- Le loader charge les modules de l'API puis les scripts du banc, dans l'ordre des
-     dépendances, et appelle initEpochBenchPage() quand tout est là. -->
+<!-- Loader commun (liste unique du moteur), puis le banc : stubs hôtes, moteur, scripts du banc,
+     dans l'ordre des dépendances ; initEpochBenchPage() quand tout est là. -->
+<script src="../loader/engine_manifest.js"></script>
+<script src="../loader/loader.js"></script>
 <script src="js/epoch_bench_loader.js"></script>
 
 </body>

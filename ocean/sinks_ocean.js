@@ -3,11 +3,12 @@
 // Desc: Les trois réservoirs océaniques (couche de mélange, thermocline, profond) et leur relaxation.
 //       Rien d'autre : la partition Henry de fond vit dans co2/calculations_co2.js, le puits
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
-// Version 1.1.0
+// Version 1.2.0
 // Date: 2026-09-20
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+// - v1.2.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
 // - v1.1.0: solubilité pondérée par ZONE au lieu de la température moyenne globale. Le CO₂ anthropique
 //   entre dans l'océan aux hautes latitudes froides, pas à la température moyenne de la planète.
 //   Océan 2025 : 24,4 % → 25,7 % des émissions (mesuré ~26 %). Aucun paramètre nouveau : réutilise
@@ -24,11 +25,10 @@
  * tous — et d'en oublier un —, syncOceanBoxes() se recale sur ce total à chaque appel : total 0 ⇒ tout
  * à zéro, total ≠ somme ⇒ remise à l'échelle. Le découpage est un détail du puits, pas un état du modèle.
  */
-var oceanBoxKg = null;
+var oceanBoxKg = window.CONFIG_COMPUTE.CARBON_SINKS.oceanBoxes.map(function () { return 0; });
 
 /** Réaligne les réservoirs sur 📜🔺⚖️🌊🏭 (seule source de vérité du total absorbé). */
 function syncOceanBoxes(totalKg, boxes) {
-    if (!oceanBoxKg || oceanBoxKg.length !== boxes.length) oceanBoxKg = boxes.map(function () { return 0; });
     if (!(totalKg > 0)) { oceanBoxKg = boxes.map(function () { return 0; }); return; }
     var sum = 0;
     for (var i = 0; i < oceanBoxKg.length; i++) sum += oceanBoxKg[i];
@@ -82,9 +82,6 @@ function zonalSolubilityFactor() {
     const CC = window.CONFIG_COMPUTE;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const ice = EPOCH['🥶'];
-    if (!ice || !Number.isFinite(Number(ice.dT_pol))) {
-        throw new Error("[sinks_ocean] EPOCH['🥶'] requis (dT_pol/dT_mid/dT_trop) — source unique configTimeline.js.");
-    }
     const T_glob = DATA['🧮']['🧮🌡️'];
     const T_ref = EPOCH['🌡️🧮'];
     const freeze = window.EARTH.T_FREEZE_SEAWATER_K;
@@ -94,7 +91,7 @@ function zonalSolubilityFactor() {
     const vh = function (dT) {
         return Math.exp(2400.0 * (1.0 / Math.max(freeze, T_glob - dT) - 1.0 / T_ref));
     };
-    return fPol * vh(Number(ice.dT_pol)) + fMid * vh(Number(ice.dT_mid)) + fTrop * vh(Number(ice.dT_trop));
+    return fPol * vh(ice.dT_pol) + fMid * vh(ice.dT_mid) + fTrop * vh(ice.dT_trop);
 }
 
 /**
@@ -125,7 +122,6 @@ function advanceOceanSinkStep(dtYears, airExcess, ppm_mid) {
 
 /** Total actuellement dans les réservoirs (kg CO₂). */
 function oceanSinkTotalKg() {
-    if (!oceanBoxKg) return 0;
     var s = 0;
     for (var i = 0; i < oceanBoxKg.length; i++) s += oceanBoxKg[i];
     return s;
@@ -133,10 +129,10 @@ function oceanSinkTotalKg() {
 
 /** Contenu par réservoir (kg CO₂) — diagnostic / affichage. */
 function oceanSinkBoxesKg() {
-    return oceanBoxKg ? oceanBoxKg.slice() : [];
+    return oceanBoxKg.slice();
 }
 
-window.OCEAN_SINK = window.OCEAN_SINK || {};
+window.OCEAN_SINK = {};
 window.OCEAN_SINK.syncOceanBoxes = syncOceanBoxes;
 window.OCEAN_SINK.assertOceanCapacity = assertOceanCapacity;
 window.OCEAN_SINK.advanceOceanSinkStep = advanceOceanSinkStep;

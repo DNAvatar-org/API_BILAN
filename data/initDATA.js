@@ -5,9 +5,13 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.3.9
-// Date: [July 16, 2026]
+// Version 1.4.0
+// Date: [October 10, 2026]
 // Logs:
+// - v1.4.0: PAS DE GARDES. DEFAULT, UI_STATE, RUNTIME_STATE créés ici et nulle part ailleurs (plus de `x = x || {}`).
+//   Paramètres de scan hystérésis et DEFAULT.BOUNDS.HYSTERESIS supprimés avec la page hystérésis (plus de lecteur).
+//   Miroir CONFIG_COMPUTE.baryByGroupDefault supprimé : DEFAULT.TUNING.baryByGroup est la seule référence.
+//   UI_STATE.debugAPI lu une fois dans l'URL (?debugAPI=1|true) : le moteur ne relit plus l'URL.
 // - v1.3.9: plus de cas 🔺🧲🌕💫 (clé retirée : le flux intérieur sort de geology/interieur.js).
 // - v1.3.8: DATA['🔘'] = { '🔘🎞': false } — init hors KEYS/dico (catégorie 🔘 retirée du dico ; anim reste runtime)
 // - v1.3.7: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 45 % (flou scientifique / jauge titre visu).
@@ -50,7 +54,7 @@
     //   - DEFAULT.BOUNDS : plages {min, max, default, sens_threshold} pour interpolation UI
     //                      (pas dans DATA, lues directement par les panneaux).
     // ============================================================================
-    window.DEFAULT = window.DEFAULT || {};
+    window.DEFAULT = {};
 
     window.DEFAULT.TUNING = {
         // Jauge unique ATM : même % CLOUD_SW et SCIENCE (initDATA v1.0.9) — flou scientifique (titre visu).
@@ -108,40 +112,14 @@
         // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →
         // window.CONFIG_COMPUTE dans configTimeline.js. Statiques, pas interpolés → pas dans DATA/DEFAULT.
 
-        // Hystérésis (scalaires live) — lus par scie_hysteresis_search.js (scan + dicho seuil CO₂),
-        // interpolés par tuning.js/fillDataTuningFromBary depuis FINE_TUNING_BOUNDS groupe HYSTERESIS.
-        // Les plages UI (seaIceTransitionRangeK.{min,max}, iceAlbedoCoeff.{min,max}…) sont dans DEFAULT.BOUNDS.HYSTERESIS.
+        // Hystérésis (scalaires live) — interpolés par tuning.js depuis FINE_TUNING_BOUNDS groupe HYSTERESIS ;
+        // lus par calculations_albedo.js (glace de mer, impact glace). co2OceanEffPump01 : voir calculations_co2.js.
         HYSTERESIS: {
             // Paramètres physiques (interpolés depuis FINE_TUNING_BOUNDS)
             seaIceTransitionRangeK: 2.2,
             seaIceStrength01: 1,
             iceImpactFactor01: 0.7,
-            co2OceanEffPump01: 0.1,
-            // Paramètres scan/dichotomie CO₂ (scie_hysteresis_search.js v2)
-            epsilonT_C: 1,
-            epsilonPpm: 1,
-            convergencePpmMass: 1,
-            brutalDeltaT_C: 3,
-            // scanCo2MassFactor : ratio ×fac par pas scan. 0.5 → CO₂ /2 par pas (agressif, peu de pas pour traverser
-            //   la zone bi-stable 1280→128 ppm). Ancien défaut 0.9 trop lent (22 pas pour atteindre 128 ppm).
-            scanCo2MassFactor: 0.5,
-            // scanFailRatio : plancher de la plage de scan en fraction de ⚖️🏭₀. 0.1 = stop si ⚖️🏭 < 10 % du baseline.
-            //   Motivation : fourchette seuil snowball GCM 100-300 ppm = 8-24 % de 1280 ppm baseline Sturtien.
-            //   Ancien code "½·⚖️🏭₀" (50 %) s'arrêtait 4× trop haut (640 ppm) avant d'atteindre la zone bi-stable.
-            //   Références : Voigt & Marotzke 2010 ECHAM5 ; Voigt & Abbot 2012 ; Yang et al. 2012 CCSM3 ;
-            //   Hörner et al. 2022 Clim. Past 18:2437. En mode positif (saut chaud), miroir = 1/scanFailRatio.
-            scanFailRatio: 0.02,   // v-2026-07-15 : 0.1→0.02. Le seuil d'entrée snowball est descendu (feedback tropical Cursor v2.0.15 engage à −4°C) SOUS l'ancien plancher 10% (~5 ppm) → le scan abandonnait juste avant la bifurcation. 0.02 (plancher ~1 ppm) le laisse atteindre le seuil. Cf. hyst 1a −3,7°C à 7 ppm, tropical à −4°C.
-            maxDichoSteps: 30,
-            warmBranchHint_C: -5,
-            coldBranchHint_C: -20,
-            // Couplage CCN-CO₂ : ⚖️✈ = baseline × (x0/xNew)^ccnSulfateCoupling à chaque pas du scan.
-            // 0 = désactivé ; 0.5 = racine carrée (softer) ; 1 = inverse linéaire.
-            // v-2026-07-14 : 0 par défaut (SYNCHRO test↔visu — sulfates FIXES à la racine pendant le scan).
-            //   Ancien : 0.5 (rifting Rodinia SO₂↑ quand CO₂↓, Hoffman 1998) ; réactiver avec le scan bary R&D.
-            ccnSulfateCoupling: 0,
-            // useBaryAdapter : false = scan CO₂ simple sur masses racine (défaut, reflète la visu) ;
-            //   true = BaryAdapter R&D (co-variation CH₄/O₂/sulfates via 🔒 + marge co2MaxFactor ×1,1 sur 1a).
-            useBaryAdapter: false
+            co2OceanEffPump01: 0.1
             // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
             // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
             // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
@@ -154,18 +132,6 @@
             H2O_EDS_SCALE: 0.80,
             factorTropopause: 1.0261
         }
-    };
-
-    // Plages UI hystérésis (min/max/sens) pour panneaux scie / search.
-    // Références : Budyko 1969, Sellers 1969 (rétroaction glace-albédo) ; Hoffman & Schrag 2002, Pierrehumbert 2004 (Snowball Earth).
-    window.DEFAULT.BOUNDS = window.DEFAULT.BOUNDS || {};
-    window.DEFAULT.BOUNDS.HYSTERESIS = {
-        seaIceTransitionRangeK:   { min: 1,    max: 80,  default: 20,  sens_threshold: '➘' },
-        seaIceStrength01:         { min: 0.0,  max: 1.0, default: 1.0, sens_threshold: '➚' },
-        co2OceanScale01:          { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
-        co2OceanPumpOverride01:   { min: 0.0,  max: 1.0, default: 1.0, sens_threshold: '➚' },
-        co2OceanEffPump01:        { min: 0.0,  max: 1.0, default: 0.1, sens_threshold: '➚' },
-        iceAlbedoCoeff:           { min: 0.35, max: 0.90, default: 0.70, sens_threshold: '➚' }   // v-2026-07-15 : min 0.50→0.35 pour atteindre la glace poussiéreuse (mudball Abbot 2010, α~0.40) — déclencheur déglaciation 1b. 0.35 = glace sale extrême.
     };
 
     // ============================================================================
@@ -195,15 +161,8 @@
     // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).
     DATA['🎚️'] = JSON.parse(JSON.stringify(window.DEFAULT.TUNING));
 
-    // Miroir legacy : un seul jeu de % jauge (ATM = CLOUD_SW = SCIENCE en usage unifié).
-    // benchSyncBaryFromConfigCompute / docs anciennes lisent CONFIG_COMPUTE.baryByGroupDefault.
-    if (window.CONFIG_COMPUTE && window.DEFAULT.TUNING && window.DEFAULT.TUNING.baryByGroup) {
-        window.CONFIG_COMPUTE.baryByGroupDefault = JSON.parse(JSON.stringify(window.DEFAULT.TUNING.baryByGroup));
-    }
-
     // Réservoir océan (cycle CO2) : non présent dans KEYS, on l'initialise ici.
-    if (!DATA['🌊']) DATA['🌊'] = {};
-    DATA['🌊']['⚖️🌊🏭'] = 0;
+    DATA['🌊'] = { '⚖️🌊🏭': 0 };
 
     // Flags runtime (anim plot) : hors dico KEYS — 🔘🎞 = false au boot (crash-first : objet toujours présent).
     DATA['🔘'] = { '🔘🎞': false };
@@ -213,7 +172,7 @@
     // ============================================================================
     // window.UI_STATE — flags contrôlés par l'UI (toggles utilisateur, options).
     // ============================================================================
-    window.UI_STATE = window.UI_STATE || {};
+    window.UI_STATE = {};
     // Toggles modules physiques activables par l'utilisateur (checkboxes panel).
     window.UI_STATE.waterVaporEnabled = true;
     window.UI_STATE.methaneEnabled = true;
@@ -223,16 +182,33 @@
     window.UI_STATE.savedCH4 = 0;
     window.UI_STATE.savedH2O = 0;
     window.UI_STATE.FPSalert = 25;     // seuil sous lequel updateFluxLabels est skippé
-    window.UI_STATE.debugAPI = false;
+    // ?debugAPI=1 (ou true) : logs groupés du moteur (api.js, calculations_flux.js).
+    var debugParam = new URLSearchParams(window.location.search).get('debugAPI');
+    window.UI_STATE.debugAPI = (debugParam === '1' || debugParam === 'true');
 
     window.DEBUG_SYNC_PANELS = false;
     window.DEBUG_CONVERGENCE_BINS = false;
     window.DEBUG_TIMELINE_HIDDEN = false;
 
     // ============================================================================
+    // window.SYNC_STATE — état d'exécution partagé avec les pages hôtes (époque affichée, mode animation,
+    // calcul en cours). Créé ICI et nulle part ailleurs : avant, chaque hôte fournissait le sien (l'iframe scie
+    // de CO2 l'oubliait). window.ABORT_COMPUTE : interruption demandée par l'interface.
+    // ============================================================================
+    window.SYNC_STATE = {
+        epochId: '⚫',
+        animEnabled: false,
+        ticTime: 0,
+        calculationInProgress: false,
+        lastRunRequestSource: 'unknown',
+        runningCompute: null
+    };
+    window.ABORT_COMPUTE = false;
+
+    // ============================================================================
     // window.RUNTIME_STATE — état live d'exécution (calculs en cours, mesures, caches).
     // ============================================================================
-    window.RUNTIME_STATE = window.RUNTIME_STATE || {};
+    window.RUNTIME_STATE = {};
     // Convergence / calcul
     window.RUNTIME_STATE.calculationConverged = false;
     window.RUNTIME_STATE.calculationTimeouts = [];

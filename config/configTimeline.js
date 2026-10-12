@@ -1,8 +1,12 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.93
-// Date: [September 24, 2026]
+// Version 1.4.94
+// Date: [October 10, 2026]
 // logs :
+// - v1.4.94: graines 🌡️🧮 de 1a, ⛄, 1b, 🏂, 1c au milieu de leur fourchette (10 / −55 / 35 / −55 / 35 °C) :
+//   mesuré au banc headless, la chaîne de clics 🪸 → 🪼 est identique au centième ; seul le mode Époques change.
+//   CONFIG_COMPUTE.spectralMaxMB / maxSearchT_K : Infinity au lieu de null pour « aucun plafond » (plus de test null).
+//   OVERRIDES supprimé (lu seulement par un diagnostic de calculations_flux.js, retiré).
 // - v1.4.93: plus AUCUN flux ni puissance intérieurs par époque (🔋🌕, 🧲🌕, 🍰🧲🌕, rampe 🔺🧲🌕💫 de 🔥, 🔀 '🌕' de 🦠,
 //   ◀ '🌕' de 🦠 et 📱) : l'intérieur a une histoire thermique (geology/interieur.js), seule condition initiale
 //   🌡️🌕 de 🔥 (océan de magma, 2550 °C, Sleep et al. 2001).
@@ -754,7 +758,7 @@ const timeline = [
         // v-2026-09-15 : 283.15 K RESTAURÉ (fin de l'expérience -2 °C du 16/07). La « surfusion à -2 °C » était un
         // ARTEFACT : la masse de glace passait de 0.10 à 0.009 sous T_freeze (albédo ↓ en refroidissant, faux puits
         // pile à -2.00 °C) — corrigé albedo v1.2.64. Branche chaude 1a réelle ≈ 7 °C à 640 ppm (bench [5,15]).
-        '🌡️🧮': 283.43, // v-2026-09-24 : = T° d'ARRIVÉE au clic (🪸 après ses 💫 : 10,3 °C, sans glace) → la frise converge comme le clic (−0,0 °C)
+        '🌡️🧮': 283.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (283.43, T° d'arrivée au clic)
         // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
@@ -875,7 +879,7 @@ const timeline = [
     "◀": 659e6, // v-2026-09-24 : vraie date — fin du Sturtien, U-Pb 659,3–658,5 (Hoffman 2017) (était 69e7)
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
-    "🌡️🧮": 273.14, // v-2026-09-24 : = T° d'ARRIVÉE au clic (1a à −0,01 °C) ; le voile fait basculer → −65,0 °C comme au clic
+    "🌡️🧮": 218.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (273.14, T° d'arrivée au clic)
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.592e26,
@@ -959,7 +963,7 @@ const timeline = [
         hidden: true,
         '▶': 659e6, // v-2026-09-24 : vraie date — fin du Sturtien (Hoffman 2017) (était 690e6)
         '◀': 639e6, // v-2026-09-24 : vraie date — début du Marinoen, ≥ 639,0 (Hoffman 2017) (était 600e6)
-        '🌡️🧮': 302.65, // v-2026-09-23 : = convergence AU CLIC (+29,5 °C) — frise = clic (était 308,15, « milieu bench » [20,50])
+        '🌡️🧮': 308.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (302.65, convergence au clic)
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
@@ -1034,7 +1038,7 @@ const timeline = [
     "◀": 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
-    "🌡️🧮": 296.66, // v-2026-09-24 : = T° d'ARRIVÉE au clic (1b au bout de sa rampe : 23,5 °C) ; le voile fait basculer → −61,9 °C
+    "🌡️🧮": 218.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (296.66, T° d'arrivée au clic)
     "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.613e26, // Gough @ 0,639 Ga (indicatif : getSoleil recalcule depuis la date)
@@ -1115,7 +1119,7 @@ const timeline = [
         hidden: true,
         '▶': 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
         '◀': 538.8e6, // base du Cambrien, ICS 2023 (l'Édiacarien)
-        '🌡️🧮': 302.65, // v-2026-09-23 : = convergence AU CLIC (+29,5 °C) — frise = clic (était 308,15, « milieu bench » [20,50])
+        '🌡️🧮': 308.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (302.65, convergence au clic)
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
@@ -1217,7 +1221,7 @@ const timeline = [
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
         '▶': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
         '◀': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (trapps de Sibérie) (était 280e6)
-        // 🌡️🧮 : milieu grille CSV Paléozoïque terrestre [15,25]°C → 293.15 K.
+        // 🌡️🧮 : milieu de PhanDA Pridoli [26,39] °C = 32,5 °C → 305.65 K.
         '🌡️🧮': 305.65,
         // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
         '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
@@ -2020,6 +2024,10 @@ window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 // ⚠️ [v1.4.83] Mesuré inerte : bench identique au centième avec 0 (initForConfig re-seed l'océan à chaque calcul,
 //   getMasses réécrit ⚖️🏭 à chaque pas). L'absorption du CO₂ INJECTÉ est portée par CARBON_SINKS ci-dessous.
 window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
+// Efficacité de la pompe Henry (fraction du pas vers l'équilibre). Les pages hystérésis / search l'écrivent
+// depuis leurs jauges. ⚠️ Doublon à trancher : DATA['🎚️'].HYSTERESIS.co2OceanEffPump01 (= 1 après le barycentre),
+// lu par personne. 0,1 = la valeur que la physique utilisait (repli codé en dur, calculations_co2.js < v1.4.0).
+window.CONFIG_COMPUTE.co2OceanEffPump01 = 0.1;
 
 // ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢/🪾) — v1.4.92 ────────────────
 // Modèle de PERTURBATION : la composition de chaque époque (config) est un équilibre ; seul le CO₂ injecté E
@@ -2109,7 +2117,6 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
     landRegrowthTauYears: 66
 };
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
-window.CONFIG_COMPUTE.hystStratosphericVeilExtra01 = 0;
 // ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.51 ────────────
 // SOURCE UNIQUE dT_* : configTimeline.js EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop }.
 // Lue par EARTH.computeIceTempFactor(opts) via les 3 call-sites albedo/flux/h2o (crash si absent).
@@ -2161,14 +2168,14 @@ window.CONFIG_COMPUTE.edsAttributionByRemoval = true;
 window.CONFIG_COMPUTE.maxSpectralBinsConvergence = 2000;            // [OBS/CALIB]
 window.CONFIG_COMPUTE.initSpectralBinsConvergence = 200;            // [OBS/CALIB] N initial (anim : 200 → … → max ; passe finale à max après convergence)
 // spectralMaxMB : si défini, pas de passe finale à maxBins si grille dépasserait ce seuil (évite Brave code 5). Ex. 25.
-window.CONFIG_COMPUTE.spectralMaxMB = null;                         // [OBS/CALIB] null = pas de plafond ; 25 = skip passe finale si > 25 MB
+window.CONFIG_COMPUTE.spectralMaxMB = Infinity;                     // [OBS/CALIB] Infinity = pas de plafond ; 25 = skip passe finale si > 25 MB
 // Workers spectraux : par défaut nWorkers = navigator.hardwareConcurrency - 1. Optionnel : maxWorkers (ex. 4) pour plafonner.
-// window.CONFIG_COMPUTE.maxWorkers = 4;                            // [OBS/CALIB] décommenter pour limiter (ex. 4)
+window.CONFIG_COMPUTE.maxWorkers = Infinity;   // [OBS/CALIB] Infinity = nCPU − 1 ; ex. 4 pour limiter
 // Limite RAM (calculations.js) : plafond couches convergence + résolution stockée en DATA['📊'] (évite 1–4 Go heap).
 window.CONFIG_COMPUTE.maxLayersConvergence = 800;                   // [OBS/CALIB] max couches atmosphère pour le calcul (z_range écrêté)
 window.CONFIG_COMPUTE.maxStoredSpectralLayers = 400;                // [OBS/CALIB] max couches gardées en DATA pour affichage (sous-échant.)
 window.CONFIG_COMPUTE.maxStoredSpectralBins = 600;                 // [OBS/CALIB] max bins λ gardés en DATA pour affichage (sous-échant.)
-window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN = null;            // [OBS/CALIB]
+window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN = 0;               // [OBS/CALIB] 0 = pas de plancher HITRAN
 // true = répartition homogène (poids ∝ largeur région → même densité bins/μm partout) ; false = grille d'origine (converge bien).
 window.CONFIG_COMPUTE.spectralGridHomogeneous = true;             // [OBS/CALIB]
 // Pondération physique du spin-up : cycles_effectifs = cycles × f(⚖️🫧) × f(⚖️💧). Refs confirmés >= 1 au set.
@@ -2190,7 +2197,7 @@ window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
 // factorTropopause : si radiativeFactorTropopauseFixed != null, valeur fixe (hors bary) écrite par tuning.js. Sinon (null) cible FINE_TUNING.
-window.CONFIG_COMPUTE.radiativeFactorTropopauseFixed = 1.0261;       // [OBS/CALIB] ratio × RT/Mg, calage 13 % SCIENCE sans coupler les 4 cibles. null = rétablir interpolation bary.
+// radiativeFactorTropopauseFixed supprimée (2026-10-10) : la valeur fixe vit sur la cible factorTropopause de fine_tuning_bounds.js (`fixed`).
 // Extension tropopause : DATA['🎚️'].RADIATIVE.factorTropopause. false = ×1.
 window.CONFIG_COMPUTE.useFactorTropopause = true;                    // [OBS/CALIB] true = × factorTropopause (ATM.calculateTropopauseHeight) ; false = échelle RT/Mg seule.
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
@@ -2206,7 +2213,7 @@ window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL = 100;        // × fractio
 window.CONFIG_COMPUTE.maxDichotomyIterations = 10;                 // [EQ/NUM] outer simulateRadiativeTransfer uniquement
 window.CONFIG_COMPUTE.maxRadiatifIters = 101;                      // [EQ/NUM] inner Search/Dicho API (CONVERGE / scie)
 // Plafond T en Search (K). null = pas de plafond (test).
-window.CONFIG_COMPUTE.maxSearchT_K = null;                         // [EQ/NUM]
+window.CONFIG_COMPUTE.maxSearchT_K = Infinity;                     // [EQ/NUM] plafond du pas Search (K) ; Infinity = aucun
 // Tolérances cycle eau (changement albedo/vapor pour relancer tour radiatif)
 window.CONFIG_COMPUTE.cycleTolAlbedo = 1e-4;                       // [EQ/NUM]
 window.CONFIG_COMPUTE.cycleTolVapor = 1e-6;                        // [EQ/NUM]
@@ -2217,13 +2224,6 @@ window.CONFIG_COMPUTE.climateSpinupCycles = 1;                         // [EQ/NU
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep = 1;             // [EQ/NUM]
 // Cycles eau/albédo à l'Init uniquement (T fixe)
 window.CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit = 1;              // [EQ/NUM]
-// Catégorie à part : overrides debug/patch (pas dans CONFIG_COMPUTE).
-window.OVERRIDES = window.OVERRIDES || {};
-// Désactivé par défaut :
-// Le verrou glace doit venir de la physique (partition eau + gel océan) ou des valeurs per-epoch (EPOCH['⛄']),
-// sinon ça casse ⛄ "Boule de neige" (750–600 Ma) en limitant la glace à ~8.5%.
-window.OVERRIDES.useEpochIceFixed = false;
-window.OVERRIDES['⛄'] = null;
 
 // ===================== [SOLVER] ===================== source unique SOLVER (v1.4.13)
 // Statiques (pas d'UI, pas d'interpolation bary) → CONFIG_COMPUTE directement, pas dans DATA/DEFAULT.
@@ -2255,11 +2255,11 @@ window.CONFIG_COMPUTE.spectralBandLogoImgPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoEmojiPx = 18;
 window.CONFIG_COMPUTE.spectralBandLogoImgPxByEmoji = {};
 // Logs diagnostics (défaut false — éviter spam console / ralentissement ; true pour debug ponctuel)
-window.CONFIG_COMPUTE.logIceFixedDiagnostic = false;
 // true : une ligne par calculateAlbedo (T, mer gelée, facteur polaire, cibles, verrous hyst, 🍰🪩🧊 après normalisation surfaces)
 window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
 window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
 window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
+window.CONFIG_COMPUTE.logIceFactorDiagnostic = false;   // [iceTF] calculations_albedo.js (remplace DEBUG.topic 'iceFactor' de CO2/static/debug.js)
 window.CONFIG_COMPUTE.logIrisDiagnostic = false;
 // pdTrace Henry (CO₂ océan-atmosphère) : load / NO-OP / APPLY
 window.CONFIG_COMPUTE.logCo2PartitionDiagnostic = false;

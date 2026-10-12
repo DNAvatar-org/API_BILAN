@@ -1,247 +1,147 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
-// Desc: API pure calcul (config + callback). Chargeable dans index, visu_ ou scie_. Badge version : #title-app-version si présent (index après injection fragment).
-// Version 1.0.10
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Desc: API pure calcul (config + callback), utilisée par les bancs (epoch_bench, headless). Aucun DOM.
+// Version 1.2.0
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: May 07, 2026
+// Date: October 10, 2026
 // Logs:
-// - v1.0.10: pdTrace retiré (crochet de log fourni par l'hôte). snap() et fmt3 n'existaient que pour lui :
-//   partis avec. Le moteur ne dépend plus d'aucune fonction de trace de l'application.
-// - v1.0.9: window.BILAN_VISU_APP_VERSION (semver API) défini ici ; synchro texte span #title-app-version quand le nœud existe.
-// - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses (lecture pure DATA/STATE,
-//   pas de calcul). api.runDiag(epochId) → run + snapshot. Usage console : await api.runDiag('🚂').
-//   Permet comparaison parcours visu vs bench séquentiel pour calibration sans inspection DOM.
-// - v1.0.7: debugAPI (?debugAPI=true ou window.UI_STATE.debugAPI) → console.groupCollapsed sur run + fin ProcessFinished / erreur
-// - v1.0.6: snapshot PRE_INIT/POST_INIT via pdTrace (pas pd)
-// - v1.0.1 FUNC_API_BILAN, const MAJ en tête ; dossier renommé API_BILAN
-// - v1.0.2 add pd() snapshots PRE_INIT/POST_INIT for API inputs
-// - v1.0.3 crash-first on ⛄ after POST_INIT to trace call chain
-// - v1.0.4 remove crash-trace; keep optional pd() snapshots
+// - v1.2.0: prepare(config) = tout jusqu'à initForConfig (préchargement « config sans calcul » de la scie) ;
+//   run = prepare + convergence, point d'entrée unique de tout calcul (visu, scie, bancs). Callback = le seul canal.
+// - v1.1.0: PAS DE GARDES. run({ epochId, animEnabled[, tuning] }) seul format (la forme « string » et les
+//   époques par défaut ne servaient à personne) ; run est async et attend vraiment le calcul. Plus de pile
+//   callbackStack (un seul callback y entrait jamais, et son try/catch avalait les erreurs) : le callback de
+//   l'API est appelé directement. isDebugAPI() remplacé par la seule référence UI_STATE.debugAPI (initDATA).
+//   snapshot() en accès direct. Badge de version : c'est l'interface CO2 qui l'écrit, pas le moteur.
+// - v1.0.10: pdTrace retiré (crochet de log fourni par l'hôte).
+// - v1.0.9: window.BILAN_VISU_APP_VERSION (semver API) défini ici.
+// - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses. api.runDiag(epochId) → run + snapshot.
 // - v1.0.5 singleton: new BilanRadiatifAPI / getBilanRadiatifAPI réutilisent la même instance
 
 'use strict';
 
 /** Semver BilanRadiatif / API_BILAN : console, bench, bandeau visu (#title-app-version). */
-window.BILAN_VISU_APP_VERSION = '1.0.8';
-var titleAppVersionEl = document.getElementById('title-app-version');
-if (titleAppVersionEl) titleAppVersionEl.textContent = 'v' + window.BILAN_VISU_APP_VERSION;
-
-if (!window.FUNC_API_BILAN) window.FUNC_API_BILAN = {};
-/**
- * Logs groupés (console) pour bench / diagnostic. Activer : ?debugAPI=true ou window.UI_STATE.debugAPI = true.
- * @returns {boolean}
- */
-window.FUNC_API_BILAN.isDebugAPI = function isDebugAPI() {
-    if (typeof window === 'undefined') return false;
-    if (window.UI_STATE.debugAPI === true) return true;
-    try {
-        if (typeof location !== 'undefined' && location.search) {
-            var v = new URLSearchParams(location.search).get('debugAPI');
-            return v === 'true' || v === '1';
-        }
-    } catch (ex) { /* ignore */ }
-    return false;
-};
+window.BILAN_VISU_APP_VERSION = '1.1.0';
 
 /**
- * API Bilan Radiatif : entrée config, sortie via callback (récepteur universel).
- * Le calcul est délégué aux modules déjà chargés (physics, calculations, calculations_flux, etc.).
- * Le callback reçoit (event, payload) et dispatch vers visu/scie selon le contexte.
- *
- * @param {function(string, object)} callback - Récepteur: callback(event, payload). Events: 'convergenceStep' | 'cycleCalcul' | 'ProcessFinished'
+ * API Bilan Radiatif : entrée config, sortie via callback(event, payload).
+ * Events : 'convergenceStep' | 'cycleCalcul' | 'ProcessFinished'. Singleton : le dernier callback donné gagne.
  */
 function BilanRadiatifAPI(callback) {
-    var existing = window.__BILAN_RADIATIF_API_SINGLETON__;
+    const existing = window.__BILAN_RADIATIF_API_SINGLETON__;
     if (existing) {
-        if (typeof callback === 'function') existing.callback = callback;
+        existing.callback = callback;
         return existing;
     }
-    this.callback = typeof callback === 'function' ? callback : function () {};
+    this.callback = callback;
     window.__BILAN_RADIATIF_API_SINGLETON__ = this;
 }
 
-/** Identifiant d'époque par défaut de l'API (si aucun config ni epochId passé). */
-var DEFAULT_EPOCH_ID = '⚫';
-
 /**
- * Applique la config au contexte global (DATA, SYNC_STATE, etc.) puis lance le calcul.
- * Entrée : objet config { epochId?, animEnabled?, ticTime?, tuning? } OU un identifiant d'époque (string).
- * Si un identifiant seul est passé, c'est celui de l'API (paramètre) qui est pris ; sinon config.epochId ou défaut API.
- * Exécution asynchrone (Promise) ; le callback est appelé pendant l'exécution.
- *
- * @param {object|string} configOrEpochId - config complète ou identifiant d'époque (ex. '⚫')
- * @returns {Promise<object|null>} - Résultat du calcul (ou null si abort/erreur)
+ * Prépare un calcul SANS converger : époque, mode, réglage, masses, T initiale, remises à zéro du solveur,
+ * initForConfig (date, Soleil, intérieur, composition, eau, albédo). C'est l'état « d'où l'on part ».
+ * @param {{epochId: string, animEnabled: boolean, tuning?: object}} config
+ *   animEnabled:false = clic sur la frise (T init = graine 🌡️🧮) ; true = tictime (T init = T courante).
+ * @returns {boolean} false si interrompu (window.ABORT_COMPUTE)
  */
-BilanRadiatifAPI.prototype.run = function (configOrEpochId) {
+BilanRadiatifAPI.prototype.prepare = function (config) {
     const DATA = window.DATA;
-    const TIMELINE = window.TIMELINE;
-    const SYNC_STATE = window.SYNC_STATE;
-    const initForConfig = window.CONVERGE.initForConfig;
-    const computeRadiativeTransfer = window.CONVERGE.computeRadiativeTransfer;
-    var self = this;
-
-    if (!DATA || !TIMELINE) {
-        throw new Error('[BilanRadiatifAPI] DATA ou TIMELINE manquant — scripts non chargés');
-    }
-
-    var config = (typeof configOrEpochId === 'string' || typeof configOrEpochId === 'undefined')
-        ? { epochId: configOrEpochId != null ? configOrEpochId : DEFAULT_EPOCH_ID }
-        : (configOrEpochId || {});
-
-    var epochId = config.epochId != null ? config.epochId : (SYNC_STATE && SYNC_STATE.epochId) || DEFAULT_EPOCH_ID;
-    var idx = TIMELINE.findIndex(function (item) { return item['📅'] === epochId; });
-    if (idx >= 0) {
-        DATA['📅'] = TIMELINE[idx];
-        if (!DATA['📜']) DATA['📜'] = {};
-        DATA['📜']['👉'] = idx;
-        DATA['📜']['🗿'] = epochId;
-    }
-    if (config.animEnabled !== undefined && SYNC_STATE) SYNC_STATE.animEnabled = config.animEnabled;
-    if (config.ticTime !== undefined && SYNC_STATE) SYNC_STATE.ticTime = config.ticTime;
+    const EP = window.TIMELINE.find(function (item) { return item['📅'] === config.epochId; });
+    DATA['📅'] = EP;
+    DATA['📜']['👉'] = window.TIMELINE.indexOf(EP);
+    DATA['📜']['🗿'] = EP['📅'];
+    window.SYNC_STATE.animEnabled = config.animEnabled;
     if (config.tuning) window.TUNING.applyTuningPayload(config.tuning);
     window.COMPUTE.getMasses();
-    if (config.animEnabled === false) {
-        DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];
-    }
-
-    var dbgRunOpen = false;
-    function apiDebugCloseRun() {
-        if (dbgRunOpen) {
-            console.groupEnd();
-            dbgRunOpen = false;
-        }
-    }
-    if (window.FUNC_API_BILAN.isDebugAPI()) {
-        console.groupCollapsed('[API_BILAN] run', String(epochId), 'anim=', config.animEnabled);
-        dbgRunOpen = true;
-    }
-
-
+    if (!config.animEnabled) DATA['🧮']['🧮🌡️'] = EP['🌡️🧮'];
     DATA['🧮']['previous'] = [];
     DATA['🧮']['🧮🔄🌊'] = 0;
     DATA['🧮']['🧮🔄🪩'] = 0;
-    window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
-    if (SYNC_STATE) SYNC_STATE.calculationInProgress = true;
+    return window.CONVERGE.initForConfig();
+};
 
-    if (!initForConfig()) {
-        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
-        if (window.FUNC_API_BILAN.isDebugAPI()) {
-            console.warn('[API_BILAN] initForConfig → false (run abandonné)');
-        }
-        apiDebugCloseRun();
-        return Promise.resolve(null);
+/**
+ * Prépare puis converge. LE point d'entrée de tout calcul (bancs, visu, scie).
+ * Le callback (constructeur) reçoit 'convergenceStart' | 'convergenceStep' | 'convergenceRefresh' |
+ * 'cycleCalcul' (attendu : peut rendre une promesse) | 'ProcessFinished'.
+ * @returns {Promise<true|null>} null si interrompu (window.ABORT_COMPUTE)
+ */
+BilanRadiatifAPI.prototype.run = async function (config) {
+    const DATA = window.DATA;
+    const debug = window.UI_STATE.debugAPI;
+    if (debug) console.groupCollapsed('[API_BILAN] run', config.epochId, 'anim=', config.animEnabled);
+    window.SYNC_STATE.calculationInProgress = true;
+    let result = null;
+    if (this.prepare(config)) {   // false = interrompu
+        result = await window.CONVERGE.computeRadiativeTransfer(this.callback);
     }
-    // NOTE: crash-trace retiré (debug uniquement)
-
-    var callbackStack = window.FUNC_API_BILAN && window.FUNC_API_BILAN.callbackStack;
-    var dispatcher = self.callback;
-    if (callbackStack) {
-        callbackStack.push(self.callback);
-        dispatcher = function (event, payload) {
-            callbackStack.run(event, payload);
-        };
+    window.SYNC_STATE.calculationInProgress = false;
+    if (debug) {
+        console.log('[API_BILAN] ProcessFinished', 'status=', DATA['🧮']['🧮🛑'], 'result=', result);
+        console.groupEnd();
     }
-
-    var computePromise = computeRadiativeTransfer(dispatcher);
-
-    return computePromise.then(function (result) {
-        const DATA = window.DATA;
-        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
-        if (callbackStack) callbackStack.pop();
-        if (window.FUNC_API_BILAN.isDebugAPI()) {
-            var st = DATA && DATA['🧮'] ? DATA['🧮']['🧮🛑'] : null;
-            console.log('[API_BILAN] ProcessFinished', 'status=', st, 'result=', result);
-        }
-        self.callback('ProcessFinished', { DATA: DATA, result: result });
-        apiDebugCloseRun();
-        return result;
-    }).catch(function (e) {
-        if (SYNC_STATE) SYNC_STATE.calculationInProgress = false;
-        if (callbackStack) callbackStack.pop();
-        if (window.FUNC_API_BILAN.isDebugAPI()) {
-            console.error('[API_BILAN] compute rejection', e);
-        }
-        apiDebugCloseRun();
-        throw e;
-    });
+    this.callback('ProcessFinished', { DATA: DATA, result: result });
+    return result;
 };
 
 /**
  * Instantané plat de l'état de calibration (T, glace, snapshots, déséquilibre radiatif, traps).
- * À appeler après convergence pour comparer parcours visu vs bench, ou pour calibration.
- * Ne fait AUCUN calcul — juste lit DATA / STATE / TIMELINE / CONFIG_COMPUTE. Donc gratuit.
- *
- * @returns {object} payload diagnostique stable, JSON-friendly.
+ * Lecture pure de DATA / STATE / TIMELINE / CONFIG_COMPUTE, aucun calcul. À appeler après un run.
  */
 BilanRadiatifAPI.prototype.snapshot = function () {
-    const D = window.DATA || {};
-    const S = window.STATE || {};
-    const TL = window.TIMELINE || [];
-    const CC = window.CONFIG_COMPUTE || {};
-    const idx = (D['📜'] && D['📜']['👉']) | 0;
-    const EP = TL[idx] || {};
-    const T_K = D['🧮'] && D['🧮']['🧮🌡️'];
-    const T_seed_K = EP['🌡️🧮'];
-    const duree_ans = (Number.isFinite(EP['▶']) && Number.isFinite(EP['◀'])) ? Math.abs(EP['▶'] - EP['◀']) : null;
-    const tau_eff = (Number.isFinite(CC.tauGlaceAns) ? CC.tauGlaceAns : 0)
-                  * (Number.isFinite(CC.iceInertiaFactor01) ? CC.iceInertiaFactor01 : 1);
-    const fraction_fonte = (tau_eff > 0 && duree_ans !== null) ? (1 - Math.exp(-duree_ans / tau_eff)) : null;
+    const D = window.DATA;
+    const S = window.STATE;
+    const CC = window.CONFIG_COMPUTE;
+    const idx = D['📜']['👉'];
+    const EP = window.TIMELINE[idx];
+    const duree_ans = Math.abs(EP['▶'] - EP['◀']);
+    const tau_eff = CC.tauGlaceAns * CC.iceInertiaFactor01;
     return {
-        epochId: D['📜'] && D['📜']['🗿'],
+        epochId: D['📜']['🗿'],
         epochIdx: idx,
-        phase: D['🧮'] && D['🧮']['🧮⚧'],
-        status: D['🧮'] && D['🧮']['🧮🛑'],
-        T_C: Number.isFinite(T_K) ? T_K - 273.15 : null,
-        T_seed_C: Number.isFinite(T_seed_K) ? T_seed_K - 273.15 : null,
+        phase: D['🧮']['🧮⚧'],
+        status: D['🧮']['🧮🛑'],
+        T_C: D['🧮']['🧮🌡️'] - 273.15,
+        T_seed_C: EP['🌡️🧮'] - 273.15,
         duree_ans,
         tau_eff,
-        fraction_fonte,
+        fraction_fonte: 1 - Math.exp(-duree_ans / tau_eff),
         ice: {
-            mass_now: D['💧'] && D['💧']['🍰💧🧊'],
-            surf_now: D['🪩'] && D['🪩']['🍰🪩🧊'],
+            mass_now: D['💧']['🍰💧🧊'],
+            surf_now: D['🪩']['🍰🪩🧊'],
             mass_snap: S._iceMassSnapshotPreSearch01,
             surf_snap: S._iceSurfSnapshotPreSearch01
         },
         albedo: {
-            planetary: D['🪩'] && D['🪩']['🍰🪩📿'],
-            cloud_cover: D['🪩'] && D['🪩']['🍰🪩⛅']
+            planetary: D['🪩']['🍰🪩📿'],
+            cloud_cover: D['🪩']['🍰🪩⛅']
         },
         flux: {
-            solar_in: D['🧲'] && D['🧲']['🧲☀️🔽'],
-            olr_out: D['🧲'] && D['🧲']['🧲🌈🔼'],
-            delta: D['🧲'] && D['🧲']['🔺🧲']
+            solar_in: D['🧲']['🧲☀️🔽'],
+            olr_out: D['🧲']['🧲🌈🔼'],
+            delta: D['🧲']['🔺🧲']
         },
-        traps: D['📛'] ? {
+        traps: {
             total: D['📛']['🧲📛'],
             co2: D['📛']['🧲📛🏭'],
             h2o: D['📛']['🧲📛💧'],
             ch4: D['📛']['🧲📛🐄'],
             cloud: D['📛']['🧲📛⛅']
-        } : null,
+        },
         masses: {
-            atm: D['⚖️'] && D['⚖️']['⚖️🫧'],
-            co2: D['⚖️'] && D['⚖️']['⚖️🏭'],
-            ch4: D['⚖️'] && D['⚖️']['⚖️🐄'],
-            h2o: D['⚖️'] && D['⚖️']['⚖️💧']
+            atm: D['⚖️']['⚖️🫧'],
+            co2: D['⚖️']['⚖️🏭'],
+            ch4: D['⚖️']['⚖️🐄'],
+            h2o: D['⚖️']['⚖️💧']
         }
     };
 };
 
-/**
- * Run + snapshot consolidé. Pour usage console : `await api.runDiag('🚂').then(console.table)`.
- *
- * @param {string} epochId
- * @returns {Promise<object>} { snapshot, result }
- */
-BilanRadiatifAPI.prototype.runDiag = function (epochId) {
-    const self = this;
-    return self.run({ epochId, animEnabled: false }).then(function (result) {
-        return { snapshot: self.snapshot(), result: result };
-    });
+/** Run + snapshot. Usage console : `await api.runDiag('🚂')`. */
+BilanRadiatifAPI.prototype.runDiag = async function (epochId) {
+    const result = await this.run({ epochId: epochId, animEnabled: false });
+    return { snapshot: this.snapshot(), result: result };
 };
 
-window.FUNC_API_BILAN.BilanRadiatifAPI = BilanRadiatifAPI;
-window.FUNC_API_BILAN.defaultEpochId = DEFAULT_EPOCH_ID;
 window.BilanRadiatifAPI = BilanRadiatifAPI;
 /** @returns {BilanRadiatifAPI} même instance que tout `new BilanRadiatifAPI(...)` */
 window.getBilanRadiatifAPI = function (callback) {

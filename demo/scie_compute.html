@@ -77,55 +77,19 @@
     </div>
 
     <!-- Chemin du worker spectral : avant worker_pool.js, qui le lit à son évaluation. -->
-    <script src="js/demo_paths.js"></script>
-    <!-- Coquilles ORG / SYNC_STATE que le moteur appelle : une page de demo n'a pas
-         d'organigramme ni de shell pour les fournir. -->
-    <script src="js/demo_host.js"></script>
-
-    <!-- Configuration et structure de DATA -->
-    <script src="../config/model_tuning_biblio.js"></script>
-    <script src="../config/configTimeline.js"></script>
-    <!-- Définitions des clés, puis leur rendu (logos, pictos) -->
-    <script src="../data/alphabet.js"></script>
-    <script src="../data/dico.js"></script>
-    <script src="js/alphabet_render.js"></script>
-    <script src="js/dico_render.js"></script>
-    <script src="../data/initDATA.js"></script>
-    <script src="../config/fine_tuning_bounds.js"></script>
-    <!-- Moteur -->
-    <script src="../physics/physics.js"></script>
-    <script src="../data/hitran_lines_CO2.js"></script>
-    <script src="../data/hitran_lines_H2O.js"></script>
-    <script src="../data/hitran_lines_CH4.js"></script>
-    <script src="../spectroscopy/hitran.js"></script>
-    <script src="../physics/climate.js"></script>
-    <script src="../radiative/calculations.js"></script>
-    <!-- Avant le pool : le worker se publie au lieu de s'exécuter, ce qui donne au pool une
-         source utilisable en blob: — seul moyen d'avoir des workers en file:// (origine 'null'). -->
-    <script src="../workers/spectral_slice_worker.js"></script>
-    <script src="../workers/worker_pool.js"></script>
-    <script src="../h2o/calculations_h2o.js"></script>
-    <script src="../aerosols/sulfate_ccn.js"></script>
-    <script src="../albedo/calculations_albedo.js"></script>
-    <script src="../atmosphere/calculations_atm.js"></script>
-    <script src="../ocean/sinks_ocean.js"></script>
-    <script src="../land/sinks_land.js"></script>
-    <script src="../co2/calculations_co2.js"></script>
-    <script src="../geology/interieur.js"></script>
-    <script src="../convergence/compute.js"></script>
-    <script src="js/scie_convergence.js"></script>
-    <script src="../convergence/calculations_flux.js"></script>
-    <!-- Après physics.js, comme l'exige tuning.js -->
-    <script src="../tuning.js"></script>
-
-    <!-- La page elle-même -->
-    <script src="js/scie_boot.js"></script>
-    <script src="js/scie_timeline.js"></script>
-    <script src="js/scie_actions.js"></script>
-    <script src="js/scie_config_view.js"></script>
-    <script src="js/scie_tuning_view.js"></script>
-    <script src="js/scie_results_view.js"></script>
-    <script src="js/scie_demo.js"></script>
-    <script src="js/scie_main.js"></script>
+    <!-- Loader commun : la liste du moteur (engine_manifest.js) ; avant lui les stubs hôtes, après lui la page. -->
+    <script src="../loader/engine_manifest.js"></script>
+    <script src="../loader/loader.js"></script>
+    <script>
+    window.BILAN_LOADER.load({
+        apiBase: '../',
+        before: ['js/demo_host.js'],
+        after: ['js/alphabet_render.js', 'js/dico_render.js', 'js/scie_convergence.js',
+                'js/scie_boot.js', 'js/scie_timeline.js', 'js/scie_actions.js', 'js/scie_config_view.js',
+                'js/scie_tuning_view.js', 'js/scie_results_view.js', 'js/scie_demo.js', 'js/scie_main.js'],
+        cacheBust: '',
+        onLoaded: function () {}
+    }).then(function () { initScieDemo(); });
+    </script>
 </body>
 </html>

@@ -215,11 +215,21 @@ function displayConvergence() {
     }
 }
 
-window.CONVERGE.clearConvergenceTrace = clearConvergenceTrace;
-window.CONVERGE.appendConvergenceStep = appendConvergenceStep;
-
-// 🔒 Exposer displayConvergence sur window pour que calculations_flux.js puisse l'appeler
-window.displayConvergence = displayConvergence;
+/**
+ * LE canal du moteur pour la page scie : callback de api.run (window.getBilanRadiatifAPI(SCIE_ENGINE_EVENT)).
+ * La trace de convergence s'affiche ici ; un calcul lancé DANS l'iframe (réglage fin) prévient aussi la page
+ * parente à chaque pas, pour ses étiquettes. Les fonctions de trace restent globales : le shell de CO2 les
+ * appelle quand c'est la visu qui calcule.
+ */
+window.SCIE_ENGINE_EVENT = function (event, payload) {
+    if (event === 'convergenceStart') clearConvergenceTrace();
+    else if (event === 'convergenceStep') appendConvergenceStep(payload);
+    else if (event === 'convergenceRefresh') displayConvergence();
+    else if (event === 'cycleCalcul' && window !== window.top) {
+        const D = window.DATA;
+        window.parent.postMessage({ type: 'cycleCalcul', DATA: { '🧮': D['🧮'], '🪩': D['🪩'], '🫧': D['🫧'], '💧': D['💧'], '📛': D['📛'], '📜': D['📜'], '📊': D['📊'] } }, '*');
+    }
+};
 
 function toggleConfig() {
     const configDiv = document.getElementById('config');

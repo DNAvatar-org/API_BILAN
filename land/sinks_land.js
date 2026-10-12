@@ -3,11 +3,12 @@
 // Desc: Trois mécanismes distincts, chacun chiffré par une publication différente :
 //       fertilisation CO₂ pondérée par l'âge des peuplements, dépôt d'azote, repousse forestière.
 //       Séparé du puits océan (ocean/sinks_ocean.js) : deux physiques sans rapport.
-// Version 1.1.0
+// Version 1.2.0
 // Date: 2026-09-20
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+// - v1.2.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
 // - v1.1.0: 3 mécanismes séparés au lieu de la seule fertilisation. β pondéré par l'âge
 //   (β_jeune sur les peuplements < 30 ans, β_mature sur le reste) : c'est ce qui fait disparaître
 //   le biais d'échelle des FACE, dont les parcelles avaient 10-20 ans. Ajout du dépôt d'azote
@@ -22,12 +23,11 @@
  * Hors DATA pour la même raison que les réservoirs océaniques : neuf endroits du modèle remettent
  * 📜🔺⚖️🌳🏭 à 0 sans connaître ce découpage. syncLandStocks() se recale sur ce total à chaque appel.
  */
-var landStocksKg = null;   // { fert, ndep, regrow }
+var landStocksKg = { fert: 0, ndep: 0, regrow: 0 };
 var landElapsedYears = 0;
 
 /** Réaligne les stocks sur 📜🔺⚖️🌳🏭 (seule source de vérité du total stocké). */
 function syncLandStocks(totalKg) {
-    if (!landStocksKg) landStocksKg = { fert: 0, ndep: 0, regrow: 0 };
     if (!(totalKg > 0)) {
         landStocksKg = { fert: 0, ndep: 0, regrow: 0 };
         landElapsedYears = 0;          // nouvelle époque : la repousse héritée repart de son flux initial
@@ -100,11 +100,10 @@ function advanceLandSinkStep(dtYears, C_mid, C0, emitStepKg) {
 
 /** Détail par mécanisme (kg CO₂) — diagnostic / affichage. */
 function landStocks() {
-    return landStocksKg ? { fert: landStocksKg.fert, ndep: landStocksKg.ndep, regrow: landStocksKg.regrow }
-                        : { fert: 0, ndep: 0, regrow: 0 };
+    return { fert: landStocksKg.fert, ndep: landStocksKg.ndep, regrow: landStocksKg.regrow };
 }
 
-window.LAND_SINK = window.LAND_SINK || {};
+window.LAND_SINK = {};
 window.LAND_SINK.syncLandStocks = syncLandStocks;
 window.LAND_SINK.advanceLandSinkStep = advanceLandSinkStep;
 window.LAND_SINK.effectiveBeta = effectiveBeta;

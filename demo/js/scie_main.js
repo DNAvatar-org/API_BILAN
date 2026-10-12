@@ -1,9 +1,12 @@
 // File: API_BILAN/demo/scie_main.js - Démarrage de la page et pont postMessage
 // Desc: Le DÉMARRAGE, en dernier : j'écoute les messages de la page parente, j'envoie le tuning initial et je
 //       monte la page au DOMContentLoaded. Tout ce dont j'ai besoin est défini par les fichiers ci-dessus.
-// Version 1.0.1
-// Date: [September 19, 2026]
+// Version 1.1.0
+// Date: 2026-10-12
 // logs :
+//   - v1.1.0: deux démarrages (initScieIframe / initScieDemo) au lieu d'un seul plein de branches mortes ;
+//     sync:state du parent → CLICS.passer (plus de pose d'époque recopiée, plus de 📿💫 = ticTime) ;
+//     tuningPayload = la seule fabrique du message sync:tuning.
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
@@ -26,41 +29,11 @@ window.addEventListener('message', function(event) {
             iframe.style.height = event.data.height + 'px';
         }
     }
+    // Iframe de CO2 : l'état est celui du parent. À chaque époque qu'il pose (setEpoch → syncToScie), le miroir
+    // prend la même (CLICS.passer : compteurs à zéro, comme chez lui) ; le reste arrive avec compute:done.
     if (event.data && event.data.type === 'sync:state') {
-        const p = event.data.payload;
-        if (!p) return;
-        if (p.epochId !== undefined) {
-            const epochIndex = window.TIMELINE ? window.TIMELINE.findIndex(item => item['📅'] === p.epochId) : -1;
-            if (epochIndex >= 0 && window.DATA) {
-                if (!window.DATA['📜']) window.DATA['📜'] = {};
-                window.DATA['📅'] = window.TIMELINE[epochIndex];
-                window.DATA['📜']['👉'] = epochIndex;
-                window.DATA['📜']['🗿'] = p.epochId;
-                document.querySelectorAll('.epoch-btn-horizontal').forEach(btn => {
-                    btn.classList.toggle('selected', btn.getAttribute('data-epoch') === p.epochId);
-                });
-                updateEpochActions();
-                updateTimelineDisplay();
-            }
-        }
-        if (p.animEnabled !== undefined) {
-            const animBtn = document.getElementById('anim-toggle');
-            if (animBtn) animBtn.classList.toggle('selected', p.animEnabled);
-            let cb = document.getElementById('plot-anim-toggle-checkbox');
-            if (!cb) {
-                cb = document.createElement('input');
-                cb.type = 'checkbox';
-                cb.id = 'plot-anim-toggle-checkbox';
-                cb.style.display = 'none';
-                document.body.appendChild(cb);
-            }
-            cb.checked = p.animEnabled;
-            if (window.DATA && window.DATA['🔘']) window.DATA['🔘']['🔘🎞'] = p.animEnabled;
-        }
-        if (p.ticTime !== undefined && window.DATA && window.DATA['📜']) {
-            window.DATA['📜']['📿💫'] = p.ticTime;
-            updateTimelineDisplay();
-        }
+        window.CLICS.passer(event.data.payload.epochId);
+        window.DATA['🔘']['🔘🎞'] = event.data.payload.animEnabled;
     }
     if (event.data && event.data.type === 'compute:done') {
         var DATA = event.data.DATA;
@@ -103,37 +76,28 @@ window.addEventListener('message', function(event) {
     }
 });
 
-// Au first load : appliquer 100 % (nominal), rafraîchir l’affichage, puis envoyer au parent.
-function sendInitialTuningToParent() {
-    window.TUNING.fillDataTuningFromBary();
-    if (window.parent === window) return;
-    var T = window.DATA['🎚️'];
-    window.parent.postMessage({
-        type: 'sync:tuning',
-        payload: {
-            baryByGroup: { ATM: T.baryByGroup.ATM, CLOUD_SW: T.baryByGroup.ATM, SCIENCE: T.baryByGroup.ATM, SOLVER: T.baryByGroup.SOLVER, HYSTERESIS: T.baryByGroup.HYSTERESIS },
-            CLOUD_SW: T.CLOUD_SW,
-            SOLVER: T.SOLVER,
-            updates: [],
-            run: true
-        }
-    }, '*');
+/** Le réglage courant, tel que l'attend le parent (sync:tuning). Une seule fabrique (il y en avait trois). */
+function tuningPayload(run) {
+    const T = window.DATA['🎚️'];
+    return {
+        baryByGroup: { ATM: T.baryByGroup.ATM, CLOUD_SW: T.baryByGroup.ATM, SCIENCE: T.baryByGroup.ATM, SOLVER: T.baryByGroup.SOLVER, HYSTERESIS: T.baryByGroup.HYSTERESIS },
+        CLOUD_SW: T.CLOUD_SW,
+        SOLVER: T.SOLVER,
+        updates: [],
+        run: run
+    };
 }
 
-// Initialiser au chargement
-window.addEventListener('DOMContentLoaded', function() {
-    // Les contenus Alphabet et Dico sont maintenant chargés via iframe (alphabet.html et dico.html)
-    console.log('📄 Page de test chargée');
-    console.log('🔧 Initialisation des variables globales...');
-    
-    // S'assurer que TIMELINE est chargée
-    if (window.TIMELINE) {
-        console.log('✅ Timeline chargée: ' + window.TIMELINE.length + ' époques');
-        // Générer la timeline horizontale
-        generateHorizontalTimeline();
-    } else {
-        console.error('❌ Timeline non chargée');
-    }
-    // Tuning 100 % vers parent pour 1er compute (16.4°C) sans clic
-    sendInitialTuningToParent();
-});
+// Démarrage, appelé par le loader commun quand tout est chargé. Deux hôtes, deux démarrages (chaque page dit le sien) :
+/** Iframe de CO2 : réglage nominal envoyé au parent, qui fait le 1er calcul et pousse son DATA (compute:done). */
+function initScieIframe() {
+    window.TUNING.fillDataTuningFromBary();
+    window.parent.postMessage({ type: 'sync:tuning', payload: tuningPayload(true) }, '*');
+}
+
+/** Page démo seule : frise, puis ⚫ préchargé (sans converger : c'est ▶️ qui converge). */
+function initScieDemo() {
+    window.TUNING.fillDataTuningFromBary();
+    generateHorizontalTimeline();
+    selectEpoch('⚫');
+}

@@ -1,8 +1,10 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.15
-// Date: [April 25, 2026] [14:00 UTC+1]
+// Version 1.3.16
+// Date: [October 10, 2026]
 // logs :
+// - v1.3.16: factorTropopause porte `fixed: 1.0261` et baryGroup SCIENCE (ex-CONFIG_COMPUTE.radiativeFactorTropopauseFixed,
+//   lue à trois endroits avec des replis différents).
 // - v1.3.15: SULFATE_BOOST_SCALE et SULFATE_BOOST_MAX SUPPRIMÉS, remplacés par SULFATE_CCN_EXPONENT.
 //   Même règle que OPTICAL_EFF_CCN_GAIN en v1.3.14, appliquée une marche plus haut : on ne remplace
 //   pas une valeur par une autre, on remplace la FORME. Le facteur linéaire 🍰🫧✈ × SCALE, borné à la
@@ -149,12 +151,16 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'RADIATIVE',
             key: 'factorTropopause',
+            baryGroup: 'SCIENCE',
             min: 1.03,
             max: 1.0,
             default: 1.0261,
+            // fixed : calage hors jauge (configTimeline v1.4.51 : 1,03 + min(1,0 − 1,03) × 0,13). Retirer `fixed`
+            // pour qu'il suive la jauge ATM comme les autres cibles SCIENCE.
+            fixed: 1.0261,
             unit: 'ratio',
-            note: 'doc / biblio. Valeur live = CONFIG_COMPUTE.radiativeFactorTropopauseFixed (hors bary) ou interpolée si fixed=null.',
-            source: 'Source runtime : configTimeline.radiativeFactorTropopauseFixed (défaut 1,0261) ; pas d’entrée baryGroup SCIENCE.',
+            note: 'doc / biblio. Valeur live = fixed (hors barycentre) ; sans fixed, interpolée sur la jauge ATM.',
+            source: 'Calage v1.4.51 (ex-CONFIG_COMPUTE.radiativeFactorTropopauseFixed, supprimée : une seule source).',
             effect: 'mixed',
             biblio_ref: 'FACTOR_TROPOPAUSE_RT'
         },

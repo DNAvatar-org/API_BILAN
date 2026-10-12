@@ -1,7 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_table.js
 // Desc: Table de resultats : creation et mise a jour des lignes, copie d une ligne au presse-papier.
-// Version 1.0.0
-// Date: 2026-09-20
+// Version 1.1.0
+// Date: 2026-10-06
+// logs :
+//   - v1.1.0: une ligne = une cle (opts.rowKey), plus forcement une epoque : le mode tictimes ecrit
+//     plusieurs lignes par epoque (un clic chacune), avec l'etape du clic sous le nom et la T° d'arrivee
+//     en T init (opts.tInitC). Logos d'hysteresis alignes sur configTimeline (🌦 1b, ⛈ 1c).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -61,16 +65,20 @@ function statusHtml(s) {
     return '<span class="status-warn">\u26a0\ufe0f ' + s + '</span>';
 }
 
-function createRow(epoch) {
+/**
+ * opts.rowKey : identifiant de la ligne (l'époque en mode graines, le n° de clic en mode tictimes)
+ * opts.etape  : (tictimes) clic joué, affiché sous le nom de l'époque
+ * opts.tInitC : (tictimes) T° initiale du calcul, °C — sinon la graine 🌡️🧮
+ */
+function createRow(epoch, opts) {
     var id = epoch['\u{1F4C5}'];
     var name = window.epochName(id);
-    var HYST_LOGOS = { 'hysteresis 1a': '\u2603', 'hysteresis 1b': '\u26c8', 'hysteresis 2': '\u{1F427}' };
+    var HYST_LOGOS = { 'hysteresis 1a': '\u2603', 'hysteresis 1b': '\u{1F326}', 'hysteresis 1c': '\u26c8', 'hysteresis 2': '\u{1F427}' };
     var displayLogo = HYST_LOGOS[id] || ((id.length <= 3) ? id : '\u2699');
     var ageStart = fmtAge(epoch['\u25b6']);
 
-    var safeId = id.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_\-]/g, function(c) {
-        return '_x' + c.codePointAt(0).toString(16) + '_';
-    });
+    var safeId = safeIdOf(opts.rowKey);
+    var etapeHtml = opts.etape ? '<div class="epoch-etape">' + opts.etape + '</div>' : '';
     var tr = document.createElement('tr');
     tr.id = 'row-' + safeId;
     tr.className = 'running';
@@ -81,11 +89,11 @@ function createRow(epoch) {
           '<span class="epoch-logo">' + displayLogo + '</span>' +
           '<div>' +
             '<div class="epoch-name">' + name + '</div>' +
-            '<div class="epoch-age">' + ageStart + '</div>' +
+            '<div class="epoch-age">' + ageStart + '</div>' + etapeHtml +
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td class="num fit tinit-cell">' + fmtTinitCell(epoch) + '</td>' +
+      '<td class="num fit tinit-cell">' + fmtTinitCell(epoch, opts.tInitC) + '</td>' +
       '<td class="num fit" id="tconv-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="num fit" id="dfin-'  + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-rad-path mono" id="radpath-' + safeId + '"><span class="status-run">\u2026</span></td>' +
@@ -101,8 +109,8 @@ function safeIdOf(id) {
         return '_x' + c.codePointAt(0).toString(16) + '_';
     });
 }
-function updateRow(id, initStep, lastStep, status, tEpochInitC, epoch, radTPath, convAtmSnap) {
-    var safeId = safeIdOf(id);
+function updateRow(rowKey, id, initStep, lastStep, status, tEpochInitC, epoch, radTPath, convAtmSnap) {
+    var safeId = safeIdOf(rowKey);
     var tr = document.getElementById('row-' + safeId);
     if (!tr) return;
     tr.className = status === 'converged' ? 'done-converged'

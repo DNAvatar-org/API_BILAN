@@ -122,19 +122,7 @@ function applyFineTuningBaryGroupAndRun(groupKey, percentRaw) {
         applyFineTuningBaryGroup(groupKey, percentRaw, true);
     }
     if (window !== window.top) {
-        var T = window.DATA['🎚️'];
-        console.log('[DBG scie] fine-tuning play clicked group=' + groupKey + ' percentRaw=' + percentRaw + ' bary.CLOUD_SW=' + T.baryByGroup.CLOUD_SW + ' SCIENCE=' + T.baryByGroup.SCIENCE);
-        if (typeof window.pd === 'function') window.pd('applyFineTuningBaryGroupAndRun', 'scie_compute.html', 'group=' + groupKey + ' percentRaw=' + percentRaw + ' bary.CLOUD_SW=' + T.baryByGroup.CLOUD_SW + ' SCIENCE=' + T.baryByGroup.SCIENCE);
-    window.parent.postMessage({
-        type: 'sync:tuning',
-        payload: {
-            baryByGroup: { ATM: T.baryByGroup.ATM, CLOUD_SW: T.baryByGroup.ATM, SCIENCE: T.baryByGroup.ATM, SOLVER: T.baryByGroup.SOLVER, HYSTERESIS: T.baryByGroup.HYSTERESIS },
-            CLOUD_SW: T.CLOUD_SW,
-            SOLVER: T.SOLVER,
-            updates: [],
-            run: true
-        }
-    }, '*');
+        syncTuningToParent(true);
         return;
     }
     window.runTest();
@@ -142,23 +130,7 @@ function applyFineTuningBaryGroupAndRun(groupKey, percentRaw) {
 
 function syncTuningToParent(runFlag) {
     if (window === window.top) return;
-    var T = window.DATA['🎚️'];
-    window.parent.postMessage({
-        type: 'sync:tuning',
-        payload: {
-            baryByGroup: {
-                ATM: T.baryByGroup.ATM,
-                CLOUD_SW: T.baryByGroup.ATM,
-                SCIENCE: T.baryByGroup.ATM,
-                SOLVER: T.baryByGroup.SOLVER,
-                HYSTERESIS: T.baryByGroup.HYSTERESIS
-            },
-            CLOUD_SW: T.CLOUD_SW,
-            SOLVER: T.SOLVER,
-            updates: [],
-            run: runFlag === true
-        }
-    }, '*');
+    window.parent.postMessage({ type: 'sync:tuning', payload: tuningPayload(runFlag === true) }, '*');
 }
 
 function onFineTuningBaryInput(groupKey, percentRaw) {
@@ -208,13 +180,9 @@ function getInitRadiatifMetrics() {
 
 async function runSingleFineTuningCompute() {
     initializeGlobals();
-    const DATA = window.DATA;
-    DATA['🧮']['🧮🌡️'] = DATA['📅']['🌡️🧮'];
-    if (!window.CONVERGE.initForConfig()) throw new Error('initForConfig a échoué');
-    DATA['🧮']['previous'] = [];
-    DATA['🧮']['🧮🔄🌊'] = 0;
-    DATA['🧮']['🧮🔄🪩'] = 0;
-    const result = await window.CONVERGE.computeRadiativeTransfer();
+    // Essai de réglage : toujours depuis la graine (animEnabled:false), par le point d'entrée unique.
+    const result = await window.getBilanRadiatifAPI(window.SCIE_ENGINE_EVENT)
+        .run({ epochId: window.DATA['📜']['🗿'], animEnabled: false });
     displayResults(result);
     displayConvergence();
     return result;
@@ -230,10 +198,6 @@ async function runFineTuningTrials() {
     const DATA = window.DATA;
     const animWasEnabled = DATA['🔘']['🔘🎞'] === true;
     DATA['🔘']['🔘🎞'] = false;
-    const animToggle = document.getElementById('anim-toggle');
-    if (animToggle) animToggle.classList.remove('selected');
-    const animCheckbox = document.getElementById('plot-anim-toggle-checkbox');
-    if (animCheckbox) animCheckbox.checked = false;
     window.FINE_TUNING_TRIALS = [];
     try {
         for (let t = 0; t < targets.length; t++) {
@@ -271,11 +235,6 @@ async function runFineTuningTrials() {
         console.error('❌ Fine-tuning trials:', err);
     } finally {
         DATA['🔘']['🔘🎞'] = animWasEnabled;
-        if (animToggle) {
-            if (animWasEnabled) animToggle.classList.add('selected');
-            else animToggle.classList.remove('selected');
-        }
-        if (animCheckbox) animCheckbox.checked = animWasEnabled;
         targets.forEach(function (target) {
             const k = target.group + '.' + target.key;
             setFineTuningValue(target, originalValues[k]);

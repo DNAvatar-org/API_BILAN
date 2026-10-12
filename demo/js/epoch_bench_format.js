@@ -1,8 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_format.js
 // Desc: Formatage des cellules : temperatures, ages, plages litterature, snapshot ATM, chemin radiatif.
-// Version 1.1.0
-// Date: 2026-09-23
+// Version 1.4.0
+// Date: 2026-10-10
 // Logs:
+// - v1.4.0: benchLogFile (journal de CO2, jamais chargé ici) et stubs displayConvergence / epochName retirés
+//   (demo_host.js et le moteur les fournissent) ; plus de contrôle de présence de BENCH_LIT_BY_EPOCH_ID.
+// - v1.3.0: fmtTinitCell(epoch, tInitC) : en mode tictimes, la T init est celle d'arrivée du clic précédent.
 // - v1.2.0: chaque fourchette affiche son statut (✅ mesure · 🧮 équation · ⚠️ non sourcée · 🔀 hystérésis),
 //   la référence en infobulle — champ src de BENCH_LIT_BY_EPOCH_ID (configTimeline.js).
 // - v1.1.0: CO₂ et CH₄ en fraction molaire d'AIR SEC. Les mesures (NOAA, carottes de glace, proxies)
@@ -15,20 +18,6 @@
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
-
-/** Logs fichier _logs/bench.txt si ?debugBench=1 (DEBUG.setTopic déjà appliqué au chargement). */
-function benchLogFile(msg) {
-    if (!window.DEBUG_BENCH_LOG) return;
-    // window.DEBUG vient de logs_to_server.js, cote CO2 : absent quand le banc tourne seul.
-    if (window.DEBUG && typeof window.DEBUG.log === 'function') window.DEBUG.log(msg);
-}
-
-if (!window.displayConvergence) window.displayConvergence = function () {};
-if (!window.epochName) {
-    window.epochName = function (id) {
-        return (window.CHARS_DESC && window.CHARS_DESC[id] !== undefined) ? window.CHARS_DESC[id] : id;
-    };
-}
 
 function fmtC(v) {
     if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
@@ -84,9 +73,6 @@ var BENCH_M_ATM_REF_KG = 5.148e18;
  * (API_BILAN/config/configTimeline.js), réassignée à chaque chargement du script — pas de CSV, pas de cookie.
  */
 var BENCH_LIT_BY_EPOCH_ID = window.BENCH_LIT_BY_EPOCH_ID;
-if (BENCH_LIT_BY_EPOCH_ID == null || typeof BENCH_LIT_BY_EPOCH_ID !== 'object') {
-    throw new Error('[epoch_bench] window.BENCH_LIT_BY_EPOCH_ID manquant — ordre de chargement configTimeline.js requis');
-}
 
 /** Plage litt\u00e9rature CSV : [min,max] avec virgule (m\u00eame r\u00e8gles d\u2019arrondi qu\u2019avant pour bench). */
 function benchLitRangeBracket(lo, hi) {
@@ -111,9 +97,10 @@ function benchSrcMark(L, cle) {
 }
 
 /** T init : ligne 1 = T\u2080 (\u00b0C) ; ligne 2 = fourchette CSV [Tmin,Tmax] ; note \u00e9ventuelle (ligne 3). */
-function fmtTinitCell(epoch) {
+/** T init (°C) : la graine 🌡️🧮, ou tInitC (mode tictimes : T° d'arrivée du clic précédent). */
+function fmtTinitCell(epoch, tInitC) {
     var id = epoch['\u{1F4C5}'];
-    var tNum = (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
+    var tNum = (tInitC != null) ? fmtC(tInitC) : (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
     var L = BENCH_LIT_BY_EPOCH_ID[id];
     if (!L) return tNum;
     if (!('tC' in L)) {

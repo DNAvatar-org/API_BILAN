@@ -67,20 +67,18 @@ Scripts classiques, pas de modules ES : les pages doivent pouvoir s'ouvrir en `f
 
 ### 2. Fournir le contrat hôte
 
-Les modules de convergence appellent quelques globals attendus du programme hôte. Dans une page qui
-n'a pas l'interface graphique, il faut les fournir explicitement — des stubs suffisent. Pas de garde
-`typeof` côté API : c'est du crash-first assumé.
+Le moteur se charge par `loader/loader.js` (liste unique : `loader/engine_manifest.js`). Une page sans
+interface charge avant lui `demo/js/demo_host.js`, qui pose le strict nécessaire :
 
 ```js
-window.ORG = { updateFluxLabels: function () {}, updateLabel: function () {} };
-window.SYNC_STATE = { epochId: '⚫', animEnabled: false, ticTime: 0, calculationInProgress: false };
-window.ABORT_COMPUTE = false;                    // passer à true pour interrompre un run
-window.displayConvergence = function () {};
-window.epochName = function (id) { return id; };
-
-// Chemin du worker spectral si la page n'est pas à côté de API_BILAN/workers/
-window.__SPECTRAL_WORKER_SCRIPT__ = new URL('API_BILAN/workers/spectral_slice_worker.js', location.href).href;
+window.debugMirrorConfigLogToFile = function () {};   // miroir fichier des journaux CONFIG_COMPUTE.log*
 ```
+
+`SYNC_STATE` et `ABORT_COMPUTE` (passer à `true` pour interrompre un run) naissent dans `data/initDATA.js`.
+
+Tout le reste passe par le callback de l'API (un seul canal) : `convergenceStart`, `convergenceStep`,
+`convergenceRefresh`, `cycleCalcul` (le moteur ATTEND la valeur rendue : une promesse le fait patienter,
+c'est ainsi que la visu dessine pas à pas) et `ProcessFinished`.
 
 ### 3. Lancer un calcul
 
@@ -204,15 +202,7 @@ api.run({ epochId: '🚂', tuning: { baryByGroup: { ATM: 70, CLOUD_SW: 70, SCIEN
 
 Statut de sortie dans `DATA['🧮']['🧮🛑']` (`'converged'`, `'abort'`…).
 
-### Pile de callbacks
-
-Plusieurs écouteurs peuvent recevoir les mêmes événements :
-
-```js
-var stack = window.FUNC_API_BILAN.callbackStack;   // si callback_stack.js est chargé
-stack.push(function (event, payload) { /* … */ });
-// .pop(), .run(event, payload), .length()
-```
+Un seul callback : celui passé à `getBilanRadiatifAPI(cb)` (le dernier donné gagne, l'API est un singleton).
 
 ---
 
@@ -233,11 +223,10 @@ dessine.
 
 | Fichier / dossier | Rôle |
 |---|---|
-| **api.js** | `BilanRadiatifAPI`, `run()` → Promise ; `window.getBilanRadiatifAPI(cb)` |
+| **api.js** | `BilanRadiatifAPI`, `run({ epochId, animEnabled })` → Promise ; `window.getBilanRadiatifAPI(cb)` |
 | **tuning.js** | Interpolation du barycentre → `DATA['🎚️']` |
-| **callback_stack.js** | Pile d'écouteurs synchrones |
-| **event_bus.js** | Bus d'événements (`IO_LISTENER`) |
-| **receiver.js** | `createReceiver(options)` — dispatch vers un hôte (visu / scie) |
+| **convergence/clics.js** | `CLICS` — la mécanique des clics (frise, passage d'époque, actions) |
+| **loader/** | `engine_manifest.js` (la liste des scripts du moteur) + `loader.js` (`BILAN_LOADER`) |
 | **configsAll.js** | Stub — ancien bundle, retiré ; charger les sources séparément |
 | **config/** | `configTimeline.js` (époques + `CONFIG_COMPUTE`), `fine_tuning_bounds.js`, `model_tuning.js`, `model_tuning_biblio.js` |
 | **data/** | `alphabet.js` (CHARS, CHARS_DESC), `dico.js` (KEYS, DESC, FORM), `initDATA.js`, `hitran_lines_*.js` |

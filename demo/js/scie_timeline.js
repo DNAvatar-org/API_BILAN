@@ -5,9 +5,12 @@
 //         selectEpoch(). La frise horizontale est donc à écrire, pas à réutiliser ;
 //       — createEpochButton(id, orientation, hidden) et createGraduation savent faire 'horizontal' ET 'vertical' :
 //         ce sont les briques de cette frise à venir. Sans appelant pour l'instant, c'est assumé et temporaire.
-// Version 1.0.1
-// Date: [September 19, 2026]
+// Version 1.1.0
+// Date: 2026-10-12
 // logs :
+//   - v1.1.0: selectEpoch = CLICS.frise (plus de pose d'époque ni de remise à zéro recopiées, qui oubliaient ⏳,
+//     📿☄️, 📿🕰) ; generateHorizontalTimeline ne fait plus que dessiner (initScieDemo choisit ⚫) ; durée d'un
+//     tic = celle de CLICS.prochaineAction (getTicKey cherchait un 🛢 qu'aucune époque n'a).
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
@@ -129,64 +132,25 @@ function generateHorizontalTimeline() {
             rangee.appendChild(cell);
         });
     }
-
-    const defaultEpoch = epochItems.find(item => item['📅'] === '⚫')
-        || epochItems.find(item => !item.hidden)
-        || epochItems[0];
-    if (defaultEpoch) selectEpoch(defaultEpoch['📅']);
 }
 
-// Sélectionner une époque (utilise l'index directement)
+/** Clic sur la frise (page démo) : on repart de l'époque, graine comprise (CLICS.frise, la mécanique de
+ *  partout), sans animation ; la configuration est préchargée, sans converger (c'est ▶️ qui converge). */
 function selectEpoch(epochId) {
-    // Trouver l'index de l'époque dans TIMELINE
-    const epochIndex = window.TIMELINE.findIndex(item => item['📅'] === epochId);
-    if (epochIndex < 0) {
-        console.error(`[selectEpoch] Époque ${epochId} non trouvée`);
-        return;
-    }
-
-    // Clic frise : même contrat que setEpochFromEpochButton (loader_panels) — pas d’anim multi-pas.
     window.DATA['🔘']['🔘🎞'] = false;
-    window.infoTimeMa = 0;
-    window._timelineEpochEndSkipLatch = false;
-    var _plotAnimCb = document.getElementById('plot-anim-toggle-checkbox');
-    if (_plotAnimCb) _plotAnimCb.checked = false;
-    
-    // Mettre à jour DATA['📅'] avec l'objet epoch complet (source unique de vérité)
-    if (!window.DATA['📜']) window.DATA['📜'] = {};
-    window.DATA['📅'] = window.TIMELINE[epochIndex];
-    window.DATA['📜']['👉'] = epochIndex;
-    window.DATA['📜']['🗿'] = epochId; // Logo de l'époque (emoji), pas la description
-    
-    // Mettre à jour les boutons
-    document.querySelectorAll('.epoch-btn-horizontal, .epoch-text-horizontal').forEach(btn => {
-        btn.classList.remove('selected');
-        if (btn.getAttribute('data-epoch') === epochId) btn.classList.add('selected');
-    });
-    
-    // Mettre à jour la date de l'époque (depuis '▶')
-    updateTimelineDisplay();
-    
-    // Mettre à jour les actions (boutons d'événements)
+    window.CLICS.frise(epochId);
+    marquerEpoqueFrise();
     updateEpochActions();
-    
-    // Réinitialiser le temps et les accumulateurs
-    if (typeof window !== 'undefined' && window.DATA) {
-        if (!window.DATA['📜']) window.DATA['📜'] = {};
-        window.DATA['📜']['📿💫'] = 0;
-        window.DATA['📜']['🔺⚖️🏭'] = 0; window.DATA['📜']['🔺⚖️🌊🏭'] = 0; window.DATA['📜']['🔺⚖️🌳🏭'] = 0;
-        window.DATA['📜']['🔺⚖️💧'] = 0;
-        window.DATA['📜']['🔺🍰⚽'] = 0;
-        const logEl = document.getElementById('co2-action-log');
-        if (logEl) logEl.textContent = '';
-        updateTimelineDisplay();
-    }
-    // Page API : personne au-dessus pour pousser un DATA calculé, donc la frise charge
-    // elle-même la configuration de l'époque choisie (scie_demo.js).
-    if (typeof window.prechargerConfigEpoque === 'function') window.prechargerConfigEpoque();
-    emitSyncToParent();
+    window.prechargerConfigEpoque();
 }
 window.selectEpoch = selectEpoch;
+
+/** Bouton de la frise = époque courante (DATA['📜']['🗿']). */
+function marquerEpoqueFrise() {
+    document.querySelectorAll('.epoch-btn-horizontal, .epoch-text-horizontal').forEach(function (btn) {
+        btn.classList.toggle('selected', btn.getAttribute('data-epoch') === window.DATA['📜']['🗿']);
+    });
+}
 
 // Mettre à jour l'affichage de la timeline (📅 date courante, début époque, nom)
 function updateTimelineDisplay() {
@@ -234,12 +198,13 @@ function updateTimelineDisplay() {
         }
     }
 
-    // Durée d'un tic (💫 géologique ou 🛢 scénario)
+    // Durée d'un tic : celle de la prochaine action (CLICS.prochaineAction ; 📱 : celle de la tranche active).
     if (ticDurationEl) {
-        const ticK = getTicKey(EPOCH);
-        const ticCfg = EPOCH['🕰'] && EPOCH['🕰'][ticK];
-        if (ticCfg && ticCfg['🔺⏳'] != null) {
-            ticDurationEl.textContent = `1 tic = ${ticCfg['🔺⏳']} Ma`;
+        const key = window.CLICS.prochaineAction();
+        const W = EPOCH['🕰'];
+        const tranche = Object.keys(W).some(function (k) { return !isNaN(Number(k)); }) ? window.CLICS.trancheActive() : W;
+        if (key !== null && key !== undefined && ('🔺⏳' in tranche[key])) {
+            ticDurationEl.textContent = '1 tic = ' + tranche[key]['🔺⏳'] + ' Ma';
             ticDurationEl.style.display = '';
         } else {
             ticDurationEl.style.display = 'none';

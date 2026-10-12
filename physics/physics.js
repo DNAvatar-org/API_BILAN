@@ -1,9 +1,16 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.0.19
-// Date: [September 22, 2026]
+// Version 2.1.0
+// Date: [October 10, 2026]
 // logs :
+// - v2.1.0: PAS DE GARDES. computeIceTempFactor(T, EPOCH) lit lui-même 🥶 et l'obliquité (ε courant 📜⚾, ε de
+//   l'époque EPOCH['⚾'] sinon CONFIG_COMPUTE.obliquityDeg) : le bloc qui fabriquait ces options était recopié
+//   4 fois (albedo ×2, h2o, flux). Plus d'options amp_* / f_* (aucune époque ne les déclare). Une seule source
+//   par paramètre : fractions de zones pol/mid = CONFIG_COMPUTE (comme avant, ⚠️ 0,13/0,37 ≠ géométrie
+//   0,134/0,366 — à trancher), trop = EARTH ; EARTH.OBLIQUITY_DEG_DEFAULT retirée (doublon de
+//   CONFIG_COMPUTE.obliquityDeg). planckFunction et getWaterCycleTempBoundsFromPressure sans tests de
+//   finitude ; CONST/CONV/EARTH/STATE/PHYS créés ici, sans `x = x || {}`.
 // - v2.0.19: CONV.CCN_SULFATE_REF_KG 1,0e14 → 1,05e9 kg SO₄ — la référence sulfate de 🍰💭 suit la même
 //   source que les masses d'époque (Tsigaridis et al. 2006 ACP 6:5143, Table 5 : nss-sulfate an 2000).
 //   Ce n'est pas un recalage : ⚖️✈ cesse d'être un « proxy CCN » pour devenir une charge atmosphérique
@@ -39,7 +46,7 @@
 
 // Initialiser CONST (pointeur vers window.CONST)
 // var pour permettre plot.js et main.js de faire var CONST = window.CONST sans erreur
-var CONST = window.CONST = window.CONST || {};
+var CONST = window.CONST = {};
 
 // ========== 1. FONDAMENTALES (universelles, sans ref terrestre) ==========
 CONST.PLANCK_H = 6.62607015e-34;      // [J·s] Planck, J·s (CODATA 2018)
@@ -99,7 +106,7 @@ CONST.K2C = function (K) { return K - CONST.KELVIN_TO_CELSIUS; };  // [ƒ K → 
 //   · T_NO_POLAR_ICE_K était marquée 🏷️ DEPRECATED par le code lui-même.
 // Banc : aucun écart, par construction — rien ne les lisait.
 // ========== CONV (convention : unités, références) ==========
-var CONV = window.CONV = window.CONV || {};
+var CONV = window.CONV = {};
 CONV.AU_M = 1.496e11;  // [m]
 CONV.STANDARD_ATMOSPHERE_PA = 101325;  // [Pa]
 CONV.molar_mass_air_ref = 0.029;  // [kg/mol]
@@ -130,7 +137,7 @@ CONV.CCN_SULFATE_REF_KG = 1.05e9;  // [kg (de SO₄)]
 
 // ========== EARTH (terrestre : seuils climat, cycle eau, albédos par défaut ; overridable par époque) ==========
 // var pour permettre plot.js / main.js de faire var EARTH = window.EARTH sans erreur
-var EARTH = window.EARTH = window.EARTH || {};
+var EARTH = window.EARTH = {};
 // 🏷️ LEGACY — T_NO_POLAR_ICE_K = 293K était calibré comme seuil de T_GLOBALE (plus utilisé dans la formule 3-zones ;
 // conservé pour rétro-compat outils externes / logs). La formule glace utilise désormais T_FREEZE_SEAWATER + dT.
 EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // [K] largeur de rampe ice_temp_factor (utilisée)
@@ -197,7 +204,6 @@ EARTH.SEASONAL_AMP_TROP_K = 3;   // [K] tropical : amplitude annuelle faible (oc
 // Hypothèse Archéen : Williams 1993 suggère ε ~ 45–70° (expliquerait glaciations basse-latitude
 // du Protérozoïque sans invoquer un Snowball global).
 EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont calibrés
-EARTH.OBLIQUITY_DEG_DEFAULT = 23.44; // [°] défaut si l'epoch n'a pas de '⚾'
 
 // ─── Redistribution méridienne de l'insolation par ε (Milankovitch) — v2.0.18 ──────────────
 // L'amplitude saisonnière ci-dessus ne dit QUE la moitié de l'histoire : une obliquité forte
@@ -269,10 +275,7 @@ EARTH.zoneAnnualInsolation = function (obliquity_deg) {
 
 /** Écart de température de zone (K) dû au changement d'obliquité ε_ref → ε : ΔT = ΔS̄·(1−α)/B. */
 EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
-    if (!Number.isFinite(obliquity_deg) || !Number.isFinite(obliquity_ref_deg)
-        || obliquity_deg === obliquity_ref_deg) {
-        return { pol: 0, mid: 0, trop: 0 };
-    }
+    if (obliquity_deg === obliquity_ref_deg) return { pol: 0, mid: 0, trop: 0 };
     var cur = EARTH.zoneAnnualInsolation(obliquity_deg);
     var ref = EARTH.zoneAnnualInsolation(obliquity_ref_deg);
     var k = (1 - EARTH.EBM_ALBEDO_REF) / EARTH.EBM_B_W_PER_M2_K;
@@ -284,7 +287,7 @@ EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
 };
 
 /**
- * EARTH.computeIceTempFactor(T_glob_K, opts?) : ice_temp_factor ∈ [0,1].
+ * EARTH.computeIceTempFactor(T_glob_K, EPOCH) : ice_temp_factor ∈ [0,1].
  * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
  *
  * MODÈLE PHYSIQUE (EBM 0D 3 zones × saisonnalité × obliquité) — v2.0.15 :
@@ -306,9 +309,7 @@ EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
  *   Physique Snowball Earth (Budyko-Sellers classique) : quand T_glob < ~−4°C, la rampe
  *   tropicale s'active, et la rétroaction glace-albédo peut dépasser le gain de 1 → bifurcation.
  *
- * opts (override test de sensibilité) :
- *   { dT_pol, dT_mid, dT_trop, amp_pol, amp_mid, amp_trop, f_pol, f_mid, f_trop, obliquity_deg }
- *   amp_*_direct écrasent le calcul sin(ε) (sinon dérivés d'obliquity_deg).
+ * EPOCH : l'entrée TIMELINE courante (🥶 obligatoire, ⚾ facultatif).
  *
  * @returns {{ice_tf, tf_pol, tf_mid, tf_trop,
  *            T_thresh_pol_high, T_thresh_pol_low, T_thresh_mid_high, T_thresh_mid_low,
@@ -316,50 +317,32 @@ EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
  *            dT_pol, dT_mid, dT_trop, amp_pol, amp_mid, amp_trop,
  *            f_pol, f_mid, f_trop, obliquity_deg, obliquity_factor, dT_obliquity}}
  */
-EARTH.computeIceTempFactor = function (T_glob_K, opts) {
-    opts = opts || {};
-    var cc = (typeof window !== 'undefined' && window.CONFIG_COMPUTE) ? window.CONFIG_COMPUTE : {};
-    var f_pol = Number.isFinite(Number(opts.f_pol)) ? Number(opts.f_pol)
-              : (Number.isFinite(Number(cc.polarZoneFraction))    ? Number(cc.polarZoneFraction)    : EARTH.POLAR_ZONE_FRAC);
-    var f_mid = Number.isFinite(Number(opts.f_mid)) ? Number(opts.f_mid)
-              : (Number.isFinite(Number(cc.midlatZoneFraction))   ? Number(cc.midlatZoneFraction)   : EARTH.MIDLAT_ZONE_FRAC);
-    var f_trop = Number.isFinite(Number(opts.f_trop)) ? Number(opts.f_trop)
-              : (Number.isFinite(Number(cc.tropicalZoneFraction)) ? Number(cc.tropicalZoneFraction) : EARTH.TROPICAL_ZONE_FRAC);
+EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
+    var cc = window.CONFIG_COMPUTE;
+    var f_pol = cc.polarZoneFraction;
+    var f_mid = cc.midlatZoneFraction;
+    var f_trop = EARTH.TROPICAL_ZONE_FRAC;
     // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'].
-    // Pas de fallback — crash-first cohérent avec "Règle regle-data-territoire".
-    if (!Number.isFinite(Number(opts.dT_pol))) {
-        throw new Error("[computeIceTempFactor] opts.dT_pol requis (lu depuis EPOCH['🥶'].dT_pol). Pas de fallback.");
-    }
-    if (!Number.isFinite(Number(opts.dT_mid))) {
-        throw new Error("[computeIceTempFactor] opts.dT_mid requis (lu depuis EPOCH['🥶'].dT_mid). Pas de fallback.");
-    }
-    if (!Number.isFinite(Number(opts.dT_trop))) {
-        throw new Error("[computeIceTempFactor] opts.dT_trop requis (lu depuis EPOCH['🥶'].dT_trop). Pas de fallback.");
-    }
-    var dT_pol  = Number(opts.dT_pol);
-    var dT_mid  = Number(opts.dT_mid);
-    var dT_trop = Number(opts.dT_trop);
-    // Obliquité : opts > CONFIG_COMPUTE global > EARTH default.
-    var obliquity_deg = Number.isFinite(Number(opts.obliquity_deg)) ? Number(opts.obliquity_deg)
-              : (Number.isFinite(Number(cc.obliquityDeg)) ? Number(cc.obliquityDeg) : EARTH.OBLIQUITY_DEG_DEFAULT);
-    // Facteur sin(ε)/sin(ε_REF), borné à 0 (ε peut chaoser mais sin ne devient pas négatif ici).
+    var dT_pol  = EPOCH['🥶'].dT_pol;
+    var dT_mid  = EPOCH['🥶'].dT_mid;
+    var dT_trop = EPOCH['🥶'].dT_trop;
+    // Obliquité : ε de l'époque (celle où 🥶 est calibré) ; ε courant = 📜⚾ quand un état 🔁 la pose (Milankovitch).
+    var obliquity_ref_deg = ('⚾' in EPOCH) ? EPOCH['⚾'] : cc.obliquityDeg;
+    var obliquity_deg = (window.DATA['📜']['⚾'] > 0) ? window.DATA['📜']['⚾'] : obliquity_ref_deg;
+    // Facteur sin(ε)/sin(ε_REF), borné à 0.
     var toRad = Math.PI / 180;
     var sinRef = Math.sin(EARTH.OBLIQUITY_DEG_REF * toRad);
     var obliquity_factor = Math.max(0, Math.sin(obliquity_deg * toRad) / sinRef);
     // Redistribution méridienne (Milankovitch) : ε au-dessus de l'ε de l'époque ⇒ pôles plus chauds,
-    // tropiques un peu plus froids ⇒ dT_z (écart zone − global) corrigé. Nul si ε == ε_ref (banc inchangé).
-    var obliquity_ref_deg = Number.isFinite(Number(opts.obliquity_ref_deg)) ? Number(opts.obliquity_ref_deg) : obliquity_deg;
+    // tropiques un peu plus froids ⇒ dT_z (écart zone − global) corrigé. Nul si ε == ε_ref.
     var dT_oblq = EARTH.obliquityZoneWarmingK(obliquity_deg, obliquity_ref_deg);
     dT_pol  -= dT_oblq.pol;
     dT_mid  -= dT_oblq.mid;
     dT_trop -= dT_oblq.trop;
-    // Amplitudes effectives : opts.amp_* écrasent le dérivé d'obliquité (pour tests sensibilité).
-    var amp_pol_base  = Number.isFinite(Number(cc.seasonalAmpPolK))  ? Number(cc.seasonalAmpPolK)  : EARTH.SEASONAL_AMP_POL_K;
-    var amp_mid_base  = Number.isFinite(Number(cc.seasonalAmpMidK))  ? Number(cc.seasonalAmpMidK)  : EARTH.SEASONAL_AMP_MID_K;
-    var amp_trop_base = Number.isFinite(Number(cc.seasonalAmpTropK)) ? Number(cc.seasonalAmpTropK) : EARTH.SEASONAL_AMP_TROP_K;
-    var amp_pol  = Number.isFinite(Number(opts.amp_pol))  ? Number(opts.amp_pol)  : (amp_pol_base  * obliquity_factor);
-    var amp_mid  = Number.isFinite(Number(opts.amp_mid))  ? Number(opts.amp_mid)  : (amp_mid_base  * obliquity_factor);
-    var amp_trop = Number.isFinite(Number(opts.amp_trop)) ? Number(opts.amp_trop) : (amp_trop_base * obliquity_factor);
+    // Amplitudes saisonnières effectives, dérivées de l'obliquité.
+    var amp_pol  = EARTH.SEASONAL_AMP_POL_K  * obliquity_factor;
+    var amp_mid  = EARTH.SEASONAL_AMP_MID_K  * obliquity_factor;
+    var amp_trop = EARTH.SEASONAL_AMP_TROP_K * obliquity_factor;
     // Seuils haut (glace commence saisonnalement) et bas (glace permanente) pour les 3 zones.
     var T_thresh_pol_high  = EARTH.T_FREEZE_SEAWATER_K + dT_pol  + amp_pol;
     var T_thresh_pol_low   = EARTH.T_FREEZE_SEAWATER_K + dT_pol  - amp_pol;
@@ -524,10 +507,10 @@ EARTH['🪩🍰'] = {
 };
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========
-var STATE = window.STATE = window.STATE || {};
+var STATE = window.STATE = {};
 
 // ========== PHYS (fonctions de physique exposées) ==========
-var PHYS = window.PHYS = window.PHYS || {};
+var PHYS = window.PHYS = {};
 
 // NOTE : C_MAX_CLOUD et ETA_CLOUD ne sont PAS des constantes universelles
 // Elles dépendent de la pression atmosphérique, composition, gravité, température
@@ -540,11 +523,9 @@ var PHYS = window.PHYS = window.PHYS || {};
 // - Les constantes utilisées (h, c, k) sont des constantes fondamentales mesurées avec précision
 // - Cap numérique : pour T très élevé (ex. Hadéen 2450 K) et λ court, term1/term2 peut overflow → plafonner
 function planckFunction(lambda, T) {
-    if (!Number.isFinite(lambda) || !Number.isFinite(T) || lambda <= 0 || T <= 0) return 0;
     const term1 = (2 * CONST.PLANCK_H * CONST.SPEED_OF_LIGHT * CONST.SPEED_OF_LIGHT) / Math.pow(lambda, 5);
     const term2 = Math.exp((CONST.PLANCK_H * CONST.SPEED_OF_LIGHT) / (lambda * CONST.BOLTZMANN_KB * T)) - 1;
-    const B = (term2 > 0) ? term1 / term2 : 0;
-    if (!Number.isFinite(B) || B < 0) return 0;
+    const B = term1 / term2;   // term2 = +∞ (λT très petit) → B = 0, la vraie limite
     return Math.min(B, CONST.MAX_PLANCK_SAFE); // W/(m²·m·sr) - Intensité spectrale d'un corps noir
 }
 
@@ -576,9 +557,8 @@ PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
 function getWaterCycleTempBoundsFromPressure(P_atm) {
     const T_MIN_K = EARTH.T_WATER_CYCLE_MIN_C + CONST.KELVIN_TO_CELSIUS;
     const T_MAX_K = EARTH.T_WATER_CYCLE_MAX_C + CONST.KELVIN_TO_CELSIUS;
-    if (typeof P_atm !== 'number' || !Number.isFinite(P_atm) || P_atm < 0.01) {
-        return { T_low_K: T_MIN_K, T_high_K: T_MAX_K };
-    }
+    // Quasi sans atmosphère (⚫) : la pression ne resserre plus rien.
+    if (P_atm < 0.01) return { T_low_K: T_MIN_K, T_high_K: T_MAX_K };
     const T_freeze = EARTH.T_FREEZE_SEAWATER_K - (P_atm - 1) * EARTH.T_WATER_CYCLE_FREEZE_K_PER_ATM;
     const T_low_K = Math.max(T_MIN_K, T_freeze - EARTH.T_WATER_CYCLE_MARGIN_GEL_K);
     const T_high_K = Math.max(EARTH.T_WATER_CYCLE_EVAP_LOW_K, Math.min(T_MAX_K, T_MAX_K - (P_atm - 1) * EARTH.T_WATER_CYCLE_HIGH_K_PER_ATM));

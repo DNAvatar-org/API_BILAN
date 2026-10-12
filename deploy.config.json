@@ -21,10 +21,6 @@
       "dest": "pages/bilan_radiatif/API_BILAN/atmosphere/calculations_atm.js"
     },
     {
-      "src": "callback_stack.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/callback_stack.js"
-    },
-    {
       "src": "ocean/sinks_ocean.js",
       "dest": "pages/bilan_radiatif/API_BILAN/ocean/sinks_ocean.js"
     },
@@ -43,10 +39,6 @@
     {
       "src": "config/fine_tuning_bounds.js",
       "dest": "pages/bilan_radiatif/API_BILAN/config/fine_tuning_bounds.js"
-    },
-    {
-      "src": "config/model_tuning.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/config/model_tuning.js"
     },
     {
       "src": "config/model_tuning_biblio.js",
@@ -145,16 +137,8 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/js/demo_host.js"
     },
     {
-      "src": "demo/js/demo_paths.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/demo_paths.js"
-    },
-    {
       "src": "demo/js/dico_render.js",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/js/dico_render.js"
-    },
-    {
-      "src": "demo/js/epoch_bench_boot.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_boot.js"
     },
     {
       "src": "demo/js/epoch_bench_format.js",
@@ -237,10 +221,6 @@
       "dest": "pages/bilan_radiatif/API_BILAN/doc/equation.html"
     },
     {
-      "src": "event_bus.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/event_bus.js"
-    },
-    {
       "src": "geology/calculations_geology.js",
       "dest": "pages/bilan_radiatif/API_BILAN/geology/calculations_geology.js"
     },
@@ -261,10 +241,6 @@
       "dest": "pages/bilan_radiatif/API_BILAN/radiative/calculations.js"
     },
     {
-      "src": "receiver.js",
-      "dest": "pages/bilan_radiatif/API_BILAN/receiver.js"
-    },
-    {
       "src": "spectroscopy/hitran.js",
       "dest": "pages/bilan_radiatif/API_BILAN/spectroscopy/hitran.js"
     },
@@ -283,6 +259,22 @@
     {
       "src": "workers/worker_pool.js",
       "dest": "pages/bilan_radiatif/API_BILAN/workers/worker_pool.js"
+    },
+    {
+      "src": "loader/engine_manifest.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/loader/engine_manifest.js"
+    },
+    {
+      "src": "loader/loader.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/loader/loader.js"
+    },
+    {
+      "src": "demo/js/epoch_bench_chain.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_chain.js"
+    },
+    {
+      "src": "convergence/clics.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/convergence/clics.js"
     }
   ]
 }

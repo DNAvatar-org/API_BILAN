@@ -7,9 +7,14 @@
 // - v1.0.4: epochIndex() rend les entrées TIMELINE (alias non énumérables) : type/id/name/startYears/endYears reportés.
 // - v1.0.3: lecture de window.epochIndex() (configTimeline.js) au lieu de window.configOrganigramme.timeline.
 //   Seule dépendance du moteur au dépôt CO2 : supprimée.
-// Version 1.0.5
-// Date: [May 07, 2026]
+// Version 1.1.0
+// Date: [October 10, 2026]
 // Logs:
+// - v1.1.0: PAS DE GARDES. computeFluxFromEpoch retiré (il rendait 0 en silence pour toute époque hors courante :
+//   geothermal_flux, toujours un nombre — DATA ou NaN —, était lu en premier). Époque inconnue = erreur, plus
+//   null. Plus de faux champs : core_temperature_k (clé absente de TIMELINE), volcanoFactor de config (aucune
+//   époque ne le déclare : le facteur volcanique est la croûte molle seule), planet_radius / gravity / masse
+//   d'atmosphère lus à leur unique source.
 // - v1.0.2: total_atmosphere_mass_kg — si pas ⚖️🫧 en config, dry sum via COMPUTE.dryAtmosphereMassKgFromComponents(epoch).
 // - v1.0.1: expositions regroupées sous nouveau namespace window.GEOLOGY (getGeologicalPeriodByName, getGeologicalPeriod, getMoltenCrustFactor, getGeologicalEra, calculateGeothermalFlux). Doublons window.foo retirés. Appelants migrés dans physics/climate.js, radiative/calculations.js, organigramme.js, ui/main.js, courbes/plot.js, sync_panels.js, flux_manager.js. Fallbacks inline dans CO2/html/*.html supprimés (dead code : module geology toujours chargé).
 // ============================================================================
@@ -20,117 +25,38 @@ const CRUST_MOLTEN_END = 3.5e9;    // Fin : croûte solidifiée (3.5 Ga)
 const CRUST_MOLTEN_FACTOR_MAX = 100; // Facteur maximum (x100) au tout début
 const CRUST_MOLTEN_FACTOR_MIN = 10;  // Facteur minimum (x10) à la fin de la période
 
-/**
- * Calcule le flux géothermique d'une époque
- * Priorité : geothermal_flux > core_power_watts (tous deux = DATA['🌕'], geology/interieur.js)
- */
-function computeFluxFromEpoch(epoch) {
-    if (!epoch) return 0;
-    
-    // 1. Valeur explicite (ex: Hadéen avec flux forcé)
-    // 🔒 Utiliser la valeur dynamique si elle a été mise à jour dans l'objet (ex: refroidissement Hadéen)
-    if (typeof epoch.geothermal_flux === 'number') {
-        return epoch.geothermal_flux;
-    }
-    
-    // 2. Calcul depuis la puissance totale (Watts) - NOUVELLE MÉTHODE
-    if (typeof epoch.core_power_watts === 'number') {
-        // Surface terrestre
-        // Convertir le rayon de km en mètres pour les calculs
-        const radius_km = epoch['📐'];
-        if (!radius_km) {
-            console.warn("[geology] 📐 manquant pour calculer surface_area, flux=0");
-            return 0;
-        }
-        const radius_m = radius_km * 1000;
-        const surface = 4 * Math.PI * Math.pow(radius_m, 2);
-        return epoch.core_power_watts / surface;
-    }
-    
-    return 0;
-}
-
 // Période géologique par son nom (ou son id), depuis l'index des époques (configTimeline.js).
-// Avant v1.0.3 : lecture de window.configOrganigramme.timeline — la géologie dépendait de la config
-// du diagramme de l'application, donc l'API ne tournait pas sans elle.
+// Copie VOULUE : on y pose des noms legacy (anglais) lus par l'interface CO2, sans toucher à TIMELINE.
+// ⚠️ Seconde carte des époques (noms anglais) : à remplacer par des lectures directes de TIMELINE / DATA.
 function getGeologicalPeriodByName(periodName) {
-    const index = (typeof window.epochIndex === 'function') ? window.epochIndex() : null;
-    if (!index) {
-        console.error("window.epochIndex n'est pas chargé (API_BILAN/config/configTimeline.js)");
-        return null;
-    }
-
-    // Chercher dans l'index (filtrer les séparateurs)
-    const epoch = index.find(item =>
+    const epoch = window.epochIndex().find(item =>
         item.type === 'epoch' && (item.name === periodName || item.id === periodName)
     );
-
-    if (epoch) {
-        // Mapper les clés TIMELINE (🔋🌕, 📐, ⚖️🫧, 🍎, 🧲🌕) vers les noms attendus par computeFluxFromEpoch et updateFluxLabels
-        // Copie VOULUE ici : on y pose des noms legacy (anglais) sans toucher à TIMELINE. Les alias d'epochIndex()
-        // sont des accesseurs non énumérables, que { ...epoch } ne recopie pas : on les reporte explicitement.
-        const courante = epoch.id === window.DATA['📜']['🗿'];
-        const epochWithMappings = {
-            ...epoch,
-            type: epoch.type, id: epoch.id, name: epoch.name, startYears: epoch.startYears, endYears: epoch.endYears,
-            // Flux et puissance de l'intérieur : UNE source, DATA['🌕'] (geology/interieur.js, bilan d'énergie).
-            // Ils n'existent que pour l'époque COURANTE (état intégré jusqu'à la date courante) ; ailleurs NaN, visible.
-            geothermal_flux: courante ? window.DATA['🌕']['🧲🌕'] : NaN,
-            core_power_watts: courante ? window.DATA['🌕']['🔋🌕'] : NaN,
-            planet_radius: (typeof epoch.planet_radius === 'number') ? epoch.planet_radius : (epoch['📐'] != null ? epoch['📐'] * 1000 : undefined),
-            total_atmosphere_mass_kg: (typeof epoch.total_atmosphere_mass_kg === 'number') ? epoch.total_atmosphere_mass_kg
-                : (typeof epoch['⚖️🫧'] === 'number' ? epoch['⚖️🫧'] : window.COMPUTE.dryAtmosphereMassKgFromComponents(epoch)),
-            gravity: (typeof epoch.gravity === 'number') ? epoch.gravity : epoch['🍎'],
-            // FluxManager: solar_intensity est un facteur (1.0 = aujourd'hui)
-            solar_intensity: epoch['🔋☀️'] / 3.828e26
-        };
-        const flux = computeFluxFromEpoch(epochWithMappings);
-        return {
-            ...epochWithMappings,
-            core_temperature_k: epoch.core_temperature, // Legacy compat
-            geothermal_flux: flux
-        };
-    }
-    return null;
+    if (epoch === undefined) throw new Error('[GEOLOGY] époque inconnue : ' + periodName);
+    // Flux et puissance de l'intérieur : UNE source, DATA['🌕'] (geology/interieur.js, bilan d'énergie).
+    // Ils n'existent que pour l'époque COURANTE (état intégré jusqu'à la date courante) ; ailleurs NaN, visible.
+    const courante = epoch.id === window.DATA['📜']['🗿'];
+    // Les alias d'epochIndex() sont des accesseurs non énumérables : { ...epoch } ne les recopie pas.
+    return {
+        ...epoch,
+        type: epoch.type, id: epoch.id, name: epoch.name, startYears: epoch.startYears, endYears: epoch.endYears,
+        geothermal_flux: courante ? window.DATA['🌕']['🧲🌕'] : NaN,
+        core_power_watts: courante ? window.DATA['🌕']['🔋🌕'] : NaN,
+        planet_radius: epoch['📐'] * 1000,
+        total_atmosphere_mass_kg: window.COMPUTE.dryAtmosphereMassKgFromComponents(epoch),
+        gravity: epoch['🍎'],
+        // FluxManager : solar_intensity est un facteur (1.0 = aujourd'hui)
+        solar_intensity: epoch['🔋☀️'] / 3.828e26
+    };
 }
 
-// Fonction pour obtenir la période géologique selon les années
+// Époque de l'index qui contient la date (années avant le présent) ; au-delà, la dernière (Aujourd'hui).
 function getGeologicalPeriod(yearsAgo) {
-    const index = (typeof window.epochIndex === 'function') ? window.epochIndex() : null;
-    if (!index) return null;
-
-    // Filtrer pour ne garder que les époques
-    const epochs = index.filter(item => item.type === 'epoch');
-
-    // Parcourir les périodes
-    let selectedEpoch = null;
-    
-    for (const epoch of epochs) {
-        if (typeof epoch.startYears === 'number' && typeof epoch.endYears === 'number') {
-            if (yearsAgo <= epoch.startYears && yearsAgo > epoch.endYears) {
-                selectedEpoch = epoch;
-                break;
-            }
-            if (epoch.endYears === -1 && yearsAgo <= epoch.startYears && yearsAgo >= 0) {
-                selectedEpoch = epoch;
-                break;
-            }
-        }
-    }
-
-    // Si non trouvé, retourner la dernière époque (Aujourd'hui) par défaut
-    if (!selectedEpoch) {
-        selectedEpoch = epochs[epochs.length - 1];
-    }
-    
-    // Hydrater avec le flux calculé
-    const flux = computeFluxFromEpoch(selectedEpoch);
-    
-    return {
-        ...selectedEpoch,
-        core_temperature_k: selectedEpoch.core_temperature,
-        geothermal_flux: flux
-    };
+    const epochs = window.epochIndex().filter(item => item.type === 'epoch');
+    const found = epochs.find(epoch =>
+        (yearsAgo <= epoch.startYears && yearsAgo > epoch.endYears)
+        || (epoch.endYears === -1 && yearsAgo <= epoch.startYears && yearsAgo >= 0));
+    return found === undefined ? epochs[epochs.length - 1] : found;
 }
 
 // Fonction pour calculer le facteur de croûte terrestre molle
@@ -152,39 +78,13 @@ function getMoltenCrustFactor(yearsAgo) {
     return factor;
 }
 
-// Fonction pour obtenir l'époque géologique et le facteur volcanique selon les années
-// Remplace l'ancienne getGeologicalEra de geology.js
+// Époque de la date et facteur volcanique : croûte molle seulement (aucune époque ne déclare de volcanoFactor).
 function getGeologicalEra(years) {
-    const yearsAgo = years;
-    const period = getGeologicalPeriod(yearsAgo);
-
-    if (period) {
-        const moltenCrustFactor = getMoltenCrustFactor(yearsAgo);
-        // Utiliser le volcanoFactor défini dans la config
-        const baseVolcanoFactor = period.volcanoFactor || 1.0;
-
-        return {
-            ...period,
-            volcanoFactor: baseVolcanoFactor * moltenCrustFactor,
-            moltenCrustFactor: moltenCrustFactor
-        };
-    }
-
-    // Fallback
-    return {
-        name: 'Phanérozoïque',
-        volcanoFactor: 1.0,
-        moltenCrustFactor: 1.0
-    };
+    const moltenCrustFactor = getMoltenCrustFactor(years);
+    return { ...getGeologicalPeriod(years), volcanoFactor: moltenCrustFactor, moltenCrustFactor: moltenCrustFactor };
 }
 
-/**
- * Calcule le flux géothermique en surface à partir de la température du noyau et d'un facteur de diffusion
- * DEPRECATED: Utiliser computeFluxFromEpoch à la place
- * @returns {number} Flux géothermique en W/m²
- */
-
-var GEOLOGY = window.GEOLOGY = window.GEOLOGY || {};
+var GEOLOGY = window.GEOLOGY = {};
 GEOLOGY.getGeologicalPeriodByName = getGeologicalPeriodByName;
 GEOLOGY.getGeologicalPeriod = getGeologicalPeriod;
 GEOLOGY.getMoltenCrustFactor = getMoltenCrustFactor;
