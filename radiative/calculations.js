@@ -1,6 +1,11 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.4.0
+// Version 1.5.0
+// - v1.5.0 (2026-10-12): σ(λ) à la température de chaque couche (tables HITRAN S(T), γ(T) sur 10 T, 100–3000 K) ;
+//   élargissement par la pression sans plafond (min(2,…) retiré) + auto-élargissement H₂O tiré des raies ;
+//   continuum H₂O de Roberts et al. 1976 résolu en λ (remplace le « piégeage » MT_CKD scalaire désactivé) ;
+//   profil sans océan (profilVapeurSeule) : hydrostatique, adiabatique sèche cp(T), saturation, peau.
+//   Attribution par retrait : retirer la vapeur = vapeur à 0 (raies ET continuum).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // - v1.4.0 (2026-10-10): PAS DE GARDES. displayDichotomyStep (dessin) et l'ancien solveur simulateRadiativeTransfer /
@@ -116,11 +121,11 @@ function crossSectionH2O(wavelength) {
 
 function waterVaporFractionAtZ(z) {
     const DATA = window.DATA;
-
-    // 🔒 Ne pas appeler calculateWaterPartition ici : appelé une fois par le caller (calculateH2OParameters avant calculateFluxForT0)
-    // H_vap = R·T²/(L·Γ) — voir physics.js v2.0.12.
-    const H_H2O = window.PHYS.computeH2OScaleHeight();
-    return DATA['💧']['🍰🫧💧'] * Math.exp(-z / H_H2O);
+    // Sans océan possible (PHYS.eauSansLiquide) : rien ne condense près de la surface, la vapeur est bien mélangée
+    // (profilVapeurSeule porte le profil complet). Avec océan : vapeur saturée le long du gradient,
+    // H_vap = 1/(Γ·d ln p_sat/dT) — physics.js.
+    if (window.PHYS.eauSansLiquide()) return DATA['💧']['🍰🫧💧'];
+    return DATA['💧']['🍰🫧💧'] * Math.exp(-z / window.PHYS.computeH2OScaleHeight());
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -146,29 +151,180 @@ function computePWV() {
     return n_air_0 * r0 * CONST.M_H2O * CONST.BOLTZMANN_KB * H_eff / CONST.R_GAS;
 }
 
-// MT_CKD continuum trap [W/m²] — Mlawer et al. 2012 JQSRT v3.5, forme paramétrique.
-// trap = SCALE × PWV[g/cm²]² × (T_REF/T)^EXP × (P_total/P_ref)
-//   - PWV² : self-broadening dominant (continuum self-mediated, fenêtre 8–12 µm)
-//   - (T_REF/T)^4.25 : dépendance T moments dipolaires liés (Mlawer 2012)
-//   - P_ratio : foreign-broadening linéaire en P, normalisé 1 atm
-// Désactivé par défaut (EARTH.MT_CKD_ENABLED = false). Calibration : voir physics.js.
-function computeMtCkdContinuumTrap() {
-    const EARTH = window.EARTH;
-    if (!EARTH.MT_CKD_ENABLED) return 0;   // interrupteur de modèle (physics.js)
-    const T = window.DATA['🧮']['🧮🌡️'];
-    const PWV_g_cm2 = computePWV() / 10;  // 1 kg/m² ≡ 0.1 g/cm²
-    const P_ratio = window.ATM.pressureAtZ(0) / window.CONV.STANDARD_ATMOSPHERE_PA;
-    const T_factor = Math.pow(EARTH.MT_CKD_T_REF_K / T, EARTH.MT_CKD_T_EXPONENT);
-    const trap = EARTH.MT_CKD_SCALE * PWV_g_cm2 * PWV_g_cm2 * T_factor * P_ratio;
-    // Borne anti-emballement : aux T extrêmes (Hadéen 500 K + PWV énorme), PWV² peut diverger.
-    // 80 W/m² ≈ 5× valeur Terre moderne, marge confortable.
-    return Math.max(0, Math.min(80, trap));
+// ═══ SECTIONS EFFICACES À LA TEMPÉRATURE DE LA COUCHE ═══════════════════════════════════════════
+// HITRAN donne S(296 K) et l'énergie de l'état bas E'' : hitran.js sait en tirer S(T) et γ(T) (lineIntensityS,
+// gammaLorentz*). Jusqu'ici le moteur ne les appelait qu'à 296 K, pour toutes les couches, du pôle à l'océan de
+// magma. Désormais : tables σ(λ) sur une grille de températures, interpolées linéairement à la T de chaque couche.
+// Calculées une fois par grille spectrale (mémoire : clé = nombre de bins et bornes).
+// ⚠️ La liste de raies est celle de HITRAN (raies fortes à 296 K), pas HITEMP : les bandes chaudes qui comptent
+//    au-delà de ~1 000 K y sont incomplètes. S(T) est juste pour les raies présentes ; les absentes manquent.
+const T_GRILLE_SIGMA = [100, 160, 220, 280, 350, 500, 800, 1300, 2000, 3000];   // [K]
+const _tablesSigma = {};
+function tablesSigma(lambda_range) {
+    const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
+    if (cle in _tablesSigma) return _tablesSigma[cle];
+    const P_ref = CONV.STANDARD_ATMOSPHERE_PA;
+    const t = { CO2: [], H2O: [], CH4: [] };
+    for (let k = 0; k < T_GRILLE_SIGMA.length; k++) {
+        const T = T_GRILLE_SIGMA[k];
+        t.CO2.push(lambda_range.map(l => window.HITRAN.crossSectionCO2FromLines(l, T, P_ref)));
+        t.H2O.push(lambda_range.map(l => window.HITRAN.crossSectionH2OFromLines(l, T, P_ref)));
+        t.CH4.push(lambda_range.map(l => window.HITRAN.crossSectionCH4FromLines(l, T, P_ref)));
+    }
+    _tablesSigma[cle] = t;
+    return t;
+}
+
+/** Encadrement de T dans la grille : { iT, wT } avec σ = σ[iT]·(1−wT) + σ[iT+1]·wT. Hors grille : erreur. */
+function indexTemperatureSigma(T) {
+    const G = T_GRILLE_SIGMA;
+    if (!(T >= G[0] && T <= G[G.length - 1])) throw new Error('[RADIATIVE] T de couche ' + T + ' K hors de la grille des sections efficaces [' + G[0] + ', ' + G[G.length - 1] + '] K');
+    let i = 0;
+    while (i < G.length - 2 && G[i + 1] < T) i++;
+    return { iT: i, wT: (T - G[i]) / (G[i + 1] - G[i]) };
+}
+
+// Auto-élargissement de H₂O : une molécule d'eau élargit les raies d'eau bien plus qu'une molécule d'air
+// (γ_self / γ_air ≈ 5). Négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur. Le rapport est tiré
+// des raies elles-mêmes (moyenne pondérée par S), pas posé.
+let _rapportSelfH2O = null;
+function rapportAutoElargissementH2O() {
+    if (_rapportSelfH2O !== null) return _rapportSelfH2O;
+    let num = 0, den = 0;
+    for (const l of window.HITRAN_LINES_H2O) { num += l.sw * l.gamma_self; den += l.sw * l.gamma_air; }
+    _rapportSelfH2O = num / den;
+    return _rapportSelfH2O;
+}
+
+/** Continuum H₂O de Roberts et al. 1976 à 296 K [cm² molécule⁻¹ atm⁻¹] ; 0 hors du domaine mesuré (physics.js). */
+function continuumH2OCs(lambda) {
+    const C = window.EARTH.CONTINUUM_H2O;
+    const nu = 0.01 / lambda;   // [cm⁻¹]
+    return (nu >= C.NU_MIN && nu <= C.NU_MAX) ? C.A + C.B * Math.exp(-C.BETA * nu) : 0;
+}
+
+/**
+ * Une couche pour le worker. x_v : fraction MOLAIRE de vapeur ; n_H2O_mol = x_v·n_total (continuum, molaire par
+ * définition). Élargissement par la pression : √(P/P_ref) (limite des raies fortes), SANS plafond — l'ancien
+ * min(2, …) bridait à 4 atm l'opacité d'une atmosphère de 100 bar ; pour H₂O, P effective = P·(1 + x_v·(R_self − 1)).
+ */
+function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz) {
+    const C = window.EARTH.CONTINUUM_H2O;
+    const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
+    const pb = window.CONFIG_COMPUTE.pressureBroadening;
+    const it = indexTemperatureSigma(T);
+    const P_atm = P / P_REF;
+    return {
+        T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, delta_z_real: dz,
+        iT: it.iT, wT: it.wT,
+        pressureBroadening: pb ? Math.sqrt(P_atm) : 1,
+        pressureBroadeningH2O: pb ? Math.sqrt(P_atm * (1 + x_v * (rapportAutoElargissementH2O() - 1))) : 1,
+        // κ_cont [m⁻¹] = C_s[cm²/molécule/atm]·1e-4 · (e + γ_f·(P − e))[atm] · n_H₂O[m⁻³] · exp(T₀(1/T − 1/296))
+        continuum: 1e-4 * P_atm * (x_v + C.GAMMA_FOREIGN * (1 - x_v)) * x_v * n_air * Math.exp(C.T0 * (1 / T - 1 / 296))
+    };
+}
+
+/**
+ * PROFIL VERTICAL DE L'ATMOSPHÈRE — une seule loi, de la Terre actuelle à l'atmosphère de vapeur post-impact.
+ * Intégré de la surface vers le haut (pas ≤ 100 m), sur les gaz non condensables (a) et la vapeur (c) :
+ *   · hydrostatique : dp = −ρ g dz, ρ = (p_a M_a + p_c M_c)/(R T)
+ *   · NON SATURÉ (p_c < p_sat(T)) : adiabatique sèche du mélange, dT/dz = −g/c_p(T), composition figée ;
+ *   · SATURÉ : adiabatique humide NON DILUÉE (Pierrehumbert 2010, Principles of Planetary Climate, éq. 2.33)
+ *       d ln T / d ln p_a = (R_a/c_pa)·[1 + L r/(R_a T)] / [1 + (c_pc/c_pa + (L/(R_c T) − 1)·L/(c_pa T))·r],
+ *       r = (R_a/R_c)·p_c/p_a,  p_c = p_sat(T) (IAPWS),  L = R_c T² · d ln p_sat/dT (même courbe) ;
+ *     elle tend vers l'adiabatique sèche quand la vapeur est rare et vers la courbe de saturation quand elle domine ;
+ *   · STRATOSPHÈRE : isotherme à la température de peau (S_abs / 2σ)^¼ (équilibre radiatif gris), vapeur figée à
+ *     sa fraction de la tropopause (piège froid). Le plancher est min(peau, T_surface).
+ * c_p(T) de chaque gaz : NIST-JANAF (PHYS.cpMolaire). Densités MOLAIRES (n_i = x_i · p/kT) : l'ancien profil
+ * multipliait n_air par des fractions MASSIQUES (CO₂ compté ×1,5, H₂O ×0,6).
+ * Remplace : gradient de config 6,5 K/km sous une tropopause RT/Mg × facteur, vapeur en exp(−z/H_vap), isotherme
+ * au-dessus — calés sur la Terre actuelle, hors domaine dans une atmosphère chaude et humide.
+ * Renvoie { couches, iTrop } (iTrop = 1ʳᵉ couche stratosphérique, pour les nuages).
+ */
+function profilAtmosphere(z_range) {
+    const DATA = window.DATA;
+    const CONST = window.CONST;
+    const PHYS = window.PHYS;
+    const f = DATA['🫧'];
+    const ncs = [
+        { w: f['🍰🫧🏭'], M: CONST.M_CO2, cp: 'CO2' },
+        { w: f['🍰🫧🐄'], M: CONST.M_CH4, cp: 'CH4' },
+        { w: f['🍰🫧🫁'], M: CONST.M_O2, cp: 'O2' },
+        { w: f['🍰🫧💨'], M: CONST.M_N2, cp: 'N2' }
+    ];
+    const w_c = DATA['💧']['🍰🫧💧'];
+    let nA = 0, wA = 0;
+    for (const g of ncs) { nA += g.w / g.M; wA += g.w; }
+    const T_s = DATA['🧮']['🧮🌡️'];
+    const P_s = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
+    if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
+        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1)), iTrop: z_range.length };
+    }
+    const M_a = wA / nA;                                   // [kg/mol] masse molaire des non condensables
+    const M_c = CONST.M_H2O;
+    const xa = ncs.map(g => (g.w / g.M) / nA);              // fractions molaires PARMI les non condensables
+    const R_a = CONST.R_GAS / M_a, R_c = CONST.R_GAS / M_c;
+    const cpa = (T) => ncs.reduce((s, g) => s + g.w * PHYS.cpMolaire(g.cp, T) / g.M, 0) / wA;   // [J/kg/K]
+    const cpc = (T) => PHYS.cpMolaire('H2O', T) / M_c;
+    const g = DATA['📅']['🍎'];
+    const T_peau = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
+    const T_strato = Math.min(T_peau, T_s);
+    // Surface : pression partielle de vapeur depuis la fraction massique 🍰🫧💧 (humidité de surface du modèle).
+    const x_c0 = (w_c / M_c) / (w_c / M_c + nA * (1 - w_c) / wA);
+    let T = T_s, p_c = x_c0 * P_s, p_a = P_s - p_c;
+    let strato = T <= T_strato, x_c_strato = p_c / (p_a + p_c);
+    const couches = [];
+    let iTrop = z_range.length;
+    const pousser = (i) => {
+        const p = p_a + p_c;
+        const n = p / (CONST.BOLTZMANN_KB * T);
+        const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
+        const x_c = p_c / p;
+        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_c) * n, x_c * n, xa[1] * (1 - x_c) * n, x_c, dz));
+    };
+    pousser(0);
+    for (let i = 1; i < z_range.length; i++) {
+        let reste = z_range[i] - z_range[i - 1];
+        while (reste > 0) {
+            const dz = Math.min(100, reste);
+            reste -= dz;
+            const p = p_a + p_c;
+            const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
+            if (strato) {                                   // isotherme, composition figée
+                const pn = p - rho * g * dz;
+                p_c = x_c_strato * pn; p_a = pn - p_c;
+                continue;
+            }
+            const psat = PHYS.pSatEau(T);
+            if (p_c < psat) {                               // non saturé : adiabatique sèche du mélange
+                const wc = p_c * M_c / (p_c * M_c + p_a * M_a);
+                T = T - g / ((1 - wc) * cpa(T) + wc * cpc(T)) * dz;
+                const pn = p - rho * g * dz;
+                p_c = pn * (p_c / p); p_a = pn - p_c;
+                if (T < PHYS.EAU.T_C && p_c > PHYS.pSatEau(T)) p_c = PHYS.pSatEau(T);   // le niveau de condensation est atteint
+            } else {                                        // saturé : adiabatique humide non diluée
+                const dln = PHYS.dLnPSatEau(T);
+                const L = R_c * T * T * dln;
+                const r = (R_a / R_c) * (p_c / p_a);
+                const gam = (R_a / cpa(T)) * (1 + L * r / (R_a * T))
+                    / (1 + (cpc(T) / cpa(T) + (L / (R_c * T) - 1) * L / (cpa(T) * T)) * r);
+                const q = p_c * T * gam * dln / p_a;
+                const dpa = -rho * g * dz / (1 + q);
+                T = T + gam * T * dpa / p_a;
+                p_a = p_a + dpa;
+                p_c = PHYS.pSatEau(T);
+            }
+            if (T <= T_strato) { T = T_strato; strato = true; x_c_strato = p_c / (p_a + p_c); }
+        }
+        if (strato && iTrop === z_range.length) iTrop = i;
+        pousser(i);
+    }
+    return { couches: couches, iTrop: iTrop };
 }
 
 // Exposer pour debug, plot, sync_panels.
 window.RADIATIVE = {
-    computePWV: computePWV,
-    computeMtCkdContinuumTrap: computeMtCkdContinuumTrap
+    computePWV: computePWV
 };
 
 // ============================================================================
@@ -401,7 +557,7 @@ async function calculateFluxForT0() {
 
     // (flux_init, ychange, YCHANGE_THR initialisés après earth_flux — voir ci-dessous)
     const final_lambda_length = lambda_range.length;
-    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0;
+    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0, sum_blocked_cont = 0;
     let edsSpectra = null;   // attribution EDS par longueur d'onde (worker v0.7.0)
 
     // Log du calcul spectral (désactivé pour réduire la taille des logs)
@@ -424,21 +580,6 @@ async function calculateFluxForT0() {
     const ychange = new Float64Array(final_lambda_length).fill(z_range[z_range.length - 1]);
     const YCHANGE_THR = 0.05; // 5 % de baisse = début absorption significative
 
-    // ⚡ OPTIMISATION : Calculer tropopause une seule fois
-    const z_trop = window.ATM.calculateTropopauseHeight();
-    const Gamma = -window.CONFIG_COMPUTE.troposphericLapseRateKPerM; // Gradient de température, K/m
-
-    const T_trop = DATA['🧮']['🧮🌡️'] + Gamma * z_trop;
-
-    // Trouver l'index de la tropopause dans z_range
-    let i_trop = z_range.length; // Par défaut, pas de tropopause (tout avant)
-    for (let i = 0; i < z_range.length; i++) {
-        if (z_range[i] >= z_trop) {
-            i_trop = i;
-            break;
-        }
-    }
-
     // Nuages EDS : τ_LW total = ☁️ × CLOUD_LW_TAU_REF, réparti sur la troposphère.
     // v-2026-09-23 : la modulation « × 🍰💭 » est retirée avec 🍰💭 elle-même (calculations_albedo
     // v1.2.66). Elle ne modulait rien — 🍰💭 valait 1,000 sur 18 époques sur 19 — et son argument
@@ -451,23 +592,17 @@ async function calculateFluxForT0() {
     //    Repère de mesure : CRE_LW ≈ 26–30 W/m² (Loeb et al. 2021, CERES EBAF).
     const cloud_index = DATA['🪩']['☁️'];
     const CLOUD_LW_TAU_REF = 2.6;
-    const tau_cloud_total = Math.max(0, cloud_index * CLOUD_LW_TAU_REF);
-    const tau_cloud_per_layer = i_trop > 0 ? tau_cloud_total / i_trop : 0;
+    const tau_cloud_total = Math.max(0, cloud_index * CLOUD_LW_TAU_REF);   // réparti sur la troposphère du profil
 
-    // ⚡ OPTIMISATION : Précalculer B_λ(T_trop) pour toutes les λ (après tropopause)
-    const planck_trop = lambda_range.map(lambda =>
-                PHYS.planckFunction(lambda, T_trop)
-    );
-
-    // ⚡ OPTIMISATION : Précalculer les sections efficaces (dépendent uniquement de λ)
-    const cross_section_CO2 = lambda_range.map(lambda => crossSectionCO2(lambda));
+    // Sections efficaces : tables σ(λ) sur la grille de températures (interpolées à la T de chaque couche).
+    const tab = tablesSigma(lambda_range);
     const cia_CO2 = lambda_range.map(lambda => ciaCoeffCO2(lambda));   // profil CIA CO₂ par λ (Gruszka-Borysow / Wordsworth)
-    const cross_section_H2O = lambda_range.map(lambda => crossSectionH2O(lambda));
-    const cross_section_CH4 = lambda_range.map(lambda => crossSectionCH4(lambda));
+    const continuum_H2O = lambda_range.map(continuumH2OCs);          // continuum H₂O (Roberts 1976), 0 hors 8–25 µm
 
     // DIAGNOSTIC CO2 (temporaire) : vérifier l'échantillonnage de la bande 15 µm.
     // Activé seulement en mode diagnostic pour éviter un bruit excessif en exécution normale.
     if (window.CONFIG_COMPUTE.logEdsDiagnostic) {
+        const cross_section_CO2 = lambda_range.map(lambda => crossSectionCO2(lambda));   // à 296 K (diagnostic)
         const diag_co2 = [];
         const n_co2_surface = window.ATM.airNumberDensityAtZ(0) * DATA['🫧']['🍰🫧🏭'];
         for (let j = 0; j < lambda_range.length; j++) {
@@ -535,9 +670,6 @@ async function calculateFluxForT0() {
         const n_air_log = window.ATM.airNumberDensityAtZ(z_log);
     // Logs désactivés pour réduire la taille
 
-    // ⚡ OPTIMISATION : Boucle avant tropopause (T varie avec z)
-    const usePressureBroadening = window.CONFIG_COMPUTE.pressureBroadening;
-    const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
 
     // ── Dispatch parallèle OBLIGATOIRE (Transferable, N-1 workers) ──────────────────
     // Pré-requis strict : workers/worker_pool.js chargé (scie/visu via loader_panels.js, bench via epoch_bench.html).
@@ -554,22 +686,15 @@ async function calculateFluxForT0() {
         }
         const nL = lambda_range.length;
         const nZ = z_range.length;
-        const layers_w = [];
-        for (let li = 0; li < nZ; li++) {
-            const lz = z_range[li];
-            const lT = (li < i_trop) ? (DATA['🧮']['🧮🌡️'] + Gamma * lz) : T_trop;
-            const ln_air = window.ATM.airNumberDensityAtZ(lz);
-            const ln_CO2 = ln_air * DATA['🫧']['🍰🫧🏭'];
-            const ln_H2O = ln_air * waterVaporFractionAtZ(lz);
-            const ln_CH4 = ln_air * methaneFractionAtZ(lz);
-            const lP_z = usePressureBroadening ? window.ATM.pressureAtZ(lz) : P_REF;
-            const lpb = usePressureBroadening ? Math.min(2.0, Math.sqrt(Math.max(1, lP_z) / P_REF)) : 1.0;
-            const ldz = (li + 1 < nZ) ? (z_range[li + 1] - z_range[li]) : delta_z_troposphere;
-            layers_w.push({ T: lT, n_air: ln_air, n_CO2: ln_CO2, n_H2O: ln_H2O, n_CH4: ln_CH4, pressureBroadening: lpb, delta_z_real: ldz });
-        }
+        // Profil vertical : une seule loi physique (adiabatiques sèche / humide non diluée, stratosphère de peau).
+        // La grille z reste celle d'avant (pas fin sous calculateTropopauseHeight, plus large au-dessus).
+        const profil = profilAtmosphere(z_range);
+        const layers_w = profil.couches;
+        const i_trop = profil.iTrop;
+        const tau_cloud_per_layer = i_trop > 0 ? tau_cloud_total / i_trop : 0;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            cross_section_CO2, cross_section_H2O, cross_section_CH4, cia_CO2,
+            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, cia_CO2, continuum_H2O,
             earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale, cia_co2_scale,
             tau_cloud_per_layer, effective_delta_lambda,
             T_surf: DATA['🧮']['🧮🌡️'],
@@ -579,6 +704,7 @@ async function calculateFluxForT0() {
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
         edsSpectra = spectra;
         sum_blocked_CIA = sums.CIA;   // diagnostic CIA (n'entre PAS dans la normalisation des 3 EDS)
+        sum_blocked_cont = sums.continuum;   // continuum H₂O (déjà compté dans sums.H2O)
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
         for (let j = 0; j < nL; j++) {
@@ -615,22 +741,13 @@ async function calculateFluxForT0() {
         throw new Error('[calculateFluxForT0] OLR (somme des bins) non fini — intégrale=' + total_flux_HITRAN
             + (jNaN >= 0 ? ' (1er bin NaN j=' + jNaN + lamS + ')' : ''));
     }
-    // ─── MT_CKD H₂O continuum (Mlawer 2012) ────────────────────────────────────
-    // Additif au piégeage HITRAN line-by-line. Capture l'absorption résiduelle dans la fenêtre
-    // 8–12 µm où les lignes HITRAN saturent peu mais où le continuum self+foreign-broadening
-    // de H₂O contribue ~10–15 W/m² sur Terre moderne. Formule paramétrique calibrée :
-    //   trap ≈ SCALE × PWV[g/cm²]² × (T_ref/T)^4.25 × (P/P_ref)
-    // Off par défaut. EARTH.MT_CKD_ENABLED dans physics.js v2.0.16+. Voir physics.js pour calibration.
-    const mtCkdTrap = computeMtCkdContinuumTrap();
-    const total_flux = Math.max(0, total_flux_HITRAN - mtCkdTrap);
-    // ───────────────────────────────────────────────────────────────────────────
+    const total_flux = total_flux_HITRAN;   // le continuum H₂O est DANS le transfert (worker), résolu en λ
     const earth_flux_total = earth_flux.reduce((sum, val) => sum + val, 0);
     const EDS = earth_flux_total - total_flux;
-    const sum_blocked_continuum = mtCkdTrap;
-    // Le continuum MT_CKD est physiquement de la vapeur d'eau (self+foreign broadening) :
-    // il est compté dans H2O pour l'attribution downstream (🧲📛💧). HITRAN_pct/Continuum_pct
-    // exposés pour diagnostic. Σ(CO2,H2O,CH4,Clouds) = 1 par construction.
-    const sum_blocked_H2O_total = sum_blocked_H2O + sum_blocked_continuum;
+    // Le continuum est de la vapeur d'eau : sum_blocked_H2O (worker) l'inclut déjà ; sums.continuum le donne à part
+    // pour diagnostic. Σ(CO2,H2O,CH4,Clouds) = 1 par construction.
+    const sum_blocked_continuum = sum_blocked_cont;
+    const sum_blocked_H2O_total = sum_blocked_H2O;
     const sum_blocked = sum_blocked_CO2 + sum_blocked_H2O_total + sum_blocked_CH4 + sum_blocked_clouds;
     // Rien n'absorbe (⚫, sans atmosphère) : toutes les parts à 0.
     const pct = (v) => (sum_blocked > 0) ? v / sum_blocked : 0;
@@ -639,9 +756,8 @@ async function calculateFluxForT0() {
         CO2: { pct: pct(sum_blocked_CO2) },
         H2O: {
             pct: pct(sum_blocked_H2O_total),
-            HITRAN_pct: pct(sum_blocked_H2O),
-            Continuum_pct: pct(sum_blocked_continuum),
-            Continuum_Wm2: mtCkdTrap
+            HITRAN_pct: pct(sum_blocked_H2O - sum_blocked_continuum),
+            Continuum_pct: pct(sum_blocked_continuum)
         },
         CH4: { pct: pct(sum_blocked_CH4) },
         Clouds: { pct: pct(sum_blocked_clouds) },
@@ -666,16 +782,13 @@ async function calculateFluxForT0() {
     // fait déjà `pct()` juste au-dessus. On expose les deux pour que l'affichage n'ait pas à
     // redériver la convention.
     //
-    // ⚠️ Le continuum MT_CKD n'est PAS résolu en λ (c'est une formule paramétrique intégrée,
-    // pas un calcul raie par raie). Il est compté dans H₂O pour les totaux, mais il manque des
-    // spectres ci-dessous. Il vit dans la fenêtre 8–12 µm ; `continuum_Wm2` le donne à part
-    // pour que l'affichage puisse le signaler au lieu de le dissimuler.
+    // Le continuum H₂O est résolu en λ : il est dans le spectre '💧' (raies + continuum).
     if (edsSpectra) {
         window.EDS_SPECTRAL = {
             lambda_m: lambda_range,
             blocked: {
                 '🏭': edsSpectra.CO2,      // CO₂
-                '💧': edsSpectra.H2O,      // H₂O (raies HITRAN seules)
+                '💧': edsSpectra.H2O,      // H₂O (raies HITRAN + continuum)
                 '🐄': edsSpectra.CH4,      // CH₄
                 '⛅': edsSpectra.clouds     // nuages (gris, τ réparti sur la troposphère)
             },
@@ -685,9 +798,8 @@ async function calculateFluxForT0() {
             // dépende d'aucune convention de partage entre espèces.
             surface_flux: earth_flux,
             olr_flux: flux_in,
-            sum_blocked: sum_blocked,          // Σ sur λ ET sur les 4 espèces (+ continuum)
+            sum_blocked: sum_blocked,          // Σ sur λ ET sur les 4 espèces (continuum dans H₂O)
             EDS_Wm2: EDS,                      // l'effet de serre total, ce que les % rapportent
-            continuum_Wm2: mtCkdTrap,          // H₂O, fenêtre 8–12 µm, non résolu en λ
             T_surf_K: DATA['🧮']['🧮🌡️'],
             epochId: DATA['📜'] ? DATA['📜']['🗿'] : null
         };
@@ -812,13 +924,13 @@ async function computeEdsRemovalShares() {
     const save = {
         cloud: DATA['🪩']['☁️'],
         co2:   DATA['🫧']['🍰🫧🏭'],
-        h2oSc: EARTH.H2O_EDS_SCALE,
+        h2o:   DATA['💧']['🍰🫧💧'],
         ch4Sc: EARTH.CH4_EDS_SCALE
     };
     const restore = function () {
         DATA['🪩']['☁️']    = save.cloud;
         DATA['🫧']['🍰🫧🏭'] = save.co2;
-        EARTH.H2O_EDS_SCALE = save.h2oSc;
+        DATA['💧']['🍰🫧💧'] = save.h2o;
         EARTH.CH4_EDS_SCALE = save.ch4Sc;
         DATA['🧮']['🧮🌡️']  = T_K;
     };
@@ -833,7 +945,7 @@ async function computeEdsRemovalShares() {
     try {
         eff['⛅'] = (await olrSans(function () { DATA['🪩']['☁️'] = 0; }))    - olrRef;
         eff['🏭'] = (await olrSans(function () { DATA['🫧']['🍰🫧🏭'] = 0; })) - olrRef;
-        eff['💧'] = (await olrSans(function () { EARTH.H2O_EDS_SCALE = 0; })) - olrRef;
+        eff['💧'] = (await olrSans(function () { DATA['💧']['🍰🫧💧'] = 0; })) - olrRef;   // raies ET continuum
         eff['🐄'] = (await olrSans(function () { EARTH.CH4_EDS_SCALE = 0; })) - olrRef;
     } finally {
         // ⚠️ Les quatre passes ont laissé DATA['📊'] (total_flux, upward_flux, lambda_range…) et

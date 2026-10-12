@@ -63,7 +63,7 @@ function calculateAtmosphereProperties() {
     const is_massive = DATA['⚖️']['⚖️🫧'] > 2.5e19;
     
     // Calcul de z_max basé sur la pression au sol P0
-    const planet_radius_m = DATA['📅']['📐'] * 1000;
+    const planet_radius_m = DATA['📜']['📐'] * 1000;
     const surface_area = 4 * Math.PI * Math.pow(planet_radius_m, 2);
     const atm_mass = DATA['⚖️']['⚖️🫧'];
     const P0 = atm_mass * DATA['📅']['🍎'] / surface_area;
@@ -152,7 +152,7 @@ function calculatePressureAtm() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const EPOCH = DATA['📅'];
-    const planet_radius_m = EPOCH['📐'] * 1000;
+    const planet_radius_m = DATA['📜']['📐'] * 1000;
     const surface_area = 4 * Math.PI * Math.pow(planet_radius_m, 2);
     const atm_mass_dry = DATA['⚖️']['⚖️🫧'];
     const frac_vapor = DATA['💧']['🍰🫧💧'];

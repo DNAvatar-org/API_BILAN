@@ -66,7 +66,7 @@ const DESC = {
         '📿☄️': 'Nombre de météore',
         '🔺⚖️💧☄️': 'Masse H₂O / météore',
         '🔺🌡️💫': 'Delta t° / ticTime',
-        '📿🕰': 'Nombre d’entrées de 🕰.order déjà consommées dans l’époque (curseur ; la config n’est pas modifiée)',
+        '📿🕰': 'Clics joués dans l’époque courante (curseur de 🕰.order, dont chaque entrée porte sa durée 🔺⏳ ; compte aussi les clics de 📱)',
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
         '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction, 🌋)',
         '🔺⚖️🏭': 'Cumul CO₂ injecté par événements 📱 ⛽/🛢 (kg)',

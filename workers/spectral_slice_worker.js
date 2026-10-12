@@ -1,6 +1,7 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.8.0
+// Version 0.9.0
+// - v0.9.0 (2026-10-12): σ interpolée en T par couche (tables), continuum H₂O, élargissement H₂O propre.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: [September 18, 2026]
@@ -49,9 +50,11 @@ function spectralSliceWorkerMain() {
         var cstUse = p.constants;
         var lambda_range = p.lambda_range;
         var lambda_weights = p.lambda_weights;
-        var cross_section_CO2 = p.cross_section_CO2;
-        var cross_section_H2O = p.cross_section_H2O;
-        var cross_section_CH4 = p.cross_section_CH4;
+        // Tables σ[iT][j] (m²/molécule) sur la grille de températures ; chaque couche porte iT, wT.
+        var sigma_CO2 = p.sigma_CO2;
+        var sigma_H2O = p.sigma_H2O;
+        var sigma_CH4 = p.sigma_CH4;
+        var continuum_H2O = p.continuum_H2O;   // C_s(ν, 296 K) [cm²/molécule/atm], Roberts 1976
         var earth_flux = p.earth_flux;
         var layers = p.layers;
         var i_trop = p.i_trop;
@@ -78,6 +81,7 @@ function spectralSliceWorkerMain() {
         var blk_CO2 = new Float64Array(nL), blk_H2O = new Float64Array(nL);
         var blk_CH4 = new Float64Array(nL), blk_cld = new Float64Array(nL);
         var sum_blocked_CIA = 0;
+        var sum_blocked_cont = 0;
 
         for (var i = 0; i < nZ; i++) {
             var L = layers[i];
@@ -85,18 +89,25 @@ function spectralSliceWorkerMain() {
             var T = L.T;
             var delta_z_real = L.delta_z_real;
             var sigma_broad = L.pressureBroadening;
+            var sigma_broad_H2O = L.pressureBroadeningH2O;
+            var a = L.iT, w = L.wT;
+            var sC0 = sigma_CO2[a], sC1 = sigma_CO2[a + 1];
+            var sH0 = sigma_H2O[a], sH1 = sigma_H2O[a + 1];
+            var sM0 = sigma_CH4[a], sM1 = sigma_CH4[a + 1];
+            var cont_layer = L.continuum;
             var is_trop = (i < i_trop);
             var tau_cloud_layer = is_trop ? tau_cloud_per_layer : 0;
 
             for (var j = 0; j < nL; j++) {
                 var lambda = lambda_range[j];
-                var kappa_CO2 = cross_section_CO2[j] * sigma_broad * n_CO2;
-                var kappa_H2O = cross_section_H2O[j] * sigma_broad * n_H2O * h2o_eds_scale;
-                var kappa_CH4 = cross_section_CH4[j] * sigma_broad * n_CH4 * ch4_eds_scale;
+                var kappa_CO2 = (sC0[j] + w * (sC1[j] - sC0[j])) * sigma_broad * n_CO2;
+                var kappa_H2O = (sH0[j] + w * (sH1[j] - sH0[j])) * sigma_broad_H2O * n_H2O * h2o_eds_scale;
+                var kappa_CH4 = (sM0[j] + w * (sM1[j] - sM0[j])) * sigma_broad * n_CH4 * ch4_eds_scale;
+                var kappa_cont = continuum_H2O[j] * cont_layer;   // continuum H₂O, m⁻¹
                 // CIA CO₂ (Gruszka-Borysow 1997, Wordsworth 2010) : binaire ∝ (n_CO₂/N_ref)·(n_air/N_ref) — remplit
                 // les fenêtres où les raies saturent. Sans sigma_broad (le pressure-broadening est déjà dans la densité²).
                 var kappa_CIA = cia_CO2[j] * (n_CO2 / CIA_N_REF) * (n_air / CIA_N_REF) * cia_co2_scale;
-                var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA;
+                var kappa = kappa_CO2 + kappa_H2O + kappa_CH4 + kappa_CIA + kappa_cont;
                 var tau = Math.min(Math.max(kappa * delta_z_real + tau_cloud_layer, TAU_EFF_MIN), TAU_EFF_MAX);
                 var transmission = Math.exp(-tau);
                 var emissivity = 1 - transmission;
@@ -109,7 +120,8 @@ function spectralSliceWorkerMain() {
                     var out = flux_in[j] * transmission + em_flux;
                     upval = Math.min(Math.max(out, -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
                     blk_CO2[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CO2 * delta_z_real)));
-                    blk_H2O[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_H2O * delta_z_real)));
+                    blk_H2O[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, (kappa_H2O + kappa_cont) * delta_z_real)));
+                    sum_blocked_cont += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_cont * delta_z_real)));
                     blk_CH4[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CH4 * delta_z_real)));
                     blk_cld[j] += flux_in[j] * (1 - Math.exp(-tau_cloud_layer));
                     sum_blocked_CIA += flux_in[j] * (1 - Math.exp(-Math.max(0, kappa_CIA * delta_z_real)));
@@ -130,7 +142,8 @@ function spectralSliceWorkerMain() {
             blk_H2O: blk_H2O.buffer,
             blk_CH4: blk_CH4.buffer,
             blk_cld: blk_cld.buffer,
-            sum_blocked_CIA: sum_blocked_CIA
+            sum_blocked_CIA: sum_blocked_CIA,
+            sum_blocked_cont: sum_blocked_cont
         }, [resultBuf.buffer, blk_CO2.buffer, blk_H2O.buffer, blk_CH4.buffer, blk_cld.buffer]);
     }
 

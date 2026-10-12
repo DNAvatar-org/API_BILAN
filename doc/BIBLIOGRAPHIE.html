@@ -227,6 +227,50 @@
     <div class="used-in"><code>model_tuning_biblio.js</code> (CLOUD_FRACTION_INDEX_GAIN).</div>
 </article>
 
+<article class="ref" id="ackermanMarley2001" data-tags="cloud condensation sedimentation eddysed">
+    <div class="cite-key">[ackermanMarley2001]</div>
+    <div class="authors">Ackerman, A. S. &amp; Marley, M. S.</div>
+    <div class="title">Precipitating condensation clouds in substellar atmospheres</div>
+    <div class="venue">The Astrophysical Journal, 556:872–884 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1086/321540">10.1086/321540</a></div>
+    <div class="used-in">Équilibre mélange turbulent / sédimentation −K_zz ∂q_t/∂z − f_sed w* q_c = 0 (EddySed) : structure verticale et condensat des nuages — <em>prévu</em>, chantier nuages (2026-10-12).</div>
+</article>
+
+<article class="ref" id="hartmannLarson2002" data-tags="cloud anvil fat convection">
+    <div class="cite-key">[hartmannLarson2002]</div>
+    <div class="authors">Hartmann, D. L. &amp; Larson, K.</div>
+    <div class="title">An important constraint on tropical cloud–climate feedback</div>
+    <div class="venue">Geophysical Research Letters, 29(20):1951 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2002GL015835">10.1029/2002GL015835</a></div>
+    <div class="used-in">Hypothèse de la température d'enclume fixe (FAT) — discutée pour le sommet des nuages convectifs (2026-10-12).</div>
+</article>
+
+<article class="ref" id="marley2010" data-tags="cloud patchy fractional-cloudiness">
+    <div class="cite-key">[marley2010]</div>
+    <div class="authors">Marley, M. S., Saumon, D. &amp; Goldblatt, C.</div>
+    <div class="title">A patchy cloud model for the L to T dwarf transition</div>
+    <div class="venue">The Astrophysical Journal Letters, 723:L117–L121 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1088/2041-8205/723/1/L117">10.1088/2041-8205/723/1/L117</a></div>
+    <div class="used-in">Couverture partielle en deux colonnes F = f F_nuage + (1 − f) F_clair — discutée (2026-10-12).</div>
+</article>
+
+<article class="ref" id="stephens1978" data-tags="cloud longwave emissivity liquid-water-path">
+    <div class="cite-key">[stephens1978]</div>
+    <div class="authors">Stephens, G. L.</div>
+    <div class="title">Radiation profiles in extended water clouds. II: Parameterization schemes</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 35(11):2123–2132 (1978)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035<2123:RPIEWC>2.0.CO;2">10.1175/1520-0469(1978)035&lt;2123:RPIEWC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Émissivité IR ε = 1 − exp(−a₀·LWP) et τ = 3/2·LWP/(ρ_w r_eff) — chantier nuages ; cité dans <code>radiative/calculations.js</code> (CLOUD_LW_TAU_REF).</div>
+</article>
+
+<article class="ref" id="windsor2022" data-tags="cloud radiative-convective terrestrial-planet 1d-model">
+    <div class="cite-key">[windsor2022]</div>
+    <div class="authors">Windsor, J. D., Robinson, T. D., Kopparapu, R. k., Trilling, D. E., LLama, J. &amp; Young, A.</div>
+    <div class="title">A radiative-convective model for terrestrial planets with self-consistent patchy clouds</div>
+    <div class="venue">arXiv:2210.10004 (2022), soumis à The Planetary Science Journal</div>
+        <div class="used-in">Modèle de référence pour les nuages d'un modèle 1D tellurique : CLIMA + EddySed (Ackerman &amp; Marley 2001), deux colonnes, profil de Manabe &amp; Wetherald. Note des auteurs : la fraction nuageuse « ne peut pas être prédite en 1D ». <a href="https://arxiv.org/abs/2210.10004">arXiv:2210.10004</a>.</div>
+</article>
+
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-snowball">5. Snowball Earth &amp; hystérésis climatique</h2>
 
@@ -1170,5 +1214,114 @@
     <div class="doi"><a href="https://doi.org/10.1038/nature08518">10.1038/nature08518</a></div>
     <div class="used-in">Borne ≤ 40 °C à 3,42 Ga (cherts de Buck Reef), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
 </article>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-water-rt">12. Eau, transfert radiatif &amp; atmosphère de vapeur (2026-10-12)</h2>
+
+<article class="ref" id="chase1998" data-tags="thermodynamics heat-capacity janaf">
+    <div class="cite-key">[chase1998]</div>
+    <div class="authors">Chase, M. W., Jr.</div>
+    <div class="title">NIST-JANAF Thermochemical Tables, 4ᵉ éd.</div>
+    <div class="venue">Journal of Physical and Chemical Reference Data, Monograph 9 (1998)</div>
+        <div class="used-in">c_p(T) de H₂O, CO₂, N₂, O₂, CH₄ — <code>physics/physics.js</code> (PHYS.cpMolaire), gradient adiabatique g/c_p.</div>
+</article>
+
+<article class="ref" id="chopelasBoehler1992" data-tags="thermal-expansion mantle pressure">
+    <div class="cite-key">[chopelasBoehler1992]</div>
+    <div class="authors">Chopelas, A. &amp; Boehler, R.</div>
+    <div class="title">Thermal expansivity in the lower mantle</div>
+    <div class="venue">Geophysical Research Letters, 19(19):1983–1986 (1992)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/92GL02144">10.1029/92GL02144</a></div>
+    <div class="used-in">Décroissance de α avec la pression → α_V moyen 1e-5–3e-5 K⁻¹, <code>geology/interieur.js</code> (rayonKm).</div>
+</article>
+
+<article class="ref" id="hamano2013" data-tags="magma-ocean steam-atmosphere solidification">
+    <div class="cite-key">[hamano2013]</div>
+    <div class="authors">Hamano, K., Abe, Y. &amp; Genda, H.</div>
+    <div class="title">Emergence of two types of terrestrial planet on solidification of magma ocean</div>
+    <div class="venue">Nature, 497:607–610 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature12163">10.1038/nature12163</a></div>
+    <div class="used-in">Durée de l'océan de magma sous atmosphère de vapeur (~Ma) → pas de 🔥 (1 ka, 100 ka, 100 Ma), <code>configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="kasting1988" data-tags="runaway-greenhouse moist-adiabat steam">
+    <div class="cite-key">[kasting1988]</div>
+    <div class="authors">Kasting, J. F.</div>
+    <div class="title">Runaway and moist greenhouse atmospheres and the evolution of Earth and Venus</div>
+    <div class="venue">Icarus, 74:472–494 (1988)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0019-1035(88)90116-9">10.1016/0019-1035(88)90116-9</a></div>
+    <div class="used-in">Atmosphère de vapeur, adiabatique humide — <code>radiative/calculations.js</code> (profilAtmosphere).</div>
+</article>
+
+<article class="ref" id="lebrun2013" data-tags="magma-ocean thermal-evolution">
+    <div class="cite-key">[lebrun2013]</div>
+    <div class="authors">Lebrun, T., Massol, H., Chassefière, E., Davaille, A., Marcq, E., Sarda, P., Leblanc, F. &amp; Brandeis, G.</div>
+    <div class="title">Thermal evolution of an early magma ocean in interaction with the atmosphere</div>
+    <div class="venue">Journal of Geophysical Research: Planets, 118:1155–1176 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/jgre.20068">10.1002/jgre.20068</a></div>
+    <div class="used-in">Océan de magma ~1 Ma ; transition rhéologique φ = 0,4 — <code>geology/interieur.js</code>, pas de 🔥.</div>
+</article>
+
+<article class="ref" id="nakajima1992" data-tags="runaway-greenhouse olr-limit">
+    <div class="cite-key">[nakajima1992]</div>
+    <div class="authors">Nakajima, S., Hayashi, Y.-Y. &amp; Abe, Y.</div>
+    <div class="title">A study on the “runaway greenhouse effect” with a one-dimensional radiative–convective equilibrium model</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 49(23):2256–2266 (1992)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1992)049<2256:ASOTGE>2.0.CO;2">10.1175/1520-0469(1992)049&lt;2256:ASOTGE&gt;2.0.CO;2</a></div>
+    <div class="used-in">Limite d'OLR d'une atmosphère de vapeur (~280–310 W/m²) — contrôle du modèle (~330 W/m²), <code>radiative/calculations.js</code>.</div>
+</article>
+
+<article class="ref" id="piani2020" data-tags="water-origin enstatite-chondrite">
+    <div class="cite-key">[piani2020]</div>
+    <div class="authors">Piani, L., Marrocchi, Y., Rigaudier, T., Vacher, L. G., Thomassin, D. &amp; Marty, B.</div>
+    <div class="title">Earth's water may have been inherited from material similar to enstatite chondrite meteorites</div>
+    <div class="venue">Science, 369:1110–1113 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.aba1948">10.1126/science.aba1948</a></div>
+    <div class="used-in">Origine de l'eau terrestre → EAU_ACCRETEE_KG portée par les ☄️ de ⚫, <code>configTimeline.js</code>.</div>
+</article>
+
+<article class="ref" id="pierrehumbert2010" data-tags="moist-adiabat non-dilute textbook">
+    <div class="cite-key">[pierrehumbert2010]</div>
+    <div class="authors">Pierrehumbert, R. T.</div>
+    <div class="title">Principles of Planetary Climate — §2.7 (adiabatique humide non diluée, éq. 2.33) et §4.4 (continuum H₂O)</div>
+    <div class="venue">Cambridge University Press (2010)</div>
+        <div class="used-in"><code>radiative/calculations.js</code> (profilAtmosphere) ; <code>physics/physics.js</code> (EARTH.CONTINUUM_H2O).</div>
+</article>
+
+<article class="ref" id="roberts1976" data-tags="water-vapor continuum window">
+    <div class="cite-key">[roberts1976]</div>
+    <div class="authors">Roberts, R. E., Selby, J. E. A. &amp; Biberman, L. M.</div>
+    <div class="title">Infrared continuum absorption by atmospheric water vapor in the 8–12 µm window</div>
+    <div class="venue">Applied Optics, 15(9):2085–2090 (1976)</div>
+    <div class="doi"><a href="https://doi.org/10.1364/AO.15.002085">10.1364/AO.15.002085</a></div>
+    <div class="used-in">Continuum H₂O self + foreign C_s = a + b·exp(−βν), T₀ = 1800 K, γ_f = 0,002 — <code>physics/physics.js</code>, <code>radiative/calculations.js</code>, worker.</div>
+</article>
+
+<article class="ref" id="stolper1981" data-tags="melt density peridotite crossover">
+    <div class="cite-key">[stolper1981]</div>
+    <div class="authors">Stolper, E., Walker, D., Hager, B. H. &amp; Hays, J. F.</div>
+    <div class="title">Melt segregation from partially molten source regions: the importance of melt density and source region size</div>
+    <div class="venue">Journal of Geophysical Research, 86(B7):6261–6271 (1981)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/JB086iB07p06261">10.1029/JB086iB07p06261</a></div>
+    <div class="used-in">ΔV de fusion de la péridotite (~7 % à 0 GPa → 0 vers 12 GPa) → DV_FUSION, <code>geology/interieur.js</code> (rayonKm).</div>
+</article>
+
+<article class="ref" id="wagner2011" data-tags="water sublimation iapws">
+    <div class="cite-key">[wagner2011]</div>
+    <div class="authors">Wagner, W., Riethmann, T., Feistel, R. &amp; Harvey, A. H.</div>
+    <div class="title">New equations for the sublimation pressure and melting pressure of H₂O ice Ih</div>
+    <div class="venue">Journal of Physical and Chemical Reference Data, 40:043103 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.3657937">10.1063/1.3657937</a></div>
+    <div class="used-in">p_sat sur glace (T &lt; 273,16 K) — <code>physics/physics.js</code> (PHYS.pSatEau).</div>
+</article>
+
+<article class="ref" id="wagnerPruss2002" data-tags="water saturation iapws-95">
+    <div class="cite-key">[wagnerPruss2002]</div>
+    <div class="authors">Wagner, W. &amp; Pruß, A.</div>
+    <div class="title">The IAPWS formulation 1995 for the thermodynamic properties of ordinary water substance for general and scientific use</div>
+    <div class="venue">Journal of Physical and Chemical Reference Data, 31:387–535 (2002)</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.1461829">10.1063/1.1461829</a></div>
+    <div class="used-in">Courbe de saturation liquide–vapeur (éq. 2.5) et point critique — <code>physics/physics.js</code> (pSatEau, dLnPSatEau, tSatEau), <code>h2o/calculations_h2o.js</code>.</div>
+</article>
+
 </body>
 </html>

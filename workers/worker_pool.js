@@ -3,7 +3,8 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.2.0
+// Version 1.3.0
+// - v1.3.0 (2026-10-12): tables σ[T][λ] et continuum découpés par tranche ; somme continuum.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: April 23, 2026
@@ -80,7 +81,7 @@
         var sliceSize = Math.ceil(nL / nWorkers);
         var doneCount = 0;
         var activeWorkers = 0;
-        var sums = { CO2: 0, H2O: 0, CH4: 0, clouds: 0, CIA: 0 };
+        var sums = { CO2: 0, H2O: 0, CH4: 0, clouds: 0, CIA: 0, continuum: 0 };
         // Buffer de résultat final (flat, accumulé au fur et à mesure des réponses)
         var resultBuf = new Float32Array(nZ * nL);
         // Spectres d'attribution EDS (worker v0.7.0) : chaque tranche renvoie son morceau,
@@ -127,6 +128,7 @@
                             sums.clouds += bCld[jj];
                         }
                         sums.CIA += msg.sum_blocked_CIA;
+                        sums.continuum += msg.sum_blocked_cont;
                         doneCount++;
                         if (doneCount === activeWorkers) {
                             dispatchPending = false;
@@ -147,10 +149,12 @@
                     // Tranches lambda pour ce worker (index local 0..jEnd-jStart-1)
                     lambda_range:      params.lambda_range.slice(jStart, jEnd),
                     lambda_weights:    params.lambda_weights.slice(jStart, jEnd),
-                    cross_section_CO2: params.cross_section_CO2.slice(jStart, jEnd),
-                    cross_section_H2O: params.cross_section_H2O.slice(jStart, jEnd),
-                    cross_section_CH4: params.cross_section_CH4.slice(jStart, jEnd),
-                    cia_CO2:           params.cia_CO2 ? params.cia_CO2.slice(jStart, jEnd) : null,
+                    // Tables σ[iT][λ] : chaque ligne de température est découpée sur la même tranche λ.
+                    sigma_CO2:         params.sigma_CO2.map(function (r) { return r.slice(jStart, jEnd); }),
+                    sigma_H2O:         params.sigma_H2O.map(function (r) { return r.slice(jStart, jEnd); }),
+                    sigma_CH4:         params.sigma_CH4.map(function (r) { return r.slice(jStart, jEnd); }),
+                    cia_CO2:           params.cia_CO2.slice(jStart, jEnd),
+                    continuum_H2O:     params.continuum_H2O.slice(jStart, jEnd),
                     earth_flux:        params.earth_flux.slice(jStart, jEnd),
                     // Données z partagées (toutes les couches, lecture seule, petites ~50 couches)
                     layers:              params.layers,

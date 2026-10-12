@@ -278,7 +278,7 @@ function calculateCloudFormationIndex() {
     // 🔒 CALCUL DE 🧲⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
     const rh_excess = DATA['💧']['🍰🌧💧'] - DATA['💧']['💭☔'];
     const ramp = rh_excess <= 0 ? 0 : Math.min(1, rh_excess / 0.2);
-    DATA['💧']['🧲⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
+    DATA['💧']['🧲⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
 
     return DATA['🪩']['☁️'];
 }
@@ -414,7 +414,7 @@ function calculateAlbedo() {
         // (EARTH.ICE_FORMULA_MAX_FRACTION × ice_temp_factor at T_seed), capé par ice_cap_surface
         // calculé localement (highlands ∪ hydrosphère). Évalué ici parce que ice_cap_surface n'est
         // pas encore connu — recalcul léger inline.
-        const _surfArea = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+        const _surfArea = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
         const _hydroSupportSeed = Math.max(0, Math.min(0.9, ((DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _surfArea) / 10));
         const _iceCapSeed = Math.max(DATA['🗻']['🍰🗻🏔'], _hydroSupportSeed);
         const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, EPOCH);
@@ -437,7 +437,7 @@ function calculateAlbedo() {
     // 🔒 ÉTAPE 2 : Calculer la couverture océanique réelle depuis la géologie + stocks d'eau
     // La surface océanique est limitée par la géologie ET par la quantité d'eau disponible
     // Si volcano_coverage = 1.0, alors ocean_coverage = 0 (pas de mer possible)
-    const planet_surface_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+    const planet_surface_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
     
     // Volume maximum que peut contenir le bassin océanique
     const ocean_basin_surface_m2 = DATA['🗻']['🍰🗻🌊'] * planet_surface_m2;
@@ -514,7 +514,7 @@ function calculateAlbedo() {
         console.log(mIce);
         window.debugMirrorConfigLogToFile('logIceFactorDiagnostic', mIce);
     }
-    const planet_surface_area_m2 = 4 * Math.PI * Math.pow(EPOCH['📐'] * 1000, 2);
+    const planet_surface_area_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
     const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
     let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
     let ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);

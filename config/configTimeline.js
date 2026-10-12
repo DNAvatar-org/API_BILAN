@@ -1,6 +1,8 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.95
+// Version 1.4.96
+// - v1.4.96: durées sur les entrées de 🕰.order ; rayon de 🔥 = 6371 km froid (le rayon suit l'intérieur, plus de
+//   🔺📐) ; eau : ⚫ sans eau, ses 2 ☄️ apportent EAU_ACCRETEE_KG = l'eau de départ de 🔥 (référence unique).
 // Date: [October 12, 2026]
 // logs :
 // - v1.4.95: 🕰.order dans TOUTES les époques (sauf 📱, dont les tranches d'années offrent un choix) : la
@@ -375,6 +377,11 @@
 //
 // Détail, dérivations et ce qui reste non contraint : doc/MASSES_SULFATE_PAR_EPOQUE.md
 // ═══════════════════════════════════════════════════════════════════════════
+// EAU ACCRÉTÉE : l'eau avec laquelle la Terre sort de l'impact géant. Pour la pédagogie, le corps noir ⚫ part SANS eau,
+// et ce sont ses météorites (☄️, 2 dans sa séquence) qui l'apportent — la même masse que 🔥 a au départ, une seule
+// référence. Dans la réalité, l'essentiel de cette eau venait avec les briques de la Terre (chondrites à enstatite,
+// Piani et al. 2020, Science 369:1110) : les ☄️ de ⚫ la figurent, elles ne prétendent pas à une chronologie.
+const EAU_ACCRETEE_KG = 6.0e20;   // [kg] = 🔥 ⚖️💧
 const timeline = [
     {// Corps noir
         '📅': '⚫', // Corps noir
@@ -416,18 +423,15 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
         // Événements interactifs : 🕰.order = la séquence des clics (CLICS, convergence/clics.js), pour toute interface.
         '🕰': {
-            'order': ['☄️', '💫', '☄️', '💫', '🎇'],
+            'order': [{ '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 100 }, { '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 100 }, { '🕰': '🎇', '🔺⏳': 100 }],
             '☄️': {
-                '🔺⚖️💧☄️': 3.2e17, // water_added_kg (~+10% d'albedo en ⚫ froid avec la formule actuelle)
-                '🔺⏳': 100,
+                '🔺⚖️💧☄️': EAU_ACCRETEE_KG / 2, // [kg] chaque ☄️ de ⚫ apporte la moitié de l'eau de 🔥 (2 ☄️ dans la séquence)
             },
             '💫': {
                 '🔺🌡️💫': 0,
-                '🔺⏳': 100,
             },
             '🎇': {
                 '⏩': '🔥', // Transition vers Hadéen
-                '🔺⏳': 100,
             },
         },
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
@@ -452,7 +456,8 @@ const timeline = [
         //   (Sleep, Zahnle & Neuhoff 2001, PNAS 98:3666) → milieu, 2550 °C. Le flux n'est plus posé (il était de
         //   2 MW/m², sans source) : tant que l'intérieur est fondu, il vaut OLR − solaire absorbé à cette T.
         '🌡️🌕': 2823.15,
-        '📐': 7008.1, // Rayon de la planète en km
+        '📐': 6371, // [km] rayon FROID de référence (à T₀ de l'intérieur, aujourd'hui) ; le rayon courant 📜📐 en est tiré
+        //   par la température de l'intérieur (geology/interieur.js, rayonKm) — 7008 km et −120 km/clic sont retirés.
         '🍎': 9.8, // Gravité en m/s²
         '📏🌊': 0.0, // Profondeur moyenne océan de magma en km (Hadéen)
         '🐚': 1.0, // Facteur relief sous-marin
@@ -473,7 +478,7 @@ const timeline = [
         //   Sleep, Zahnle & Neuhoff 2001 PNAS 98:3666 : 40–210 bar CO₂ après l'impact lunaire ; Zahnle et al. 2010 CSH Persp. Biol. 2:a004895.
         '⚖️🏭': 3.5e20, // co2_kg
         '⚖️🐄': 2.369e16, // v-2026-09-23 (était 5.0e15) : CH₄ ≈ 55 ppm air sec = milieu de [10,100] ‖ avant : ch4_kg (~1000 ppm)
-        '⚖️💧': 6.0e20, // h2o_kg — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
+        '⚖️💧': EAU_ACCRETEE_KG, // h2o_kg = l'eau apportée par les ☄️ de ⚫ — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
         //   tombait à 7 % (dilution). Atmosphère de vapeur post-impact ≈ un océan entier (Zahnle et al. 2010) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
         // ⚖️✈ : 0 — le modèle sort cette époque à ~2650 °C. L'acide sulfurique ne condense pas :
@@ -488,16 +493,16 @@ const timeline = [
         // Événements interactifs
         // Hadéen (▶ 4,51 Ga → ◀ 4,031 Ga). Gaz fixes ; l'intérieur refroidit par bilan d'énergie (geology/interieur.js).
         '🕰': {
-            'order': ['☄️', '💫', '☄️', '💫', '☄️'], // v-2026-10-12 : la séquence que visait ACTION_BY_DATE (CO2) — elle ne tombait jamais (dates 4500/4400… vs 4510 − k×100) : ☄️ n'était jamais proposé
+            'order': [{ '🕰': '💫', '🔺⏳': 0.001 }, { '🕰': '☄️', '🔺⏳': 0.1 }, { '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 378.899 }],
+            // v-2026-10-12 : pas croissants (1 ka, 100 ka, 100 Ma, puis le complément jusqu'à ◀ = 4,031 Ga) — l'océan de
+            //   magma et sa couverture de vapeur durent de 1 à quelques Ma (Lebrun et al. 2013, JGR Planets 118:1155 ;
+            //   Hamano et al. 2013, Nature 497:607) : avec un pas de 100 Ma, tout tenait dans le premier clic.
+            //   ☄️ : eau apportée par les impacts pendant le « late veneer » (4,5 → 4,4 Ga), au 2ᵉ et au 3ᵉ clic.
             '💫': {
                 '🔺🌡️💫': 0,  // v-2026-09-24 : était −300 K/tic, un refroidissement PRESCRIT ; le refroidissement sort du bilan d'énergie
-                '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
-                '🔺⏳': 100,       // durée d'un tic en Ma (500 Ma / 10 tics ≈ 50 Ma/tic)
             },
             '☄️': {
                 '🔺⚖️💧☄️': 1.0e20, // water_added_kg (~10% de l'eau initiale)
-                '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
-                '🔺⏳': 100,       // durée d'un tic en Ma (météorites)
             }
         },
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
@@ -601,10 +606,11 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            'order': ['💫', '💫', '💫'],
+            'order': [{ '🕰': '💫', '🔺⏳': 510.3333333333333 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }],
+            // 🔺⏳ = 1531/3 (v-2026-09-24) : 2 clics calculés à 1/3 et 2/3 de la rampe, le 3ᵉ passe à 🪸. ⚠️ Avec 511, le
+            //   2ᵉ clic atteignait 100 % de la rampe (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga.
             '💫': {
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
-                '🔺⏳': 510.3333333333333, // durée d'un tic en Ma (bouton timeline) // v-2026-09-24 : 500 → 1531/3 : 2 clics calculés à 1/3 et 2/3 de la rampe, le 3ᵉ passe à 🪸 — comme avant. ⚠️ Avec 511, le 2ᵉ clic atteignait 100 % de la rampe (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga : tout le Protérozoïque restait en boule de neige.
             },
             // Barycentre (📿💫+📿☄️)/maxTics → interpolation des params entre ▶ et ◀
             // 🔒 ☀️ n'est PAS dans 🔀 : luminosité calculée par Gough (1981) depuis la date, pas interpolée linéairement
@@ -671,14 +677,14 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            'order': ['💫', '💫', '💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 600 }, // v-2026-09-24 : 🔺⏳ 590 → 600 (2 clics (rampe 50 %, 100 % vers 1a), le 3ᵉ passe — 1780 Ma)
+            'order': [{ '🕰': '💫', '🔺⏳': 600 }, { '🕰': '💫', '🔺⏳': 600 }, { '🕰': '💫', '🔺⏳': 600 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 590 → 600 (2 clics (rampe 50 %, 100 % vers 1a), le 3ᵉ passe — 1780 Ma)
             // v-2026-07-14 : bary ACTIVÉ. 🔀 sans ◀ → cible auto = racine de l'époque suivante (hyst 1a).
             // Rampe les masses ⚖️ le long de 2500→750 Ma : CO₂ 12000→53 ppm, CH₄ 250→7 ppm, O₂ 1.5e16→5e15, etc.
             // Avant : pas de 🔀 → masses figées (saut brutal à −750 Ma constaté en visu). Cf. moteur compute.js même date.
             '🔀': ['⚖️'],
         },
-        // Ancien 🕰 (sans bary) : { '💫': { '🔺🌡️💫': 0, '🔺⏳': 590 } }
+        // Ancien 🕰 (sans bary) : { '💫': { '🔺🌡️💫': 0 } }
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 : 🪸 Protérozoïque — post-GOE, premiers eucaryotes marins (acritarches ~1.8 Ga),
         // algues rouges ~1.2 Ga. Diversification lente, encore dominés par procaryotes.
@@ -833,8 +839,8 @@ const timeline = [
         // dans la config de ⛄. C'est voulu pour la lisibilité utilisateur (« je clique le volcan → snowball »).
         // v-2026-07-16.
         '🕰': {
-            'order': ['🗻'],
-            '🗻': { '🔺⏳': 3 }, // v-2026-09-24 : 🔺⏳ 30 → 3 (durée 720→717)
+            'order': [{ '🕰': '🗻', '🔺⏳': 3 }],
+            '🗻': {}, // v-2026-09-24 : 🔺⏳ 30 → 3 (durée 720→717)
         },
         '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
@@ -949,13 +955,12 @@ const timeline = [
     // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
     // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
     "🕰": {
-        "order": ["💫", "🌋"],
+        'order': [{ '🕰': '💫', '🔺⏳': 29 }, { '🕰': '🌋', '🔺⏳': 29 }],
         "💫": {
             "🔺🌡️💫": 0,
-            "🔺⏳": 29, // v-2026-09-24 : 🔺⏳ 10 → 29 (moitié de 717→659)
             "🍰⚽": 0
         },
-        "🌋": { "🔺⏳": 29 } // v-2026-09-24 : 🔺⏳ 20 → 29 (seconde moitié → 1b)
+        "🌋": {} // v-2026-09-24 : 🔺⏳ 20 → 29 (seconde moitié → 1b)
     },
     "🌱": 0,
     "🧫": 0.05,
@@ -1017,12 +1022,12 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
-            'order': ['💫', '💫', '💫'],
+            'order': [{ '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }],
             // v-2026-09-24 : 🔀 fait glisser les masses de 1b vers celles de 🏂 pendant les 💫 (comme 🪸 → 1a) :
             //   sortie du Sturtien (CO₂ au seuil de sortie), puis retombée du CO₂ jusqu'à la frontière d'entrée
             //   du Marinoen. Le 3ᵉ 💫 (21 Ma ≥ 20) passe dans 🏂.
             '🔀': ['⚖️'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 7 }, // v-2026-09-24 : 🔺⏳ 90 → 7 (2 clics (rampe vers 🏂), le 3ᵉ passe — 20 Ma)
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 90 → 7 (2 clics (rampe vers 🏂), le 3ᵉ passe — 20 Ma)
         },
         '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
@@ -1110,13 +1115,12 @@ const timeline = [
     // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
     // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
     "🕰": {
-        "order": ["💫", "🌋"],
+        'order': [{ '🕰': '💫', '🔺⏳': 1.9 }, { '🕰': '🌋', '🔺⏳': 1.9 }],
         "💫": {
             "🔺🌡️💫": 0,
-            "🔺⏳": 1.9, // moitié de 639 → 635,2
             "🍰⚽": 0
         },
-        "🌋": { "🔺⏳": 1.9 } // seconde moitié → hysteresis 1c (sortie Marinoenne)
+        "🌋": {} // seconde moitié → hysteresis 1c (sortie Marinoenne)
     },
     "🌱": 0,
     "🧫": 0.05,
@@ -1174,8 +1178,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
-            'order': ['💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 96.4 }, // durée 635,2 → 538,8
+            'order': [{ '🕰': '💫', '🔺⏳': 96.4 }],
+            '💫': { '🔺🌡️💫': 0 }, // durée 635,2 → 538,8
         },
         '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
@@ -1215,8 +1219,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.986169e18,
         '🕰': {
-            'order': ['💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 119.6 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
+            'order': [{ '🕰': '💫', '🔺⏳': 119.6 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
         },
         '🌱': 0.0, // Avant -420 Ma : végétation terrestre absente/marginale
         // 🧫 : 🪼 Paléozoïque marin (600→420 Ma) — explosion cambrienne, radiation des
@@ -1254,8 +1258,8 @@ const timeline = [
         // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
         // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
         '🕰': {
-            'order': ['💫', '💫', '💫', '💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 41.75 }, // v-2026-09-24 : 🔺⏳ 35 → 41.75 (3 états 🔁 + transition — 167 Ma)
+            'order': [{ '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 35 → 41.75 (3 états 🔁 + transition — 167 Ma)
             // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣.
             // Le drawdown du Dévonien-Carbonifère : racines profondes → altération des silicates, puis
             // enfouissement massif du carbone organique (le charbon). Réfs : Berner & Kothavala 2001
@@ -1310,8 +1314,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.984919e18,
         '🕰': {
-            'order': ['💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.3 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
+            'order': [{ '🕰': '💫', '🔺⏳': 0.3 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
         },
         '🌱': 0.25,
         // 🧫 : 💀 Limite P/T (280→250 Ma) — extinction massive marine (~96% espèces),
@@ -1355,10 +1359,9 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.1370828e18,
         '🕰': {
-            'order': ['💫', '🎇'], // v-2026-10-12 : 🎇 K-Pg ferme l'époque (⏩ 🦤) ; il n'était jamais proposé (ACTION_BY_DATE 66 → 💫)
+            'order': [{ '🕰': '💫', '🔺⏳': 100 }, { '🕰': '🎇', '🔺⏳': 0 }], // v-2026-10-12 : 🎇 K-Pg ferme l'époque (⏩ 🦤) ; il n'était jamais proposé (ACTION_BY_DATE 66 → 💫)
             '💫': {
                 '🔺🌡️💫': -2,
-                '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
             }, // Événement 50 Ma
             '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
         },
@@ -1398,8 +1401,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063495395e18,
         '🕰': {
-            'order': ['💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 10 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
+            'order': [{ '🕰': '💫', '🔺⏳': 10 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
         },
         '🌱': 0.31,
         // 🧫 : 🦤 Cénozoïque (66→50 Ma) — phytoplancton moderne installé, CLAW active.
@@ -1439,8 +1442,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.059095395e18,
         '🕰': {
-            'order': ['💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 21.6 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
+            'order': [{ '🕰': '💫', '🔺⏳': 21.6 }],
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
         },
         '🌱': 0.31,
         // 🧫 : 🐊 Éocène (50→35 Ma) — PETM, CLAW moderne.
@@ -1481,8 +1484,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063345395e18,
         '🕰': {
-            'order': ['⛰'],
-            '⛰': { '🔺🌡️💫': 0, '🔺⏳': 0.5 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
+            'order': [{ '🕰': '⛰', '🔺⏳': 0.5 }],
+            '⛰': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
         },
         '🌱': 0.31,
         // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
@@ -1520,8 +1523,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            'order': ['💫', '💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
+            'order': [{ '🕰': '💫', '🔺⏳': 16 }, { '🕰': '💫', '🔺⏳': 16 }],
+            '💫': { '🔺🌡️💫': 0 },
             // Interpolation 🔀 en fonction de la date courante 📜📅 (pas du seul compte de tics) — 33 Ma → 2 Ma.
             'baryFromDate': true,
             '🔀': ['📅', '📜'],
@@ -1571,10 +1574,10 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            'order': ['💫', '💫', '💫', '💫'],
+            'order': [{ '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }],
             // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
             // Un clic = un DEMI-cycle représentatif, pas un cycle réel de 41 ka (2 Ma en tics de 41 ka = 49 clics).
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.6421 }, // v-2026-09-24 : 🔺⏳ 0.5 → 0.6421 (3 états 🔁 + transition — 2,5683 Ma)
+            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 0.5 → 0.6421 (3 états 🔁 + transition — 2,5683 Ma)
             // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu).
             // Mécanisme générique (compute.js getEpochDateConfig) : '⚾' = obliquité ε courante (→ 📜⚾),
             // clés '⚖️*' = masses imposées pour l'état (→ 📜🔁⚖️, lues par getMasses). AUCUN texte ici :
@@ -1632,8 +1635,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            'order': ['💫', '💫', '💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0039 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
+            'order': [{ '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }],
+            '💫': { '🔺🌡️💫': 0 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
         },
         '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
@@ -1669,8 +1672,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
-            'order': ['💫', '💫'],
-            '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000125 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
+            'order': [{ '🕰': '💫', '🔺⏳': 0.000125 }, { '🕰': '💫', '🔺⏳': 0.000125 }],
+            '💫': { '🔺🌡️💫': 0 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
         },
         '🌱': 0.31,
         // 🧫 : 🚂 Industriel — CLAW moderne + début SO₂ anthropique (le vrai boost sulfate arrive via anthro_factor).

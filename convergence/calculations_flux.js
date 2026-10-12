@@ -1,7 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.3.0
+// Version 1.4.0
+// - v1.4.0 (2026-10-12): pas de recherche = pente MESURÉE (sécante) ; à défaut, et pour la tolérance, rétroaction de
+//   Planck au niveau d'émission 4σT_e³ (T_e = (OLR/σ)^¼) au lieu de 4σT_s³ (surface nue) — sous une atmosphère
+//   épaisse, la tolérance valait ~6 000 W/m² et la recherche avançait de 4 K par pas.
 // Date: [October 10, 2026]
 // Logs:
 // - v1.3.0: PAS DE GARDES. Supprimés : `if (callback)` (callback obligatoire), try/catch autour de
@@ -318,12 +321,20 @@ function detectOscillationStallOnTrace(Tosc, tolWm2) {
         || detectMicroHysteresisStall(Tosc.t, Tosc.d, tolWm2);
 }
 
-/** Tolérance flux (W/m²) = max(4σT³×precision_K, tolMinWm2). Source unique : window.CONFIG_COMPUTE. */
-function computeToleranceWm2(T_K, precision_K) {
+/**
+ * Rétroaction de Planck au niveau d'émission [W/m²/K] : 4σT_e³, T_e = (OLR/σ)^¼. C'est la sensibilité de l'OLR à
+ * la température quand tout le profil se décale — celle de la planète, pas celle d'une surface nue (4σT_s³).
+ * Terre actuelle : 3,8 (T_e = 255 K) contre 5,4 avec T_s ; sous une atmosphère de vapeur à 1 360 K : ~10 contre 570.
+ */
+function penteDePlanck(OLR) {
     const CONST = window.CONST;
-    const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
-    const tolRaw = 4 * CONST.STEFAN_BOLTZMANN * Math.pow(T_K, 3) * precision_K;
-    return Math.max(tolRaw, CONFIG_COMPUTE.tolMinWm2);
+    return 4 * CONST.STEFAN_BOLTZMANN * Math.pow(OLR / CONST.STEFAN_BOLTZMANN, 0.75);
+}
+
+/** Tolérance flux (W/m²) = max(penteDePlanck(OLR) × precision_K, tolMinWm2) : « T à precision_K de l'équilibre ».
+ *  OLR : celui du dernier transfert ; avant le premier, l'émission est celle de la surface (σT⁴). */
+function computeToleranceWm2(OLR, precision_K) {
+    return Math.max(penteDePlanck(OLR) * precision_K, window.CONFIG_COMPUTE.tolMinWm2);
 }
 
 // Calcule T0 initial. Nouveau run (previous vide) : toujours T0 = époque. En anim en cours (previous non vide) : garder T actuelle.
@@ -360,7 +371,7 @@ function calculateT0() {
     // On doit mettre à jour DATA['🧮']['🧮🌡️'] pour que la convergence utilise cette nouvelle valeur
     // Pour la convergence, c'est TOUJOURS DATA['🧮']['🧮🌡️'] qui est utilisé
     DATA['🧮']['🧮🌡️'] = DATA['🧮']['🧮🌡️🚩'];
-    DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧮']['🧮🌡️'], DATA['📜']['🧲🔬']);
+    DATA['🧮']['🧲🔬'] = computeToleranceWm2(window.CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4), DATA['📜']['🧲🔬']);
 }
 
 // Fonction helper pour récupérer les valeurs de gaz depuis DATA
@@ -415,10 +426,16 @@ function initForConfig() {
 // isFirst: true = après config, on pousse le premier cycle dans Convergence.
 // Async + yields pour que le bouton Stop soit cliquable pendant les calculs.
 // ============================================================================
+/** Dernier point de la recherche (T, Δ) : sert à mesurer la pente réelle dΔ/dT. Remis à zéro à chaque calcul. */
+let dernierPointRecherche = null;
+
 /** Calcule l'incrément Search (incTemp) en K.
- * Formule physique : ΔT = Δ/(4σT³) (linéarisation Stefan-Boltzmann, dF/dT = 4σT³).
+ * Pente MESURÉE (sécante sur les deux derniers points) quand elle est exploitable (Δ décroît avec T) : ΔT = −Δ/(dΔ/dT).
+ * Sinon (1er pas, pente non décroissante) : rétroaction de Planck au niveau d'émission, ΔT = Δ/(4σT_e³) — l'ancien
+ * 4σT_s³ était celle d'une surface nue. Sous une atmosphère épaisse la vraie pente
+ * d'OLR est bien plus faible que 4σT³ (sous une atmosphère de vapeur, ~80 W/m²/K contre 3 500 à 2 500 K) : le pas
+ * corps noir y fait des pas de 4 à 20 K et n'atteint pas l'équilibre en 101 itérations.
  * Cap max : CONFIG_COMPUTE.maxSearchStepK. Si |Δ| > largeDeltaFactor×tol : maxSearchStepLargeK.
- * Hadéen (T>2000K) : cap 80 K pour éviter oscillation.
  */
 function computeSearchIncrement() {
     const DATA = window.DATA;
@@ -432,8 +449,11 @@ function computeSearchIncrement() {
     if (!Number.isFinite(dFlux)) {
         throw new Error('[computeSearchIncrement] contrat: 🔺🧲 (déséquilibre radiatif) fini — reçu ' + dFlux);
     }
-    const sigmaT3 = 4 * CONST.STEFAN_BOLTZMANN * Math.pow(T, 3);
-    let res = dFlux / sigmaT3;
+    const sigmaT3 = penteDePlanck(DATA['🧲']['🧲🌈🔼']);
+    const pente = (dernierPointRecherche !== null && dernierPointRecherche.T !== T)
+        ? (dFlux - dernierPointRecherche.d) / (T - dernierPointRecherche.T) : 0;
+    let res = pente < 0 ? -dFlux / pente : dFlux / sigmaT3;
+    dernierPointRecherche = { T: T, d: dFlux };
     if (Number.isNaN(res)) {
         throw new Error('[computeSearchIncrement] ΔT=Δ/(4σT³) indéterminé (T=' + T + ' Δ=' + dFlux + ' 4σT³=' + sigmaT3 + ')');
     }
@@ -543,6 +563,7 @@ async function computeRadiativeTransfer(callback) {
     try {
     if (window.ABORT_COMPUTE) return null;
     callback('convergenceStart', null);
+    dernierPointRecherche = null;
     window._convergenceOscTrace = { t: [], d: [] };
     const maxWaterPass = 5;
     DATA['🧮']['🧮🔄🪩'] = 0;
@@ -637,7 +658,7 @@ async function computeRadiativeTransfer(callback) {
     if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[Init] OLR=' + flux_sortant_effectif_init.toFixed(2) + ' Δ=' + delta_equilibre_init.toFixed(2));
     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
     window.H2O.calculateH2OGreenhouseForcing();
-    DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧮']['🧮🌡️'], DATA['📜']['🧲🔬']);
+    DATA['🧮']['🧲🔬'] = computeToleranceWm2(flux_sortant_effectif_init, DATA['📜']['🧲🔬']);
 
     DATA['🧮']['🧮☯'] = Math.sign(delta_equilibre_init);
     DATA['🧮']['🧮⚧'] = 'Search';
@@ -690,7 +711,7 @@ async function computeRadiativeTransfer(callback) {
         DATA['🧮']['🔬🌈'] = getBinsFromDelta(DATA['🧲']['🔺🧲']);
         // Mettre à jour hauteur atmosphère (📏🫧🧿, 📏🫧🛩) depuis T courante : même grille verticale à 15,8°C en cold/warm start
         window.ATM.updateAtmosphereHeightFromCurrentT();
-        DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧮']['🧮🌡️'], DATA['📜']['🧲🔬']);
+        DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧲']['🧲🌈🔼'], DATA['📜']['🧲🔬']);
         // Météo : 2 ou N cycles eau/albédo par pas radiatif ; un snapshot CycleEau par cycle pour affichage
         const maxWaterAlbedo = CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep;
         if (maxWaterAlbedo <= 1) {

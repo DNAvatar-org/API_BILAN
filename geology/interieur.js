@@ -21,8 +21,10 @@
 //       Approximations DÉCLARÉES : manteau et noyau refroidissent ensemble (un seul T) ; la croûte continentale
 //       est dans le même réservoir ; ΔT de la loi de convection pris sur la surface de référence T_s0 (les
 //       écarts de climat, ±50 K, sont petits devant ΔT ≈ 1300 K) ; solidus/liquidus à 0 GPa.
-// Version 1.0.0
-// Date: 2026-09-24
+// Version 1.1.0
+// Date: 2026-10-12
+// Logs: v1.1.0 — rayonKm : le rayon (📜📐) suit la température de l'intérieur (dilatation α_V, gonflement de fusion),
+//       au lieu de −120 km par clic quelle que soit sa durée.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
     'use strict';
@@ -69,7 +71,16 @@
         E_ACTIVATION: 300e3,           // [J/mol]
         Q0: 46e12,                     // [W]
         T0: 1350 + 273.15,             // [K]
-        T_S0: 14.4 + 273.15            // [K]
+        T_S0: 14.4 + 273.15,           // [K]
+        // RAYON f(T) : la planète se dilate en chauffant et gonfle en fondant.
+        // ⚠️ FOURCHETTE : dilatation volumique moyenne de la Terre 1e-5–3e-5 K⁻¹ (manteau supérieur 3e-5,
+        //    Turcotte & Schubert 2014 table 4.1 ; elle décroît avec la pression, Chopelas & Boehler 1992 GRL 19:1983 ;
+        //    noyau ~1e-5) → milieu.
+        ALPHA_V: 2e-5,                 // [1/K]
+        // ⚠️ FOURCHETTE : variation de volume à la fusion de la péridotite, ~7 % à 0 GPa → ~0 vers 12 GPa (croisement
+        //    de densité liquide/solide, Stolper, Walker, Hager & Hays 1981, JGR 86:6261) ; moyenne sur un manteau
+        //    fondu → milieu.
+        DV_FUSION: 0.035               // [-]
     };
     K.M_BSE = K.M_TERRE - K.M_NOYAU;                                  // [kg] Terre silicatée
     K.C_SENSIBLE = K.M_BSE * K.C_MANTEAU + K.M_NOYAU * K.C_NOYAU;     // [J/K]
@@ -173,6 +184,21 @@
         N['🧲🌕'] = N['🔋🌕'] / aire;
     }
 
+    /**
+     * [km] Rayon de la planète depuis l'état de l'intérieur — UNE source (📜📐), plus de −120 km par clic :
+     *   R = R_froid · (1 + α_V/3 · (T − T₀) + φ · ΔV_f/3)
+     * R_froid = EPOCH['📐'] : le rayon de la config à T₀ (aujourd'hui, 1 350 °C). φ = fraction fondue (solidus →
+     * liquidus) tant que le manteau est un océan de magma ; 0 ensuite (manteau solide — le solidus à 0 GPa ne vaut
+     * pas pour tout le manteau). Avant l'intérieur (⚫, proto-Terre) : le rayon de la config, tel quel.
+     */
+    function rayonKm(DATA) {
+        const R = window.TIMELINE[DATA['📜']['👉']]['📐'];
+        const T = DATA['🌕']['🌡️🌕'];
+        if (!(T > 0)) return R;
+        const phi = estFondu(DATA) ? Math.max(0, Math.min(1, (T - K.T_SOLIDUS) / (K.T_LIQUIDUS - K.T_SOLIDUS))) : 0;
+        return R * (1 + K.ALPHA_V / 3 * (T - K.T0) + phi * K.DV_FUSION / 3);
+    }
+
     /** Fondu tant que la transition rhéologique n'a pas été franchie (📅🧊🌕 = date de solidification, 0 = pas encore). */
     function estFondu(DATA) {
         return DATA['🌕']['🌡️🌕'] > 0 && !(DATA['🌕']['📅🧊🌕'] > 0);
@@ -202,6 +228,7 @@
             N['🌡️🌕'] = integrerSolide(N['🌡️🌕'], N['📅🌕'], tAgo);
             N['📅🌕'] = tAgo;
         }
+        DATA['📜']['📐'] = rayonKm(DATA);
         if (estFondu(DATA)) {   // surface = magma : l'intérieur perd ce qui part vers l'espace moins le solaire absorbé
             N['🧲🌕'] = await olrNet(N['🌡️🌕']);
             N['🔋🌕'] = N['🧲🌕'] * 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
@@ -210,5 +237,5 @@
         publier(DATA);
     }
 
-    window.INTERIEUR = { CONST: K, puissanceRadiogenique, puissanceConvective, capacite, integrerSolide, refroidirMagma, avancer, publier, estFondu, ageCourant };
+    window.INTERIEUR = { CONST: K, rayonKm, puissanceRadiogenique, puissanceConvective, capacite, integrerSolide, refroidirMagma, avancer, publier, estFondu, ageCourant };
 })();

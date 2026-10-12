@@ -9,9 +9,12 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.2.0
+// Version 1.3.1
+// - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
 // Date: 2026-10-12
 // Logs:
+// - v1.3.0: la durée d'un clic est sur l'entrée de séquence ({ '🕰': action, '🔺⏳': Ma }), plus sur l'action : un
+//   même 💫 peut valoir 1 ka puis 379 Ma (🔥). pas(key) pour les libellés ; 📿🕰 compte tous les clics de l'époque.
 // - v1.2.0: 🕰.order dans toutes les époques (config) : prochaineAction = order au curseur (plus de repli 💫 ni
 //   « l'unique action »), jouer crashe sur une action hors séquence, et chaque séquence est vérifiée au
 //   chargement (elle doit atteindre la fin de l'époque à son dernier clic, ou finir par 🎇 ⏩).
@@ -56,23 +59,24 @@ window.CLICS = (function () {
     }
 
     /**
-     * Au chargement : chaque séquence 🕰.order doit traverser son époque exactement — le dernier clic, et lui seul,
-     * atteint la fin (⏳ ≥ durée) ; ou bien elle finit par un 🎇 qui passe (⏩) avant. Sinon la config ment :
-     * crash, avec l'époque en cause.
+     * Au chargement : chaque séquence 🕰.order — des entrées { '🕰': action, '🔺⏳': durée du clic en Ma } — doit
+     * traverser son époque exactement : le dernier clic, et lui seul, atteint la fin (⏳ ≥ durée) ; ou bien elle finit
+     * par un 🎇 qui passe (⏩) avant. Sinon la config ment : crash, avec l'époque en cause.
      */
     window.TIMELINE.forEach(function (EP) {
         const W = EP['🕰'];
         if (parTranche(W)) return;
         const duree = Math.abs(EP['◀'] - EP['▶']) / 1e6;
         let t = 0;
-        W.order.forEach(function (k, i) {
+        W.order.forEach(function (e, i) {
+            const k = e['🕰'];
             if (!(k in W)) throw new Error('[CLICS] ' + EP['📅'] + ' : 🕰.order[' + i + '] = ' + k + ', action non définie');
             const dernier = i === W.order.length - 1;
             if (k === '🎇' && ('⏩' in W[k])) {
                 if (!dernier) throw new Error('[CLICS] ' + EP['📅'] + ' : 🎇 ⏩ doit clore la séquence');
                 return;
             }
-            t += W[k]['🔺⏳'];
+            t += e['🔺⏳'];
             if ((t >= duree - 1e-9) !== dernier) {
                 throw new Error('[CLICS] ' + EP['📅'] + ' : le clic ' + (i + 1) + '/' + W.order.length + ' (' + k + ') porte ⏳ à ' + t + ' Ma pour une durée de ' + duree + ' Ma');
             }
@@ -95,7 +99,16 @@ window.CLICS = (function () {
                 const tranche = trancheActive(epoque());
                 return tranche === null ? null : Object.keys(tranche)[0];
             }
-            return W.order[window.DATA['📜']['📿🕰']];
+            const c = window.DATA['📜']['📿🕰'];
+            return c === W.order.length ? undefined : W.order[c]['🕰'];
+        },
+
+        /** Durée (Ma) qu'ajouterait un clic sur `key` maintenant : celle de l'entrée de séquence au curseur, ou, sur 📱,
+         *  celle de l'action dans la tranche active. Pour les libellés (« +100 ka par clic »). */
+        pas: function (key) {
+            const W = epoque()['🕰'];
+            if (parTranche(W)) return trancheActive(epoque())[key]['🔺⏳'];
+            return W.order[window.DATA['📜']['📿🕰']]['🔺⏳'];
         },
 
         /** Durée de l'époque courante (Ma). */
@@ -104,7 +117,9 @@ window.CLICS = (function () {
             return Math.abs(EP['◀'] - EP['▶']) / 1e6;
         },
 
-        /** Clic sur la frise : on (re)part de l'époque, sa graine, sans rien hériter (voile, eau des météorites). */
+        /** Clic sur la frise : on (re)part de l'époque, sa graine, sans rien hériter (voile, eau des météorites,
+         *  ni l'état de l'intérieur : 🌡️🌕 = 0 → INTERIEUR.avancer repart de la condition initiale de la config et
+         *  intègre jusqu'à la date de l'époque, au lieu de prolonger l'histoire des clics précédents). */
         frise: function (epochId) {
             const H = window.DATA['📜'];
             poserEpoque(H, epochId);
@@ -112,6 +127,7 @@ window.CLICS = (function () {
             H['🔺🍰⚽'] = 0;
             H['🔺⚖️💧'] = 0;
             H['_veilTimelinePulseActive'] = false;
+            window.DATA['🌕']['🌡️🌕'] = 0;
         },
 
         /** Passage à l'époque suivante au fil des clics : l'état (T°, glace, voile) est conservé. */
@@ -129,8 +145,11 @@ window.CLICS = (function () {
             const EP = epoque();
             const W = EP['🕰'];
             const tranche = parTranche(W) ? trancheActive(EP) : null;
-            if (tranche === null && W.order[H['📿🕰']] !== key) {
-                throw new Error('[CLICS] ' + key + ' joué sur ' + EP['📅'] + ' alors que 🕰.order attend ' + W.order[H['📿🕰']] + ' (clic n° ' + H['📿🕰'] + ')');
+            // Durée du clic : portée par l'entrée de séquence (le même 💫 peut durer 1 ka ou 379 Ma), ou par l'action
+            // de la tranche sur 📱.
+            const entree = (tranche === null) ? W.order[H['📿🕰']] : tranche[key];
+            if (tranche === null && entree['🕰'] !== key) {
+                throw new Error('[CLICS] ' + key + ' joué sur ' + EP['📅'] + ' alors que 🕰.order attend ' + entree['🕰'] + ' (clic n° ' + H['📿🕰'] + ')');
             }
             const cfg = (tranche !== null) ? tranche[key] : W[key];
 
@@ -156,8 +175,8 @@ window.CLICS = (function () {
                 }
             }
             H['🔘🕰'] = key;
-            if (tranche === null) H['📿🕰'] += 1;
-            H['⏳'] += ('🔺⏳' in cfg) ? cfg['🔺⏳'] : 0;
+            H['📿🕰'] += 1;               // clics joués dans l'époque (curseur de la séquence ; compte aussi ceux de 📱)
+            H['⏳'] += entree['🔺⏳'];
 
             if (key === '🎇' && ('⏩' in cfg)) return { passage: cfg['⏩'] };
             const derniere = H['👉'] + 1 >= window.TIMELINE.length;

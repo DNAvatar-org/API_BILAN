@@ -201,10 +201,8 @@ function updateTimelineDisplay() {
     // Durée d'un tic : celle de la prochaine action (CLICS.prochaineAction ; 📱 : celle de la tranche active).
     if (ticDurationEl) {
         const key = window.CLICS.prochaineAction();
-        const W = EPOCH['🕰'];
-        const tranche = Object.keys(W).some(function (k) { return !isNaN(Number(k)); }) ? window.CLICS.trancheActive() : W;
-        if (key !== null && key !== undefined && ('🔺⏳' in tranche[key])) {
-            ticDurationEl.textContent = '1 tic = ' + tranche[key]['🔺⏳'] + ' Ma';
+        if (key !== null && key !== undefined) {
+            ticDurationEl.textContent = 'prochain clic = ' + window.CLICS.pas(key) + ' Ma';
             ticDurationEl.style.display = '';
         } else {
             ticDurationEl.style.display = 'none';

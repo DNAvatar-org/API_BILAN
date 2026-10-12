@@ -1,7 +1,10 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.1.0
+// Version 1.2.0
+// - v1.2.0 (2026-10-12): saturation IAPWS (PHYS.pSatEau) au lieu de Clausius-Clapeyron à L constante ; ébullition =
+//   tSatEau. Régime sans océan possible (PHYS.eauSansLiquide) : toute l'eau en vapeur (poserToutVapeur), sans
+//   humidité relative de surface, ni Iris, ni pluie — paramétrisations d'un monde à océan.
 // Date: [October 10, 2026]
 // logs :
 // - v1.1.0: PAS DE GARDES. M_dry dans une seule fonction (dryMolarMassWeighted, recopiée 2 fois) — ⚠️ c'est une
@@ -67,38 +70,44 @@
 // - Résultat observé (AIRS, ERA5, CMIP6): la vapeur augmente typiquement d'environ 6.5-7% par degré C,
 //   proche de Clausius-Clapeyron mais bridée par la dynamique convective.
 function calculateSaturatedVaporPressure() {
-    const DATA = window.DATA;
-    const CONST = window.CONST;
-    const temp_K = DATA['🧮']['🧮🌡️'];
-    
-    // 🔒 OPTIONNEL: Ajuster L_v avec la température pour plus de précision
-    // L_v diminue légèrement avec la température (approximation linéaire)
-    // À 273.15K: L_v = 2.501e6 J/kg
-    // À 373.15K: L_v ≈ 2.257e6 J/kg (diminution d'environ 10%)
-    // Formule: L_v = 2.501e6 - 2300 × (T - CONST.KELVIN_TO_CELSIUS)
-    // Pour l'instant, on utilise L_v constant (CONST.L_VAPORIZATION = 2.5e6 J/kg)
-    // Si besoin de plus de précision, décommenter la ligne suivante:
-    // const L_v = 2.501e6 - 2300 * (temp_K - CONST.T0_WATER);
-    const L_v = CONST.L_VAPORIZATION; // Utiliser la constante pour l'instant
-    
-    // Clausius-Clapeyron intégrée, ancrée au POINT TRIPLE de l'eau (273,16 K / 611,657 Pa, IAPWS) :
-    // une propriété mesurée de la substance, pas un point du climat actuel. v-2026-09-23 — avant,
-    // l'ancrage était (273,15 K / 611,2 Pa), soit la saturation à 0 °C, annoncée à tort « point triple ».
-    const exponent = (L_v / CONST.RV_WATER) * (1 / CONST.T_TRIPLE_WATER - 1 / temp_K);
-    const P_sat = CONST.P_TRIPLE_WATER * Math.exp(exponent);
-    return P_sat;
+    // IAPWS (Wagner & Pruss 2002 ; glace : Wagner et al. 2011) — physics.js. +∞ au-delà du point critique.
+    return window.PHYS.pSatEau(window.DATA['🧮']['🧮🌡️']);
 }
 
-// Point d'ébullition de l'eau à la pression P (Clausius-Clapeyron inverse).
-// P_atm en atm ; retourne T_boil en K. P_sat(T_boil) = P_total ⇒ 1/T_boil = 1/T0 - (R_v/L_v)*ln(P_total/P0).
+// Point d'ébullition de l'eau à la pression totale P [atm] : la saturation IAPWS inversée. Au-delà de la pression
+// critique (218 atm), l'eau ne bout plus : elle passe continûment au fluide supercritique (T_c).
 function getBoilingPointKFromPressure(P_atm) {
-    const CONST = window.CONST;
-    const P_total_Pa = P_atm * CONV.STANDARD_ATMOSPHERE_PA;
-    if (P_total_Pa <= 0) return CONST.T_BOIL;
-    const ln_P = Math.log(P_total_Pa / CONST.P_TRIPLE_WATER);
-    const inv_T = 1 / CONST.T_TRIPLE_WATER - (CONST.RV_WATER / CONST.L_VAPORIZATION) * ln_P;
-    if (inv_T <= 0) return CONST.T_BOIL;
-    return 1 / inv_T;
+    const P_Pa = P_atm * CONV.STANDARD_ATMOSPHERE_PA;
+    return P_Pa >= window.PHYS.EAU.P_C ? window.PHYS.EAU.T_C : window.PHYS.tSatEau(P_Pa);
+}
+
+/**
+ * Pas d'océan possible (PHYS.eauSansLiquide) : TOUTE l'eau est en vapeur. Fraction massique d'air humide
+ * w = ⚖️💧 / (⚖️💧 + ⚖️🫧) (⚖️🫧 = air sec) ; ni liquide, ni glace, ni pluie. L'humidité relative de surface,
+ * l'effet « Iris » et les précipitations sont des paramétrisations d'un monde à océan : elles ne s'appliquent pas.
+ */
+function poserToutVapeur() {
+    const DATA = window.DATA;
+    const m = DATA['⚖️'];
+    const w = m['⚖️💧'] / (m['⚖️💧'] + m['⚖️🫧']);
+    DATA['💧']['🍰🫧💧'] = w;
+    DATA['💧']['🍰💧🌊'] = 0;
+    DATA['💧']['🍰💧🧊'] = 0;
+    DATA['💧']['🧲⚖️💦'] = 0;
+    DATA['🫧']['🍰🫧🏭'] = m['⚖️🏭'] / m['⚖️🫧'] * (1 - w);
+    DATA['🫧']['🍰🫧🐄'] = m['⚖️🐄'] / m['⚖️🫧'] * (1 - w);
+    DATA['🫧']['🍰🫧🫁'] = m['⚖️🫁'] / m['⚖️🫧'] * (1 - w);
+    DATA['🫧']['🍰🫧✈'] = m['⚖️✈'] / m['⚖️🫧'] * (1 - w);
+    DATA['🫧']['🍰🫧💨'] = m['⚖️💨'] / m['⚖️🫧'] * (1 - w);
+    window.ATM.calculatePressureAtm();
+    window.ATM.calculateMolarMassAir();
+    const P = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
+    const p_sat = calculateSaturatedVaporPressure();
+    const x_v = (w / window.CONST.M_H2O) * DATA['🫧']['🧪'];   // fraction molaire de vapeur
+    DATA['💧']['🍰🧪🌧'] = Math.min(1, p_sat / P);                // fraction molaire maximale (1 : aucune limite)
+    DATA['💧']['🍰🌧💧'] = x_v * P / p_sat;                       // humidité relative (0 au-delà du point critique)
+    calculateH2OGreenhouseForcing();
+    window.H2O._lastH2OParamsCache = null;
 }
 
 //Calcule la fraction volumique maximale de vapeur d'eau à saturation
@@ -151,6 +160,8 @@ function calculateWaterPartition() {
     //const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const STATE = window.STATE;
     const ALBEDO = window.ALBEDO;
+
+    if (window.PHYS.eauSansLiquide()) { poserToutVapeur(); return true; }
 
     // ⚫ TIMELINE : pas d’atmosphère. Si ⚖️🫧 n’est pas encore resynchronisé (résidu d’époque précédente),
     // le test ⚖️🫧==0 seul laissait passer la branche « atmosphère complète » → 🍰💧🧊 ~70–75 % à froid.
@@ -398,6 +409,7 @@ function calculatePrecipitationFeedback() {
 
     // 1. Calculer 🍰🌧💧, 💭☔, 🧲⚖️💦 (via calculateCloudFormationIndex)
     ALBEDO.calculateCloudFormationIndex();
+    if (window.PHYS.eauSansLiquide()) { DATA['💧']['🧲⚖️💦'] = 0; return; }   // aucune pluie sans liquide possible
     
     const relative_humidity = DATA['💧']['🍰🌧💧'];
     // const precip_threshold = DATA['💧']['💭☔']; // inutilisé (nettoyage)
@@ -425,7 +437,7 @@ function calculatePrecipitationFeedback() {
     const has_precipitation = precip_rate_enhanced > 0 && DATA['📅']['🔺⏳'] > 0 && atm_mass_total > 0;
     if (has_precipitation) {
         const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-        const planet_radius_km = EPOCH['📐'];
+        const planet_radius_km = DATA['📜']['📐'];
         const planet_surface_m2 = 4 * Math.PI * Math.pow(planet_radius_km * 1000, 2);
         const precipitation_mass_kg = precip_rate_enhanced * planet_surface_m2 * DATA['📅']['🔺⏳'];
         precipitation_loss_fraction = precipitation_mass_kg / atm_mass_total;
@@ -542,7 +554,7 @@ function calculateH2OParametersWithIteration() {
         const has_precipitation_inner = precip_rate_enhanced_inner > 0 && DATA['📅']['🔺⏳'] > 0 && DATA['⚖️']['⚖️🫧'] > 0;
         if (has_precipitation_inner) {
             const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-            const planet_radius_km = EPOCH['📐'];
+            const planet_radius_km = DATA['📜']['📐'];
             const planet_surface_m2 = 4 * Math.PI * Math.pow(planet_radius_km * 1000, 2); // Surface en m²
             const precipitation_mass_kg = precip_rate_enhanced_inner * planet_surface_m2 * DATA['📅']['🔺⏳']; // Masse précipitée en kg
             precipitation_loss_fraction = precipitation_mass_kg / DATA['⚖️']['⚖️🫧']; // Fraction massique précipitée
@@ -615,6 +627,9 @@ H2O.calculateH2OParameters = function () {
     //const ALBEDO = window.ALBEDO;
     const ATM = window.ATM;
     const COMPUTE = window.COMPUTE;
+    // Sans océan possible : toute l'eau en vapeur (état de phase, avant toute paramétrisation d'un monde à océan).
+    COMPUTE.getMasses();
+    if (window.PHYS.eauSansLiquide()) { poserToutVapeur(); return true; }
     // En phase Init, utiliser l'itération (précipitation / convergence vapeur)
     if (DATA['🧮']['🧮⚧'] === 'Init') {
         return calculateH2OParametersWithIteration();

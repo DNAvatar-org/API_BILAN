@@ -1,7 +1,10 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.1.0
+// Version 2.2.0
+// - v2.2.0 (2026-10-12): eau — saturation IAPWS (Wagner & Pruss 2002 / Wagner et al. 2011) et sa dérivée, tSatEau,
+//   eauSansLiquide (état de phase : océan possible ou non) ; H_vap = 1/(Γ·d ln p_sat/dT), valide jusqu'au point
+//   critique (fin de la borne « T < 600 K ») ; cp(T) des gaz (NIST-JANAF). Bloc MT_CKD scalaire (désactivé) retiré.
 // Date: [October 10, 2026]
 // logs :
 // - v2.1.0: PAS DE GARDES. computeIceTempFactor(T, EPOCH) lit lui-même 🥶 et l'obliquité (ε courant 📜⚾, ε de
@@ -470,29 +473,26 @@ EARTH.CIA_CO2_SCALE = 1.0e-2;   // [m⁻¹·amagat⁻²] v-2026-07-15 : 1e-4→1
 // Seuil Haqq-Misra 2008 : 0.1. NB : modèles plus récents (Arney et al. 2016) suggèrent plutôt 0.2.
 // Actuellement INFORMATIF UNIQUEMENT — non-lu par le worker spectral. Hook futur pour SW haze.
 
-// ─── MT_CKD H₂O continuum (Mlawer et al. 2012 JQSRT v3.5 — paramétrique simplifié) ─
-// Le continuum self-broadening + foreign-broadening de H₂O dans la fenêtre 8–12 µm
-// (et secondairement 4–6 µm) ajoute un piégeage IR additionnel à HITRAN line-by-line.
-// Forme paramétrique : trap [W/m²] = SCALE × PWV[g/cm²]² × (T_REF/T)^EXP × (P_total/P_ref)
-//   - PWV² : continuum self-broadening dominant (Clough et al. 1989)
-//   - (T_REF/T)^4.25 : dépendance T des moments dipolaires H₂O liés (Mlawer 2012)
-//   - P_total/P_ref : foreign-broadening (linéaire en P, ratio normalisé à 1 atm)
-// Calibration : sur Terre moderne (T=288 K, PWV≈2.5 g/cm²=25 kg/m², P=1 bar) → trap ≈ 12 W/m²
-//   ⇒ SCALE = 12 / (2.5² × (296/288)^4.25 × 1) ≈ 1.71
-// Refs :
-//   - Clough, Kneizys & Davies 1989 Atm. Res. 23:229 (foundational continuum theory)
-//   - Mlawer et al. 2012 JQSRT 119:65 (MT_CKD v3.5 specifications)
-//   - Schmidt et al. 2010 JGR 115:D20106 (attribution EDS H₂O ~75 W/m² Terre moderne)
-// EARTH.MT_CKD_ENABLED = false : OPT-IN. Pour activer :
-//   1. EARTH.MT_CKD_ENABLED = true (ce fichier)
-//   2. Run bench 📱 2025 — T_conv sera trop chaud (≈ +1.5°C de dérive attendue, soit ~16.5°C)
-//   3. Baisser H2O_EDS_SCALE (jauge Science via fine_tuning_bounds) jusqu'à T_moderne ≈ 15°C
-//      Estimation : 0.948 → ~0.80 (réduit EDS HITRAN de 12 W/m² pour compenser MT_CKD apporté)
-//   4. Run bench Proté/Archéen, vérifier que la branche chaude existe maintenant
-EARTH.MT_CKD_ENABLED = false;  // [booléen]
-EARTH.MT_CKD_SCALE = 1.71;  // [(W/m²)/(g/cm²)² — piégeage par PWV²]
-EARTH.MT_CKD_T_REF_K = 296;  // [K]
-EARTH.MT_CKD_T_EXPONENT = 4.25;  // [sans dimension (exposant)]
+// ─── CONTINUUM H₂O (self + foreign), spectral ────────────────────────────────────────────────
+// Absorption continue de la vapeur entre les raies (dimères, ailes lointaines) — c'est elle qui ferme la fenêtre
+// 8–12 µm dans une atmosphère humide, et qui fait la couverture d'une atmosphère de vapeur.
+// Roberts, Selby & Biberman 1976, Appl. Opt. 15:2085 (forme reprise par Pierrehumbert 2010, Principles of
+// Planetary Climate §4.4) :
+//   C_s(ν, 296 K) = a + b·exp(−β ν)            [cm² molécule⁻¹ atm⁻¹]
+//   κ = C_s(ν,T) · (e + γ_f·(P − e)) · n_H₂O     (e : pression partielle de vapeur [atm])
+//   C_s(ν,T) = C_s(ν,296)·exp[T₀ (1/T − 1/296)]   (dépendance en T négative : plus fort à froid)
+// DOMAINE DE LA MESURE : 400–1250 cm⁻¹ (8–25 µm). Ailleurs (fenêtres de 4 µm et du proche IR, qui comptent sur
+// un océan de magma), le continuum n'est PAS représenté : absence déclarée, pas une valeur inventée.
+// Remplace le « piégeage » MT_CKD scalaire (W/m² ∝ PWV², calé à 12 W/m², désactivé).
+EARTH.CONTINUUM_H2O = {
+    A: 1.25e-22,          // [cm² molécule⁻¹ atm⁻¹]
+    B: 1.67e-19,          // [cm² molécule⁻¹ atm⁻¹]
+    BETA: 7.87e-3,        // [cm]
+    T0: 1800,             // [K]
+    GAMMA_FOREIGN: 0.002, // [-] efficacité d'un collisionneur étranger rapportée à H₂O
+    NU_MIN: 400,          // [cm⁻¹] domaine de la mesure
+    NU_MAX: 1250          // [cm⁻¹]
+};
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;  // [J/(kg·K)]
@@ -531,26 +531,130 @@ function planckFunction(lambda, T) {
 
 PHYS.planckFunction = planckFunction;
 
-// ✅ SCIENTIFIQUEMENT CERTAIN (Clausius-Clapeyron + gradient adiabatique) :
-// - H_vap effectif (m) de la colonne de vapeur d'eau : r(z) = r₀·exp(-z/H_vap).
-// - Dérivation : r_sat(T) ∝ p_sat(T)/p_air ; dp_sat/dT = L·p_sat/(R·T²) (Clausius-Clapeyron) ;
-//   T(z) = T_0 − Γ·z (tropo adiabatique humide) ⇒ d(ln r_sat)/dz = −L·Γ/(R·T²) ⇒ H_vap = R·T²/(L·Γ).
-// - L(T) ≈ 2.5e6 − 2400·(T−273.15) J/kg (Bolton 1980, valide ~200–400 K).
-// - Γ = g / Cp_air (K/m). Cp_air humide ≈ 1005 J/(kg·K) (EARTH.CP_AIR_MOIST_J_KG_K).
-// - Réf. : Manabe & Wetherald 1967 ; Held & Soden 2006 ; IPCC AR6 WG1 ch.7.
-// - Terre moderne (T=288, g=9.81) → H_vap ≈ 2.4 km ; LGM (280) ≈ 2.2 km ; Hadéen chaud (500) ≈ 15 km.
-// - NE PAS confondre avec la scale-height hydrostatique R·T/(M_H2O·g) ≈ 13.6 km (gaz pur H₂O) : juste en mécanique pure mais irréaliste car H₂O condense en altitude.
-// - Domaine validité : T < 600 K (sous point critique H₂O à 647 K). Au-delà : régime supercritique non modélisé ici.
+// ═══ EAU : COURBE DE SATURATION (IAPWS) ═══════════════════════════════════════════════════════
+// Une seule loi p_sat(T), mesurée, du froid polaire au point critique — plus de Clausius-Clapeyron à L constante
+// (valide près de 273 K, fausse de +8 % à 330 K et sans objet au-delà de 647 K).
+//   · liquide–vapeur, 273,16 K ≤ T < T_c : Wagner & Pruss 2002, J. Phys. Chem. Ref. Data 31:387, éq. 2.5
+//       ln(p/p_c) = (T_c/T)·(a₁τ + a₂τ^1,5 + a₃τ³ + a₄τ^3,5 + a₅τ⁴ + a₆τ^7,5),  τ = 1 − T/T_c
+//   · glace–vapeur, T < 273,16 K : Wagner, Riethmann, Feistel & Harvey 2011, J. Phys. Chem. Ref. Data 40:043103, éq. 6
+//       ln(p/p_t) = θ⁻¹·Σ aᵢ θ^bᵢ,  θ = T/T_t
+//   · T ≥ T_c : il n'existe plus de liquide — aucune pression ne fait condenser l'eau (p_sat = +∞).
+const EAU = {
+    T_C: 647.096,          // [K]  point critique, IAPWS-95 (Wagner & Pruss 2002)
+    P_C: 22.064e6,         // [Pa] point critique, IAPWS-95
+    A: [-7.85951783, 1.84408259, -11.7866497, 22.6807411, -15.9618719, 1.80122502],   // [-] Wagner & Pruss 2002
+    N: [1, 1.5, 3, 3.5, 4, 7.5],
+    SA: [-21.2144006, 27.3203819, -6.10598130],    // [-] Wagner et al. 2011
+    SB: [0.00333333333, 1.20666667, 1.70333333]
+};
+PHYS.EAU = EAU;
+
+/** [Pa] Pression de vapeur saturante de l'eau à T [K] (sur glace sous le point triple). +∞ au-delà de T_c. */
+function pSatEau(T) {
+    if (T >= EAU.T_C) return Infinity;
+    if (T >= CONST.T_TRIPLE_WATER) {
+        const tau = 1 - T / EAU.T_C;
+        let f = 0;
+        for (let i = 0; i < 6; i++) f += EAU.A[i] * Math.pow(tau, EAU.N[i]);
+        return EAU.P_C * Math.exp(EAU.T_C / T * f);
+    }
+    const th = T / CONST.T_TRIPLE_WATER;
+    let s = 0;
+    for (let i = 0; i < 3; i++) s += EAU.SA[i] * Math.pow(th, EAU.SB[i]);
+    return CONST.P_TRIPLE_WATER * Math.exp(s / th);
+}
+PHYS.pSatEau = pSatEau;
+
+/** [1/K] d(ln p_sat)/dT, dérivée analytique des deux mêmes formules (T < T_c). */
+function dLnPSatEau(T) {
+    if (T >= CONST.T_TRIPLE_WATER) {
+        const tau = 1 - T / EAU.T_C;
+        let f = 0, df = 0;
+        for (let i = 0; i < 6; i++) {
+            f += EAU.A[i] * Math.pow(tau, EAU.N[i]);
+            df += EAU.A[i] * EAU.N[i] * Math.pow(tau, EAU.N[i] - 1);
+        }
+        return -EAU.T_C * f / (T * T) - df / T;
+    }
+    const th = T / CONST.T_TRIPLE_WATER;
+    let d = 0;
+    for (let i = 0; i < 3; i++) d += EAU.SA[i] * (EAU.SB[i] - 1) * Math.pow(th, EAU.SB[i] - 2);
+    return d / CONST.T_TRIPLE_WATER;
+}
+PHYS.dLnPSatEau = dLnPSatEau;
+
+/** [K] Température de saturation à la pression partielle de vapeur p [Pa] (inverse de pSatEau, dichotomie sur
+ *  la courbe monotone). p ≥ p_c : l'eau ne condense à aucune température → −∞ (aucune contrainte). */
+function tSatEau(p) {
+    if (p >= EAU.P_C) return -Infinity;
+    let lo = 50, hi = EAU.T_C;   // 50 K : bas du domaine de Wagner et al. 2011
+    for (let k = 0; k < 60; k++) {
+        const mid = 0.5 * (lo + hi);
+        if (pSatEau(mid) < p) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+}
+PHYS.tSatEau = tSatEau;
+
+/**
+ * L'eau peut-elle être LIQUIDE à la surface ? Non si T ≥ T_c, ou si la pression de vapeur que donnerait TOUTE l'eau
+ * en l'air n'atteint pas la saturation à T (rien ne peut condenser : l'océan s'évapore entièrement). C'est l'état
+ * de phase, pas un réglage : océan de magma, atmosphère de vapeur post-impact, emballement.
+ * Masses : DATA['⚖️'] (⚖️🫧 = air SEC) ; surface et gravité de l'époque, comme ATM.calculatePressureAtm.
+ */
+function eauSansLiquide() {
+    const DATA = window.DATA;
+    const m = DATA['⚖️'];
+    if (!(m['⚖️💧'] > 0)) return false;                 // pas d'eau : aucune phase à trancher
+    const T = DATA['🧮']['🧮🌡️'];
+    if (T >= EAU.T_C) return true;
+    const EP = DATA['📅'];
+    const aire = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
+    const nEau = m['⚖️💧'] / CONST.M_H2O;
+    const nSec = m['⚖️🏭'] / CONST.M_CO2 + m['⚖️🐄'] / CONST.M_CH4 + m['⚖️🫁'] / CONST.M_O2 + m['⚖️💨'] / CONST.M_N2;
+    const pToutVapeur = (m['⚖️💧'] + m['⚖️🫧']) * EP['🍎'] / aire;          // [Pa] pression totale, toute l'eau en l'air
+    return pSatEau(T) >= pToutVapeur * nEau / (nEau + nSec);
+}
+PHYS.eauSansLiquide = eauSansLiquide;
+
+// ✅ HAUTEUR D'ÉCHELLE DE LA VAPEUR SATURÉE (régime avec océan) :
+// - La vapeur suit la saturation le long du gradient Γ : p_v(z) = p_sat(T₀ − Γz)
+//   ⇒ d(ln p_v)/dz = −Γ · d(ln p_sat)/dT  ⇒  H_vap = 1 / (Γ · d ln p_sat/dT), dérivée IAPWS ci-dessus.
+// - C'est la forme exacte de R·T²/(L·Γ) : Clausius-Clapeyron n'est que l'approximation d(ln p_sat)/dT ≈ L/(R_v T²),
+//   avec L de Bolton (1980) valide ~200–400 K. Ici, valide jusqu'au point critique (647 K) : l'ancienne borne
+//   « T < 600 K, au-delà non modélisé » tombe. Au-delà, il n'y a plus de vapeur saturée — c'est le régime
+//   eauSansLiquide(), qui a son propre profil (radiative/calculations.js, profilVapeurSeule).
+// - Γ = g / Cp humide (EARTH.CP_AIR_MOIST_J_KG_K). Terre moderne (288 K) : H_vap ≈ 2,4 km (Manabe & Wetherald 1967).
 function computeH2OScaleHeight() {
     const T = window.DATA['🧮']['🧮🌡️'];
     const g = window.TIMELINE[window.DATA['📜']['👉']]['🍎'];
-    const L_spec = 2.5e6 - 2400 * (T - 273.15);          // J/kg (Bolton 1980)
-    const L_molar = L_spec * CONST.M_H2O;                 // J/mol
     const Gamma = g / EARTH.CP_AIR_MOIST_J_KG_K;          // K/m
-    return CONST.R_GAS * T * T / (L_molar * Gamma);       // m
+    return 1 / (Gamma * dLnPSatEau(T));                   // m
 }
 
 PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
+
+// ═══ CAPACITÉS THERMIQUES DES GAZ, f(T) ══════════════════════════════════════════════════════════
+// cp molaire [J/mol/K] aux températures TCP : Chase 1998, NIST-JANAF Thermochemical Tables, 4ᵉ éd.
+// (J. Phys. Chem. Ref. Data, Monograph 9). Interpolation linéaire ; hors table = erreur (crash, pas de repli).
+// Sert au gradient adiabatique sec g/cp d'une atmosphère chaude (2 800 K : cp de H₂O ×1,6 par rapport à 300 K).
+const TCP = [300, 600, 1000, 1500, 2000, 3000];   // [K]
+const CP_MOLAIRE = {                               // [J/mol/K]
+    H2O: [33.60, 36.33, 41.27, 47.07, 51.18, 55.75],
+    CO2: [37.22, 47.32, 54.31, 58.38, 60.43, 62.23],
+    N2:  [29.12, 30.11, 32.70, 34.85, 36.00, 37.03],
+    O2:  [29.39, 32.09, 34.88, 36.56, 37.78, 39.88],
+    CH4: [35.76, 52.22, 71.80, 86.19, 94.40, 101.4]
+};
+function cpMolaire(gaz, T) {
+    const t = Math.max(TCP[0], T);   // sous 300 K, cp ≈ constant (gaz parfaits, modes de vibration gelés)
+    if (t > TCP[TCP.length - 1]) throw new Error('[PHYS.cpMolaire] T = ' + T + ' K hors table JANAF (≤ 3000 K)');
+    let i = 0;
+    while (TCP[i + 1] < t) i++;
+    const w = (t - TCP[i]) / (TCP[i + 1] - TCP[i]);
+    return CP_MOLAIRE[gaz][i] + w * (CP_MOLAIRE[gaz][i + 1] - CP_MOLAIRE[gaz][i]);
+}
+PHYS.cpMolaire = cpMolaire;
 
 // Borne basse/haute (K) pour "cycle eau actif", fonction de la pression (atm).
 // Plage max -10°C à 150°C ; la pression resserre la fourchette (gel et évaporation).

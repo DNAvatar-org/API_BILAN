@@ -62,9 +62,6 @@
 // - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
 // ============================================================================
 
-/** Actions de 🕰 qui ont un compteur 📿 dans DATA['📜'] — les seules dont le nombre de clics fait avancer la date. */
-const TIC_COUNTERS = ['💫', '☄️'];
-
 /** 📱 : 🕰 indexé par année (clés numériques '2000', '2025'…), chaque tranche porte ses actions (⛽, 🛢, 🪾). */
 function yearBucketKeys(W) {
     return Object.keys(W).filter(k => !isNaN(Number(k)));
@@ -148,12 +145,8 @@ function getEpochDateConfig() {
         H['🔺🍰⚽'] = 0;
     }
 
-    // Rayon effectif : EPOCH['📐'] + Σ 📿 × 🔺📐 des actions comptées (accrétion de 🔥).
-    let deltaRadiusKm = 0;
-    for (const tk of TIC_COUNTERS) {
-        if ((tk in W) && ('🔺📐' in W[tk])) deltaRadiusKm += H['📿' + tk] * W[tk]['🔺📐'];
-    }
-    H['📐'] = EPOCH['📐'] + deltaRadiusKm;
+    // Rayon : f(T de l'intérieur) — geology/interieur.js, la seule source (avancer le remet à jour).
+    H['📐'] = window.INTERIEUR.rayonKm(DATA);
 
     // 🔁 ÉTATS PAR TIC (🍄, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
     // maintenu. Un état porte '⚾' (obliquité → 📜⚾, physics.js), des masses '⚖️*' (→ 📜🔁⚖️, getMasses), '📝'.
@@ -198,7 +191,7 @@ function getEpochDateConfig() {
         if (W.baryFromDate === true) {
             bary = (isForwardTime ? dateYears - EPOCH['▶'] : EPOCH['▶'] - dateYears) / span;
         } else {
-            const ticsOverSpan = (span / 1e6) / W['💫']['🔺⏳'];
+            const ticsOverSpan = (span / 1e6) / W.order[0]['🔺⏳'];   // pas du 1er clic de la séquence
             const maxTics = ticsOverSpan > 1 ? Math.max(2, Math.floor(ticsOverSpan)) : 1;
             bary = (H['📿💫'] + H['📿☄️']) / maxTics;
         }
