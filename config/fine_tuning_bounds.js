@@ -1,8 +1,14 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.3.16
-// Date: [October 10, 2026]
+// Version 1.4.0
+// Date: [October 12, 2026]
 // logs :
+// - v1.4.0: 10 → 6 cibles. Retirées : co2OceanEffPump01 (jamais lue — la physique lit CONFIG_COMPUTE, 0,1) ;
+//   seaIceStrength01 et iceImpactFactor01 (= 1 à la jauge HYSTERESIS 100 % : des multiplicateurs identité posés
+//   sur des équations déjà là — rampe de mer gelée, contribution d'albédo de la glace) ; factorTropopause
+//   (`fixed` : aucune jauge ne le bougeait → constante CONFIG_COMPUTE.factorTropopause). Le mécanisme `fixed`
+//   disparaît avec lui. Restent les vraies inconnues : 3 nuages SW, l'exposant sulfate mesuré, κ_H₂O, la largeur
+//   de la rampe de mer gelée. Aucun chiffre ne change.
 // - v1.3.16: factorTropopause porte `fixed: 1.0261` et baryGroup SCIENCE (ex-CONFIG_COMPUTE.radiativeFactorTropopauseFixed,
 //   lue à trois endroits avec des replis différents).
 // - v1.3.15: SULFATE_BOOST_SCALE et SULFATE_BOOST_MAX SUPPRIMÉS, remplacés par SULFATE_CCN_EXPONENT.
@@ -149,22 +155,6 @@ window.FINE_TUNING_BOUNDS = {
             biblio_ref: 'H2O_EDS_SCALE'
         },
         {
-            group: 'RADIATIVE',
-            key: 'factorTropopause',
-            baryGroup: 'SCIENCE',
-            min: 1.03,
-            max: 1.0,
-            default: 1.0261,
-            // fixed : calage hors jauge (configTimeline v1.4.51 : 1,03 + min(1,0 − 1,03) × 0,13). Retirer `fixed`
-            // pour qu'il suive la jauge ATM comme les autres cibles SCIENCE.
-            fixed: 1.0261,
-            unit: 'ratio',
-            note: 'doc / biblio. Valeur live = fixed (hors barycentre) ; sans fixed, interpolée sur la jauge ATM.',
-            source: 'Calage v1.4.51 (ex-CONFIG_COMPUTE.radiativeFactorTropopauseFixed, supprimée : une seule source).',
-            effect: 'mixed',
-            biblio_ref: 'FACTOR_TROPOPAUSE_RT'
-        },
-        {
             group: 'HYSTERESIS',
             key: 'seaIceTransitionRangeK',
             min: 1,
@@ -175,42 +165,6 @@ window.FINE_TUNING_BOUNDS = {
             source: 'EBM cryosphère Budyko–Sellers ; transitions résolues typ. ~quelques K en paramétrisation agrégée ; plage UI scie ×1000',
             effect: 'mixed',
             biblio_ref: 'HYST_SEA_ICE_RANGE_K'
-        },
-        {
-            group: 'HYSTERESIS',
-            key: 'seaIceStrength01',
-            min: 0,
-            max: 1,
-            default: 1,
-            unit: 'fraction',
-            note: 'intensité mer gelée sur couverture océan',
-            source: 'Borne physique [0,1] ; 1 = rétroaction albédo maximale (jeux de paramètres type snowball)',
-            effect: 'negative',
-            biblio_ref: 'HYST_SEA_ICE_STRENGTH'
-        },
-        {
-            group: 'HYSTERESIS',
-            key: 'iceImpactFactor01',
-            min: 0,
-            max: 1,
-            default: 0.7,
-            unit: 'fraction',
-            note: 'impact glace sur albédo (GREY)',
-            source: 'AR6 WGI plages albédo glace/neige vs surface sombre ; preset lit. 0,7 entre nominal ~0,53 et max 1',
-            effect: 'negative',
-            biblio_ref: 'HYST_ICE_IMPACT'
-        },
-        {
-            group: 'HYSTERESIS',
-            key: 'co2OceanEffPump01',
-            min: 0,
-            max: 1,
-            default: 0.1,
-            unit: 'fraction',
-            note: 'vitesse relaxation Henry atmos↔océan (Σ carbone conservé)',
-            source: 'Zeebe & Wolf-Gladrow (2001) solubilité ; efficacité numérique 0–1 ; NO-OP si hystérésis active',
-            effect: 'mixed',
-            biblio_ref: 'HYST_CO2_OCEAN_EFF'
         }
     ]
 };

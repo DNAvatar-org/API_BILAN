@@ -5,7 +5,8 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.4.0
+// Version 1.4.1
+// - v1.4.1 (2026-10-12): DEFAULT.TUNING sans OPTICAL_EFF_CCN_GAIN, seaIceStrength01, iceImpactFactor01, co2OceanEffPump01, factorTropopause.
 // Date: [October 10, 2026]
 // Logs:
 // - v1.4.0: PAS DE GARDES. DEFAULT, UI_STATE, RUNTIME_STATE créés ici et nulle part ailleurs (plus de `x = x || {}`).
@@ -101,7 +102,6 @@
             // TEMP_FACTOR_* supprimés (v1.1.1) : remplacés par la partition de phase
             // Hu & Stamnes (1993) codée en dur dans calculations_albedo.js (calib stable).
             OPTICAL_EFF_BASE: 1.20,          // [sans dimension (facteur d'efficacité optique)]
-            OPTICAL_EFF_CCN_GAIN: 0.60,      // [sans dimension] ⚠️ lue par AUCUNE formule (seulement des libellés d'UI)
             OXIDATION_SOFT_BASE: 0.85,       // [sans dimension]
             OXIDATION_SOFT_GAIN: 0.15,       // [sans dimension]
             CLOUD_FRACTION_BASE: 0.23,       // [m²/m² (fraction du globe couverte de nuages)]
@@ -116,10 +116,7 @@
         // lus par calculations_albedo.js (glace de mer, impact glace). co2OceanEffPump01 : voir calculations_co2.js.
         HYSTERESIS: {
             // Paramètres physiques (interpolés depuis FINE_TUNING_BOUNDS)
-            seaIceTransitionRangeK: 2.2,
-            seaIceStrength01: 1,
-            iceImpactFactor01: 0.7,
-            co2OceanEffPump01: 0.1
+            seaIceTransitionRangeK: 2.2
             // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
             // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
             // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
@@ -129,8 +126,7 @@
         // Propagé vers EARTH.H2O_EDS_SCALE par tuning.js/syncRadiativeConfig.
         // factorTropopause : × hauteur radiative effective (ATM.calculateTropopauseHeight), même jauge ATM que H2O_EDS.
         RADIATIVE: {
-            H2O_EDS_SCALE: 0.80,
-            factorTropopause: 1.0261
+            H2O_EDS_SCALE: 0.80
         }
     };
 
@@ -176,11 +172,7 @@
     // Toggles modules physiques activables par l'utilisateur (checkboxes panel).
     window.UI_STATE.waterVaporEnabled = true;
     window.UI_STATE.methaneEnabled = true;
-    // Flags UI divers (anim, maximisation, debug).
-    window.UI_STATE.maximiseData = false;
-    window.UI_STATE.savedCO2 = 0;
-    window.UI_STATE.savedCH4 = 0;
-    window.UI_STATE.savedH2O = 0;
+    // Flags UI divers (debug).
     window.UI_STATE.FPSalert = 25;     // seuil sous lequel updateFluxLabels est skippé
     // ?debugAPI=1 (ou true) : logs groupés du moteur (api.js, calculations_flux.js).
     var debugParam = new URLSearchParams(window.location.search).get('debugAPI');
@@ -218,7 +210,6 @@
     window.RUNTIME_STATE.showSpectralBackground = false;
     // H2O live (recalculés à chaque cycle)
     window.RUNTIME_STATE.h2oVaporPercent = 0;
-    window.RUNTIME_STATE.h2oTotalFromMeteorites = 0;
     window.RUNTIME_STATE.h2oIceFractionFromCalculation = 0;
     // Époque courante
     window.RUNTIME_STATE.currentEpochName = null;

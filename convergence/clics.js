@@ -9,8 +9,12 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.1.0
+// Version 1.2.0
 // Date: 2026-10-12
+// Logs:
+// - v1.2.0: 🕰.order dans toutes les époques (config) : prochaineAction = order au curseur (plus de repli 💫 ni
+//   « l'unique action »), jouer crashe sur une action hors séquence, et chaque séquence est vérifiée au
+//   chargement (elle doit atteindre la fin de l'époque à son dernier clic, ou finir par 🎇 ⏩).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -35,6 +39,11 @@ window.CLICS = (function () {
         H['🔘🕰'] = '';
     }
 
+    /** 🕰 indexé par année (📱) : le choix est offert par tranche, il n'y a pas de séquence imposée. */
+    function parTranche(W) {
+        return Object.keys(W).some(function (k) { return !isNaN(Number(k)); });
+    }
+
     /** 📱 : 🕰 indexé par année. Tranche active = la dernière dont l'année est atteinte ; null passé ◀ (fin). */
     function trancheActive(EP) {
         const W = EP['🕰'];
@@ -46,24 +55,47 @@ window.CLICS = (function () {
         return W[active];
     }
 
+    /**
+     * Au chargement : chaque séquence 🕰.order doit traverser son époque exactement — le dernier clic, et lui seul,
+     * atteint la fin (⏳ ≥ durée) ; ou bien elle finit par un 🎇 qui passe (⏩) avant. Sinon la config ment :
+     * crash, avec l'époque en cause.
+     */
+    window.TIMELINE.forEach(function (EP) {
+        const W = EP['🕰'];
+        if (parTranche(W)) return;
+        const duree = Math.abs(EP['◀'] - EP['▶']) / 1e6;
+        let t = 0;
+        W.order.forEach(function (k, i) {
+            if (!(k in W)) throw new Error('[CLICS] ' + EP['📅'] + ' : 🕰.order[' + i + '] = ' + k + ', action non définie');
+            const dernier = i === W.order.length - 1;
+            if (k === '🎇' && ('⏩' in W[k])) {
+                if (!dernier) throw new Error('[CLICS] ' + EP['📅'] + ' : 🎇 ⏩ doit clore la séquence');
+                return;
+            }
+            t += W[k]['🔺⏳'];
+            if ((t >= duree - 1e-9) !== dernier) {
+                throw new Error('[CLICS] ' + EP['📅'] + ' : le clic ' + (i + 1) + '/' + W.order.length + ' (' + k + ') porte ⏳ à ' + t + ' Ma pour une durée de ' + duree + ' Ma');
+            }
+        });
+    });
+
     return {
         TICS: TICS,
+        /** L'époque courante offre-t-elle ses actions par tranches d'années (📱) plutôt qu'en séquence ? */
+        parTranche: function () { return parTranche(epoque()['🕰']); },
         trancheActive: function () { return trancheActive(epoque()); },
 
         /**
-         * Lecture automatique (bancs, Tictimes) : l'action que jouerait un utilisateur qui avance toujours.
-         * 🕰.order → l'entrée au curseur 📿🕰 ; 📱 → la première action de la tranche active (null passé ◀) ;
-         * sinon le tic 💫, ou l'unique action de l'époque (hysteresis 1a : 🗻, hysteresis 2 : ⛰).
+         * L'action suivante de l'époque : 🕰.order au curseur 📿🕰 (undefined une fois la séquence jouée) ;
+         * 📱 : la première action de la tranche active (null passé ◀). Interface, scie et bancs lisent la même.
          */
         prochaineAction: function () {
             const W = epoque()['🕰'];
-            if (Array.isArray(W.order)) return W.order[window.DATA['📜']['📿🕰']];
-            if (Object.keys(W).some(function (k) { return !isNaN(Number(k)); })) {
+            if (parTranche(W)) {
                 const tranche = trancheActive(epoque());
                 return tranche === null ? null : Object.keys(tranche)[0];
             }
-            if ('💫' in W) return '💫';
-            return Object.keys(W).find(function (k) { return W[k] !== null && typeof W[k] === 'object' && '🔺⏳' in W[k]; });
+            return W.order[window.DATA['📜']['📿🕰']];
         },
 
         /** Durée de l'époque courante (Ma). */
@@ -96,7 +128,10 @@ window.CLICS = (function () {
             const H = window.DATA['📜'];
             const EP = epoque();
             const W = EP['🕰'];
-            const tranche = Object.keys(W).some(function (k) { return !isNaN(Number(k)); }) ? trancheActive(EP) : null;
+            const tranche = parTranche(W) ? trancheActive(EP) : null;
+            if (tranche === null && W.order[H['📿🕰']] !== key) {
+                throw new Error('[CLICS] ' + key + ' joué sur ' + EP['📅'] + ' alors que 🕰.order attend ' + W.order[H['📿🕰']] + ' (clic n° ' + H['📿🕰'] + ')');
+            }
             const cfg = (tranche !== null) ? tranche[key] : W[key];
 
             if (tranche !== null) {
@@ -121,7 +156,7 @@ window.CLICS = (function () {
                 }
             }
             H['🔘🕰'] = key;
-            if (Array.isArray(W.order) && W.order[H['📿🕰']] === key) H['📿🕰'] += 1;
+            if (tranche === null) H['📿🕰'] += 1;
             H['⏳'] += ('🔺⏳' in cfg) ? cfg['🔺⏳'] : 0;
 
             if (key === '🎇' && ('⏩' in cfg)) return { passage: cfg['⏩'] };

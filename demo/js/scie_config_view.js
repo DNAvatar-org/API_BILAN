@@ -266,7 +266,6 @@ function getTuningLineLogo(groupKey, key) {
     }
     if (groupKey === 'SCIENCE') {
         if (key === 'CLOUD_FRACTION_INDEX_GAIN') return '☁️';
-        if (key === 'OPTICAL_EFF_CCN_GAIN') return '🧪';
         return '🔬';
     }
     if (groupKey === 'CLOUD_SW') {

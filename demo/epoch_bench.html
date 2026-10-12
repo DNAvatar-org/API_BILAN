@@ -45,7 +45,6 @@
   <h1>🌍 Bench Époques — Bilan Radiatif</h1>
   <div id="bench-fine-tuning-wrap" class="bench-ft-wrap" aria-label="Fine-tuning">
     <div id="bench-ft-title-slot"></div>
-    <div id="bench-ft-content" style="display:none;"></div>
   </div>
   <span id="progress-label">—</span>
   <button id="btn-run" class="btn-play" type="button" disabled
@@ -54,6 +53,15 @@
           title="Frise ⚫ puis que des clics jusqu'à 2025, comme en animation : la T° initiale de chaque calcul est la T° convergée du clic précédent. Une ligne par clic (~4× plus de calculs).">▶ Tictimes<span class="btn-play-sub">T init = T précédente</span></button>
 </header>
 <div id="progress-bar"><div id="progress-fill"></div></div>
+
+<!-- Détail du fine-tuning : popup large, une ligne par paramètre (epoch_bench_tuning.js) -->
+<dialog id="bench-ft-dialog" class="bench-ft-dialog">
+  <div class="bench-ft-dialog-head">
+    <span id="bench-ft-dialog-title"></span>
+    <button type="button" class="bench-ft-close" onclick="document.getElementById('bench-ft-dialog').close()" title="Fermer (Échap)">✕</button>
+  </div>
+  <div id="bench-ft-content"></div>
+</dialog>
 
 <div id="report">
 <table>

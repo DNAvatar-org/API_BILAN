@@ -3,7 +3,8 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.1.0
+// Version 1.2.0
+// - v1.2.0: plus de cible `fixed` (factorTropopause → CONFIG_COMPUTE) : interpolate n'a plus de cas particulier.
 // Date: 2026-10-10
 // Logs:
 // - v1.1.0: PAS DE GARDES. Un seul format de payload ({ baryByGroup }) : le format « { CLOUD_SW: 70, … } »
@@ -38,14 +39,9 @@
 
     /**
      * Valeur d'une cible pour un barycentre donné (0 % → min, 100 % → max).
-     *
-     * `fixed` SORT LA CIBLE DU BARYCENTRE — réservé à une valeur DÉTERMINÉE AILLEURS.
-     * ⚠️ Ce n'est PAS un moyen de geler un paramètre dont on ignore la valeur : un paramètre sans fondement
-     * scientifique RESTE dans le barycentre. Ce qu'on CONNAÎT se calcule dans le code et quitte les targets ;
-     * ce qu'on IGNORE reste ici. Seul usage : RADIATIVE.factorTropopause (calage v1.4.51).
+     * Ce qu'on CONNAÎT se calcule dans le code et quitte les targets ; ce qu'on IGNORE reste dans le barycentre.
      */
     function interpolate(target, baryPercent) {
-        if ('fixed' in target) return target.fixed;
         const alpha = Math.max(0, Math.min(1, baryPercent / 100));
         return target.min + (target.max - target.min) * alpha;
     }
@@ -53,7 +49,6 @@
     /**
      * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
      * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
-     * factorTropopause reste dans DATA['🎚️'] (lu par ATM.calculateTropopauseHeight).
      */
     function syncRadiativeConfig() {
         window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;

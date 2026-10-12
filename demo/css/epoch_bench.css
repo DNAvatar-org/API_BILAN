@@ -1,7 +1,7 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.1.0
-   Date: 2026-10-06
+   Version 1.2.0 — 2026-10-12 : détail du fine-tuning en popup (.bench-ft-dialog, tableau).
+   Date: 2026-10-12
    logs : v1.1.0 — deux gros boutons .btn-play (Époques vert, Tictimes bleu) ; .epoch-etape (clic joué).
    Copyright 2026 DNAvatar.org - Arnaud Maignan */
 
@@ -246,15 +246,56 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
 #bench-ft-title-slot .bench-ft-btn:hover { background: #255525; }
 #bench-ft-title-slot .bench-ft-toggle { margin-left: auto; }
 #bench-ft-title-slot input[type="range"] { width: 100px; vertical-align: middle; }
-#bench-ft-content {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #2a2a2a;
-  font-size: 11px;
-  line-height: 1.55;
-  color: #aaa;
+/* Détail du fine-tuning : popup large, lignes qui se déroulent */
+.bench-ft-dialog {
+  margin: auto;   /* centrage natif du <dialog>, annulé par le * { margin: 0 } global */
+  width: min(1100px, 94vw);
+  max-height: 86vh;
+  padding: 0;
+  border: 1px solid #2a8e3e;
+  border-radius: 8px;
+  background: #121212;
+  color: #bbb;
 }
-#bench-ft-content .bench-ft-sec { margin-bottom: 10px; }
-#bench-ft-content .bench-ft-line { margin: 2px 0; padding-left: 2px; }
-#bench-ft-content strong { color: #c9c9c9; }
+.bench-ft-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.bench-ft-dialog-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #161f16;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 14px;
+  color: #ddd;
+}
+.bench-ft-close {
+  background: none;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 14px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.bench-ft-close:hover { border-color: #2a8e3e; color: #9fdf9f; }
+#bench-ft-content { padding: 6px 14px 14px; overflow-x: auto; }
+.bench-ft-table { width: 100%; border-collapse: collapse; font-size: 12.5px; line-height: 1.5; }
+.bench-ft-table th {
+  text-align: left;
+  font-weight: normal;
+  color: #888;
+  border-bottom: 1px solid #333;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.bench-ft-table td { padding: 7px 8px; border-bottom: 1px solid #222; vertical-align: top; }
+.bench-ft-table tbody tr:hover { background: #181818; }
+.bench-ft-key { color: #999; white-space: nowrap; }
+.bench-ft-key b { color: #ddd; font-weight: 600; }
+.bench-ft-num { color: #9fdf9f; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bench-ft-jauge { white-space: nowrap; color: #999; }
+.bench-ft-note { color: #aaa; min-width: 260px; }
 .bench-src { cursor: help; font-size: .85em; }   /* statut de la fourchette (src), référence en infobulle */

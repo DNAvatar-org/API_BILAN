@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.66
+// Version 1.2.67
+// - v1.2.67 (2026-10-12): seaIceStrength01 et iceImpactFactor01 retirés (= 1 à la jauge : multiplicateurs identité).
 // Date: [September 16, 2026]
 // logs :
 // - v1.2.66: DATA['🪩']['🍰🪩💧'] — le facteur corps-noir (couche d'eau globale / 10 m, plafond 1) est
@@ -467,9 +468,7 @@ function calculateAlbedo() {
     // 🏷️ Source unique : DATA['🎚️'].HYSTERESIS (initDATA.js → interpolé depuis FINE_TUNING_BOUNDS).
     // Règle regle-data-territoire : lecture directe, pas de Number.isFinite/fallback. Si invalide, crash.
     const seaIceRangeK = DATA['🎚️'].HYSTERESIS.seaIceTransitionRangeK;
-    const seaIceStrength01 = DATA['🎚️'].HYSTERESIS.seaIceStrength01;
-    const seaIceFracRaw = seaIceRangeK > 0 ? Math.max(0, Math.min(1, (T_freeze - T_K) / seaIceRangeK)) : (T_K < T_freeze ? 1 : 0);
-    const seaIceFrac = seaIceStrength01 * seaIceFracRaw;
+    const seaIceFrac = seaIceRangeK > 0 ? Math.max(0, Math.min(1, (T_freeze - T_K) / seaIceRangeK)) : (T_K < T_freeze ? 1 : 0);
     // Part d'océan encore libre:
     if (hasOcean && seaIceFrac > 0) {
         ocean_coverage = ocean_coverage * (1.0 - seaIceFrac);
@@ -685,7 +684,7 @@ function calculateAlbedo() {
             + ' phase=' + DATA['🧮']['🧮⚧']
             + ' T=' + T_K.toFixed(2) + 'K (' + (T_K - CONST.KELVIN_TO_CELSIUS).toFixed(2) + '°C)'
             + ' | T_freeze=' + T_freeze.toFixed(2) + ' seaRangeK=' + seaIceRangeK.toFixed(3)
-            + ' seaRaw=' + seaIceFracRaw.toFixed(4) + ' seaF=' + seaIceFrac.toFixed(4)
+            + ' seaF=' + seaIceFrac.toFixed(4)
             + ' | ice_temp_factor=' + ice_temp_factor.toFixed(4)
             + ' (tf_pol=' + ice_tf_pol.toFixed(3) + ' tf_mid=' + ice_tf_mid.toFixed(3) + ' tf_trop=' + ice_tf_trop.toFixed(3) + ')'
             + ' T_thresh_pol=' + T_thresh_pol.toFixed(2) + ' T_thresh_mid=' + T_thresh_mid.toFixed(2) + ' T_thresh_trop=' + T_thresh_trop.toFixed(2)
@@ -792,11 +791,8 @@ function calculateAlbedo() {
     // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
     const ice_albedo = iceAlbedoEff;
     const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
-    // 🏷️ Source unique : DATA['🎚️'].HYSTERESIS.iceImpactFactor01 (initDATA.js + FINE_TUNING_BOUNDS).
-    // Règle regle-data-territoire : pas de fallback ni Number.isFinite.
-    const ice_impact_factor = DATA['🎚️'].HYSTERESIS.iceImpactFactor01;
     const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
-    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction * ice_impact_factor;
+    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction;
     albedo = albedo_base + ice_albedo_contribution;
 
     // Contribution des nuages (H2O activé)

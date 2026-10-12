@@ -1,6 +1,7 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.3.0
+// Version 1.3.1
+// - v1.3.1 (2026-10-12): facteur de tropopause = CONFIG_COMPUTE.factorTropopause (constante ; plus de drapeau ni de cible fixe).
 // Date: [October 10, 2026]
 // logs :
 // - v1.3.0: PAS DE GARDES. Masses et fractions lues directement (plus de `isFinite(m) ? m : 0` ni `|| 0`) ;
@@ -282,8 +283,7 @@ function calculateTropopauseHeight() {
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (DATA['⚖️']['⚖️🫧'] === 0) return 0;   // sans atmosphère (⚫)
     const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
-    const f = window.CONFIG_COMPUTE.useFactorTropopause ? DATA['🎚️'].RADIATIVE.factorTropopause : 1;
-    return scale_height_m * f;
+    return scale_height_m * window.CONFIG_COMPUTE.factorTropopause;
 }
 
 function pressureAtZ(z) {

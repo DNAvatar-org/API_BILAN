@@ -1,8 +1,9 @@
 // File: API_BILAN/demo/epoch_bench_main.js
 // Desc: Pont vers la page parente, puis cablage de la page (initEpochBenchPage, appele par le loader).
-// Version 2.0.0
-// Date: 2026-10-10
+// Version 2.1.0
+// Date: 2026-10-12
 // logs :
+//   - v2.1.0: ouvrirDetail (popup du fine-tuning) remplace togglePanel.
 //   - v2.0.0: PAS DE GARDES. Plus de test « ressources manquantes » (le loader garantit DATA, TIMELINE, CONST,
 //     CONV), plus de `window.TUNING &&`, plus de window.DEBUG (journal de CO2/static/debug.js, jamais chargé
 //     ici). Jauge unique ATM : __BENCH_FT__.onInput(valeur).
@@ -14,11 +15,8 @@
 
 window.__BENCH_FT__ = {
     onInput: benchOnFineTuningBaryInput,
-    togglePanel: function () {
-        const content = document.getElementById('bench-ft-content');
-        const hidden = content.style.display === 'none';
-        content.style.display = hidden ? 'block' : 'none';
-        document.getElementById('bench-ft-panel-toggle').textContent = hidden ? '−' : '+';
+    ouvrirDetail: function () {
+        document.getElementById('bench-ft-dialog').showModal();
     }
 };
 

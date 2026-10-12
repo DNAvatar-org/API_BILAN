@@ -18,21 +18,14 @@
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 
-/**
- * Actions proposées sur l'époque courante. 📱 : la tranche active (CLICS.trancheActive, rien passé ◀) ;
- * 🕰.order : l'entrée au curseur 📿🕰 ; sinon toutes les actions de l'époque (vue scientifique : tout est offert).
- */
+/** Actions proposées : 📱 la tranche active (rien passé ◀) ; sinon l'action suivante de 🕰.order (config API). */
 function actionsProposees() {
-    const H = window.DATA['📜'];
-    const W = window.TIMELINE[H['👉']]['🕰'];
-    if (Object.keys(W).some(function (k) { return !isNaN(Number(k)); })) {
+    if (window.CLICS.parTranche()) {
         const tranche = window.CLICS.trancheActive();
         return tranche === null ? [] : Object.keys(tranche);
     }
-    if (Array.isArray(W.order)) return H['📿🕰'] < W.order.length ? [W.order[H['📿🕰']]] : [];
-    return Object.keys(W).filter(function (k) {
-        return W[k] !== null && typeof W[k] === 'object' && !Array.isArray(W[k]) && (('🔺⏳' in W[k]) || ('⏩' in W[k]));
-    });
+    const act = window.CLICS.prochaineAction();
+    return act === undefined ? [] : [act];
 }
 
 /**

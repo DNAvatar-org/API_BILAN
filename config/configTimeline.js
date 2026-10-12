@@ -1,8 +1,12 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.94
-// Date: [October 10, 2026]
+// Version 1.4.95
+// Date: [October 12, 2026]
 // logs :
+// - v1.4.95: 🕰.order dans TOUTES les époques (sauf 📱, dont les tranches d'années offrent un choix) : la
+//   séquence des clics est la config, la même pour l'interface et le banc (CLICS.prochaineAction). Longueur =
+//   ⌈durée / 🔺⏳⌉, vérifiée au chargement (clics.js). Nouveau : 🔥 ☄️ 💫 ☄️ 💫 ☄️ (intention de la table
+//   ACTION_BY_DATE de CO2, qui ne se déclenchait jamais) ; 🦕 💫 🎇 (le K-Pg ferme l'époque, mêmes chiffres).
 // - v1.4.94: graines 🌡️🧮 de 1a, ⛄, 1b, 🏂, 1c au milieu de leur fourchette (10 / −55 / 35 / −55 / 35 °C) :
 //   mesuré au banc headless, la chaîne de clics 🪸 → 🪼 est identique au centième ; seul le mode Époques change.
 //   CONFIG_COMPUTE.spectralMaxMB / maxSearchT_K : Infinity au lieu de null pour « aucun plafond » (plus de test null).
@@ -410,7 +414,7 @@ const timeline = [
         '⚖️💨': 0, // n2_kg
         // Note: Les % (co2_ppm, ch4_ppm, h2o_vapor_percent) seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
-        // Événements interactifs : 🕰.order définit l’ordre des boutons (events.js) ; repli organigramme ACTION_BY_DATE si absent ailleurs.
+        // Événements interactifs : 🕰.order = la séquence des clics (CLICS, convergence/clics.js), pour toute interface.
         '🕰': {
             'order': ['☄️', '💫', '☄️', '💫', '🎇'],
             '☄️': {
@@ -484,6 +488,7 @@ const timeline = [
         // Événements interactifs
         // Hadéen (▶ 4,51 Ga → ◀ 4,031 Ga). Gaz fixes ; l'intérieur refroidit par bilan d'énergie (geology/interieur.js).
         '🕰': {
+            'order': ['☄️', '💫', '☄️', '💫', '☄️'], // v-2026-10-12 : la séquence que visait ACTION_BY_DATE (CO2) — elle ne tombait jamais (dates 4500/4400… vs 4510 − k×100) : ☄️ n'était jamais proposé
             '💫': {
                 '🔺🌡️💫': 0,  // v-2026-09-24 : était −300 K/tic, un refroidissement PRESCRIT ; le refroidissement sort du bilan d'énergie
                 '🔺📐': -120, // delta Rayon de la planète en km -> '📐': 6371,
@@ -596,6 +601,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
+            'order': ['💫', '💫', '💫'],
             '💫': {
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
                 '🔺⏳': 510.3333333333333, // durée d'un tic en Ma (bouton timeline) // v-2026-09-24 : 500 → 1531/3 : 2 clics calculés à 1/3 et 2/3 de la rampe, le 3ᵉ passe à 🪸 — comme avant. ⚠️ Avec 511, le 2ᵉ clic atteignait 100 % de la rampe (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga : tout le Protérozoïque restait en boule de neige.
@@ -665,6 +671,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
+            'order': ['💫', '💫', '💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 600 }, // v-2026-09-24 : 🔺⏳ 590 → 600 (2 clics (rampe 50 %, 100 % vers 1a), le 3ᵉ passe — 1780 Ma)
             // v-2026-07-14 : bary ACTIVÉ. 🔀 sans ◀ → cible auto = racine de l'époque suivante (hyst 1a).
             // Rampe les masses ⚖️ le long de 2500→750 Ma : CO₂ 12000→53 ppm, CH₄ 250→7 ppm, O₂ 1.5e16→5e15, etc.
@@ -1010,6 +1017,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
+            'order': ['💫', '💫', '💫'],
             // v-2026-09-24 : 🔀 fait glisser les masses de 1b vers celles de 🏂 pendant les 💫 (comme 🪸 → 1a) :
             //   sortie du Sturtien (CO₂ au seuil de sortie), puis retombée du CO₂ jusqu'à la frontière d'entrée
             //   du Marinoen. Le 3ᵉ 💫 (21 Ma ≥ 20) passe dans 🏂.
@@ -1166,6 +1174,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.107454e18,
         '🕰': {
+            'order': ['💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 96.4 }, // durée 635,2 → 538,8
         },
         '🌱': 0.0,
@@ -1206,6 +1215,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.986169e18,
         '🕰': {
+            'order': ['💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 119.6 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
         },
         '🌱': 0.0, // Avant -420 Ma : végétation terrestre absente/marginale
@@ -1244,6 +1254,7 @@ const timeline = [
         // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
         // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
         '🕰': {
+            'order': ['💫', '💫', '💫', '💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 41.75 }, // v-2026-09-24 : 🔺⏳ 35 → 41.75 (3 états 🔁 + transition — 167 Ma)
             // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣.
             // Le drawdown du Dévonien-Carbonifère : racines profondes → altération des silicates, puis
@@ -1299,6 +1310,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.984919e18,
         '🕰': {
+            'order': ['💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.3 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
         },
         '🌱': 0.25,
@@ -1343,6 +1355,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 5.1370828e18,
         '🕰': {
+            'order': ['💫', '🎇'], // v-2026-10-12 : 🎇 K-Pg ferme l'époque (⏩ 🦤) ; il n'était jamais proposé (ACTION_BY_DATE 66 → 💫)
             '💫': {
                 '🔺🌡️💫': -2,
                 '🔺⏳': 100,       // durée d'un tic en Ma (bouton timeline)
@@ -1385,6 +1398,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063495395e18,
         '🕰': {
+            'order': ['💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 10 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
         },
         '🌱': 0.31,
@@ -1425,6 +1439,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.059095395e18,
         '🕰': {
+            'order': ['💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 21.6 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
         },
         '🌱': 0.31,
@@ -1466,6 +1481,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 4.063345395e18,
         '🕰': {
+            'order': ['⛰'],
             '⛰': { '🔺🌡️💫': 0, '🔺⏳': 0.5 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
         },
         '🌱': 0.31,
@@ -1504,6 +1520,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
+            'order': ['💫', '💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 16 },
             // Interpolation 🔀 en fonction de la date courante 📜📅 (pas du seul compte de tics) — 33 Ma → 2 Ma.
             'baryFromDate': true,
@@ -1554,6 +1571,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
+            'order': ['💫', '💫', '💫', '💫'],
             // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
             // Un clic = un DEMI-cycle représentatif, pas un cycle réel de 41 ka (2 Ma en tics de 41 ka = 49 clics).
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.6421 }, // v-2026-09-24 : 🔺⏳ 0.5 → 0.6421 (3 états 🔁 + transition — 2,5683 Ma)
@@ -1614,6 +1632,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
+            'order': ['💫', '💫', '💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.0039 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
         },
         '🌱': 0.31,
@@ -1650,6 +1669,7 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': 3.97e18,
         '🕰': {
+            'order': ['💫', '💫'],
             '💫': { '🔺🌡️💫': 0, '🔺⏳': 0.000125 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
         },
         '🌱': 0.31,
@@ -2024,9 +2044,8 @@ window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 // ⚠️ [v1.4.83] Mesuré inerte : bench identique au centième avec 0 (initForConfig re-seed l'océan à chaque calcul,
 //   getMasses réécrit ⚖️🏭 à chaque pas). L'absorption du CO₂ INJECTÉ est portée par CARBON_SINKS ci-dessous.
 window.CONFIG_COMPUTE.co2OceanPartitionFactor01 = 1;
-// Efficacité de la pompe Henry (fraction du pas vers l'équilibre). Les pages hystérésis / search l'écrivent
-// depuis leurs jauges. ⚠️ Doublon à trancher : DATA['🎚️'].HYSTERESIS.co2OceanEffPump01 (= 1 après le barycentre),
-// lu par personne. 0,1 = la valeur que la physique utilisait (repli codé en dur, calculations_co2.js < v1.4.0).
+// Efficacité de la pompe Henry (fraction du pas vers l'équilibre) : seule source (la cible de fine-tuning du
+// même nom, jamais lue, est retirée). 0,1 = la valeur que la physique utilisait (calculations_co2.js < v1.4.0).
 window.CONFIG_COMPUTE.co2OceanEffPump01 = 0.1;
 
 // ─── PUITS DE CARBONE (CO₂ injecté par événements, ex. 📱 ⛽/🛢/🪾) — v1.4.92 ────────────────
@@ -2196,10 +2215,9 @@ window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB
 window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
-// factorTropopause : si radiativeFactorTropopauseFixed != null, valeur fixe (hors bary) écrite par tuning.js. Sinon (null) cible FINE_TUNING.
-// radiativeFactorTropopauseFixed supprimée (2026-10-10) : la valeur fixe vit sur la cible factorTropopause de fine_tuning_bounds.js (`fixed`).
-// Extension tropopause : DATA['🎚️'].RADIATIVE.factorTropopause. false = ×1.
-window.CONFIG_COMPUTE.useFactorTropopause = true;                    // [OBS/CALIB] true = × factorTropopause (ATM.calculateTropopauseHeight) ; false = échelle RT/Mg seule.
+// Facteur sur la hauteur d'échelle RT/Mg (ATM.calculateTropopauseHeight). Calage v1.4.51 : 1,03 + (1,0 − 1,03) × 0,13.
+// Aucune jauge ne le bougeait (cible `fixed`) : c'est une constante, donc ici, une seule fois. 1 = échelle RT/Mg seule.
+window.CONFIG_COMPUTE.factorTropopause = 1.0261;                     // [CALIB]
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
