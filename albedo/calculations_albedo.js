@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.4.4
+// Version 1.4.5
+// - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
 // - v1.4.4 (2026-10-13): ALBEDO.nombreGouttesActuelCm3 / nombreGouttesCm3 — une seule définition du nombre de gouttes (profil, affichage).
 // - v1.4.3 (2026-10-13): rapportCCN = loi sulfate mesurée seule (proxy O₂ × biomasse × anthropique, sans physique, retiré) ; surface en fusion = fraction fondue de la péridotite à la T courante (Katz 2003) au lieu de la rampe 1000–2373 K sur la T de graine.
 // - v1.4.2 (2026-10-13): double comptage de la glace retiré (« CONTRIBUTION H2O (GLACE) », depuis V1.0.0).
@@ -367,9 +368,16 @@ function rapportCCN() {
 
 /** [cm⁻³] Nombre de gouttes des nuages bas de la Terre ACTUELLE pour la surface courante : océan (jauge FROID, Bennartz
  *  2007) et continent (Gultepe & Isaac 2004) pondérés par l'océan libre. Sert au seuil de pluie (radiative/calculations.js). */
+/** [m²/m²] Part de la planète sous masse d'air MARITIME : les bassins océaniques, GELÉS OU NON (🍰🗻🌊). Avant le
+ *  2026-10-13, l'océan LIBRE (🍰🪩🌊) : la banquise comptait comme un continent (200 gouttes/cm³ au lieu de ~65), d'où des
+ *  nuages plus épais et plus brillants à mesure que la mer gelait — une rétroaction artificielle vers le snowball. Au-dessus
+ *  de la banquise, l'air reste maritime et pauvre en noyaux (nuages arctiques : Mauritsen et al. 2011, ACP 11:165). */
+function fractionMaritime() {
+    return window.DATA['🗻']['🍰🗻🌊'];
+}
 function nombreGouttesActuelCm3() {
     const DATA = window.DATA;
-    const oc = DATA['🪩']['🍰🪩🌊'];
+    const oc = fractionMaritime();
     return DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * oc + window.EARTH.NUAGES.CDNC_CONTINENT_CM3 * (1 - oc);
 }
 /** [cm⁻³] Nombre de gouttes de l'ÉPOQUE : actuel × rapport de CCN (loi sulfate). C'est celui qui fixe r_eff (Twomey). */
@@ -999,6 +1007,7 @@ ALBEDO.syncStratosphericVeil01 = syncStratosphericVeil01;
 ALBEDO.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 ALBEDO.calculateAlbedo = calculateAlbedo;
 ALBEDO.rapportCCN = rapportCCN;
+ALBEDO.fractionMaritime = fractionMaritime;
 ALBEDO.nombreGouttesActuelCm3 = nombreGouttesActuelCm3;
 ALBEDO.nombreGouttesCm3 = nombreGouttesCm3;
 ALBEDO.calculateCloudCoverage = calculateCloudCoverage; // DEPRECATED: utiliser calculateCloudFormationIndex() + 🍰🪩⛅

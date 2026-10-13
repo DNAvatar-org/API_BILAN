@@ -674,7 +674,7 @@ const timeline = [
         // v1.4.50 (2026-04-25): bump CO₂ 5e16→9.47e16 (6216→12000 ppm) et CH₄ 3e14→7.2e14 (102→250 ppm)
         // pour récupérer ~+13 W/m² de forçage GES manquant à 12.5°C (branche chaude).
         // Toujours dans CSV bench [5000,20000] CO₂ et [50,500] CH₄ (litt. paléosols + Wordsworth/Pierrehumbert 2013).
-        '⚖️🏭': 7.2284e+16, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 9.47e16  // co2_kg — 12000 ppm (était 5.0e16 = 6216 ppm)
+        '⚖️🏭': 4.4818e+17, // v-2026-10-13 : pCO₂ = 57 mbar, milieu du RECOUVREMENT [45 ; 70] mbar des deux méthodes de paléosols vers 2,5 Ga — Kanzaki & Murakami 2015 (GCA 159:190) : 45–140 mbar à 2,46 Ga ; Sheldon 2006 : 2 à 5 fois moins (Charnay et al. 2020, Space Sci. Rev.). Avant 7.2284e+16 (≈ 9 mbar, sous les deux mesures).
         '⚖️🐄': 5.4957e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 7.20e14  // ch4_kg — 250 ppm (était 3.0e14 = 102 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
@@ -1945,9 +1945,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "⚠️ non sourcée",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🪸': { tC: [0, 15], co2: [5000, 20000], ch4: [50, 500], h2oVap: [0.43, 1.36],
+    '🪸': { tC: [0, 15], co2: [11000, 175000], ch4: [50, 500], h2oVap: [0.43, 1.36],
         src: { tC: "⚠️ non sourcée (hors PhanDA)",
-               co2: "⚠️ non sourcée",
+               co2: "✅ paléosols ~2,5 Ga : 45–140 mbar (Kanzaki & Murakami 2015, GCA 159:190) ; Sheldon 2006 2 à 5× moins → 9–140 mbar ≈ 11 000–175 000 ppm à ~0,8 atm (Charnay et al. 2020)",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     'hysteresis 1a': { tC: [5, 15], co2: [500, 2000], ch4: [10, 50], h2oVap: [0.61, 1.37],

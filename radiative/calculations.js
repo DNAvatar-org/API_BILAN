@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.8.2
+// Version 1.8.3
+// - v1.8.3 (2026-10-13): k de Martin pondéré par ALBEDO.fractionMaritime (banquise = air maritime).
 // - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
 // - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
 // - v1.8.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN CIA 2024, tablesCIA) ; raies H₂O de la fenêtre (850–1200 cm⁻¹) et
@@ -335,7 +336,7 @@ function profilAtmosphere(z_range) {
     // Fractions MESURÉES (jauges FROID / CHAUD, fine_tuning_bounds.js) : sans eau, pas de nuage (branche physique).
     const avecEau = w_c > 0;
     const fBas = avecEau ? DATA['🎚️'].CLOUD_SW.F_BAS : 0, fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
-    const oc = DATA['🪩']['🍰🪩🌊'];                                  // océan libre : masse d'air maritime / continentale
+    const oc = window.ALBEDO.fractionMaritime();                   // masse d'air maritime (bassins, banquise comprise) / continentale
     const kMartin = N.K_MARTIN_OCEAN * oc + N.K_MARTIN_CONTINENT * (1 - oc);
     const nGouttesActuel = window.ALBEDO.nombreGouttesActuelCm3() * 1e6;   // [m⁻³] Terre actuelle (calculations_albedo.js)
     const nGouttes = window.ALBEDO.nombreGouttesCm3() * 1e6;                // [m⁻³] gouttes de l'époque (Twomey : r_eff ∝ N^(−1/3))
