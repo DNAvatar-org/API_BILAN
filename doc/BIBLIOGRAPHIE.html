@@ -1322,6 +1322,42 @@
     <div class="doi"><a href="https://doi.org/10.1063/1.1461829">10.1063/1.1461829</a></div>
     <div class="used-in">Courbe de saturation liquide–vapeur (éq. 2.5) et point critique — <code>physics/physics.js</code> (pSatEau, dLnPSatEau, tSatEau), <code>h2o/calculations_h2o.js</code>.</div>
 </article>
+<article class="ref" id="karman2019" data-tags="CIA co2 hitran spectroscopy">
+    <div class="cite-key">[karman2019]</div>
+    <div class="authors">Karman, T. et al.</div>
+    <div class="title">Update of the HITRAN collision-induced absorption section</div>
+    <div class="venue">Icarus, 328:160–175 (2019)</div>
+    <div class="used-in">Fichier CO2-CO2 de HITRANonline (mis à jour 2024, Terragni et al. 2025, JQSRT 347:109631) : <code>API_BILAN/data/cia_CO2_CO2.js</code>, <code>tablesCIA</code> (radiative/calculations.js). Bandes 1–750 et 1120–1850 cm⁻¹ ; rien dans la fenêtre 750–1120 cm⁻¹.</div>
+</article>
+<article class="ref" id="kochanov2016" data-tags="hitran hapi spectroscopy">
+    <div class="cite-key">[kochanov2016]</div>
+    <div class="authors">Kochanov, R. V., Gordon, I. E., Rothman, L. S., Wcislo, P., Hill, C. &amp; Wilzewski, J. S.</div>
+    <div class="title">HITRAN Application Programming Interface (HAPI): A comprehensive approach to working with spectroscopic data</div>
+    <div class="venue">J. Quant. Spectrosc. Radiat. Transfer, 177:15–30 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.jqsrt.2016.03.005">10.1016/j.jqsrt.2016.03.005</a></div>
+    <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹ ajoutés le 2026-10-13.</div>
+</article>
+<article class="ref" id="murphyKoop2005" data-tags="water saturation supercooled">
+    <div class="cite-key">[murphyKoop2005]</div>
+    <div class="authors">Murphy, D. M. &amp; Koop, T.</div>
+    <div class="title">Review of the vapour pressures of ice and supercooled water for atmospheric applications</div>
+    <div class="venue">Q. J. R. Meteorol. Soc., 131:1539–1565 (2005)</div>
+    <div class="used-in">Saturation sur eau liquide surfondue (<code>PHYS.pSatLiquide</code>) : l’humidité relative des radiosondes (Manabe &amp; Wetherald) est définie par rapport au liquide.</div>
+</article>
+<article class="ref" id="kollCronin2018" data-tags="olr water-vapor feedback">
+    <div class="cite-key">[kollCronin2018]</div>
+    <div class="authors">Koll, D. D. B. &amp; Cronin, T. W.</div>
+    <div class="title">Earth’s outgoing longwave radiation linear due to H₂O greenhouse effect</div>
+    <div class="venue">Proc. Natl. Acad. Sci. USA, 115(41):10293–10298 (2018)</div>
+    <div class="used-in">CONTRÔLE : pente de l’OLR en ciel clair ~2,2 W/m²/K à humidité relative fixe (modèle : 2,38 après ajout des raies de la fenêtre).</div>
+</article>
+<article class="ref" id="kuangHartmann2007" data-tags="anvil fat clouds">
+    <div class="cite-key">[kuangHartmann2007]</div>
+    <div class="authors">Kuang, Z. &amp; Hartmann, D. L.</div>
+    <div class="title">Testing the fixed anvil temperature hypothesis in a cloud-resolving model</div>
+    <div class="venue">J. Climate, 20:2051–2057 (2007)</div>
+    <div class="used-in">Appui de T_ENCLUME (moins de 0,5 K de variation de la température des enclumes pour 2 K de SST).</div>
+</article>
 <article class="ref" id="lacisHansen1974" data-tags="solar radiation clouds ozone water-vapor rayleigh">
     <div class="cite-key">[lacisHansen1974]</div>
     <div class="authors">Lacis, A. A. &amp; Hansen, J. E.</div>

@@ -1,6 +1,8 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.7.0
+// Version 1.8.0
+// - v1.8.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN CIA 2024, tablesCIA) ; raies H₂O de la fenêtre (850–1200 cm⁻¹) et
+//   CO₂ 850–2500 cm⁻¹ ajoutées aux données ; LCL par dichotomie ; HR de radiosonde / eau liquide.
 // - v1.7.0 (2026-10-13): CIA CO₂ inventée retirée ; nuages bas adiabatiques limités par la pluie (population) et hauts
 //   (enclumes à T_ENCLUME), vapeur moyenne de Manabe & Wetherald, eau précipitable effective pour solaire.js.
 // - v1.6.0 (2026-10-12): NUAGES par la physique. Condensat d'Ackerman & Marley 2001 (q_t transportée, f_sed), accumulé
@@ -170,6 +172,35 @@ function tablesSigma(lambda_range) {
         t.CH4.push(lambda_range.map(l => window.HITRAN.crossSectionCH4FromLines(l, T, P_ref)));
     }
     _tablesSigma[cle] = t;
+    return t;
+}
+
+// Absorption induite par collisions CO₂–CO₂ MESURÉE (HITRAN CIA 2024, data/cia_CO2_CO2.js) : table k(λ, T) sur la même
+// grille de températures que σ, en cm⁵/molécule² ; le worker en tire κ = k·n_CO₂² (n en molécules/cm³). Interpolation
+// linéaire en ν (pas de 1 cm⁻¹) puis en T entre les jeux mesurés ; hors de l'intervalle de T mesuré d'une bande, la
+// valeur du jeu le plus proche (⚠️ extrapolation à T constante, déclarée). Hors des bandes : 0.
+const _tablesCIA = {};
+function tablesCIA(lambda_range) {
+    const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
+    if (cle in _tablesCIA) return _tablesCIA[cle];
+    const bandes = window.HITRAN_CIA_CO2_CO2;
+    const kBande = (b, nu, T) => {
+        const x = nu - b.nu0;
+        if (x < 0 || x > b.k[0].length - 1) return 0;
+        const i = Math.min(Math.floor(x), b.k[0].length - 2), f = x - i;
+        const kT = (r) => b.k[r][i] + f * (b.k[r][i + 1] - b.k[r][i]);
+        if (T <= b.T[0]) return kT(0);
+        if (T >= b.T[b.T.length - 1]) return kT(b.T.length - 1);
+        let r = 0;
+        while (b.T[r + 1] < T) r++;
+        const w = (T - b.T[r]) / (b.T[r + 1] - b.T[r]);
+        return kT(r) + w * (kT(r + 1) - kT(r));
+    };
+    const t = T_GRILLE_SIGMA.map((T) => lambda_range.map((l) => {
+        const nu = 0.01 / l;                                    // [cm⁻¹]
+        return bandes.reduce((s, b) => s + kBande(b, nu, T), 0);
+    }));
+    _tablesCIA[cle] = t;
     return t;
 }
 
@@ -820,7 +851,7 @@ async function calculateFluxForT0() {
         const i_trop = profil.iTrop;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, continuum_H2O,
+            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, cia_CO2: tablesCIA(lambda_range), continuum_H2O,
             earth_flux, layers: layers_w, i_trop, ch4_eds_scale,
             effective_delta_lambda,
             diffusivite: window.EARTH.DIFFUSIVITE,

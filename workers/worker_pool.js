@@ -3,7 +3,8 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.3.1
+// Version 1.3.2
+// - v1.3.2 (2026-10-13): table CIA CO₂ découpée par tranche comme les σ.
 // - v1.3.1 (2026-10-13): diffusivite transmise ; h2o_eds_scale retiré.
 // - v1.3.0 (2026-10-12): tables σ[T][λ] et continuum découpés par tranche ; somme continuum.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -154,6 +155,7 @@
                     sigma_H2O:         params.sigma_H2O.map(function (r) { return r.slice(jStart, jEnd); }),
                     sigma_CH4:         params.sigma_CH4.map(function (r) { return r.slice(jStart, jEnd); }),
                     continuum_H2O:     params.continuum_H2O.slice(jStart, jEnd),
+                    cia_CO2:           params.cia_CO2.map(function (r) { return r.slice(jStart, jEnd); }),
                     earth_flux:        params.earth_flux.slice(jStart, jEnd),
                     // Données z partagées (toutes les couches, lecture seule, petites ~50 couches)
                     layers:              params.layers,

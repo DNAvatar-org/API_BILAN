@@ -4,7 +4,8 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.1
+// Version 1.0.2
+// - v1.0.2 (2026-10-13): data/cia_CO2_CO2.js (CIA CO₂–CO₂ mesurée, HITRAN 2024).
 // - v1.0.1 (2026-10-13): radiative/solaire.js (Lacis & Hansen 1974).
 // Date: 2026-10-10
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -26,6 +27,7 @@ window.ENGINE_SCRIPTS = [
     'data/hitran_lines_CO2.js',
     'data/hitran_lines_H2O.js',
     'data/hitran_lines_CH4.js',
+    'data/cia_CO2_CO2.js',
     'spectroscopy/hitran.js',
     // Avant le pool : publie la source du worker pour le repli blob: (pages ouvertes en file://).
     'workers/spectral_slice_worker.js',
