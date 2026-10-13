@@ -234,8 +234,9 @@ Logs:
         <div class="titre"><span class="cl C">C</span> Élargissement par la pression</div>
         <div class="f" data-tex="\kappa_{\text{gaz}}(\lambda, z) = \sigma(\lambda, T)\,\sqrt{\frac{P}{P_0}}\;n_{\text{gaz}}"></div>
         <p>Limite des raies <b>fortes et saturées</b>, appliquée à toutes les raies (fausse pour les raies faibles de la fenêtre)
-            et posée par-dessus des tables déjà calculées à 1 atm. À 2,26 atm (Archéen) elle gonfle toute l'absorption de 50 %.
-            Marquée [OBS/CALIB] dans la config. Suspect principal de l'Archéen trop chaud. Remède : k corrélé.</p>
+            et posée par-dessus des tables déjà calculées à 1 atm. Marquée [OBS/CALIB] dans la config. Mesuré le 13 octobre :
+            sans elle tout est <b>plus chaud</b> (📱 23,8 °C) — elle réduit surtout l'absorption en altitude (P &lt; 1 atm), bien
+            plus qu'elle ne l'augmente sous 2 atm. La vérité est entre les deux limites ; remède : k corrélé.</p>
         <p class="code">calculations.js → coucheWorker ; CONFIG_COMPUTE.pressureBroadening</p>
     </div>
     <div class="eq P">
@@ -364,7 +365,9 @@ Logs:
         <div class="f" data-tex="\text{LWC}_{\text{pluie}} = \tfrac{4\pi}{3}\,\rho_w\,k\,N_{\text{actuel}}\,r_{\text{pluie}}^3,\qquad r_{\text{pluie}} \in [13\ ;\ 14]\ \mu\text{m}"></div>
         <p>Les gouttes précipitent dès que leur rayon effectif atteint 13–14 µm (Rosenfeld &amp; Gutman 1994, Freud &amp;
             Rosenfeld 2012, Braga 2021) : c'est le sommet. Avec le N <b>actuel</b> : l'eau nuageuse ne répond presque pas au
-            nombre de gouttes (Toll 2019, M). Jauge FROID.</p>
+            nombre de gouttes (Toll 2019, M). Jauge FROID. ⚠️ Sous 0 °C le seuil devient \(f_{\text{liq}}\,\text{LWC}_{\text{pluie}}\) :
+            la glace précipite dès qu'elle se forme (hypothèse déclarée, limite du processus Wegener–Bergeron–Findeisen) ; sans elle,
+            un nuage froid ne précipitait jamais (jusqu'à 8 kg/m² d'eau sur 🪸).</p>
         <p class="code">calculations.js → profilAtmosphere ; CLOUD_SW.R_EFF_PLUIE</p>
     </div>
     <div class="eq P">

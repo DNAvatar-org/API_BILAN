@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.8.1
+// Version 1.8.2
+// - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
 // - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
 // - v1.8.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN CIA 2024, tablesCIA) ; raies H₂O de la fenêtre (850–1200 cm⁻¹) et
 //   CO₂ 850–2500 cm⁻¹ ajoutées aux données ; LCL par dichotomie ; HR de radiosonde / eau liquide.
@@ -371,7 +372,11 @@ function profilAtmosphere(z_range) {
         // Sommet : le condensat TOTAL atteint l'eau maximale avant précipitation. La glace ne retarde pas la précipitation,
         // elle l'accélère : dans un nuage mixte les cristaux grossissent aux dépens des gouttes et tombent (processus de
         // Wegener–Bergeron–Findeisen) — le seuil des gouttes liquides (14 µm) est donc une borne haute pour tout condensat.
-        if (cwc >= LWC_pluie) { sommet = true; zSommet = z; return; }
+        // v-2026-10-13 : seuil = f_liq · LWC_pluie. ⚠️ HYPOTHÈSE déclarée (limite du processus WBF) : la glace précipite dès
+        // qu'elle se forme, seule la part liquide (Hu & Stamnes) peut s'accumuler jusqu'au seuil de pluie. Sans elle, un
+        // nuage froid ne précipitait jamais : 1 à 8 kg/m² d'eau, τ jusqu'à 500 sous −10 °C (🪸), quand les observations
+        // donnent l'eau nuageuse DÉCROISSANTE vers le froid (Somerville & Remer 1984). Aucun effet sur les nuages liquides.
+        if (cwc >= f_liq * LWC_pluie) { sommet = true; zSommet = z; return; }
         // Liquide : W/(ρ_w r_eff) = dz·(LWC/ρ_w)^⅔·(4π k N/3)^⅓ (Martin 1994). Glace : rayon déclaré.
         const s = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * kMartin * nGouttes / 3)
             + (1 - f_liq) * cwc * dz / (N.RHO_GLACE * N.R_EFF_GLACE);

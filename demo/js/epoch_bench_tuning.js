@@ -1,7 +1,8 @@
 // File: API_BILAN/demo/epoch_bench_tuning.js
 // Desc: Panneau fine-tuning du banc : jauges séparées (FINE_TUNING_BOUNDS.jauges), détail par jauge avec la valeur
 //       LIVE des cibles, synchronisation avec la page parente.
-// Version 3.0.0
+// Version 3.1.0
+// - v3.1.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
 // Date: 2026-10-13
 // logs :
 //   - v3.0.0: jauges FROID / CHAUD / SUBTIL / HYSTERESIS au lieu de la jauge unique ATM ; popup = explication et mesure
@@ -36,13 +37,13 @@ function benchRenderTargets() {
             const J = F.jauges[j];
             const lignes = F.targets.filter(function (t) { return t.baryGroup === j; }).map(function (t) {
                 return '<tr>'
-                    + '<td class="bench-ft-key">' + t.group + '.<b>' + t.key + '</b></td>'
+                    + '<td class="bench-ft-key" title="' + window.TUNING.sensCible(t).titre + '">' + window.TUNING.sensCible(t).logo + ' ' + t.group + '.<b>' + t.key + '</b></td>'
                     + '<td class="bench-ft-num">' + benchFormatTuningValue(T[t.group][t.key]) + '</td>'
                     + '<td class="bench-ft-num">' + benchFormatTuningValue(t.min) + ' → ' + benchFormatTuningValue(t.max) + '</td>'
                     + '<td class="bench-ft-note">' + t.note + ' — ' + t.source + '</td>'
                     + '</tr>';
             }).join('');
-            return '<h3>' + J.logo + ' ' + j + ' ' + T.baryByGroup[j] + ' % — ' + J.titre + ' (' + J.sens + ')</h3>'
+            return '<h3>' + J.logo + ' ' + j + ' ' + T.baryByGroup[j] + ' % ' + window.TUNING.sensJauge(j).logo + ' — ' + J.titre + ' (' + window.TUNING.sensJauge(j).titre + ')</h3>'
                 + '<p class="bench-ft-note">' + J.explication + '</p>'
                 + '<p class="bench-ft-note">📏 ' + J.mesure + '</p>'
                 + '<table class="bench-ft-table"><thead><tr><th>Paramètre</th><th>Valeur</th><th>Plage 0 % → 100 %</th>'
@@ -66,7 +67,8 @@ function benchDisplayFineTuning() {
                 + F.jauges[j].logo
                 + '<input class="bench-ft-curseur" data-jauge="' + j + '" type="range" min="0" max="100" step="1" value="' + bg[j]
                 + '" oninput="window.__BENCH_FT__.onInput(this.dataset.jauge, this.value)">'
-                + '<span data-jauge-pct="' + j + '">' + bg[j] + '%</span></span>';
+                + '<span data-jauge-pct="' + j + '">' + bg[j] + '%</span>'
+                + '<span title="' + window.TUNING.sensJauge(j).titre + '">' + window.TUNING.sensJauge(j).logo + '</span></span>';
         }).join('')
         + '<button type="button" class="bench-ft-btn bench-ft-toggle" onclick="window.__BENCH_FT__.ouvrirDetail(); return false;" title="Détail des paramètres">détail…</button>';
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();

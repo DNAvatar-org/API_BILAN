@@ -61,8 +61,9 @@ profitent.
 ### 2.1 Spectroscopie — le chantier « distribution de k corrélée » (déjà proposé)
 
 - **√(P/P₀) sur toutes les sections efficaces** (C). Limite des raies fortes saturées, appliquée aussi aux raies
-  faibles de la fenêtre, et posée sur des tables déjà calculées à 1 atm. À 2,26 atm (🦠) : +50 % d'absorption
-  partout. Suspect principal de l'Archéen à ~48 °C.
+  faibles de la fenêtre, et posée sur des tables déjà calculées à 1 atm. ⚠️ Ce n'était PAS la cause de l'Archéen trop
+  chaud : mesuré le 13 octobre, sans le facteur tout est plus chaud (📱 23,8 °C, 🦠 56 °C) — il réduit surtout
+  l'absorption en altitude. L'Archéen venait de sa config (N₂ à 2,2 atm, § 4).
 - **σ échantillonnée en un point par intervalle** (N) : un intervalle de plusieurs cm⁻¹ représenté par sa valeur
   centrale.
 - **Fonctions de partition Q(T)** (⚠️) : rotateur rigide sans vibrations (∝ T pour CO₂, T^1,5 pour H₂O et CH₄).
@@ -147,3 +148,25 @@ Le moteur est déjà découpé par thème (33 fichiers). Trois fichiers ont gros
 | `albedo/calculations_albedo.js` | 1 065 | dont ~250 lignes de journal de versions et ~150 de logs de diagnostic | sortir le journal en tête dans un CHANGELOG, isoler `rapportCCN` dans `aerosols/` |
 
 Découpage sans changement de chiffre (banc identique attendu) — à faire dans une session à part.
+
+---
+
+## 4. Suite du 13 octobre (après le commit 82bf013)
+
+Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`), balayage ΔF(T) à température imposée.
+
+- **Jauges** : SUBTIL 100 % ne bouge rien (+0,1 à +0,5 K) ; FROID 40 % réchauffe 🦕 🐊 de 2 K mais sort 📱 (17,3 °C) ;
+  HYSTERESIS sans effet. L'écart est ENTRE époques : les jauges ne peuvent pas le corriger.
+- **Sensibilité** : CO₂ ×2 sur 📱 → +2,8 K (AR6 : 2,5–4). Le froid du Phanérozoïque chaud n'est pas un défaut de sensibilité
+  rapide : c'est le gradient pôle–équateur posé (🥶, moderne) et l'absence de transport méridien (§ 2.2).
+- **🦠 Archéen** : N₂ ramené de 1,0e19 kg (2,2 atm, le maximum, posé « pour lutter contre le faint sun ») à 4,0e18
+  (borne basse de sa fourchette, ≈ 1 PAL ; Marty et al. 2013 : 0,5–1,1 bar ; Som et al. 2016 : 0,23 ± 0,23 bar), CO₂ CH₄ O₂
+  dans le même rapport (fractions molaires inchangées). 🦠 46,0 → 10,4 °C, dans [5 ; 25].
+- **Nuages froids** : sous −10 °C l'eau nuageuse montait à 1–8 kg/m² (τ jusqu'à 500) — le nuage n'atteignait jamais le
+  seuil de pluie. Hypothèse déclarée : la glace précipite (seuil f_liq · LWC_pluie). Sans effet sur les nuages liquides ;
+  marge de 🪸 −4 → −1,9 W/m² à 5 °C.
+- **🪸** : toujours sans équilibre chaud (−1,9 W/m² au mieux). Écart principal : nuages bas plus épais au froid
+  (A_bas 0,44 à 5 °C contre 0,405 sur 📱), car W ∝ 1/Γ_l avec un seuil de pluie fixe — dépendance en T inverse des
+  observations dans le froid. À instruire : profondeur des nuages bas limitée par la couche limite.
+- **À noter** : Protérozoïque et Phanérozoïque ont plus de N₂ qu'aujourd'hui (5,0–5,1e18 contre 3,97e18 kg) : origine à
+  vérifier (même histoire que 🦠 ?).

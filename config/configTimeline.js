@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.97
+// Version 1.4.98
+// - v1.4.98 (2026-10-13): 🦠 : N₂ 1,0e19 → 4,0e18 kg (mesures Marty 2013 / Som 2016 ; 2,2 atm était posé contre le faint sun), CO₂ CH₄ O₂ ×0,4 (fractions molaires inchangées).
 // - v1.4.97 (2026-10-13): polarZoneFraction / midlatZoneFraction (0,13 / 0,37) et factorTropopause (1,0261 [CALIB]) retirés.
 // - v1.4.96: durées sur les entrées de 🕰.order ; rayon de 🔥 = 6371 km froid (le rayon suit l'intérieur, plus de
 //   🔺📐) ; eau : ⚫ sans eau, ses 2 ☄️ apportent EAU_ACCRETEE_KG = l'eau de départ de 🔥 (référence unique).
@@ -575,11 +576,16 @@ const timeline = [
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
         // Récupère ~+2 W/m² de forçage GES manquant vs branche froide. Pression N₂ inchangée (1.71 bar)
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
-        '⚖️🏭': 1.849e18, // v-2026-09-23 (était 2.6e18) : CO₂ ≈ 100 000 ppm air sec = milieu de [50k,150k] ‖ avant : co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
-        '⚖️🐄': 3.707e16, // v-2026-09-23 (était 6.3e16) : CH₄ ≈ 5 500 ppm air sec = milieu de [1k,10k] ‖ avant : ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
+        '⚖️🏭': 7.396e17, // v-2026-10-13 : ×0,4 avec N₂ (même ≈ 100 000 ppm). Avant : 1.849e18, v-2026-09-23 (était 2.6e18) : CO₂ ≈ 100 000 ppm air sec = milieu de [50k,150k] ‖ avant : co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
+        '⚖️🐄': 1.4828e16, // v-2026-10-13 : ×0,4 avec N₂ (même ≈ 5 500 ppm). Avant : 3.707e16, v-2026-09-23 (était 6.3e16) : CH₄ ≈ 5 500 ppm air sec = milieu de [1k,10k] ‖ avant : ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
-        '⚖️🫁': 5.0e15, // o2_kg — moyenne plage traces pré-GOE [0, 1e16].
-        '⚖️💨': 1.0e19, // n2_kg — max 🔒 [4.0e18, 1.0e19] = 2.2 atm (v1.4.76 ; était 7.0e18). Pressure broadening +GES.
+        '⚖️🫁': 2.0e15, // o2_kg — traces pré-GOE [0, 1e16] ; ×0,4 avec N₂ (v-2026-10-13, était 5.0e15).
+        // ⚖️💨 v-2026-10-13 : 1,0e19 (2,2 atm, le MAXIMUM, posé « pour lutter contre le faint sun », v1.4.50 / v1.4.76) →
+        // 4,0e18, la borne basse de la fourchette déclarée ci-dessous (≈ 1 PAL). MESURES : N₂ 0,5–1,1 bar vers 3,0–3,5 Ga
+        // (Marty et al. 2013, Science 342:101, inclusions fluides) ; pression totale 0,23 ± 0,23 bar vers 2,7 Ga (Som et al.
+        // 2016, Nature Geosci. 9:448, vésicules). Aucune ne soutient 2,2 atm. CO₂, CH₄, O₂ réduits dans le même rapport : leurs
+        // fractions molaires (le milieu des fourchettes de la config) ne changent pas. Sonde : 🦠 46,0 → 10,2 °C ([5 ; 25]).
+        '⚖️💨': 4.0e18,
         // ⚖️✈ : 4,0e8 kg = FOND NATUREL PRÉINDUSTRIEL, faute de contrainte propre à l'Archéen.
         //   ⚠️ NON CONTRAINT, et il faut le dire : aucune charge de sulfate atmosphérique archéenne
         //   n'est publiée. Deux effets de signe opposé, tous deux non quantifiés, encadrent la vraie

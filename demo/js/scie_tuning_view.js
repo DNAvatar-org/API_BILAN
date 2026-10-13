@@ -1,7 +1,8 @@
 // File: API_BILAN/demo/scie_tuning_view.js - Panneau fine-tuning : bornes, barycentres, curseurs
 // Desc: Le FINE-TUNING : les bornes de FINE_TUNING_BOUNDS, les curseurs de barycentre par groupe, et la
 //       synchronisation avec la page parente. C'est la partie qui rend visible le flou scientifique.
-// Version 1.2.0
+// Version 1.3.0
+//   - v1.3.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
 //   - v1.2.0 (2026-10-13): jauges séparées (FINE_TUNING_BOUNDS.jauges) — une section par jauge avec son sens, son
 //     explication et la mesure qui l'a classée ; plus de jauge unique ATM / CLOUD_SW / SCIENCE / SOLVER.
 // Date: [September 19, 2026]
@@ -210,7 +211,9 @@ function displayFineTuning() {
     fineTitle.style.alignItems = 'center';
     fineTitle.style.gap = '8px';
     fineTitle.innerHTML = '🧩 Fine-tuning ' + Object.keys(F.jauges).map(function (j) {
-        return F.jauges[j].logo + ' <span data-jauge-pct="' + j + '">' + Math.round(bg[j]) + '%</span>';
+        const sens = window.TUNING.sensJauge(j);
+        return F.jauges[j].logo + ' <span data-jauge-pct="' + j + '">' + Math.round(bg[j]) + '%</span>'
+            + ' <span title="' + sens.titre + '">' + sens.logo + '</span>';
     }).join(' · ')
         + '<button class="toggle-button" id="fine-tuning-toggle" onclick="toggleFineTuning()" style="margin-left:auto">' + (isOpen ? '−' : '+') + '</button>';
     let html = '<div class="config-value"><em>Le barycentre unique a été éclaté le 2026-10-13 : avec la nouvelle physique des '
@@ -222,6 +225,7 @@ function displayFineTuning() {
         html += '<div class="config-section">'
             + '<div class="config-value" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
             + '<strong>' + J.logo + ' ' + j + ' — ' + J.titre + '</strong> (' + J.sens + ')'
+            + ' <span title="' + window.TUNING.sensJauge(j).titre + '">' + window.TUNING.sensJauge(j).logo + '</span>'
             + '<input data-jauge-curseur="' + j + '" id="fine-tuning-bary-slider-' + j + '" type="range" min="0" max="100" step="1" value="' + pct + '" oninput="onFineTuningBaryInput(\'' + j + '\', this.value)">'
             + '<span data-jauge-pct="' + j + '">' + pct + '%</span>'
             + '<button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun(\'' + j + '\', document.getElementById(\'fine-tuning-bary-slider-' + j + '\').value); return false;">▶️</button>'
@@ -229,7 +233,7 @@ function displayFineTuning() {
             + '<div class="config-value">' + J.explication + '</div>'
             + '<div class="config-value">📏 ' + J.mesure + '</div>';
         getFineTuningTargetsByJauge(j).forEach(function (t) {
-            html += '<div class="config-value">' + getTuningLineLogo(t.group, t.key) + ' <strong>' + t.key + '</strong> = '
+            html += '<div class="config-value">' + window.TUNING.sensCible(t).logo + ' ' + getTuningLineLogo(t.group, t.key) + ' <strong>' + t.key + '</strong> = '
                 + '<span id="fine-tuning-valeur-' + t.key + '">' + formatTuningValue(getFineTuningValue(t)) + '</span>'
                 + ' [' + formatTuningValue(t.min) + ' , ' + formatTuningValue(t.max) + '] — ' + t.note + ' #' + t.source + '</div>';
         });
