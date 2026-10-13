@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.99
+// Version 1.5.0
+// - v1.5.0 (2026-10-13): EPOCH['🥶'] retirés de toutes les époques — écarts de zone calculés (physics/meridien.js).
 // - v1.4.99 (2026-10-13): N₂ = 1 PAL (3,878e18 kg) pour toutes les époques sauf ⚫ et 🔥 — avant, des RESTES qui gardaient la masse
 //   totale à ~5,15e18 kg ; CO₂ et CH₄ recalculés pour garder leurs ppm (dans les fourchettes), O₂ en masse (PAL).
 //   O₂ de 🪼 🍄 💀 🦕 sourcé (Krause 2018, Glasspool & Scott 2010) : 9 / 22 / 24 / 24 % de l'air au lieu de 13 / 17 / 13 / 0 % PAL.
@@ -395,7 +396,6 @@ const timeline = [
         // 🌡️🧮 : milieu grille CSV Corps_noir [-19,-17]°C → 255.15 K
         '🌡️🧮': 255.15,
         // 🥶 : valeurs Terre-moderne nominales — pas d'atmosphère donc ice_tf inactif sur le radiatif.
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.3,
         '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
@@ -453,7 +453,6 @@ const timeline = [
         // 🌡️🧮 : milieu grille CSV Hadéen [2000,2500]°C → 2523.15 K.
         '🌡️🧮': 2823.15,
         // 🥶 : T_glob >> T_freeze, ice_tf=0 quoi qu'il en soit. Valeurs nominales modernes.
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 1.7,//596,
         '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         // 🌡️🌕 : CONDITION INITIALE de l'intérieur (geology/interieur.js) — l'histoire thermique commence au ▶ de
@@ -573,7 +572,6 @@ const timeline = [
         // amplifié par circulation atmosphérique dense, océans peu profonds). Pas de continents
         // élevés (relief modéré) → moins d'effet hauteur sur T_pol.
         // dT_pol 20→10K, dT_mid 5→2K. Plus aggressif que Proté car faint sun plus dur.
-        '🥶': { dT_pol: 10, dT_mid: 2, dT_trop: -5 },
         // ─── ESSAI MOYENNE DES FOURCHETTES (v1.4.40) ───────────────────────────
         // Valeurs au milieu des bornes 🔒 ci-dessous pour tester le banc sans extrêmes.
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
@@ -669,7 +667,6 @@ const timeline = [
         // dT_pol 20→10K : T_pol_proxy = T_glob - 10K (au lieu de -20K). À T_glob=12.5°C → T_pol=2.5°C.
         // dT_mid  5→3K : pareil pour mi-latitude.
         // Effet : tf_pol passe de 0.68 à 0.35 ; ice_tf de 0.20 à 0.15 ; Sabs gagne ~+10 W/m² uniquement Proté.
-        '🥶': { dT_pol: 10, dT_mid: 3, dT_trop: -5 },
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
         // v1.4.50 (2026-04-25): bump CO₂ 5e16→9.47e16 (6216→12000 ppm) et CH₄ 3e14→7.2e14 (102→250 ppm)
         // pour récupérer ~+13 W/m² de forçage GES manquant à 12.5°C (branche chaude).
@@ -786,7 +783,6 @@ const timeline = [
         // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
         // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
         // restait éteinte (ice_eff=0.5 melt, tf_pol≈0.06) et le scan CO₂↓ ne pouvait jamais bifurquer.
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '📐': 6371,
@@ -987,7 +983,6 @@ const timeline = [
         '◀': 639e6, // v-2026-09-24 : vraie date — début du Marinoen, ≥ 639,0 (Hoffman 2017) (était 600e6)
         '🌡️🧮': 308.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (302.65, convergence au clic)
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
-        '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
         '📐': 6371,
@@ -1143,7 +1138,6 @@ const timeline = [
         '◀': 538.8e6, // base du Cambrien, ICS 2023 (l'Édiacarien)
         '🌡️🧮': 308.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (302.65, convergence au clic)
         // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
-        '🥶': { dT_pol: 15, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.622e26, // Gough @ 0,635 Ga (indicatif)
         '📐': 6371,
@@ -1212,7 +1206,6 @@ const timeline = [
         '🌡️🧮': 293.15,
         // 🥶 : Cambrien/Hirnantien, continents éparpillés en cours de regroupement (Gondwana en formation).
         // Gradient méridien légèrement inférieur à la Terre moderne (Scotese 2021 paleotemperature).
-        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
         '📐': 6371,
@@ -1248,7 +1241,6 @@ const timeline = [
         // 🌡️🧮 : milieu de PhanDA Pridoli [26,39] °C = 32,5 °C → 305.65 K.
         '🌡️🧮': 305.65,
         // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
         '📐': 6371,
@@ -1304,7 +1296,6 @@ const timeline = [
         '🌡️🧮': 290.65, // v-2026-09-24 : milieu de PhanDA Changhsingien [14,3 ; 20,7] = 17,5 °C ‖ avant : 292.65
         // 🥶 : hyperthermie P/T (Trapps sibériens, anoxie). Gradient méridien réduit par CO₂ massif.
         // Joachimski 2012 : SST tropicales 36°C+ + polaires plus chaudes que Karoo → dT_pol modéré.
-        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
         '📐': 6371,
@@ -1348,7 +1339,6 @@ const timeline = [
         '🌡️🧮': 301.15,
         // 🥶 : serre chaude Crétacé (Hudson 2010, Huber & Caballero 2011), polar T très chaud
         // → "equability problem" Pierrehumbert : gradient méridien fortement réduit. dT_pol=15K.
-        '🥶': { dT_pol: 15, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
@@ -1390,7 +1380,6 @@ const timeline = [
         '⛄': 0,
         '🌡️🧮': 301.65,
         // 🥶 : Paléocène/début Éocène, post K-Pg, plus chaud que moderne, gradient méridien réduit.
-        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
         '📐': 6371,
@@ -1428,7 +1417,6 @@ const timeline = [
         '⛄': 0,
         '🌡️🧮': 307.9, // v-2026-09-24 : milieu de PhanDA PETM [30,3 ; 39,2] = 34,75 °C ‖ avant : 306.65
         // 🥶 : PETM Éocène, pic thermique, gradient méridien faible (Sluijs 2008, polaires 17°C+ été).
-        '🥶': { dT_pol: 16, dT_mid: 4, dT_trop: -5 },
         '🧲🔬': 0.1,
         '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
         '📐': 6371,
@@ -1473,7 +1461,6 @@ const timeline = [
         '⛄': 0.02,
         '🌡️🧮': 299.65,
         // 🥶 : transition Eocène/Oligocène (Oi-1), bascule calotte Antarctique, gradient en cours de renforcement.
-        '🥶': { dT_pol: 18, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.08,
         '🔋☀️': 3.816e26, // 🔒 Gough @ 0.035 Ga
         '📐': 6371,
@@ -1516,7 +1503,6 @@ const timeline = [
         // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; baryFromDate → ~17 Ma ≈ mi-parcours 33→2 Ma.
         '🔺🍰⚽': 0.00196,
         // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.05,
         '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
         '📐': 6371,
@@ -1557,7 +1543,6 @@ const timeline = [
         '◀': 11.7e3, // v-2026-09-24 : vraie date — base de l'Holocène, 11 700 ans b2k, ICS 2023 (était 10e3)
         '🌡️🧮': 287.65,
         // 🥶 : Quaternaire glaciations, gradient méridien moderne (calottes nord+sud).
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.04,
         '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
         '📐': 6371,
@@ -1626,7 +1611,6 @@ const timeline = [
         // 🌡️🧮 : milieu grille CSV Holocène [13,15]°C → 287.15 K.
         '🌡️🧮': 287.15,
         // 🥶 : Holocène, valeurs Terre-moderne (référence calibration ERA5/Peixoto&Oort 1992).
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.03,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
         '📐': 6371,
@@ -1661,7 +1645,6 @@ const timeline = [
         '◀': 2000,
         '🌡️🧮': 286.65,
         // 🥶 : Industrielle, valeurs Terre-moderne.
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.01,
         '🔋☀️': 3.828e26,
         '📐': 6371,
@@ -1698,7 +1681,6 @@ const timeline = [
         // 🌡️🧮 : milieu grille CSV Aujourd'hui [14.5,15.5]°C → 288.15 K.
         '🌡️🧮': 287.55,
         // 🥶 : Aujourd'hui, valeurs Terre-moderne (calibration target 15°C).
-        '🥶': { dT_pol: 20, dT_mid: 5, dT_trop: -5 },
         '🧲🔬': 0.010,
         '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
@@ -2150,7 +2132,7 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
 };
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
 // ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.51 ────────────
-// SOURCE UNIQUE dT_* : configTimeline.js EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop }.
+// dT_* : CALCULÉS par le bilan méridien (physics/meridien.js, North 1981) — les EPOCH['🥶'] posés par époque sont retirés (2026-10-13).
 // Lue par EARTH.computeIceTempFactor(opts) via les 3 call-sites albedo/flux/h2o (crash si absent).
 // CONFIG_COMPUTE.polarAmplificationK / midlatAmplificationK SUPPRIMÉS v1.4.51 — dead code après
 // migration vers EPOCH['🥶'] (cf. albedo v1.2.51, flux v1.2.93, h2o v1.0.23).

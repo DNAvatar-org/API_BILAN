@@ -1,7 +1,9 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.3.1
+// Version 2.4.0
+// - v2.4.0 (2026-10-13): écarts de zone CALCULÉS (bilan méridien de North 1981, physics/meridien.js) : facteurGlaceZones(T, EPOCH, dT),
+//   STATE.dTzones, part d'énergie englacée par zone ; EPOCH['🥶'], obliquityZoneWarmingK, EBM_B / EBM_ALBEDO_REF retirés.
 // - v2.3.1 (2026-10-13): fractions de zones calculées (1 − sin 60°…) et seules utilisées ; CH4_EDS_SCALE et T_LAVA_* retirés.
 // - v2.3.0 (2026-10-12): EARTH.NUAGES — microphysique des nuages (Ackerman & Marley 2001 pour la structure verticale et la
 //   glace, Martin et al. 1994 pour les gouttes, fraction mesurée MODIS King et al. 2013, deux-flux g = 0,85).
@@ -169,22 +171,14 @@ EARTH.T_ICE_TRANSITION_RANGE_K = 20;  // [K]
 // 🏷️ TUNING — valeurs Earth-modern (Budyko 1969 ; Sellers 1969 ; IPCC AR6 WG1 ch.7 & fig 4.18) :
 //   POLAR_AMP_POL_K = 20 K (gradient tropiques→pôles ~40 K réel, amplification polaire Arctique observée ~2×)
 //   POLAR_AMP_MID_K =  5 K (gradient tropiques→mi-lat ~10 K réel)
-// 🏷️ FLOU SCIENTIFIQUE — ces valeurs dépendent en réalité de :
-//   1) l'obliquité axiale ε (insolation annuelle pondérée par latitude) ;
-//      - North & Coakley 1979 EBM 2D : gradient T = f(ε, S, A) — pour ε↑ → gradient↓ (pôles reçoivent plus en été)
-//      - Loi approximée : ΔT_pol ∝ S(φ=90°)/S̄ ≈ (2/π)·sin(ε) — donc à ε=0°, ΔT_pol maximum ; à ε=90°, pôles « tropicaux »
-//      - Formule possible future : POLAR_AMP_POL_K ≈ 20 × (sin(23.44°) / sin(ε)), non activée ici.
-//   2) circulation atmosphérique/océanique (transport de chaleur méridien, ~5 PW Terre moderne)
-//   3) rétroaction glace-albédo (déjà modélisée en aval)
-//   4) épaisseur de l'atmosphère (Archéen P_atm ≠ moderne → transport différent)
-// ─── Pas de constantes EARTH.POLAR_AMP_*_K ─────────────────────────────────────
-// Source unique = configTimeline.js, EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop }.
-// computeIceTempFactor() throw si opts.dT_pol/dT_mid/dT_trop manquants. Crash-first cohérent
-// avec "Règle regle-data-territoire : lecture directe, pas de fallback".
-// Réfs Terre-moderne pour info (📱 EPOCH = { dT_pol: 20, dT_mid: 5, dT_trop: -5 }) :
-//   POLAR_AMP_POL_K  = +20 K (gradient tropiques→pôles ~40 K réel, amplification polaire Arctique observée ~2×)
-//   POLAR_AMP_MID_K  = +5 K  (gradient tropiques→mi-lat ~10 K réel)
-//   POLAR_AMP_TROP_K = -5 K  (tropical ~5 K plus chaud que moyenne globale ; Peixoto & Oort 1992 ch.7)
+// ─── ÉCARTS DE TEMPÉRATURE DES ZONES : CALCULÉS (2026-10-13), plus posés par époque ─────────────────────────────────
+// Avant : EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop } posés à la main pour chaque époque (moderne +20 / +5 / −5, qui ne sont
+// même pas de moyenne nulle et sous-estiment les tropiques de 5,5 K), et une correction d'obliquité ΔS̄(1 − 0,30)/2,0.
+// Maintenant : bilan d'énergie méridien diffusif de North, Cahalan & Coakley 1981 (Rev. Geophys. 19:91, éq. 22), solution à
+// deux modes T(x) = T̄ + T₂ P₂(x), x = sin(latitude) — physics/meridien.js. L'obliquité y entre par l'insolation exacte.
+// window.STATE.dTzones = { pol, mid, trop } (dT = T̄ − T_zone) : posé par MERIDIEN.resoudre à chaque calcul d'albédo.
+// État initial (avant le premier calcul d'albédo) : le gradient MESURÉ de North 1981 (T₂ = −28,0 °C, hémisphère nord) ramené
+// aux trois zones, ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078 → dT = −10,5 / +6,1 / +22,6 K. C'est une condition initiale, pas un réglage.
 // Fractions surface par zone, géométrie sphérique (sin φ₂ − sin φ₁ sur 2 hémisphères) :
 //   Pol (60°–90°)  = 1 − sin 60°  = 0.134
 //   Mid (30°–60°)  = sin 60° − sin 30° = 0.366
@@ -223,27 +217,10 @@ EARTH.SEASONAL_AMP_MID_OCEAN_K = 4;  // [K]
 // du Protérozoïque sans invoquer un Snowball global).
 EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont calibrés
 
-// ─── Redistribution méridienne de l'insolation par ε (Milankovitch) — v2.0.18 ──────────────
-// L'amplitude saisonnière ci-dessus ne dit QUE la moitié de l'histoire : une obliquité forte
-// refroidit les hivers MAIS envoie surtout plus d'énergie ANNUELLE vers les pôles (et un peu
-// moins aux tropiques ; la moyenne globale, elle, ne change pas d'un iota).
-// C'est ce second terme qui gouverne Milankovitch : forte ε = étés polaires chauds = calottes
-// qui fondent (déglaciation) ; faible ε = étés frais = la neige survit = glaciation.
-// Sans lui, le modèle donnait le signe INVERSE (ε 24,5° → bascule froide au Quaternaire).
-//
-// S̄_z(ε) = insolation annuelle moyenne de la zone z (intégrale de l'insolation journalière sur
-// l'année et sur la bande de latitude, pondérée par la surface). Calcul exact ci-dessous, mis en
-// cache : la moyenne globale est invariante, seule la RÉPARTITION dépend de ε.
-//   dS̄/dε ≈ +4,5 W/m² par degré au pôle, −1,3 aux tropiques, ~0 aux moyennes latitudes.
-// Conversion en température de zone via l'EBM : ΔT_z = ΔS̄_z · (1 − α) / B
-//   B = 2,0 W/m²/K (coefficient de refroidissement radiatif EBM, Budyko 1969 : 1,45–2,1)
-//   α = 0,30 (albédo planétaire de référence).
-// Réfs : Berger 1978 J. Atmos. Sci. 35:2362 ; Laskar et al. 2004 A&A 428:261 ; Budyko 1969 Tellus 21:611.
-//
-// ⚠️ APPLIQUÉ EN ÉCART SEULEMENT : ΔT_z = f(ε_courant) − f(ε_époque). Les 🥶 de chaque époque sont
-// calibrés POUR son ε de config (ex. Archéen 45°) : à ε inchangé, le terme est nul et le banc ne bouge pas.
-EARTH.EBM_B_W_PER_M2_K = 2.0;  // [W/(m²·K)]
-EARTH.EBM_ALBEDO_REF = 0.30;  // [W/W (flux réfléchi / flux incident)]
+// ─── Insolation par latitude (Berger 1978, géométrie orbitale) ─────────────────────────────────────────────────────
+// La redistribution méridienne de l'insolation par ε (Milankovitch) entre désormais dans le bilan méridien
+// (physics/meridien.js) par l'insolation annuelle EXACTE de chaque latitude. EARTH.EBM_B_W_PER_M2_K (2,0), EBM_ALBEDO_REF
+// (0,30) et obliquityZoneWarmingK (écart ΔS̄(1 − α)/B appliqué aux 🥶 posés) sont retirés le 2026-10-13.
 // v-2026-09-23 : renommée depuis SOLAR_CONSTANT_REF_W — c'est un flux (W/m²), pas une puissance.
 EARTH.SOLAR_CONSTANT_REF_W_PER_M2 = 1361;  // [W/m²]
 
@@ -256,6 +233,8 @@ function dailyMeanInsolation(lat_deg, dec_deg) {
     return EARTH.SOLAR_CONSTANT_REF_W_PER_M2 / Math.PI
         * (H * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(H));
 }
+
+EARTH.dailyMeanInsolation = dailyMeanInsolation;
 
 /** Insolation annuelle moyenne (W/m²) d'une bande de latitude [l0,l1]°, pondérée par la surface. */
 function zoneAnnualMeanInsolation(l0_deg, l1_deg, obliquity_deg) {
@@ -289,19 +268,6 @@ EARTH.zoneAnnualInsolation = function (obliquity_deg) {
         };
     }
     return _zoneInsolationCache[key];
-};
-
-/** Écart de température de zone (K) dû au changement d'obliquité ε_ref → ε : ΔT = ΔS̄·(1−α)/B. */
-EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
-    if (obliquity_deg === obliquity_ref_deg) return { pol: 0, mid: 0, trop: 0 };
-    var cur = EARTH.zoneAnnualInsolation(obliquity_deg);
-    var ref = EARTH.zoneAnnualInsolation(obliquity_ref_deg);
-    var k = (1 - EARTH.EBM_ALBEDO_REF) / EARTH.EBM_B_W_PER_M2_K;
-    return {
-        pol:  (cur.pol  - ref.pol)  * k,
-        mid:  (cur.mid  - ref.mid)  * k,
-        trop: (cur.trop - ref.trop) * k
-    };
 };
 
 // ─── GLACE SAISONNIÈRE ET ENSOLEILLEMENT (2026-10-13) ─────────────────────────────────────────────────────────────
@@ -374,7 +340,9 @@ EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) 
  *   Physique Snowball Earth (Budyko-Sellers classique) : quand T_glob < ~−4°C, la rampe
  *   tropicale s'active, et la rétroaction glace-albédo peut dépasser le gain de 1 → bifurcation.
  *
- * EPOCH : l'entrée TIMELINE courante (🥶 obligatoire, ⚾ facultatif).
+ * EPOCH : l'entrée TIMELINE courante (⚾ facultatif). dT = { pol, mid, trop } (dT = T̄ − T_zone) : CALCULÉ par le bilan
+ * méridien (physics/meridien.js) ; computeIceTempFactor lit le dernier résolu (window.STATE.dTzones), facteurGlaceZones le
+ * reçoit (itérations du bilan méridien). Plus d'EPOCH['🥶'] posé par époque (2026-10-13).
  *
  * @returns {{ice_tf, tf_pol, tf_mid, tf_trop,
  *            T_thresh_pol_high, T_thresh_pol_low, T_thresh_mid_high, T_thresh_mid_low,
@@ -382,28 +350,19 @@ EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) 
  *            dT_pol, dT_mid, dT_trop, amp_pol, amp_mid, amp_trop,
  *            f_pol, f_mid, f_trop, obliquity_deg, obliquity_factor, dT_obliquity}}
  */
-EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
+EARTH.facteurGlaceZones = function (T_glob_K, EPOCH, dT) {
     var cc = window.CONFIG_COMPUTE;
     var f_pol = EARTH.POLAR_ZONE_FRAC;
     var f_mid = EARTH.MIDLAT_ZONE_FRAC;
     var f_trop = EARTH.TROPICAL_ZONE_FRAC;
-    // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'].
-    var dT_pol  = EPOCH['🥶'].dT_pol;
-    var dT_mid  = EPOCH['🥶'].dT_mid;
-    var dT_trop = EPOCH['🥶'].dT_trop;
-    // Obliquité : ε de l'époque (celle où 🥶 est calibré) ; ε courant = 📜⚾ quand un état 🔁 la pose (Milankovitch).
-    var obliquity_ref_deg = ('⚾' in EPOCH) ? EPOCH['⚾'] : cc.obliquityDeg;
-    var obliquity_deg = (window.DATA['📜']['⚾'] > 0) ? window.DATA['📜']['⚾'] : obliquity_ref_deg;
+    var dT_pol  = dT.pol;
+    var dT_mid  = dT.mid;
+    var dT_trop = dT.trop;
+    var obliquity_deg = EARTH.obliquiteCourante(EPOCH);
     // Facteur sin(ε)/sin(ε_REF), borné à 0.
     var toRad = Math.PI / 180;
     var sinRef = Math.sin(EARTH.OBLIQUITY_DEG_REF * toRad);
     var obliquity_factor = Math.max(0, Math.sin(obliquity_deg * toRad) / sinRef);
-    // Redistribution méridienne (Milankovitch) : ε au-dessus de l'ε de l'époque ⇒ pôles plus chauds,
-    // tropiques un peu plus froids ⇒ dT_z (écart zone − global) corrigé. Nul si ε == ε_ref.
-    var dT_oblq = EARTH.obliquityZoneWarmingK(obliquity_deg, obliquity_ref_deg);
-    dT_pol  -= dT_oblq.pol;
-    dT_mid  -= dT_oblq.mid;
-    dT_trop -= dT_oblq.trop;
     // Amplitudes saisonnières effectives, dérivées de l'obliquité.
     var amp_pol  = EARTH.SEASONAL_AMP_POL_K  * obliquity_factor;
     var amp_mid  = EARTH.SEASONAL_AMP_MID_K  * obliquity_factor;
@@ -443,6 +402,8 @@ EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
         ice_tf: ice_tf,
         // sans glace (gTemps = 0) le rapport est sans objet : 1
         rapport_ensoleillement: gTemps > 0 ? gEnergie / gTemps : 1,
+        // Part de l'énergie solaire annuelle de CHAQUE zone qui tombe sur de la glace (co-albédo par zone, bilan méridien).
+        e_pol: gPol.energie, e_mid: gMid.energie, e_trop: gTrop.energie,
         tf_pol: tf_pol, tf_mid: tf_mid, tf_trop: tf_trop,
         T_thresh_pol_high:  T_thresh_pol_high,  T_thresh_pol_low:  T_thresh_pol_low,
         T_thresh_mid_high:  T_thresh_mid_high,  T_thresh_mid_low:  T_thresh_mid_low,
@@ -452,9 +413,17 @@ EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
         dT_pol: dT_pol, dT_mid: dT_mid, dT_trop: dT_trop,
         amp_pol: amp_pol, amp_mid: amp_mid, amp_trop: amp_trop,
         f_pol: f_pol, f_mid: f_mid, f_trop: f_trop,
-        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor,
-        obliquity_ref_deg: obliquity_ref_deg, dT_obliquity: dT_oblq
+        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor
     };
+};
+/** Facteur de glace avec les écarts de zone du DERNIER bilan méridien résolu (window.STATE.dTzones). */
+EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
+    return EARTH.facteurGlaceZones(T_glob_K, EPOCH, window.STATE.dTzones);
+};
+/** [°] Obliquité courante : 📜⚾ quand un état 🔁 la pose (Milankovitch), sinon celle de l'époque, sinon la config. */
+EARTH.obliquiteCourante = function (EPOCH) {
+    if (window.DATA['📜']['⚾'] > 0) return window.DATA['📜']['⚾'];
+    return ('⚾' in EPOCH) ? EPOCH['⚾'] : window.CONFIG_COMPUTE.obliquityDeg;
 };
 EARTH.EVAPORATION_E0 = 0.001;  // [kg/(m²·s)]
 EARTH.EVAPORATION_T_REF = 288;  // [K]
@@ -627,6 +596,9 @@ EARTH['🪩🍰'] = {
 
 // ========== STATE (état solver partagé : glace figée, etc.) ==========
 var STATE = window.STATE = {};
+// Écarts de température des zones (dT = T̄ − T_zone, K), posés par MERIDIEN.resoudre (physics/meridien.js) à chaque calcul
+// d'albédo. Condition INITIALE : le gradient mesuré de North et al. 1981 (T₂ = −28,0 °C) ramené aux trois zones.
+STATE.dTzones = { pol: 28.0 * 0.8078, mid: 28.0 * 0.2165, trop: -28.0 * 0.375 };
 
 // ========== PHYS (fonctions de physique exposées) ==========
 var PHYS = window.PHYS = {};

@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.4.5
+// Version 1.5.0
+// - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
 // - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
 // - v1.4.4 (2026-10-13): ALBEDO.nombreGouttesActuelCm3 / nombreGouttesCm3 — une seule définition du nombre de gouttes (profil, affichage).
 // - v1.4.3 (2026-10-13): rapportCCN = loi sulfate mesurée seule (proxy O₂ × biomasse × anthropique, sans physique, retiré) ; surface en fusion = fraction fondue de la péridotite à la T courante (Katz 2003) au lieu de la rampe 1000–2373 K sur la T de graine.
@@ -394,6 +395,33 @@ function calculateAlbedo() {
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
     syncStratosphericVeil01(DATA);
+    // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
+    // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
+    const albedo_coeff = ('🪩🍰' in EPOCH) ? { ...EARTH['🪩🍰'], ...EPOCH['🪩🍰'] } : { ...EARTH['🪩🍰'] };
+
+    // [MUDBALL v1.2.64] Déglaciation 1b : la poussière volcanique/éolienne concentrée par sublimation sur des Ma
+    // (Abbot & Pierrehumbert 2010, JGR 115:D03104) assombrit TOUTE la glace — neige profonde 🪩🍰❄️ ET glace nue 🪩🍰🧊.
+    // Piloté par la CONFIG d'époque : EPOCH['🌫️❄️'] = albédo de la glace sale (nombre). Époque sans clé → glace propre.
+    // La jauge du test hystérésis (CONFIG_COMPUTE.iceMudballAlbedo) ne surcharge QUE les époques qui déclarent la clé
+    // (plus de détection par nom d'époque) → 1a / ⛄ / modernes intacts, bench = test = visu.
+    if ('🌫️❄️' in EPOCH) {
+        const _mudball = EPOCH['🌫️❄️'];
+        if (albedo_coeff['🪩🍰❄️'] > _mudball) albedo_coeff['🪩🍰❄️'] = _mudball;
+        if (albedo_coeff['🪩🍰🧊'] > _mudball) albedo_coeff['🪩🍰🧊'] = _mudball;
+    }
+
+    // Colonne nuageuse du profil (vapeur, nuages bas et hauts) : une fois par calcul — bilan méridien et albédo planétaire.
+    const colonne = window.RADIATIVE.colonneNuageuse();
+
+    // 🔒 BILAN MÉRIDIEN (physics/meridien.js, North et al. 1981) : écarts de température des zones CALCULÉS, posés dans
+    // window.STATE.dTzones, que lit computeIceTempFactor plus bas. Surface libre de chaque zone = océan + terres de la
+    // géologie ; glace de la zone = Briegleb à la température de la zone (mêmes lois que l'albédo de glace plus bas).
+    const ocGeo = EPOCH['🗻']['🍰🗻🌊'];
+    const albedoLibre = ocGeo * albedo_coeff['🪩🍰🌊'] + (1 - ocGeo) * albedo_coeff['🪩🍰🌍'];
+    const neigeTrop = albedo_coeff['🪩🍰❄️'] - (albedo_coeff['🪩🍰❄️'] - albedo_coeff['🪩🍰🧊']) * Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
+    const albedoGlaceZone = (cle, T_zone_K) => brieglebIceAlbedoLocal(T_zone_K,
+        cle === 'trop' ? neigeTrop : albedo_coeff['🪩🍰❄️'], albedo_coeff, DATA['🪩']['🍰🪩🧊']);
+    window._hystDiag.meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone);
 
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
@@ -401,10 +429,10 @@ function calculateAlbedo() {
         // Même logique que ice_temp_factor ci-dessous, mais utilisée pour blend héritage glaciaire (pas l'albédo instantané).
         // Régime 1 (T_K >= T_freeze) : calottes polaires ; max ~10% surface (highlands).
         //   Rampe linéaire pondérée par l'amplification polaire → seuil global T_thresh_pol = T_FREEZE + dT_pol.
-        //   dT_pol lu depuis EPOCH['🥶'].dT_pol (source unique, configTimeline.js). Crash si manquant.
+        //   dT_pol du bilan méridien (window.STATE.dTzones, physics/meridien.js).
         // Régime 2 (T_K <  T_freeze) : océan gèle → jusqu'à 90% surface en glace de mer, rampe sur 20 K.
         if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
-            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + EPOCH['🥶'].dT_pol;
+            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + window.STATE.dTzones.pol;   // bilan méridien
             const stock_factor = Math.max(0, Math.min(1, (T_thresh_pol - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K));
             return Math.max(0, Math.min(1, 0.1 * stock_factor));
         }
@@ -764,21 +792,6 @@ function calculateAlbedo() {
         window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
     }
 
-    // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
-    // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
-    const albedo_coeff = ('🪩🍰' in EPOCH) ? { ...EARTH['🪩🍰'], ...EPOCH['🪩🍰'] } : { ...EARTH['🪩🍰'] };
-
-    // [MUDBALL v1.2.64] Déglaciation 1b : la poussière volcanique/éolienne concentrée par sublimation sur des Ma
-    // (Abbot & Pierrehumbert 2010, JGR 115:D03104) assombrit TOUTE la glace — neige profonde 🪩🍰❄️ ET glace nue 🪩🍰🧊.
-    // Piloté par la CONFIG d'époque : EPOCH['🌫️❄️'] = albédo de la glace sale (nombre). Époque sans clé → glace propre.
-    // La jauge du test hystérésis (CONFIG_COMPUTE.iceMudballAlbedo) ne surcharge QUE les époques qui déclarent la clé
-    // (plus de détection par nom d'époque) → 1a / ⛄ / modernes intacts, bench = test = visu.
-    if ('🌫️❄️' in EPOCH) {
-        const _mudball = EPOCH['🌫️❄️'];
-        if (albedo_coeff['🪩🍰❄️'] > _mudball) albedo_coeff['🪩🍰❄️'] = _mudball;
-        if (albedo_coeff['🪩🍰🧊'] > _mudball) albedo_coeff['🪩🍰🧊'] = _mudball;
-    }
-
     // [EQ] Albédo glace zonale — EBM 0D 3 zones × Briegleb (2004) NCAR/TN-463 §5.
     // T_local_z = T_glob − dT_z (Budyko-Sellers ; EPOCH['🥶'] via computeIceTempFactor).
     // α_glace = Σ_z (f_z·tf_z·α_Briegleb(T_z, α_snow_deep_z)) / Σ_z (f_z·tf_z).
@@ -877,7 +890,6 @@ function calculateAlbedo() {
     // (physics.js EARTH.NUAGES), puis transfert SOLAIRE de Lacis & Hansen (radiative/solaire.js) : Rayleigh, ozone,
     // vapeur, nuages et surface. L'albédo de surface `albedo` devient l'albédo au sommet de l'atmosphère.
     // Remplace l'addition à 2 couches sans atmosphère (v1.2.64).
-    const colonne = window.RADIATIVE.colonneNuageuse();
     const sol = window.SOLAIRE.albedo(albedo, colonne);
     const cloud_fraction = sol.couverture;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;

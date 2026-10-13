@@ -3,7 +3,8 @@
 // Desc: Les trois réservoirs océaniques (couche de mélange, thermocline, profond) et leur relaxation.
 //       Rien d'autre : la partition Henry de fond vit dans co2/calculations_co2.js, le puits
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
-// Version 1.2.1
+// Version 1.2.2
+// - v1.2.2 (2026-10-13): écarts de zone du bilan méridien (STATE.dTzones) au lieu d'EPOCH['🥶'] posés.
 // - v1.2.1 (2026-10-13): fractions de zones = EARTH (géométrie) au lieu de CONFIG_COMPUTE (0,13 / 0,37).
 // Date: 2026-09-20
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -70,8 +71,10 @@ function assertOceanCapacity(boxes) {
  * Prendre la T moyenne sous-estime donc structurellement la dissolution, quelle que soit la planète.
  * Terre moderne : ×1,075 pondéré par aire contre ×0,993 à la moyenne, soit +8 % d'absorption.
  *
- * Zones et écarts de température : EPOCH['🥶'] et CONFIG_COMPUTE.*ZoneFraction — les mêmes que pour
- * l'albédo de glace, pas une seconde source. Plancher à la température de gel de l'eau de mer :
+ * Zones et écarts de température : ceux du bilan méridien (window.STATE.dTzones, physics/meridien.js) et les
+ * fractions géométriques EARTH.*_ZONE_FRAC — les mêmes que pour l'albédo de glace, pas une seconde source.
+ * Unités : facteur de Van 't Hoff exp[2400 K · (1/T − 1/T_réf)], sans dimension, T en KELVINS (T_zone = T̄ − dT ;
+ * dT est une différence de température, identique en K et en °C). Plancher à la température de gel de l'eau de mer :
  * sous la banquise il n'y a plus d'échange gazeux.
  *
  * ⚠️ Pondération par AIRE, faute de mieux : l'absorption se concentre en réalité sur les sites de
@@ -81,7 +84,7 @@ function assertOceanCapacity(boxes) {
 function zonalSolubilityFactor() {
     const DATA = window.DATA;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const ice = EPOCH['🥶'];
+    const ice = window.STATE.dTzones;   // { pol, mid, trop } [K], dT = T̄ − T_zone
     const T_glob = DATA['🧮']['🧮🌡️'];
     const T_ref = EPOCH['🌡️🧮'];
     const freeze = window.EARTH.T_FREEZE_SEAWATER_K;
@@ -91,7 +94,7 @@ function zonalSolubilityFactor() {
     const vh = function (dT) {
         return Math.exp(2400.0 * (1.0 / Math.max(freeze, T_glob - dT) - 1.0 / T_ref));
     };
-    return fPol * vh(ice.dT_pol) + fMid * vh(ice.dT_mid) + fTrop * vh(ice.dT_trop);
+    return fPol * vh(ice.pol) + fMid * vh(ice.mid) + fTrop * vh(ice.trop);
 }
 
 /**

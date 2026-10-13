@@ -5,7 +5,8 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.0.0
+// Version 1.1.0
+// - v1.1.0 (2026-10-13): albedoMu (albédo à un μ₀ donné) exposé pour le bilan méridien ; albedo() = sa moyenne Gauss-Legendre.
 // Date: [October 13, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -184,43 +185,61 @@
      * (RADIATIVE.colonneNuageuse : vapeur, population de nuages bas, fractions fBas / fHaut). Sous-colonnes en
      * recouvrement aléatoire : clair, bas seul, haut seul, bas + haut. Renvoie aussi les ciels pour le diagnostic.
      */
-    function albedo(Rg, colonne) {
-        const s = facteurRayleigh();
-        const u = colonneOzone();
+    /**
+     * Albédo au sommet pour UN cosinus d'angle solaire μ₀ : ciels clair, bas, haut, bas + haut (populations), et leur
+     * mélange en recouvrement aléatoire. s, u : facteur de Rayleigh et colonne d'ozone (calculés une fois par l'appelant).
+     */
+    function albedoMu(mu, Rg, colonne, s, u) {
         const W = colonne.wTotal;
         const fB = colonne.fBas, fH = colonne.fHaut;
         const Rr_s = rayleigh(0.0685, s), Ra_s = rayleigh(0.144, s);
+        const M = 35 / Math.sqrt(1224 * mu * mu + 1);
+        const ozDescente = aOz(M * u);
+        const ozRemontee = aOz(M * u + LH.M_DIFFUS_OZONE * u) - ozDescente;
+        // ── Ciel clair : visible (Rayleigh + ozone + sol, 14, 15, 40) ; bandes de la vapeur (sol vu à travers W).
+        const Rr = rayleigh(0.28 / (1 + 6.43 * mu), s);
+        const Ra = rayleigh(0.219 / (1 + 0.816 * mu), s);
+        const RbarOz = Ra + (1 - Ra) * (1 - Ra_s) * Rg / (1 - Ra_s * Rg);
+        const visClair = LH.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee)
+            - (LH.PART_VISIBLE - Rr - ozDescente) * (1 - Rg) / (1 - Rr_s * Rg);
+        let nirClair = 0;
+        for (let n = 1; n < LH.K.length; n++) nirClair += LH.P[n] * Rg * Math.exp(-(M + LH.M_DIFFUS) * LH.K[n] * W);
+        const aClair = visClair + nirClair;
+        // ── Ciels nuageux : populations (bas : profondeur ; hauts : ln τ).
+        const aBas = moyennePopulation(colonne.tranches, (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, 0, c));
+        const aHaut = moyenneHauts((t) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, null));
+        const aDeux = moyenneHauts((t) => moyennePopulation(colonne.tranches,
+            (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c)));
+        return { A: (1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux,
+            Aclair: aClair, Abas: aBas, Ahaut: aHaut };
+    }
+
+    /**
+     * Albédo planétaire (sommet de l'atmosphère, avant voile) : surface d'albédo Rg, colonne du profil
+     * (RADIATIVE.colonneNuageuse : vapeur, population de nuages bas, fractions fBas / fHaut). Sous-colonnes en
+     * recouvrement aléatoire : clair, bas seul, haut seul, bas + haut. Moyenne GLOBALE : ∫ A(μ₀)·2μ₀ dμ₀ (Gauss-Legendre).
+     * Renvoie aussi les ciels pour le diagnostic.
+     */
+    function albedo(Rg, colonne) {
+        const s = facteurRayleigh();
+        const u = colonneOzone();
         let A = 0, Aclair = 0, Abas = 0, Ahaut = 0;
         for (let q = 0; q < GL_X.length; q++) {
-            const mu = GL_X[q];
-            const M = 35 / Math.sqrt(1224 * mu * mu + 1);
-            const ozDescente = aOz(M * u);
-            const ozRemontee = aOz(M * u + LH.M_DIFFUS_OZONE * u) - ozDescente;
-            // ── Ciel clair : visible (Rayleigh + ozone + sol, 14, 15, 40) ; bandes de la vapeur (sol vu à travers W).
-            const Rr = rayleigh(0.28 / (1 + 6.43 * mu), s);
-            const Ra = rayleigh(0.219 / (1 + 0.816 * mu), s);
-            const RbarOz = Ra + (1 - Ra) * (1 - Ra_s) * Rg / (1 - Ra_s * Rg);
-            const visClair = LH.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee)
-                - (LH.PART_VISIBLE - Rr - ozDescente) * (1 - Rg) / (1 - Rr_s * Rg);
-            let nirClair = 0;
-            for (let n = 1; n < LH.K.length; n++) nirClair += LH.P[n] * Rg * Math.exp(-(M + LH.M_DIFFUS) * LH.K[n] * W);
-            const aClair = visClair + nirClair;
-            // ── Ciels nuageux : populations (bas : profondeur ; hauts : ln τ).
-            const aBas = moyennePopulation(colonne.tranches, (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, 0, c));
-            const aHaut = moyenneHauts((t) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, null));
-            const aDeux = moyenneHauts((t) => moyennePopulation(colonne.tranches,
-                (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c)));
-            const poids = GL_W[q] * 2 * mu;
-            Aclair += poids * aClair;
-            Abas += poids * aBas;
-            Ahaut += poids * aHaut;
-            A += poids * ((1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux);
+            const r = albedoMu(GL_X[q], Rg, colonne, s, u);
+            const poids = GL_W[q] * 2 * GL_X[q];
+            A += poids * r.A;
+            Aclair += poids * r.Aclair;
+            Abas += poids * r.Abas;
+            Ahaut += poids * r.Ahaut;
         }
-        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, couverture: 1 - (1 - fB) * (1 - fH), ozone: u, rayleigh: s };
+        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
     }
 
     window.SOLAIRE = {
         albedo: albedo,
+        albedoMu: albedoMu,
+        facteurRayleigh: facteurRayleigh,
+        colonneOzone: colonneOzone,
         moyennePopulation: moyennePopulation,
         moyenneHauts: moyenneHauts,
         etatNuage: etatNuage

@@ -4,7 +4,8 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.2
+// Version 1.0.3
+// - v1.0.3 (2026-10-13): physics/meridien.js (bilan d'énergie méridien de North et al. 1981).
 // - v1.0.2 (2026-10-13): data/cia_CO2_CO2.js (CIA CO₂–CO₂ mesurée, HITRAN 2024).
 // - v1.0.1 (2026-10-13): radiative/solaire.js (Lacis & Hansen 1974).
 // Date: 2026-10-10
@@ -43,6 +44,7 @@ window.ENGINE_SCRIPTS = [
     'co2/calculations_co2.js',
     'radiative/calculations.js',
     'radiative/solaire.js',
+    'physics/meridien.js',   // bilan méridien (North 1981) : utilise SOLAIRE.albedoMu, lu par calculations_albedo
     'convergence/calculations_flux.js',
     'api.js'
 ];

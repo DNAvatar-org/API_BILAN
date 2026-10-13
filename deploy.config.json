@@ -279,6 +279,22 @@
     {
       "src": "convergence/clics.js",
       "dest": "pages/bilan_radiatif/API_BILAN/convergence/clics.js"
+    },
+    {
+      "src": "geology/interieur.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/geology/interieur.js"
+    },
+    {
+      "src": "data/cia_CO2_CO2.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/cia_CO2_CO2.js"
+    },
+    {
+      "src": "radiative/solaire.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/radiative/solaire.js"
+    },
+    {
+      "src": "physics/meridien.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/physics/meridien.js"
     }
   ]
 }
