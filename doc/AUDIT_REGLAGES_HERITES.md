@@ -170,3 +170,21 @@ Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`)
   observations dans le froid. À instruire : profondeur des nuages bas limitée par la couche limite.
 - **À noter** : Protérozoïque et Phanérozoïque ont plus de N₂ qu'aujourd'hui (5,0–5,1e18 contre 3,97e18 kg) : origine à
   vérifier (même histoire que 🦠 ?).
+
+## 5. Jauges, ☃, N₂ (13 octobre, suite)
+
+- **Jauges FROID / CHAUD inversées** : 100 % = le plus chaud (🔺). Combinaisons opposées (100/0, 75/25, 25/75) : le niveau
+  bouge, l'écart 🦕 − 📱 reste +0,6 à +1,2 K (cible +10 à +17). Garder 📱 à 14,8 °C impose ≈ 50/50.
+- **HYSTERESIS** 0 % = 100 % au centième sur ☃ et 🪸 : la rampe de mer gelée (T globale < 271,15 K) n'agit qu'après la
+  bascule, déclenchée par la glace des trois zones. Candidate au retrait.
+- **☃ (hysteresis 1a)** : 72 ppm = seuil de l'ancienne physique. Graine : 500 ppm → snowball, 1 000 → 7,6 °C, 2 000 → 11,4.
+  Nouvelle frontière entre 500 et 1 000 ppm, DANS la fourchette [500 ; 2 000]. Dichotomie à refaire — par la chaîne de clics
+  depuis 🪸, donc après 🪸.
+- **🪸** : 20 000 ppm (haut de sa fourchette de config, sans source) → 6,9 °C. Non appliqué : mesure du CO₂ vers 2,5 Ga à
+  relever (paléosols, Kanzaki & Murakami 2015, de mémoire plusieurs dizaines de PAL).
+- **N₂ du Précambrien et du Phanérozoïque** : pas des mesures, des RESTES pour garder la masse totale à ~5,15e18 kg (pression
+  ≈ 1 bar constante). Hypothèse standard : N₂ ≈ 1 PAL constant. Sur 🪸 : 0,77 atm, premier pas −1,9 au lieu de −0,9 W/m².
+  À trancher par l'utilisateur.
+- **Piste « couche limite » (nuages bas)** : ne mordrait pas — nuage de 🪸 ≈ 440 m, couche limite marine ≈ 1 km. Et la
+  décroissance de l'eau nuageuse avec T dans le régime chaud (W ∝ 1/Γ_l) est le sens observé (Terai et al. 2016) ; le régime
+  froid est traité par la précipitation de la glace.
