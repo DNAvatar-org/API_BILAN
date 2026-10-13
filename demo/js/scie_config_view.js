@@ -2,7 +2,8 @@
 // Desc: L'AFFICHAGE DE LA CONFIGURATION : je transforme les objets de config en tableaux lisibles (json2html) et
 //       je développe les formules d'albédo et de flux. Je ne fais que MONTRER — c'est ce découpage qui permet
 //       à API_BILAN d'en dériver une version où les champs deviennent éditables.
-// Version 1.0.1
+// Version 1.0.2
+// - v1.0.2 (2026-10-13): picto par clé (jauges séparées) ; curseurs retirés du panneau bibliographie.
 // - v1.0.1 (2026-10-12): logo 💧 pour CDNC_OCEAN_CM3 ; CLOUD_FRACTION_INDEX_GAIN retiré.
 // Date: [September 19, 2026]
 // logs :
@@ -265,16 +266,10 @@ function getTuningLineLogo(groupKey, key) {
         if (key === 'MAX_SEARCH_STEP_K' || key === 'MAX_SEARCH_STEP_LARGE_K') return '🌡️';
         return '🧮';
     }
-    if (groupKey === 'SCIENCE') return '🔬';
-    if (groupKey === 'CLOUD_SW') {
-        if (key.indexOf('SULFATE') === 0) return '✈';
-        if (key === 'CDNC_OCEAN_CM3') return '💧';
-        if (key.indexOf('CLOUD_') === 0) return '☁️';
-        if (key.indexOf('OPTICAL_') === 0) return '🧪';
-        if (key.indexOf('TEMP_') === 0) return '🌡️';
-        return '⛅';
-    }
-    return '•';
+    // Un picto par clé de fine-tuning (même table que l'organigramme).
+    const PICTO = { CDNC_OCEAN_CM3: '💧', R_EFF_PLUIE: '☔', F_BAS: '☁️', F_HAUT: '🌥', SULFATE_CCN_EXPONENT: '✈',
+        H2O_SURFACE_RH_01: '💦', seaIceTransitionRangeK: '🌊❄' };
+    return PICTO[key];
 }
 
 function getFineTuningValue(target) {
@@ -286,16 +281,8 @@ function syncSolverConfigFromData() {
 }
 
 function renderBiblioLines(logo, title, groupKey, biblioObj) {
-    const groupTargets = getFineTuningTargetsByGroup(groupKey);
-    const bary = getFineTuningBaryPercent(groupKey);
-    let controlsHtml = '';
-    if (groupTargets.length) {
-        controlsHtml = ` <span style="margin-left:8px;">🎚️</span>
-            <input id="fine-tuning-bary-slider-${groupKey}" type="range" min="0" max="100" step="1" value="${bary.toFixed(0)}" oninput="onFineTuningBaryInput('${groupKey}', this.value)">
-            <span id="fine-tuning-bary-value-${groupKey}">${bary.toFixed(0)}%</span>
-            <button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun('${groupKey}', document.getElementById('fine-tuning-bary-slider-${groupKey}').value); return false;">▶️</button>`;
-    }
-    let html = `<div class="config-section"><div class="config-value"><strong>${logo} ${title}</strong>${controlsHtml}</div>`;
+    // Les curseurs sont dans le panneau fine-tuning (une jauge peut piloter plusieurs groupes de stockage).
+    let html = `<div class="config-section"><div class="config-value"><strong>${logo} ${title}</strong></div>`;
     if (!biblioObj || Object.keys(biblioObj).length === 0) {
         html += `<div class="config-value">— aucune source renseignée</div></div>`;
         return html;
@@ -319,30 +306,3 @@ function renderBiblioLines(logo, title, groupKey, biblioObj) {
     return html;
 }
 
-function renderMergedCategory(groupKey, titleLabel, titleIcon, showHeader) {
-    const groupTargets = getFineTuningTargetsByGroup(groupKey);
-    if (!groupTargets.length) return '';
-    const bary = getFineTuningBaryPercent(groupKey);
-    let controlsHtml = '';
-    if (groupKey === 'SOLVER') {
-        controlsHtml = `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;margin-left:8px;">
-            <input id="fine-tuning-bary-slider-${groupKey}" type="range" min="0" max="100" step="1" value="${bary.toFixed(0)}" oninput="onFineTuningBaryInput('${groupKey}', this.value)">
-            <span id="fine-tuning-bary-value-${groupKey}">${bary.toFixed(0)}%</span>
-            <button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun('${groupKey}', document.getElementById('fine-tuning-bary-slider-${groupKey}').value); return false;">▶️</button>
-        </span>`;
-    }
-    let html = `<div class="config-section">`;
-    if (showHeader !== false) {
-        html += `<div class="config-value" style="display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:nowrap;">
-            <strong style="white-space:nowrap;">${titleIcon} ${titleLabel} 🎚️</strong>${controlsHtml}
-        </div>`;
-    }
-    for (let i = 0; i < groupTargets.length; i++) {
-        const target = groupTargets[i];
-        const logo = getTuningLineLogo(groupKey, target.key);
-        const activeVal = getFineTuningBaryValue(target, bary);
-        html += `<div class="config-value">${logo} ${target.key} 🔻 ${formatTuningValue(activeVal)} [${formatTuningValue(target.min)} , ${formatTuningValue(target.max)}]${target.note ? ` — ${target.note}` : ''}${target.source ? ` #${target.source}` : ''}</div>`;
-    }
-    html += `</div>`;
-    return html;
-}

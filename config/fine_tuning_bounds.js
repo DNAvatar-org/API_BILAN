@@ -1,6 +1,8 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.5.2
+// Version 1.6.0
+// - v1.6.0 (2026-10-13): barycentre unique éclaté en jauges FROID / CHAUD / SUBTIL / HYSTERESIS (classement mesuré) ;
+//   cibles F_BAS, F_HAUT, H2O_SURFACE_RH_01 (fourchettes mesurées).
 // - v1.5.2 (2026-10-13): R_EFF_PLUIE [13 ; 14] µm ajouté (seuil mesuré de la pluie chaude).
 // - v1.5.1 (2026-10-13): H2O_EDS_SCALE retiré (4 → 3 cibles) — les physiques qu'il remplaçait sont codées.
 // - v1.5.0 (2026-10-12): 6 → 4 cibles. CLOUD_FRACTION_BASE, CLOUD_FRACTION_INDEX_GAIN, OPTICAL_EFF_BASE retirés (fraction
@@ -57,6 +59,40 @@
 // - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science)
 
 window.FINE_TUNING_BOUNDS = {
+    // ── JAUGES (v1.6.0, 2026-10-13) : le barycentre unique ATM est éclaté. Avec la nouvelle physique des nuages, ses
+    // paramètres n'allaient plus tous dans le même sens (banc : 📱 14,4 °C à 15 %, 15,8 à 0 %, −67 à 80 %, 7 à 82 %).
+    // Classement MESURÉ (bilan net à la température graine de 📱 🚂 🪸 ⛄ 🦕 🐊 « hysteresis 2 », chaque paramètre de sa
+    // borne basse à sa borne haute, les autres à 50 %) :
+    //   FROID  — refroidit TOUJOURS (sauf ⛄, sans nuage liquide) : CDNC (−7 à −12 W/m²), seuil de pluie (−4 à −8),
+    //            fraction de nuages bas (−5 à −8 ; +3 sur ⛄, nuages au-dessus de la glace) ;
+    //   CHAUD  — réchauffe TOUJOURS : fraction de nuages hauts (+2 à +5) ;
+    //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +1 à +1,5 avant l'industrie), humidité de
+    //            surface (−8 sur 📱, −4 sur 🚂, +1 à +3 sur 🪸 🦕 🐊) ;
+    //   HYSTERESIS — rampe de la mer gelée : sans effet aux graines, n'agit qu'au passage du gel.
+    // Convention du projet conservée pour FROID et CHAUD : 100 % = la valeur la plus REFROIDISSANTE de chaque plage.
+    // SUBTIL : 100 % = borne haute de chaque plage (pas de sens unique).
+    // `explication` et `mesure` sont affichées par les pages scientifique et banc (pas par la visu).
+    jauges: {
+        FROID: { logo: '☁️', titre: 'nuages qui refroidissent', sens: 'refroidit',
+            explication: 'Paramètres qui refroidissent TOUJOURS quand ils augmentent : plus de gouttes (nuages plus brillants, '
+                + 'Twomey), seuil de pluie plus grand (nuages bas plus épais), plus de nuages bas. 100 % = valeurs les plus froides.',
+            mesure: 'Bilan net à la graine, borne basse → haute (W/m²) : CDNC −7 à −12 ; seuil de pluie −4 à −8 ; nuages bas −5 à −8 '
+                + '(+3 sur ⛄ : nuages au-dessus de la glace). Époques 📱 🚂 🪸 ⛄ 🦕 🐊 « hysteresis 2 ».' },
+        CHAUD: { logo: '🌥', titre: 'nuages hauts, qui réchauffent', sens: 'réchauffe',
+            explication: 'Nuages hauts (enclumes, cirrus) : froids, ils piègent l\'infrarouge plus qu\'ils ne réfléchissent le soleil. '
+                + 'Leur fraction réchauffe TOUJOURS. 100 % = la plus petite fraction (le plus froid).',
+            mesure: 'Bilan net à la graine, 0,29 → 0,37 : +2 à +5 W/m² sur toutes les époques non englacées, 0 sur ⛄.' },
+        SUBTIL: { logo: '🔀', titre: 'paramètres au signe variable selon l\'époque', sens: 'selon l\'époque',
+            explication: 'Le sens de leur effet change d\'une époque à l\'autre : l\'exposant sulfate n\'agit que loin de la charge '
+                + 'actuelle d\'aérosols ; l\'humidité de surface ajoute de la vapeur (réchauffe) mais abaisse et épaissit les nuages '
+                + '(refroidit). 100 % = bornes hautes des plages (pas de sens unique).',
+            mesure: 'Bilan net à la graine, borne basse → haute : exposant sulfate 0 sur 📱, +1 à +1,5 avant l\'industrie ; humidité '
+                + 'de surface −8 sur 📱, −4 sur 🚂, +1 à +3 sur 🪸 🦕 🐊.' },
+        HYSTERESIS: { logo: '🧊', titre: 'rampe de la mer gelée', sens: 'au passage du gel',
+            explication: 'Largeur, sous le point de gel, de la rampe qui fait passer la mer de libre à gelée. Sans effet loin du gel ; '
+                + 'elle règle les bascules (snowball, sorties).',
+            mesure: 'Sans effet sur le bilan aux graines des sept époques testées.' }
+    },
     targets: [
         // CLOUD_FRACTION_BASE [0,17 ; 0,23], CLOUD_FRACTION_INDEX_GAIN [0,08 ; 0,14], OPTICAL_EFF_BASE [1,00 ; 1,20]
         // RETIRÉS (v1.5.0) : trois plages posées à la main (« calibration interne », « ajustement interne »,
@@ -66,6 +102,7 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'CLOUD_SW',
             key: 'CDNC_OCEAN_CM3',
+            baryGroup: 'FROID',
             // Nombre de gouttes des nuages bas sur océan, Terre actuelle. Bennartz 2007 (JGR 112:D02201), MODIS Aqua :
             // 64–89 cm⁻³ (hémisphère nord) et 40–67 cm⁻³ (hémisphère sud) sur les océans éloignés → [40 ; 89].
             // Plus de gouttes = gouttes plus petites (Martin et al. 1994) = nuage plus épais optiquement = plus froid :
@@ -89,6 +126,7 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'CLOUD_SW',
             key: 'R_EFF_PLUIE',
+            baryGroup: 'FROID',
             // Rayon effectif des gouttes au sommet d'un nuage quand la pluie chaude s'y déclenche : il fixe l'épaisseur
             // des nuages bas (radiative/calculations.js : LWC_pluie = (4π/3) ρ_w k N r³). MESURÉ, dans une fourchette :
             // 13 µm (Braga et al. 2021, ACP 21:14079, avions sur l'Amazonie et l'Atlantique tropical) à 14 µm
@@ -104,7 +142,53 @@ window.FINE_TUNING_BOUNDS = {
         },
         {
             group: 'CLOUD_SW',
+            key: 'F_BAS',
+            baryGroup: 'FROID',
+            // Fraction de nuages BAS (vue en colonne, nuages masqués compris) : 0,41 ± 0,05 (Stubenrauch et al. 2024,
+            // Surv. Geophys. 45:1999, CloudSat-CALIPSO + ISCCP corrigé). Plus de nuages bas = plus froid : 100 % = 0,46.
+            min: 0.36,
+            max: 0.46,
+            default: 0.41,
+            unit: 'm²/m²',
+            note: 'fraction de nuages bas (en colonne)',
+            source: 'Stubenrauch et al. 2024 Surv. Geophys. 45:1999 : CAL_col 0,41 ± 0,05.',
+            effect: 'negative',
+            biblio_ref: 'F_BAS'
+        },
+        {
+            group: 'CLOUD_SW',
+            key: 'F_HAUT',
+            baryGroup: 'CHAUD',
+            // Fraction de nuages HAUTS : 0,29 (capteurs passifs, ISCCP corrigé) à 0,37 (lidar CALIPSO, cirrus fins compris)
+            // (Stubenrauch et al. 2024 §3.1). Plus de nuages hauts = plus chaud : 100 % (le plus froid) = 0,29.
+            min: 0.37,
+            max: 0.29,
+            default: 0.33,
+            unit: 'm²/m²',
+            note: 'fraction de nuages hauts (enclumes, cirrus)',
+            source: 'Stubenrauch et al. 2024 Surv. Geophys. 45:1999 : CAH 0,29 (ISCCP-CVL) – 0,37 (CALIPSO-ST_top).',
+            effect: 'positive',
+            biblio_ref: 'F_HAUT'
+        },
+        {
+            group: 'H2O',
+            key: 'H2O_SURFACE_RH_01',
+            baryGroup: 'SUBTIL',
+            // Humidité relative de surface, moyenne globale : 0,70–0,75 (ERA5) ; 0,77 dans le profil observé de Manabe &
+            // Wetherald 1967. Le signe de son effet change selon l'époque (classement ci-dessus).
+            min: 0.70,
+            max: 0.77,
+            default: 0.735,
+            unit: 'Pa/Pa',
+            note: 'humidité relative de surface',
+            source: 'ERA5 (0,70–0,75) ; Manabe & Wetherald 1967 J. Atmos. Sci. 24:241 (0,77).',
+            effect: 'epoch-dependent',
+            biblio_ref: 'H2O_SURFACE_RH_01'
+        },
+        {
+            group: 'CLOUD_SW',
             key: 'SULFATE_CCN_EXPONENT',
+            baryGroup: 'SUBTIL',
             // REMPLACE SULFATE_BOOST_SCALE [300,700] ET SULFATE_BOOST_MAX [0.20,0.45] (v1.3.15).
             // Les deux étaient des nombres inventés : « gain sulfate proxy » et « garde-fou numérique,
             // pas une grandeur mesurée », de l'aveu de leur propre champ `source`. Et tous deux
@@ -145,6 +229,7 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'HYSTERESIS',
             key: 'seaIceTransitionRangeK',
+            baryGroup: 'HYSTERESIS',
             min: 1,
             max: 6,
             default: 2.2,

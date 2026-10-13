@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.2.1
+// Version 1.2.2
+// - v1.2.2 (2026-10-13): humidité de surface lue dans DATA['🎚️'].H2O (jauge SUBTIL).
 // - v1.2.1 (2026-10-13): plafond d'Init sur H2O_SURFACE_RH_01 (H2O_SURFACE_RH_INIT_01, sans source, retiré).
 // - v1.2.0 (2026-10-12): saturation IAPWS (PHYS.pSatEau) au lieu de Clausius-Clapeyron à L constante ; ébullition =
 //   tSatEau. Régime sans océan possible (PHYS.eauSansLiquide) : toute l'eau en vapeur (poserToutVapeur), sans
@@ -506,7 +507,7 @@ function calculateH2OParametersWithIteration() {
     // Avant le 2026-09-22 cette ligne recalculait la MÊME chose en linéarisé autour de 288 K
     // (0,0065 × exp[0,065 × (T−288)]), c'est-à-dire l'équation déguisée en deux constantes sans
     // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
-    const c_c_max = EARTH.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
+    const c_c_max = DATA['🎚️'].H2O.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur potentielle = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_potentielle = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
@@ -603,7 +604,7 @@ function calculateH2OParametersWithIteration() {
     // [EQ] Même remplacement : rapport × saturation exacte, au lieu d'une exponentielle linéarisée
     // autour de 288 K dont le taux (0,013 K⁻¹) ne venait de nulle part et n'était pas Clausius-Clapeyron.
     const q_sat_init = DATA['💧']['🍰🧪🌧'] * (CONST.M_H2O / DATA['🫧']['🧪']);
-    const realistic_vapor_max = EARTH.H2O_SURFACE_RH_01 * q_sat_init;   // même référence que la vapeur hors Init
+    const realistic_vapor_max = DATA['🎚️'].H2O.H2O_SURFACE_RH_01 * q_sat_init;   // même référence que la vapeur hors Init
     DATA['💧']['🍰🫧💧'] = Math.min(realistic_vapor_max, DATA['💧']['🍰🫧💧']);
     
     return true;
@@ -669,7 +670,7 @@ H2O.calculateH2OParameters = function () {
     // Avant le 2026-09-22 cette ligne recalculait la MÊME chose en linéarisé autour de 288 K
     // (0,0065 × exp[0,065 × (T−288)]), c'est-à-dire l'équation déguisée en deux constantes sans
     // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
-    const c_c_max = EARTH.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
+    const c_c_max = DATA['🎚️'].H2O.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur effective = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
     let vapor_result = Math.min(c_c_max, vapor_raw);
     // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.

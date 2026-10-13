@@ -297,9 +297,9 @@ function profilAtmosphere(z_range) {
     // Partition de phase (Hu & Stamnes) : glace au rayon déclaré ; le seuil de précipitation porte sur le condensat total. La FRACTION f (🍰🪩⛅) est MESURÉE (calculations_albedo) : la dynamique 3D qui la fixe n'a pas
     // d'équation en 1D. Essais rejetés le 2026-10-13 : Ackerman & Marley (colonne saturée, W ≈ 2 kg/m²) et schéma
     // statistique (nuages étalés sur 5 km, W/C ≈ 0,5–1,3 kg/m²) — tous deux sans inversion, donc sans sommet.
-    // Fractions MESURÉES (physics.js) : sans eau, pas de nuage (branche physique).
+    // Fractions MESURÉES (jauges FROID / CHAUD, fine_tuning_bounds.js) : sans eau, pas de nuage (branche physique).
     const avecEau = w_c > 0;
-    const fBas = avecEau ? N.F_BAS : 0, fHaut = avecEau ? N.F_HAUT : 0;
+    const fBas = avecEau ? DATA['🎚️'].CLOUD_SW.F_BAS : 0, fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
     const oc = DATA['🪩']['🍰🪩🌊'];                                  // océan libre : masse d'air maritime / continentale
     const kMartin = N.K_MARTIN_OCEAN * oc + N.K_MARTIN_CONTINENT * (1 - oc);
     const nGouttesActuel = (DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * oc + N.CDNC_CONTINENT_CM3 * (1 - oc)) * 1e6;   // [m⁻³]

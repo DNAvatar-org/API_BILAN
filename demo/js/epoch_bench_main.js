@@ -1,12 +1,13 @@
 // File: API_BILAN/demo/epoch_bench_main.js
 // Desc: Pont vers la page parente, puis cablage de la page (initEpochBenchPage, appele par le loader).
-// Version 2.1.0
-// Date: 2026-10-12
+// Version 2.2.0
+// Date: 2026-10-13
 // logs :
+//   - v2.2.0: jauges séparées — __BENCH_FT__.onInput(jauge, valeur) ; garde du clic sur toutes les jauges.
 //   - v2.1.0: ouvrirDetail (popup du fine-tuning) remplace togglePanel.
 //   - v2.0.0: PAS DE GARDES. Plus de test « ressources manquantes » (le loader garantit DATA, TIMELINE, CONST,
 //     CONV), plus de `window.TUNING &&`, plus de window.DEBUG (journal de CO2/static/debug.js, jamais chargé
-//     ici). Jauge unique ATM : __BENCH_FT__.onInput(valeur).
+//     ici).
 //   - v1.1.0: deux boutons ▶ (Époques / Tictimes) ; les petits ▶️ des jauges sont retirés (applyAndRun) :
 //     une jauge règle, un bouton ▶ lance.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -23,7 +24,7 @@ window.__BENCH_FT__ = {
 // Clic sur la piste d'une jauge loin du curseur : pas de saut de valeur (on ne bouge qu'en tirant le curseur).
 document.addEventListener('mousedown', function (e) {
     const el = e.target;
-    if (el.id !== 'bench-ft-slider-ATM-header') return;
+    if (!el.classList.contains('bench-ft-curseur')) return;
     const r = el.getBoundingClientRect();
     const pct = (Number(el.value) - Number(el.min)) / (Number(el.max) - Number(el.min));
     if (Math.abs(e.clientX - (r.left + pct * r.width)) > 15) e.preventDefault();

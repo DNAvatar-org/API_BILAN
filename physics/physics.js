@@ -491,7 +491,7 @@ EARTH.EVAPORATION_T_SCALE = 20;  // [K]
 // MESURE : humidité relative de surface moyenne globale 0,70–0,75 (ERA5, repère déjà noté ici) ; 0,77 dans le profil
 // observé de Manabe & Wetherald (1967). ⚠️ FOURCHETTE 0,70–0,77 → milieu 0,735. Elle ancre aussi le profil
 // d'humidité moyenne en altitude (radiative/calculations.js, EARTH.NUAGES.MW_P_RESIDU).
-EARTH.H2O_SURFACE_RH_01 = 0.735;  // [Pa/Pa (humidité relative e/e_sat)]
+// → jauge SUBTIL : DATA['🎚️'].H2O.H2O_SURFACE_RH_01 (fine_tuning_bounds.js, fourchette 0,70–0,77), 2026-10-13.
 // H2O_SURFACE_RH_INIT_01 (0,4986, SANS SOURCE, second plafond de la même grandeur en fin d'Init) retiré le
 // 2026-10-13 : l'Init lit la même référence H2O_SURFACE_RH_01.
 /** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
@@ -605,13 +605,8 @@ EARTH.NUAGES = {
     //     16:527 ; Lacis & Hansen 1974, J. Atmos. Sci. 31:118). Réflectance deux-flux d'un nuage conservatif :
     //     R = √3(1−g)τ / (2 + √3(1−g)τ) = 0,13 τ / (1 + 0,13 τ) pour g = 0,85.
     G_ASYMETRIE: 0.85,         // [-]
-    // ─── FRACTIONS — MESURÉES, pas prévisibles en 1D (Windsor et al. 2022 §3.2 : la dynamique 3D qui les fixe n'a pas
-    //     d'équation fermée dans une colonne). Évaluation GEWEX mise à jour (Stubenrauch et al. 2024, Surv. Geophys.
-    //     45:1999), vue en colonne (CloudSat-CALIPSO + ISCCP corrigé) : bas 0,41 ± 0,05, moyens 0,23 ± 0,03, hauts 0,29
-    //     (passifs) à 0,37 (lidar CALIPSO, cirrus fins compris) ; total 0,66 ± 0,04 (≈ recouvrement aléatoire des trois).
-    //     Les nuages MOYENS ne sont pas représentés (⚠️ déclaré) : bas = population adiabatique, hauts = enclumes.
-    F_BAS: 0.41,               // [m²/m²]
-    F_HAUT: 0.37,              // [m²/m²] lidar : les cirrus fins comptent en infrarouge
+    // ─── FRACTIONS — MESURÉES, pas prévisibles en 1D (Windsor et al. 2022 §3.2) : jauges FROID (F_BAS) et CHAUD (F_HAUT)
+    //     dans DATA['🎚️'].CLOUD_SW (fine_tuning_bounds.js, GEWEX 2024). Nuages MOYENS (0,23) non représentés (⚠️ déclaré).
     // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
     //     s'amincit à mesure que la glace tombe ; à amincissement exponentiel, une population en régime établi a ln τ
     //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3 et

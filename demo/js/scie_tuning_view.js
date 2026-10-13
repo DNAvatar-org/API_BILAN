@@ -1,7 +1,9 @@
 // File: API_BILAN/demo/scie_tuning_view.js - Panneau fine-tuning : bornes, barycentres, curseurs
 // Desc: Le FINE-TUNING : les bornes de FINE_TUNING_BOUNDS, les curseurs de barycentre par groupe, et la
 //       synchronisation avec la page parente. C'est la partie qui rend visible le flou scientifique.
-// Version 1.1.0
+// Version 1.2.0
+//   - v1.2.0 (2026-10-13): jauges séparées (FINE_TUNING_BOUNDS.jauges) — une section par jauge avec son sens, son
+//     explication et la mesure qui l'a classée ; plus de jauge unique ATM / CLOUD_SW / SCIENCE / SOLVER.
 // Date: [September 19, 2026]
 // logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
@@ -39,88 +41,33 @@ function setFineTuningValue(target, value) {
     if (target.group === 'SOLVER') syncSolverConfigFromData();
 }
 
-function getFineTuningBaryPercent(groupKey) {
-    return Number(window.DATA['🎚️'].baryByGroup[groupKey]);
+function getFineTuningBaryPercent(jauge) {
+    return Number(window.DATA['🎚️'].baryByGroup[jauge]);
 }
 
-/** Jauge unique en-tête ☁️+🔬 : source unique ATM. */
-function getFineTuningUnifiedAtmBaryPercent() {
-    var bg = window.DATA['🎚️'].baryByGroup;
-    return Math.max(0, Math.min(100, Math.round(Number(bg.ATM))));
+/** Cibles d'une jauge (FINE_TUNING_BOUNDS.jauges) — ou, pour la bibliographie, d'un groupe de stockage. */
+function getFineTuningTargetsByJauge(jauge) {
+    return getFineTuningTargets().filter(function (t) { return t.baryGroup === jauge; });
 }
-
-function setFineTuningBaryPercent(groupKey, percentRaw) {
-    const p = Number(percentRaw);
-    const bounded = Math.max(0, Math.min(100, Number.isFinite(p) ? p : 0));
-    window.DATA['🎚️'].baryByGroup[groupKey] = bounded;
-    return bounded;
-}
-
-function getFineTuningBaryValue(target, baryPercent) {
-    var min = Number(target.min);
-    var max = Number(target.max);
-    var pct = Number(baryPercent);
-    var alpha = pct / 100;
-    if (alpha < 0) alpha = 0;
-    if (alpha > 1) alpha = 1;
-    return min + (max - min) * alpha;
-}
-
 function getFineTuningTargetsByGroup(groupKey) {
-    const targets = getFineTuningTargets();
-    if (groupKey === 'SCIENCE') {
-        return targets.filter(function (t) { return t.baryGroup === 'SCIENCE'; });
-    }
-    if (groupKey === 'CLOUD_SW') {
-        return targets.filter(function (t) { return t.group === 'CLOUD_SW' && (t.baryGroup == null || t.baryGroup === 'CLOUD_SW'); });
-    }
-    return targets.filter(function (t) { return t.group === groupKey; });
+    return getFineTuningTargets().filter(function (t) { return t.group === groupKey; });
 }
 
+/** Le réglage courant envoyé au parent : tout baryByGroup (le parent réinterpole avec TUNING). */
 function getFineTuningBaryByGroupSnapshot() {
-    var bg = window.DATA['🎚️'].baryByGroup;
-    return { ATM: bg.ATM, CLOUD_SW: bg.CLOUD_SW, SCIENCE: bg.SCIENCE, SOLVER: bg.SOLVER };
+    return Object.assign({}, window.DATA['🎚️'].baryByGroup);
 }
 
-// Remplissage complet DATA['🎚️'].CLOUD_SW et .SOLVER depuis baryByGroup (jauges => étape 2).
-// Aligné API_BILAN/tuning.js : RADIATIVE.factorTropopause hors bary (pas de baryByGroup.RADIATIVE).
-// fillDataTuningFromBary : plus ici. C'est window.TUNING.fillDataTuningFromBary (API_BILAN/tuning.js),
-// que main.js et sync_panels.js appelaient déjà — cette page en avait une seconde écriture, avec une
-// sémantique périmée : elle lisait baryByGroup.CLOUD_SW / .SCIENCE alors que l'API impose ATM comme
-// source unique et force les deux autres à sa valeur (tuning.js v1.0.13). Tant que les trois barycentres
-// sont d'accord les deux versions donnent le même résultat au chiffre près ; dès qu'ils divergent —
-// et le mini-curseur du panneau visu écrit CLOUD_SW seul — 7 paramètres de CLOUD_SW partaient de travers.
-function applyFineTuningBaryGroup(groupKey, percentRaw, refreshPanel) {
-    var targets = getFineTuningTargetsByGroup(groupKey);
-    setFineTuningBaryPercent(groupKey, percentRaw);
-    var bary = getFineTuningBaryPercent(groupKey);
-    for (var i = 0; i < targets.length; i++) {
-        var target = targets[i];
-        setFineTuningValue(target, getFineTuningBaryValue(target, bary));
-    }
+/** Une jauge passe à pct : TUNING réinterpole toutes les cibles (une seule écriture de l'interpolation). */
+function applyFineTuningBaryGroup(jauge, percentRaw, refreshPanel) {
+    var bary = {};
+    bary[jauge] = Math.max(0, Math.min(100, Math.round(Number(percentRaw))));
+    window.TUNING.applyTuningPayload({ baryByGroup: bary });
     if (refreshPanel !== false) displayFineTuning();
 }
 
-function applyFineTuningBaryAtmUnified(percentRaw, refreshPanel) {
-    applyFineTuningBaryGroup('CLOUD_SW', percentRaw, false);
-    applyFineTuningBaryGroup('SCIENCE', percentRaw, false);
-    if (refreshPanel !== false) displayFineTuning();
-}
-
-function applyFineTuningBaryAll(percentRaw, refreshPanel) {
-    applyFineTuningBaryGroup('CLOUD_SW', percentRaw, false);
-    applyFineTuningBaryGroup('SCIENCE', percentRaw, false);
-    applyFineTuningBaryGroup('SOLVER', percentRaw, false);
-    syncSolverConfigFromData();
-    if (refreshPanel !== false) displayFineTuning();
-}
-
-function applyFineTuningBaryGroupAndRun(groupKey, percentRaw) {
-    if (groupKey === 'ATM' || groupKey === 'CLOUD_SW' || groupKey === 'SCIENCE') {
-        applyFineTuningBaryAtmUnified(percentRaw, true);
-    } else {
-        applyFineTuningBaryGroup(groupKey, percentRaw, true);
-    }
+function applyFineTuningBaryGroupAndRun(jauge, percentRaw) {
+    applyFineTuningBaryGroup(jauge, percentRaw, true);
     if (window !== window.top) {
         syncTuningToParent(true);
         return;
@@ -133,26 +80,15 @@ function syncTuningToParent(runFlag) {
     window.parent.postMessage({ type: 'sync:tuning', payload: tuningPayload(runFlag === true) }, '*');
 }
 
-function onFineTuningBaryInput(groupKey, percentRaw) {
-    if (groupKey === 'ATM' || groupKey === 'CLOUD_SW' || groupKey === 'SCIENCE') {
-        applyFineTuningBaryAtmUnified(percentRaw, false);
-        var rounded = Math.round(Number(percentRaw));
-        var valueHeaderAtm = document.getElementById('fine-tuning-bary-value-ATM-header');
-        valueHeaderAtm.textContent = rounded + '%';
-        var valueCloud = document.getElementById('fine-tuning-bary-value-CLOUD_SW');
-        valueCloud.textContent = rounded + '%';
-        var valueScience = document.getElementById('fine-tuning-bary-value-SCIENCE');
-        valueScience.textContent = rounded + '%';
-        syncTuningToParent(false);
-        return;
-    }
-    setFineTuningBaryPercent(groupKey, percentRaw);
-    // Important: ne pas re-render le panneau pendant le drag, sinon le slider est recréé et le glissement s'arrête.
-    applyFineTuningBaryGroup(groupKey, percentRaw, false);
-    var valueEl = document.getElementById('fine-tuning-bary-value-' + groupKey);
-    if (valueEl) valueEl.textContent = Math.round(Number(percentRaw)) + '%';
-    var valueHeaderEl = document.getElementById('fine-tuning-bary-value-' + groupKey + '-header');
-    if (valueHeaderEl) valueHeaderEl.textContent = Math.round(Number(percentRaw)) + '%';
+/** Pendant le glissement : réglage et valeurs affichées mis à jour sans recréer le panneau (le curseur resterait lâché). */
+function onFineTuningBaryInput(jauge, percentRaw) {
+    applyFineTuningBaryGroup(jauge, percentRaw, false);
+    var pct = Math.round(Number(percentRaw)) + '%';
+    document.querySelectorAll('[data-jauge-pct="' + jauge + '"]').forEach(function (el) { el.textContent = pct; });
+    getFineTuningTargetsByJauge(jauge).forEach(function (t) {
+        var el = document.getElementById('fine-tuning-valeur-' + t.key);
+        if (el) el.textContent = formatTuningValue(getFineTuningValue(t));
+    });
     syncTuningToParent(false);
 }
 
@@ -246,31 +182,11 @@ async function runFineTuningTrials() {
 
 // Mise à jour des seules jauges DOM depuis DATA (pas de innerHTML) — sync parent↔scie sans clignotement.
 function syncFineTuningSlidersFromBary() {
-    var bg = window.DATA && window.DATA['🎚️'] && window.DATA['🎚️'].baryByGroup;
-    if (!bg) return false;
-    var groups = ['CLOUD_SW', 'SCIENCE', 'SOLVER'];
-    var updated = false;
-    for (var gi = 0; gi < groups.length; gi++) {
-        var gk = groups[gi];
-        var raw = Number(bg[gk]);
-        var v = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 100;
-        var el = document.getElementById('fine-tuning-bary-slider-' + gk);
-        if (el) {
-            el.value = String(v);
-            updated = true;
-        }
-        var span = document.getElementById('fine-tuning-bary-value-' + gk);
-        if (span) span.textContent = v + '%';
-    }
-    var hEl = document.getElementById('fine-tuning-bary-slider-ATM-header');
-    if (hEl) {
-        var atm = getFineTuningUnifiedAtmBaryPercent();
-        hEl.value = String(atm);
-        updated = true;
-        var hSpan = document.getElementById('fine-tuning-bary-value-ATM-header');
-        if (hSpan) hSpan.textContent = atm + '%';
-    }
-    return updated;
+    var bg = window.DATA['🎚️'].baryByGroup;
+    var curseurs = document.querySelectorAll('[data-jauge-curseur]');
+    curseurs.forEach(function (el) { el.value = String(Math.round(bg[el.dataset.jaugeCurseur])); });
+    document.querySelectorAll('[data-jauge-pct]').forEach(function (el) { el.textContent = Math.round(bg[el.dataset.jaugePct]) + '%'; });
+    return curseurs.length > 0;
 }
 
 function toggleFineTuning() {
@@ -282,38 +198,43 @@ function toggleFineTuning() {
     btn.textContent = isOpen ? '+' : '−';
 }
 
+/** Panneau fine-tuning : une section par jauge — curseur, sens, explication, mesure, puis ses paramètres. */
 function displayFineTuning() {
     const tuningDiv = document.getElementById('fine-tuning');
     const tuningContent = document.getElementById('fine-tuning-content');
-    if (!tuningDiv || !tuningContent) return;
-    applyFineTuningBaryGroup('CLOUD_SW', getFineTuningBaryPercent('CLOUD_SW'), false);
-    applyFineTuningBaryGroup('SCIENCE', getFineTuningBaryPercent('SCIENCE'), false);
-    applyFineTuningBaryGroup('SOLVER', getFineTuningBaryPercent('SOLVER'), false);
-    const atmBary = getFineTuningUnifiedAtmBaryPercent();
+    const F = window.FINE_TUNING_BOUNDS;
+    const bg = window.DATA['🎚️'].baryByGroup;
     const fineTitle = tuningDiv.querySelector('h2');
-    if (fineTitle) {
-        fineTitle.style.display = 'flex';
-        fineTitle.style.alignItems = 'center';
-        fineTitle.style.justifyContent = 'flex-start';
-        fineTitle.style.flexWrap = 'wrap';
-        fineTitle.style.gap = '8px';
-        // Conserver l'état du bouton plie/déplie (ne pas l'écraser)
-        const toggleBtn = document.getElementById('fine-tuning-toggle');
-        const isOpen = tuningContent.style.display !== 'none';
-        fineTitle.innerHTML = `🧩 Fine-tuning 🪩
-            <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;" title="Même % pour CLOUD_SW (☁️) et SCIENCE (🔬)">🔺☁️🔬
-                <input id="fine-tuning-bary-slider-ATM-header" type="range" min="0" max="100" step="1" value="${atmBary.toFixed(0)}" oninput="onFineTuningBaryInput('ATM', this.value); var v=document.getElementById('fine-tuning-bary-value-ATM-header'); if(v) v.textContent=this.value + '%';">
-                <span id="fine-tuning-bary-value-ATM-header">${atmBary.toFixed(0)}%</span>
-                <button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun('ATM', document.getElementById('fine-tuning-bary-slider-ATM-header').value); return false;">▶️</button>🔻
-            </span>
-            <button class="toggle-button" id="fine-tuning-toggle" onclick="toggleFineTuning()" style="margin-left:auto">${isOpen ? '−' : '+'}</button>`;
-    }
-
-    let html = '';
-    html += renderMergedCategory('CLOUD_SW', 'CLOUD_SW', '☁️', false);
-    html += renderMergedCategory('SCIENCE', 'Science', '🔬', true);
-    html += renderMergedCategory('SOLVER', 'Solveur', '🧮', true);
-
+    const isOpen = tuningContent.style.display !== 'none';
+    fineTitle.style.display = 'flex';
+    fineTitle.style.alignItems = 'center';
+    fineTitle.style.gap = '8px';
+    fineTitle.innerHTML = '🧩 Fine-tuning ' + Object.keys(F.jauges).map(function (j) {
+        return F.jauges[j].logo + ' <span data-jauge-pct="' + j + '">' + Math.round(bg[j]) + '%</span>';
+    }).join(' · ')
+        + '<button class="toggle-button" id="fine-tuning-toggle" onclick="toggleFineTuning()" style="margin-left:auto">' + (isOpen ? '−' : '+') + '</button>';
+    let html = '<div class="config-value"><em>Le barycentre unique a été éclaté le 2026-10-13 : avec la nouvelle physique des '
+        + 'nuages, ses paramètres n\'allaient plus dans le même sens. Classement mesuré : bilan net à la température graine de '
+        + 'sept époques, chaque paramètre de sa borne basse à sa borne haute, les autres à 50 %.</em></div>';
+    Object.keys(F.jauges).forEach(function (j) {
+        const J = F.jauges[j];
+        const pct = Math.round(bg[j]);
+        html += '<div class="config-section">'
+            + '<div class="config-value" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+            + '<strong>' + J.logo + ' ' + j + ' — ' + J.titre + '</strong> (' + J.sens + ')'
+            + '<input data-jauge-curseur="' + j + '" id="fine-tuning-bary-slider-' + j + '" type="range" min="0" max="100" step="1" value="' + pct + '" oninput="onFineTuningBaryInput(\'' + j + '\', this.value)">'
+            + '<span data-jauge-pct="' + j + '">' + pct + '%</span>'
+            + '<button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun(\'' + j + '\', document.getElementById(\'fine-tuning-bary-slider-' + j + '\').value); return false;">▶️</button>'
+            + '</div>'
+            + '<div class="config-value">' + J.explication + '</div>'
+            + '<div class="config-value">📏 ' + J.mesure + '</div>';
+        getFineTuningTargetsByJauge(j).forEach(function (t) {
+            html += '<div class="config-value">' + getTuningLineLogo(t.group, t.key) + ' <strong>' + t.key + '</strong> = '
+                + '<span id="fine-tuning-valeur-' + t.key + '">' + formatTuningValue(getFineTuningValue(t)) + '</span>'
+                + ' [' + formatTuningValue(t.min) + ' , ' + formatTuningValue(t.max) + '] — ' + t.note + ' #' + t.source + '</div>';
+        });
+        html += '</div>';
+    });
     tuningContent.innerHTML = html;
     tuningDiv.style.display = 'block';
     // Ne pas toucher à tuningContent.style.display — respecter l'état plié/déplié actuel

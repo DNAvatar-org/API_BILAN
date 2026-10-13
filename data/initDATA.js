@@ -77,7 +77,8 @@
         // adiabatiques limités par la pluie + enclumes, fractions GEWEX). Les jauges ATM portent maintenant des
         // fourchettes MESURÉES (CDNC 40–89 cm⁻³, seuil de pluie 13–14 µm, exposant sulfate 0,11–0,29). Banc 15/20/25 %
         // sans CIA inventée : 15 % recolle 1800 (13,37 °C) et 2000 (14,36 °C), 11/21 époques dans leur fourchette.
-        baryByGroup: { ATM: 15, CLOUD_SW: 15, SCIENCE: 15, HYSTERESIS: 100 },
+        // v-2026-10-13 (soir) : jauges séparées (fine_tuning_bounds v1.6.0). Valeurs de départ, à affiner au banc.
+        baryByGroup: { FROID: 35, CHAUD: 50, SUBTIL: 50, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
@@ -108,7 +109,10 @@
             // CLOUD_FRACTION_BASE / _INDEX_GAIN / _MAX — la fraction est mesurée, la réflectance calculée.
             CDNC_OCEAN_CM3: 89,              // [cm⁻³] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
             // Rayon effectif d'initiation de la pluie (sommet des nuages bas) — jauge mesurée 13–14 µm.
-            R_EFF_PLUIE: 14e-6               // [m] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            R_EFF_PLUIE: 14e-6,              // [m] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            // Fractions de nuages bas / hauts (GEWEX 2024) — jauges FROID / CHAUD ; interpolées par tuning.js.
+            F_BAS: 0.41,                     // [m²/m²]
+            F_HAUT: 0.33                     // [m²/m²]
         },
 
         // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →
@@ -122,8 +126,12 @@
             // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
             // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
             // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
-        }
+        },
         // RADIATIVE (H2O_EDS_SCALE) retiré le 2026-10-13 : le multiplicateur de κ_H₂O n'a plus d'objet (fine_tuning_bounds v1.5.1).
+        // Humidité relative de surface (ex-EARTH.H2O_SURFACE_RH_01) — jauge SUBTIL ; interpolée par tuning.js.
+        H2O: {
+            H2O_SURFACE_RH_01: 0.735         // [Pa/Pa (humidité relative e/e_sat)]
+        }
     };
 
     // ============================================================================

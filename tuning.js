@@ -3,7 +3,8 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.2.1
+// Version 1.3.0
+// - v1.3.0 (2026-10-13): jauges séparées FROID / CHAUD / SUBTIL / HYSTERESIS ; chaque cible lit target.baryGroup.
 // - v1.2.1 (2026-10-13): syncRadiativeConfig retiré avec H2O_EDS_SCALE (plus de groupe RADIATIVE).
 // - v1.2.0: plus de cible `fixed` (factorTropopause → CONFIG_COMPUTE) : interpolate n'a plus de cas particulier.
 // Date: 2026-10-10
@@ -54,21 +55,16 @@
     }
 
     /**
-     * Remplissage complet DATA['🎚️'].CLOUD_SW / .HYSTERESIS depuis baryByGroup.
-     * Jauge unique ATM : CLOUD_SW et SCIENCE prennent toujours la valeur d'ATM.
+     * Remplissage complet de DATA['🎚️'] depuis baryByGroup : chaque cible lit SA jauge (target.baryGroup,
+     * FINE_TUNING_BOUNDS.jauges). Plus de jauge unique ATM (v1.3.0).
      */
     function fillDataTuningFromBary() {
         const T = window.DATA['🎚️'];
         const bg = T.baryByGroup;
-        const atmPct = requirePercent(bg.ATM, 'baryByGroup.ATM');
-        bg.ATM = atmPct;
-        bg.CLOUD_SW = atmPct;
-        bg.SCIENCE = atmPct;
         const targets = window.FINE_TUNING_BOUNDS.targets;
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
-            const baryKey = ('baryGroup' in target) ? target.baryGroup : target.group;
-            const pct = requirePercent(bg[baryKey], 'baryByGroup.' + baryKey);
+            const pct = requirePercent(bg[target.baryGroup], 'baryByGroup.' + target.baryGroup);
             T[target.group][target.key] = interpolate(target, pct);
         }
     }

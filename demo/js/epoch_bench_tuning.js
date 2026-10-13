@@ -1,9 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_tuning.js
-// Desc: Panneau fine-tuning du banc : jauge ATM (☁️+🔬), liste des cibles avec leur valeur LIVE, synchronisation
-//       avec la page parente.
-// Version 2.1.0
-// Date: 2026-10-12
+// Desc: Panneau fine-tuning du banc : jauges séparées (FINE_TUNING_BOUNDS.jauges), détail par jauge avec la valeur
+//       LIVE des cibles, synchronisation avec la page parente.
+// Version 3.0.0
+// Date: 2026-10-13
 // logs :
+//   - v3.0.0: jauges FROID / CHAUD / SUBTIL / HYSTERESIS au lieu de la jauge unique ATM ; popup = explication et mesure
+//     de chaque jauge, puis ses paramètres.
 //   - v2.1.0: détail en popup (<dialog> large, tableau : paramètre, valeur, plage, jauge, rôle — la note se
 //     déroule sur toute la largeur) au lieu d'une liste tassée sous l'en-tête. Plus de colonne « fixe ».
 //   - v2.0.0: PAS DE GARDES, référence unique. Les valeurs affichées sont lues dans DATA['🎚️'] (écrites par
@@ -22,46 +24,60 @@ function benchFormatTuningValue(value) {
     return parseFloat(value.toFixed(6)).toString();
 }
 
-/** Tableau des cibles FINE_TUNING_BOUNDS avec la valeur que la physique lit (DATA['🎚️']). */
+/** Détail : pour chaque jauge, son sens, son explication, la mesure qui l'a classée, puis ses cibles (valeur lue par la
+ *  physique dans DATA['🎚️'], plage 0 % → 100 %, rôle, source). */
 function benchRenderTargets() {
     const T = window.DATA['🎚️'];
-    const lignes = window.FINE_TUNING_BOUNDS.targets.map(function (target) {
-        const jauge = ('baryGroup' in target) ? target.baryGroup : target.group;
-        return '<tr>'
-            + '<td class="bench-ft-key">' + target.group + '.<b>' + target.key + '</b></td>'
-            + '<td class="bench-ft-num">' + benchFormatTuningValue(T[target.group][target.key]) + '</td>'
-            + '<td class="bench-ft-num">' + benchFormatTuningValue(target.min) + ' → ' + benchFormatTuningValue(target.max) + '</td>'
-            + '<td class="bench-ft-jauge">' + jauge + ' ' + T.baryByGroup[jauge] + ' %</td>'
-            + '<td class="bench-ft-note">' + target.note + '</td>'
-            + '</tr>';
-    }).join('');
-    return '<table class="bench-ft-table"><thead><tr><th>Paramètre</th><th>Valeur</th><th>Plage 0 % → 100 %</th>'
-        + '<th>Jauge</th><th>Rôle</th></tr></thead><tbody>' + lignes + '</tbody></table>';
+    const F = window.FINE_TUNING_BOUNDS;
+    return '<p class="bench-ft-note">Le barycentre unique a été éclaté le 2026-10-13 : avec la nouvelle physique des nuages, '
+        + 'ses paramètres n\'allaient plus dans le même sens. Classement mesuré : bilan net à la température graine de sept '
+        + 'époques, chaque paramètre de sa borne basse à sa borne haute, les autres à 50 %.</p>'
+        + Object.keys(F.jauges).map(function (j) {
+            const J = F.jauges[j];
+            const lignes = F.targets.filter(function (t) { return t.baryGroup === j; }).map(function (t) {
+                return '<tr>'
+                    + '<td class="bench-ft-key">' + t.group + '.<b>' + t.key + '</b></td>'
+                    + '<td class="bench-ft-num">' + benchFormatTuningValue(T[t.group][t.key]) + '</td>'
+                    + '<td class="bench-ft-num">' + benchFormatTuningValue(t.min) + ' → ' + benchFormatTuningValue(t.max) + '</td>'
+                    + '<td class="bench-ft-note">' + t.note + ' — ' + t.source + '</td>'
+                    + '</tr>';
+            }).join('');
+            return '<h3>' + J.logo + ' ' + j + ' ' + T.baryByGroup[j] + ' % — ' + J.titre + ' (' + J.sens + ')</h3>'
+                + '<p class="bench-ft-note">' + J.explication + '</p>'
+                + '<p class="bench-ft-note">📏 ' + J.mesure + '</p>'
+                + '<table class="bench-ft-table"><thead><tr><th>Paramètre</th><th>Valeur</th><th>Plage 0 % → 100 %</th>'
+                + '<th>Rôle — source</th></tr></thead><tbody>' + lignes + '</tbody></table>';
+        }).join('');
 }
 
-/** Titre de la popup : combien de paramètres, sous quelle jauge. */
+/** Titre de la popup : combien de paramètres, sous combien de jauges. */
 function benchDetailTitle() {
-    return '🧩 Fine-tuning — ' + window.FINE_TUNING_BOUNDS.targets.length + ' paramètres incertains (jauge ATM '
-        + window.DATA['🎚️'].baryByGroup.ATM + ' %)';
+    const F = window.FINE_TUNING_BOUNDS;
+    return '🧩 Fine-tuning — ' + F.targets.length + ' paramètres incertains, ' + Object.keys(F.jauges).length + ' jauges';
 }
 
-/** Construit l'en-tête (jauge ATM + bouton détail) et le contenu de la popup. */
+/** Construit l'en-tête (une jauge par rangée + bouton détail) et le contenu de la popup. */
 function benchDisplayFineTuning() {
-    const atm = window.DATA['🎚️'].baryByGroup.ATM;
-    document.getElementById('bench-ft-title-slot').innerHTML = '🧩 Fine-tuning 🪩 <span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;margin-left:4px;" title="Même % pour CLOUD_SW (☁️) et SCIENCE (🔬)">🔺☁️🔬'
-        + '<input id="bench-ft-slider-ATM-header" type="range" min="0" max="100" step="1" value="' + atm
-        + '" oninput="window.__BENCH_FT__.onInput(this.value)">'
-        + '<span id="bench-ft-value-ATM-header">' + atm + '%</span>🔻</span>'
+    const F = window.FINE_TUNING_BOUNDS;
+    const bg = window.DATA['🎚️'].baryByGroup;
+    document.getElementById('bench-ft-title-slot').innerHTML = '🧩 Fine-tuning '
+        + Object.keys(F.jauges).map(function (j) {
+            return '<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;margin-left:6px;">'
+                + F.jauges[j].logo
+                + '<input class="bench-ft-curseur" data-jauge="' + j + '" type="range" min="0" max="100" step="1" value="' + bg[j]
+                + '" oninput="window.__BENCH_FT__.onInput(this.dataset.jauge, this.value)">'
+                + '<span data-jauge-pct="' + j + '">' + bg[j] + '%</span></span>';
+        }).join('')
         + '<button type="button" class="bench-ft-btn bench-ft-toggle" onclick="window.__BENCH_FT__.ouvrirDetail(); return false;" title="Détail des paramètres">détail…</button>';
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();
     document.getElementById('bench-ft-content').innerHTML = benchRenderTargets();
 }
 
-/** Remet la jauge et les valeurs à jour sans reconstruire l'en-tête (pas de rebuild pendant un glissé). */
+/** Remet jauges et valeurs à jour sans reconstruire l'en-tête (pas de rebuild pendant un glissé). */
 function benchSyncFineTuningSlidersFromBary() {
-    const atm = window.DATA['🎚️'].baryByGroup.ATM;
-    document.getElementById('bench-ft-slider-ATM-header').value = String(atm);
-    document.getElementById('bench-ft-value-ATM-header').textContent = atm + '%';
+    const bg = window.DATA['🎚️'].baryByGroup;
+    document.querySelectorAll('.bench-ft-curseur').forEach(function (el) { el.value = String(bg[el.dataset.jauge]); });
+    document.querySelectorAll('[data-jauge-pct]').forEach(function (el) { el.textContent = bg[el.dataset.jaugePct] + '%'; });
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();
     document.getElementById('bench-ft-content').innerHTML = benchRenderTargets();
 }
@@ -69,16 +85,17 @@ function benchSyncFineTuningSlidersFromBary() {
 /** Le banc parle : sync:tuning vers la page parente (index.html → sync_panels.js), sans relancer de calcul. */
 function benchEmitTuningToParent() {
     if (window.parent === window) return;   // banc ouvert seul : personne à prévenir
-    const bg = window.DATA['🎚️'].baryByGroup;
     window.parent.postMessage({
         type: 'sync:tuning',
-        payload: { baryByGroup: { ATM: bg.ATM, HYSTERESIS: bg.HYSTERESIS }, run: false }
+        payload: { baryByGroup: Object.assign({}, window.DATA['🎚️'].baryByGroup), run: false }
     }, '*');
 }
 
-/** Glissé de la jauge ATM. */
-function benchOnFineTuningBaryInput(percentRaw) {
-    window.TUNING.applyTuningPayload({ baryByGroup: { ATM: Number(percentRaw) } });
+/** Glissé d'une jauge. */
+function benchOnFineTuningBaryInput(jauge, percentRaw) {
+    const bary = {};
+    bary[jauge] = Number(percentRaw);
+    window.TUNING.applyTuningPayload({ baryByGroup: bary });
     benchSyncFineTuningSlidersFromBary();
     benchEmitTuningToParent();
 }

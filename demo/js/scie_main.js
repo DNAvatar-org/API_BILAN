@@ -1,7 +1,8 @@
 // File: API_BILAN/demo/scie_main.js - Démarrage de la page et pont postMessage
 // Desc: Le DÉMARRAGE, en dernier : j'écoute les messages de la page parente, j'envoie le tuning initial et je
 //       monte la page au DOMContentLoaded. Tout ce dont j'ai besoin est défini par les fichiers ci-dessus.
-// Version 1.1.0
+// Version 1.2.0
+//   - v1.2.0 (2026-10-13): sync:tuning et réglage envoyé au parent = tout baryByGroup (jauges séparées).
 // Date: 2026-10-12
 // logs :
 //   - v1.1.0: deux démarrages (initScieIframe / initScieDemo) au lieu d'un seul plein de branches mortes ;
@@ -62,14 +63,7 @@ window.addEventListener('message', function(event) {
         }
     }
     if (event.data && event.data.type === 'sync:tuning') {
-        var p = event.data.payload;
-        if (!p || !p.baryByGroup) return;
-        var bg = window.DATA['🎚️'].baryByGroup;
-        bg.ATM = p.baryByGroup.ATM;
-        bg.CLOUD_SW = bg.ATM;
-        bg.SCIENCE = bg.ATM;
-        if (p.baryByGroup.SOLVER !== undefined) bg.SOLVER = p.baryByGroup.SOLVER;
-        window.TUNING.fillDataTuningFromBary();
+        window.TUNING.applyTuningPayload(event.data.payload);
         if (!syncFineTuningSlidersFromBary()) {
             displayFineTuning();
         }
@@ -78,14 +72,7 @@ window.addEventListener('message', function(event) {
 
 /** Le réglage courant, tel que l'attend le parent (sync:tuning). Une seule fabrique (il y en avait trois). */
 function tuningPayload(run) {
-    const T = window.DATA['🎚️'];
-    return {
-        baryByGroup: { ATM: T.baryByGroup.ATM, CLOUD_SW: T.baryByGroup.ATM, SCIENCE: T.baryByGroup.ATM, SOLVER: T.baryByGroup.SOLVER, HYSTERESIS: T.baryByGroup.HYSTERESIS },
-        CLOUD_SW: T.CLOUD_SW,
-        SOLVER: T.SOLVER,
-        updates: [],
-        run: run
-    };
+    return { baryByGroup: Object.assign({}, window.DATA['🎚️'].baryByGroup), run: run };
 }
 
 // Démarrage, appelé par le loader commun quand tout est chargé. Deux hôtes, deux démarrages (chaque page dit le sien) :
