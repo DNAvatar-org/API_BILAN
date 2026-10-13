@@ -1,6 +1,7 @@
 // File: API_BILAN/config/model_tuning_biblio.js - Bibliographie et impact des reglages
 // Desc: En francais, dans l'architecture, je documente les coefficients de tuning, leurs sources et leur effet thermique signe.
-// Version 1.0.2
+// Version 1.0.3
+// - v1.0.3 (2026-10-12): CLOUD_FRACTION_BASE / _INDEX_GAIN / OPTICAL_EFF_BASE → CDNC_OCEAN_CM3 (Bennartz 2007).
 // Date: [October 12, 2026]
 // logs :
 // - v1.0.2: entrées retirées avec leurs paramètres : OPTICAL_EFF_CCN_GAIN (Twomey), HYST_SEA_ICE_STRENGTH,
@@ -16,19 +17,16 @@
 
 window.TUNING_BIBLIO = {
     CLOUD_SW: {
-        CLOUD_FRACTION_BASE: {
-            value: 0.19,
-            source: "CERES EBAF + MODIS (2000-2025), calibration interne pour SW effectif moderne",
+        // CLOUD_FRACTION_BASE, CLOUD_FRACTION_INDEX_GAIN, OPTICAL_EFF_BASE retirés (2026-10-12) : la fraction nuageuse
+        // est mesurée (King et al. 2013), la réflectance calculée depuis le condensat (EARTH.NUAGES, physics.js).
+        CDNC_OCEAN_CM3: {
+            value: 64.5,
+            source: "Bennartz 2007 JGR 112:D02201 — nombre de gouttes des nuages bas marins par MODIS (Aqua, 2,5 ans) : 64-89 cm-3 (HN) et 40-67 cm-3 (HS) sur les oceans eloignes.",
             effect_on_warming_when_increased: "negative"
         },
-        CLOUD_FRACTION_INDEX_GAIN: {
-            value: 0.11,
-            source: "Sundqvist (1989) + ajustement interne cloud_index -> fraction optique",
-            effect_on_warming_when_increased: "negative"
-        },
-        OPTICAL_EFF_BASE: {
-            value: 1.10,
-            source: "Twomey + AR6 aerosols, centrage moderne",
+        R_EFF_PLUIE: {
+            value: 13.5e-6,
+            source: "Braga et al. 2021 ACP 21:14079 (13 um) ; Rosenfeld & Gutman 1994 ; Freud & Rosenfeld 2012 (14 um) — rayon effectif d'initiation de la pluie chaude.",
             effect_on_warming_when_increased: "negative"
         },
         SULFATE_CCN_EXPONENT: {
@@ -39,10 +37,8 @@ window.TUNING_BIBLIO = {
         // SULFATE_BOOST_SCALE (500, « proxy sulfate interne ») et SULFATE_BOOST_MAX (0.35, « borne
         // numerique de securite ») retires 2026-09-22 : deux nombres inventes, mesures sans aucun
         // effet au banc, remplaces par la loi de puissance ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
-        // TEMP_FACTOR_REF_K (et MIN/MAX) retirés v1.0.2 : remplacés dans
-        // calculations_albedo.js par la partition de phase Hu & Stamnes (1993),
-        // J. Climate 6, 728. Plus de bornes arbitraires — f_liq lisse sur [-40, 0]°C,
-        // temp_factor = f_liq × 1.0 + (1−f_liq) × 0.6 (SW eff glace vs liquide).
+        // TEMP_FACTOR_REF_K (et MIN/MAX) retirés v1.0.2 : partition de phase Hu & Stamnes (1993) ; depuis
+        // 2026-10-12 elle porte sur chaque couche du profil nuageux (radiative/calculations.js).
     },
     SOLVER: {
         TOL_MIN_WM2: {

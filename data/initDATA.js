@@ -5,7 +5,9 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.4.1
+// Version 1.4.3
+// - v1.4.3 (2026-10-13): barycentre ATM 62 → 15 % ; jauge R_EFF_PLUIE.
+// - v1.4.2 (2026-10-12): CLOUD_SW — 9 constantes réglées des nuages SW retirées ; CDNC_OCEAN_CM3 (mesurée, Bennartz 2007).
 // - v1.4.1 (2026-10-12): DEFAULT.TUNING sans OPTICAL_EFF_CCN_GAIN, seaIceStrength01, iceImpactFactor01, co2OceanEffPump01, factorTropopause.
 // Date: [October 10, 2026]
 // Logs:
@@ -71,7 +73,11 @@
         // v-2026-09-23 : 60 → 62 %. La correction de MODERN_REF_O2 (molaire → massique) réchauffe le
         // moderne de ~0,1 °C ; rebalayé 55–65 % par pas de 1 avec tictime : 62 % donne 1800 = 13,58 °C
         // et 2000 = 14,32 °C (RMS 0,083 °C), 8/15 époques dans leur fourchette depuis la Sturtienne.
-        baryByGroup: { ATM: 62, CLOUD_SW: 62, SCIENCE: 62, HYSTERESIS: 100 },
+        // v-2026-10-13 : 62 → 15 %. Le modèle a changé de physique (transfert solaire Lacis & Hansen, nuages bas
+        // adiabatiques limités par la pluie + enclumes, fractions GEWEX). Les jauges ATM portent maintenant des
+        // fourchettes MESURÉES (CDNC 40–89 cm⁻³, seuil de pluie 13–14 µm, exposant sulfate 0,11–0,29). Banc 15/20/25 %
+        // sans CIA inventée : 15 % recolle 1800 (13,37 °C) et 2000 (14,36 °C), 11/21 époques dans leur fourchette.
+        baryByGroup: { ATM: 15, CLOUD_SW: 15, SCIENCE: 15, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
@@ -96,17 +102,13 @@
             //   x_O₂ et M_air : air sec de référence CIPM-2007 (Picard et al. 2008, Metrologia 45:149).
             MODERN_REF_O2: 0.23132,          // [kg/kg (massique, comme 🍰🫧🫁)]
             MODERN_REF_FOREST: 0.03,         // [m²/m² (surfacique, comme 🍰🪩🌳)]
-            PRESSURE_FACTOR_MAX: 1.2,        // [atm (plafond de 🎈)]
-            OXIDATION_BASE: 0.3,             // [sans dimension]
-            OXIDATION_O2_GAIN: 4.0,          // [(kg/kg)⁻¹ — multiplie 🍰🫧🫁, massique]
-            // TEMP_FACTOR_* supprimés (v1.1.1) : remplacés par la partition de phase
-            // Hu & Stamnes (1993) codée en dur dans calculations_albedo.js (calib stable).
-            OPTICAL_EFF_BASE: 1.20,          // [sans dimension (facteur d'efficacité optique)]
-            OXIDATION_SOFT_BASE: 0.85,       // [sans dimension]
-            OXIDATION_SOFT_GAIN: 0.15,       // [sans dimension]
-            CLOUD_FRACTION_BASE: 0.23,       // [m²/m² (fraction du globe couverte de nuages)]
-            CLOUD_FRACTION_INDEX_GAIN: 0.14, // [m²/m² par unité de cloud_index]
-            CLOUD_FRACTION_MAX: 0.75         // [m²/m² (plafond de la fraction nuageuse)]
+            // Nombre de gouttes des nuages sur OCÉAN, Terre actuelle — jauge de FINE_TUNING_BOUNDS (Bennartz 2007, MODIS :
+            // 40–89 cm⁻³ sur les océans éloignés). Lu par le profil nuageux (radiative/calculations.js, EARTH.NUAGES).
+            // v-2026-10-12 : remplace PRESSURE_FACTOR_MAX, OXIDATION_*, OPTICAL_EFF_BASE, OXIDATION_SOFT_*,
+            // CLOUD_FRACTION_BASE / _INDEX_GAIN / _MAX — la fraction est mesurée, la réflectance calculée.
+            CDNC_OCEAN_CM3: 89,              // [cm⁻³] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            // Rayon effectif d'initiation de la pluie (sommet des nuages bas) — jauge mesurée 13–14 µm.
+            R_EFF_PLUIE: 14e-6               // [m] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
         },
 
         // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →
@@ -120,14 +122,8 @@
             // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
             // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
             // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
-        },
-
-        // Radiatif : κ_H₂O global (FINE_TUNING_BOUNDS groupe RADIATIVE, baryGroup SCIENCE).
-        // Propagé vers EARTH.H2O_EDS_SCALE par tuning.js/syncRadiativeConfig.
-        // factorTropopause : × hauteur radiative effective (ATM.calculateTropopauseHeight), même jauge ATM que H2O_EDS.
-        RADIATIVE: {
-            H2O_EDS_SCALE: 0.80
         }
+        // RADIATIVE (H2O_EDS_SCALE) retiré le 2026-10-13 : le multiplicateur de κ_H₂O n'a plus d'objet (fine_tuning_bounds v1.5.1).
     };
 
     // ============================================================================

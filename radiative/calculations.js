@@ -1,6 +1,12 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.5.0
+// Version 1.7.0
+// - v1.7.0 (2026-10-13): CIA CO₂ inventée retirée ; nuages bas adiabatiques limités par la pluie (population) et hauts
+//   (enclumes à T_ENCLUME), vapeur moyenne de Manabe & Wetherald, eau précipitable effective pour solaire.js.
+// - v1.6.0 (2026-10-12): NUAGES par la physique. Condensat d'Ackerman & Marley 2001 (q_t transportée, f_sed), accumulé
+//   à chaque pas d'intégration (100 m) et non plus échantillonné aux nœuds de la grille ; gouttes liquides de Martin
+//   et al. 1994 (N du rapport CCN), glace par sédimentation (A&M), phase Hu & Stamnes ; τ_IR = ¾ W/(ρ r), τ_SW = 3/2 W/(ρ r),
+//   recouvrement maximal. colonneNuageuse() donne τ_SW à l'albédo. CLOUD_LW_TAU_REF (2,6, sans source) retiré.
 // - v1.5.0 (2026-10-12): σ(λ) à la température de chaque couche (tables HITRAN S(T), γ(T) sur 10 T, 100–3000 K) ;
 //   élargissement par la pression sans plafond (min(2,…) retiré) + auto-élargissement H₂O tiré des raies ;
 //   continuum H₂O de Roberts et al. 1976 résolu en λ (remplace le « piégeage » MT_CKD scalaire désactivé) ;
@@ -97,20 +103,12 @@ function crossSectionCO2(wavelength) {
     return window.HITRAN.crossSectionCO2FromLines(wavelength, T_ref, P_ref);
 }
 
-// ── Collision-Induced Absorption (CIA) CO₂–CO₂ (+ CO₂–N₂) ────────────────────────────────────
-// Réfs : Gruszka & Borysow 1997 (Icarus 129:172) ; Wordsworth et al. 2010 (Icarus 210:992) ; Hu et al. 2011.
-// Absorption BINAIRE ∝ n_CO₂ · n_total (densité²) : au-delà de la saturation des raies, les collisions
-// CO₂–CO₂/CO₂–N₂ créent un continuum qui remplit les FENÊTRES (far-IR roto-translationnel + fenêtre 8–14 µm).
-// C'est CE terme, absent jusqu'ici, qui manquait pour la sortie de snowball (> 0.1 bar CO₂, Hu et al. 2011).
-// Ici : PROFIL normalisé par λ [0..~1.4] ; la magnitude physique est portée par EARTH.CIA_CO2_SCALE
-// (à CALIBRER pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6, Hu 2011). kappa_CIA appliqué
-// dans le worker : cia_CO2[j] · (n_CO₂/N_ref) · (n_air/N_ref) · CIA_CO2_SCALE. Négligeable à bas CO₂ (∝ n_CO₂²).
-function ciaCoeffCO2(wavelength) {
-    const um = wavelength * 1e6;                                   // longueur d'onde en µm
-    const farIR = Math.exp(-Math.pow((um - 90) / 45, 2));         // bande roto-translationnelle (pic ~90 µm ≈ 110 cm⁻¹) — dominante
-    const windowIR = 0.4 * Math.exp(-Math.pow((um - 11) / 4, 2)); // continuum pression-induit, fenêtre 8–14 µm (pic Planck snowball)
-    return farIR + windowIR;
-}
+// ── Absorption induite par collisions (CIA) du CO₂ : RETIRÉE le 2026-10-13 ──────────────────────────────────────
+// Ce n'était pas une mesure : un profil inventé (deux gaussiennes, dont une à 11 µm en pleine fenêtre atmosphérique)
+// multiplié par EARTH.CIA_CO2_SCALE = 1e-2, soit 100 fois l'ordre de grandeur de Gruszka & Borysow 1997 (~1e-4
+// m⁻¹/amagat² au pic de l'infrarouge lointain), « pour sortir du snowball ». Sur l'Archéen (0,23 bar de CO₂) il fermait
+// la fenêtre à lui seul (τ ≈ 16) : OLR 108 W/m² à 288 K. La vraie CIA du CO₂ (bandes roto-translationnelles < 250 cm⁻¹,
+// bandes du dimère vers 7 µm) est faible dans la fenêtre sous le bar ; elle reviendra avec les tables mesurées HITRAN CIA.
 
 function crossSectionH2O(wavelength) {
     const CONST = window.CONST;
@@ -158,7 +156,7 @@ function computePWV() {
 // Calculées une fois par grille spectrale (mémoire : clé = nombre de bins et bornes).
 // ⚠️ La liste de raies est celle de HITRAN (raies fortes à 296 K), pas HITEMP : les bandes chaudes qui comptent
 //    au-delà de ~1 000 K y sont incomplètes. S(T) est juste pour les raies présentes ; les absentes manquent.
-const T_GRILLE_SIGMA = [100, 160, 220, 280, 350, 500, 800, 1300, 2000, 3000];   // [K]
+const T_GRILLE_SIGMA = [20, 50, 100, 160, 220, 280, 350, 500, 800, 1300, 2000, 3000];   // [K] (20 K : le solveur explore des surfaces très froides — 44 K vu au banc, 🏂)
 const _tablesSigma = {};
 function tablesSigma(lambda_range) {
     const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
@@ -208,7 +206,7 @@ function continuumH2OCs(lambda) {
  * définition). Élargissement par la pression : √(P/P_ref) (limite des raies fortes), SANS plafond — l'ancien
  * min(2, …) bridait à 4 atm l'opacité d'une atmosphère de 100 bar ; pour H₂O, P effective = P·(1 + x_v·(R_self − 1)).
  */
-function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz) {
+function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz, tauNuage) {
     const C = window.EARTH.CONTINUUM_H2O;
     const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
     const pb = window.CONFIG_COMPUTE.pressureBroadening;
@@ -216,6 +214,7 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz) {
     const P_atm = P / P_REF;
     return {
         T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, delta_z_real: dz,
+        tauNuage: tauNuage,   // τ_eff d'absorption IR des nuages de la couche (gris), profilAtmosphere
         iT: it.iT, wT: it.wT,
         pressureBroadening: pb ? Math.sqrt(P_atm) : 1,
         pressureBroadeningH2O: pb ? Math.sqrt(P_atm * (1 + x_v * (rapportAutoElargissementH2O() - 1))) : 1,
@@ -258,7 +257,10 @@ function profilAtmosphere(z_range) {
     const T_s = DATA['🧮']['🧮🌡️'];
     const P_s = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
-        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1)), iTrop: z_range.length };
+        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
+            nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
+                tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, wTotal: 0, wSousBase: 0,
+                fBas: 0, fHaut: 0, tHaut: 0 } };
     }
     const M_a = wA / nA;                                   // [kg/mol] masse molaire des non condensables
     const M_c = CONST.M_H2O;
@@ -275,56 +277,176 @@ function profilAtmosphere(z_range) {
     let strato = T <= T_strato, x_c_strato = p_c / (p_a + p_c);
     const couches = [];
     let iTrop = z_range.length;
+    // ── VAPEUR MOYENNE ET NUAGE (physics.js EARTH.NUAGES) ───────────────────────────────────────────────────────────
+    // La PARCELLE (p_c ci-dessus) fixe la température : elle monte de la surface, sèche puis saturée (adiabatique
+    // humide). L'atmosphère MOYENNE n'est pas saturée : son humidité relative suit Manabe & Wetherald (1967) depuis
+    // l'humidité de surface. Au-dessus du point critique (T ≥ T_c) l'eau ne condense pas : vapeur de la parcelle.
+    const N = window.EARTH.NUAGES;
+    const RH_s = x_c0 * P_s / PHYS.pSatEau(T_s);                       // 0 au-dessus de T_c (p_sat = +∞) : sans objet
+    /** Vapeur MOYENNE au niveau courant (fraction molaire), bornée par la parcelle (l'air n'a pas plus d'eau que la surface). */
+    const vapeurMoyenne = () => {
+        const p = p_a + p_c;
+        if (T >= PHYS.EAU.T_C || T_s >= PHYS.EAU.T_C) return p_c / p;
+        const r = RH_s * (p / P_s - N.MW_P_RESIDU) / (1 - N.MW_P_RESIDU);
+        return Math.min(p_c / p, r * PHYS.pSatEau(T) / p);
+    };
+    // NUAGE : la parcelle qui sature au niveau de condensation forme le nuage. Au-dessus, son eau en excès condense
+    // (adiabatique : q_c = x_surface − x_sat) ; elle reste en gouttes tant que leur rayon effectif est sous le seuil de
+    // pluie (R_EFF_PLUIE, 14 µm mesurés), puis précipite : c'est le SOMMET. Épaisseur, eau et τ en sortent, sans réglage :
+    //   LWC(z) adiabatique ;  r_eff (Martin 1994) ;  LWC_pluie = (4π/3) ρ_w k N r_pluie³ ;  τ = Σ 3/2·LWC dz/(ρ_w r_eff).
+    // Partition de phase (Hu & Stamnes) : glace au rayon déclaré ; le seuil de précipitation porte sur le condensat total. La FRACTION f (🍰🪩⛅) est MESURÉE (calculations_albedo) : la dynamique 3D qui la fixe n'a pas
+    // d'équation en 1D. Essais rejetés le 2026-10-13 : Ackerman & Marley (colonne saturée, W ≈ 2 kg/m²) et schéma
+    // statistique (nuages étalés sur 5 km, W/C ≈ 0,5–1,3 kg/m²) — tous deux sans inversion, donc sans sommet.
+    // Fractions MESURÉES (physics.js) : sans eau, pas de nuage (branche physique).
+    const avecEau = w_c > 0;
+    const fBas = avecEau ? N.F_BAS : 0, fHaut = avecEau ? N.F_HAUT : 0;
+    const oc = DATA['🪩']['🍰🪩🌊'];                                  // océan libre : masse d'air maritime / continentale
+    const kMartin = N.K_MARTIN_OCEAN * oc + N.K_MARTIN_CONTINENT * (1 - oc);
+    const nGouttesActuel = (DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * oc + N.CDNC_CONTINENT_CM3 * (1 - oc)) * 1e6;   // [m⁻³]
+    const nGouttes = nGouttesActuel * window.ALBEDO.rapportCCN();    // [m⁻³] gouttes de l'époque (Twomey : r_eff ∝ N^(−1/3))
+    // Profondeur du nuage : seuil de pluie atteint avec le nombre de gouttes ACTUEL (mesuré), pas celui de l'époque.
+    // Raison mesurée : l'eau nuageuse ne répond presque pas au nombre de gouttes (susceptibilité d ln LWP / d ln N ≈ 0,
+    // Toll et al. 2019, Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous
+    // 🚂). L'effet Twomey (même eau, gouttes plus petites, τ plus grand) reste entier.
+    const LWC_pluie = 4 / 3 * Math.PI * N.RHO_LIQUIDE * kMartin * nGouttesActuel * Math.pow(DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE, 3);   // [kg/m³]
+    let dansNuage = false, sommet = false, zBase = 0, zSommet = 0, z = 0;
+    let iEnclume = -1, tEnclume = 0;                     // couche où la parcelle passe T_ENCLUME (nuages hauts)
+    let tauSW = 0, tauIR = 0, W = 0;
+    const tauIRCouche = z_range.map(() => 0);
+    // Eau précipitable EFFECTIVE pour le rayonnement solaire (Lacis & Hansen 1974 éq. 24, mise à l'échelle linéaire en
+    // pression, n = 1, et √(T₀/T), T₀ = 273 K) [cm] : colonne entière, sous la base, et tranche par tranche dans le nuage
+    // (vapeur moyenne ET vapeur saturée — dans le nuage l'air est saturé). radiative/solaire.js les lit.
+    const P0_LH = 101325, T0_LH = 273;
+    let wTotal = 0, wSousBase = 0;
+    // Le nuage tranche par tranche, en CUMULS depuis la base : profondeur [m], τ_SW, τ_IR, eau précipitable moyenne et
+    // saturée [cm]. Un nuage plus jeune (moins profond) est le même nuage tronqué : solaire.js en tire la population.
+    const tranches = { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] };
+    /** Eau précipitable effective d'une tranche dz de fraction molaire de vapeur x [cm]. */
+    const wEff = (x, dz) => {
+        const p = p_a + p_c;
+        return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * (p / P0_LH) * Math.sqrt(T0_LH / T);
+    };
+    /** Tranche dz du nuage adiabatique : ses épaisseurs optiques DANS le nuage, à la couche ic. */
+    const nuage = (dz, ic) => {
+        const p = p_a + p_c;
+        const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
+        const M = rho * CONST.R_GAS * T / p;
+        const cwc = Math.max(0, x_c0 - p_c / p) * (M_c / M) * rho;               // [kg/m³] condensat adiabatique
+        const f_liq = Math.max(0, Math.min(1, (T - N.T_TOUT_GLACE) / (N.T_TOUT_LIQUIDE - N.T_TOUT_GLACE)));
+        const lwc = f_liq * cwc;
+        // Sommet : le condensat TOTAL atteint l'eau maximale avant précipitation. La glace ne retarde pas la précipitation,
+        // elle l'accélère : dans un nuage mixte les cristaux grossissent aux dépens des gouttes et tombent (processus de
+        // Wegener–Bergeron–Findeisen) — le seuil des gouttes liquides (14 µm) est donc une borne haute pour tout condensat.
+        if (cwc >= LWC_pluie) { sommet = true; zSommet = z; return; }
+        // Liquide : W/(ρ_w r_eff) = dz·(LWC/ρ_w)^⅔·(4π k N/3)^⅓ (Martin 1994). Glace : rayon déclaré.
+        const s = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * kMartin * nGouttes / 3)
+            + (1 - f_liq) * cwc * dz / (N.RHO_GLACE * N.R_EFF_GLACE);
+        tauIRCouche[ic] += 0.75 * s;                                             // absorption (Q_abs ≈ 1)
+        tauIR += 0.75 * s;
+        tauSW += 1.5 * s;                                                        // extinction (Q_ext ≈ 2)
+        W += cwc * dz;
+        zSommet = z;
+        const k = tranches.profondeur.length - 1;
+        tranches.profondeur.push(tranches.profondeur[k] + dz);
+        tranches.tauSW.push(tranches.tauSW[k] + 1.5 * s);
+        tranches.tauIR.push(tranches.tauIR[k] + 0.75 * s);
+        tranches.wMoyen.push(tranches.wMoyen[k] + wEff(vapeurMoyenne(), dz));
+        tranches.wSature.push(tranches.wSature[k] + wEff(p_c / p, dz));
+    };
     const pousser = (i) => {
         const p = p_a + p_c;
         const n = p / (CONST.BOLTZMANN_KB * T);
         const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
-        const x_c = p_c / p;
-        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_c) * n, x_c * n, xa[1] * (1 - x_c) * n, x_c, dz));
+        const x_v = strato ? x_v_strato : vapeurMoyenne();
+        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, x_v, dz, 0));
     };
+    let x_v_strato = x_c_strato;                        // surface déjà au plancher stratosphérique : la parcelle
     pousser(0);
     for (let i = 1; i < z_range.length; i++) {
         let reste = z_range[i] - z_range[i - 1];
         while (reste > 0) {
-            const dz = Math.min(100, reste);
+            // Pas de 10 m dans le nuage (quelques centaines de mètres d'épaisseur), 100 m ailleurs.
+            const dz = Math.min((dansNuage && !sommet) ? 10 : 100, reste);
             reste -= dz;
+            z += dz;
             const p = p_a + p_c;
             const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
             if (strato) {                                   // isotherme, composition figée
-                const pn = p - rho * g * dz;
+                const pn = p * Math.exp(-g * rho / p * dz);
                 p_c = x_c_strato * pn; p_a = pn - p_c;
+                wTotal += wEff(x_v_strato, dz);
                 continue;
             }
-            const psat = PHYS.pSatEau(T);
-            if (p_c < psat) {                               // non saturé : adiabatique sèche du mélange
-                const wc = p_c * M_c / (p_c * M_c + p_a * M_a);
+            if (p_c < PHYS.pSatEau(T) || T >= PHYS.EAU.T_C) {   // non saturé (ou supercritique) : adiabatique sèche
+                const wc = p_c * M_c / (rho * CONST.R_GAS * T);
                 T = T - g / ((1 - wc) * cpa(T) + wc * cpc(T)) * dz;
                 const pn = p - rho * g * dz;
                 p_c = pn * (p_c / p); p_a = pn - p_c;
-                if (T < PHYS.EAU.T_C && p_c > PHYS.pSatEau(T)) p_c = PHYS.pSatEau(T);   // le niveau de condensation est atteint
+                if (T < PHYS.EAU.T_C && p_c > PHYS.pSatEau(T)) {   // niveau de condensation : base du nuage
+                    p_c = PHYS.pSatEau(T); dansNuage = true; zBase = z;
+                }
             } else {                                        // saturé : adiabatique humide non diluée
                 const dln = PHYS.dLnPSatEau(T);
                 const L = R_c * T * T * dln;
-                const r = (R_a / R_c) * (p_c / p_a);
-                const gam = (R_a / cpa(T)) * (1 + L * r / (R_a * T))
-                    / (1 + (cpc(T) / cpa(T) + (L / (R_c * T) - 1) * L / (cpa(T) * T)) * r);
-                const q = p_c * T * gam * dln / p_a;
+                const r = (R_a / R_c) * p_c / p_a;
+                const q = p_c * M_c / (p_a * M_a);
+                const gam = (R_a / cpa(T)) * (1 + L * r / (R_a * T)) /
+                    (1 + (cpc(T) / cpa(T) + (L / (R_c * T) - 1) * L / (cpa(T) * T)) * r);
                 const dpa = -rho * g * dz / (1 + q);
                 T = T + gam * T * dpa / p_a;
                 p_a = p_a + dpa;
                 p_c = PHYS.pSatEau(T);
             }
-            if (T <= T_strato) { T = T_strato; strato = true; x_c_strato = p_c / (p_a + p_c); }
+            if (T <= T_strato) {
+                T = T_strato; x_c_strato = p_c / (p_a + p_c);
+                x_v_strato = vapeurMoyenne();               // piège froid : la vapeur MOYENNE de la tropopause, figée
+                strato = true;
+                continue;
+            }
+            if (iEnclume < 0 && T <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = T; }
+            const dw = wEff(vapeurMoyenne(), dz);
+            wTotal += dw;
+            if (!dansNuage) wSousBase += dw;
+            if (dansNuage && !sommet) nuage(dz, i - 1);
         }
         if (strato && iTrop === z_range.length) iTrop = i;
         pousser(i);
     }
-    return { couches: couches, iTrop: iTrop };
+    // POPULATION de nuages BAS : chacun naît à la base et s'épaissit jusqu'à la pluie (sommet) ; en régime établi toutes
+    // les profondeurs sont également représentées (hypothèse de cycle de vie, ⚠️ déclarée — contrôle : τ moyen MODIS ≈ 12).
+    // Émissivité de flux (diffusivité D, comme le worker) moyennée sur la population : ε̄ = ⟨1 − e^{−D·τ_IR(u)}⟩.
+    // Couverture f, recouvrement maximal dans la couche : transmission 1 − f·ε̄, que le worker obtient avec
+    // exp(−D·τ_eff), τ_eff = −ln(1 − f·ε̄)/D, réparti au prorata des τ des couches.
+    const D = window.EARTH.DIFFUSIVITE;
+    const epsBas = window.SOLAIRE.moyennePopulation(tranches, (c) => 1 - Math.exp(-D * c.tauIR));
+    const tauEffBas = -Math.log(1 - fBas * epsBas) / D;
+    for (let i = 0; i < couches.length; i++) couches[i].tauNuage = tauIR > 0 ? tauIRCouche[i] * tauEffBas / tauIR : 0;
+    // NUAGES HAUTS (enclumes, cirrus) au niveau T_ENCLUME, ou au sommet de la troposphère s'il est plus chaud ; seulement
+    // s'il y fait assez froid pour la glace.
+    // Population à ln τ uniforme (physics.js) ; absorption IR = moitié de l'extinction visible (Q_abs ≈ 1, Q_ext ≈ 2).
+    // Recouvrement aléatoire avec les nuages bas : le worker multiplie les transmissions des couches.
+    const iHaut = iEnclume >= 0 ? iEnclume : iTrop - 1;
+    const tHaut = iEnclume >= 0 ? tEnclume : T_strato;
+    const hautPossible = (iEnclume >= 0 || strato) && iHaut >= 0 && tHaut < N.T_TOUT_GLACE;
+    const epsHaut = window.SOLAIRE.moyenneHauts((tau) => 1 - Math.exp(-D * tau / 2));
+    if (hautPossible) couches[iHaut].tauNuage += -Math.log(1 - fHaut * epsHaut) / D;
+    // nuage : colonne DANS le nuage (avant la fraction f).
+    return { couches: couches, iTrop: iTrop,
+        nuage: { W: W, tauSW: tauSW, tauIR: tauIR, base: zBase, sommet: zSommet, lwcPluie: LWC_pluie,
+            tranches: tranches, wTotal: wTotal, wSousBase: wSousBase,
+            fBas: fBas, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };
+}
+
+/** Colonne nuageuse à l'état courant (T, composition) : le profil intégré jusqu'au sommet de l'atmosphère. */
+function colonneNuageuse() {
+    return profilAtmosphere([0, window.DATA['🫧']['📏🫧🧿'] * 1000]).nuage;
 }
 
 // Exposer pour debug, plot, sync_panels.
 window.RADIATIVE = {
-    computePWV: computePWV
+    computePWV: computePWV,
+    profilAtmosphere: profilAtmosphere,  // diagnostic : profil T, vapeur, nuages couche par couche
+    colonneNuageuse: colonneNuageuse     // τ_SW du nuage pour l'albédo (calculations_albedo), même condensat que l'IR
 };
 
 // ============================================================================
@@ -557,7 +679,7 @@ async function calculateFluxForT0() {
 
     // (flux_init, ychange, YCHANGE_THR initialisés après earth_flux — voir ci-dessous)
     const final_lambda_length = lambda_range.length;
-    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_CIA = 0, sum_blocked_cont = 0;
+    let sum_blocked_CO2 = 0, sum_blocked_H2O = 0, sum_blocked_CH4 = 0, sum_blocked_clouds = 0, sum_blocked_cont = 0;
     let edsSpectra = null;   // attribution EDS par longueur d'onde (worker v0.7.0)
 
     // Log du calcul spectral (désactivé pour réduire la taille des logs)
@@ -580,23 +702,11 @@ async function calculateFluxForT0() {
     const ychange = new Float64Array(final_lambda_length).fill(z_range[z_range.length - 1]);
     const YCHANGE_THR = 0.05; // 5 % de baisse = début absorption significative
 
-    // Nuages EDS : τ_LW total = ☁️ × CLOUD_LW_TAU_REF, réparti sur la troposphère.
-    // v-2026-09-23 : la modulation « × 🍰💭 » est retirée avec 🍰💭 elle-même (calculations_albedo
-    // v1.2.66). Elle ne modulait rien — 🍰💭 valait 1,000 sur 18 époques sur 19 — et son argument
-    // (« plus de noyaux → gouttelettes plus petites → τ plus grand ») passait par une formule où
-    // l'O₂ et le CH₄ comptaient pour 5 fois le sulfate, ce qui n'a pas de sens microphysique.
-    // ⚠️ CLOUD_LW_TAU_REF = 2,6 reste SANS SOURCE : c'est une calibration interne.
-    //    La physique s'écrit τ_abs = κ_abs × LWP, avec κ_abs ≈ 0,13 m²/g mesuré en laboratoire
-    //    (Stephens 1978, J. Atmos. Sci. 35:2123) — mais le modèle ne calcule pas d'eau liquide
-    //    nuageuse (LWP), donc la dérivation n'est pas branchable en l'état. À faire.
-    //    Repère de mesure : CRE_LW ≈ 26–30 W/m² (Loeb et al. 2021, CERES EBAF).
-    const cloud_index = DATA['🪩']['☁️'];
-    const CLOUD_LW_TAU_REF = 2.6;
-    const tau_cloud_total = Math.max(0, cloud_index * CLOUD_LW_TAU_REF);   // réparti sur la troposphère du profil
+    // Nuages IR : opacité par couche calculée dans profilAtmosphere (Ackerman & Marley 2001, Windsor et al. 2022).
+    // Remplace τ = ☁️ × CLOUD_LW_TAU_REF (2,6, sans source) réparti uniformément jusqu'à la tropopause.
 
     // Sections efficaces : tables σ(λ) sur la grille de températures (interpolées à la T de chaque couche).
     const tab = tablesSigma(lambda_range);
-    const cia_CO2 = lambda_range.map(lambda => ciaCoeffCO2(lambda));   // profil CIA CO₂ par λ (Gruszka-Borysow / Wordsworth)
     const continuum_H2O = lambda_range.map(continuumH2OCs);          // continuum H₂O (Roberts 1976), 0 hors 8–25 µm
 
     // DIAGNOSTIC CO2 (temporaire) : vérifier l'échantillonnage de la bande 15 µm.
@@ -645,11 +755,6 @@ async function calculateFluxForT0() {
         window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK4);
     }
 
-    // EARTH.H2O_EDS_SCALE : paramètre fine-tuning (FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE, baryGroup SCIENCE)
-    // Propagé par tuning.js → syncRadiativeConfig(). Ex-recalcul dynamique 0.92·√P_ratio·CO2_factor retiré (double-comptait le pressure broadening déjà dans HITRAN).
-    const h2o_eds_scale = EARTH.H2O_EDS_SCALE;
-    // CIA CO₂ : magnitude calibrable (0 = désactivé). Négligeable à bas CO₂ (∝ n_CO₂²), essentiel > 0.1 bar.
-    const cia_co2_scale = EARTH.CIA_CO2_SCALE;
     // EARTH.CH4_EDS_SCALE : parallèle à H2O_EDS_SCALE. Défaut 1.0 (line-by-line HITRAN + √(P/P_ref) natif).
     // Pilotable via FINE_TUNING_BOUNDS.RADIATIVE.CH4_EDS_SCALE (si exposé) pour caler sur cible Haqq-Misra 2008.
     const ch4_eds_scale = EARTH.CH4_EDS_SCALE;
@@ -691,19 +796,18 @@ async function calculateFluxForT0() {
         const profil = profilAtmosphere(z_range);
         const layers_w = profil.couches;
         const i_trop = profil.iTrop;
-        const tau_cloud_per_layer = i_trop > 0 ? tau_cloud_total / i_trop : 0;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, cia_CO2, continuum_H2O,
-            earth_flux, layers: layers_w, i_trop, h2o_eds_scale, ch4_eds_scale, cia_co2_scale,
-            tau_cloud_per_layer, effective_delta_lambda,
+            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, continuum_H2O,
+            earth_flux, layers: layers_w, i_trop, ch4_eds_scale,
+            effective_delta_lambda,
+            diffusivite: window.EARTH.DIFFUSIVITE,
             T_surf: DATA['🧮']['🧮🌡️'],
             constants: { PLANCK_H: CONST.PLANCK_H, SPEED_OF_LIGHT: CONST.SPEED_OF_LIGHT, BOLTZMANN_KB: CONST.BOLTZMANN_KB, MAX_PLANCK_SAFE: CONST.MAX_PLANCK_SAFE }
         }, nZ, nL);
         sum_blocked_CO2 = sums.CO2; sum_blocked_H2O = sums.H2O;
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
         edsSpectra = spectra;
-        sum_blocked_CIA = sums.CIA;   // diagnostic CIA (n'entre PAS dans la normalisation des 3 EDS)
         sum_blocked_cont = sums.continuum;   // continuum H₂O (déjà compté dans sums.H2O)
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
@@ -760,14 +864,7 @@ async function calculateFluxForT0() {
             Continuum_pct: pct(sum_blocked_continuum)
         },
         CH4: { pct: pct(sum_blocked_CH4) },
-        Clouds: { pct: pct(sum_blocked_clouds) },
-        // CIA CO₂ : diagnostic SÉPARÉ (ne participe pas à la normalisation ci-dessus, qui reste Σ=1 sur CO2/H2O/CH4/Clouds).
-        // pct_of_co2 = combien la CIA piège vs les raies CO₂ ; Wm2 = watts CIA à la même échelle que 🧲📛🏭.
-        CIA: {
-            pct: pct(sum_blocked_CIA),
-            Wm2: EDS * pct(sum_blocked_CIA),
-            pct_of_co2: (sum_blocked_CO2 > 1e-20) ? (sum_blocked_CIA / sum_blocked_CO2) : 0
-        }
+        Clouds: { pct: pct(sum_blocked_clouds) }
     };
 
     // ─── ATTRIBUTION EDS PAR LONGUEUR D'ONDE ───────────────────────────────────
@@ -922,13 +1019,13 @@ async function computeEdsRemovalShares() {
     const T_K = DATA['🧮']['🧮🌡️'];
     const olrRef = DATA['📊'].total_flux;
     const save = {
-        cloud: DATA['🪩']['☁️'],
+        cloud: DATA['🪩']['🍰🪩⛅'],
         co2:   DATA['🫧']['🍰🫧🏭'],
         h2o:   DATA['💧']['🍰🫧💧'],
         ch4Sc: EARTH.CH4_EDS_SCALE
     };
     const restore = function () {
-        DATA['🪩']['☁️']    = save.cloud;
+        DATA['🪩']['🍰🪩⛅'] = save.cloud;
         DATA['🫧']['🍰🫧🏭'] = save.co2;
         DATA['💧']['🍰🫧💧'] = save.h2o;
         EARTH.CH4_EDS_SCALE = save.ch4Sc;
@@ -943,7 +1040,7 @@ async function computeEdsRemovalShares() {
     };
     const eff = {};
     try {
-        eff['⛅'] = (await olrSans(function () { DATA['🪩']['☁️'] = 0; }))    - olrRef;
+        eff['⛅'] = (await olrSans(function () { DATA['🪩']['🍰🪩⛅'] = 0; })) - olrRef;   // fraction nuageuse à 0
         eff['🏭'] = (await olrSans(function () { DATA['🫧']['🍰🫧🏭'] = 0; })) - olrRef;
         eff['💧'] = (await olrSans(function () { DATA['💧']['🍰🫧💧'] = 0; })) - olrRef;   // raies ET continuum
         eff['🐄'] = (await olrSans(function () { EARTH.CH4_EDS_SCALE = 0; })) - olrRef;
@@ -1031,7 +1128,6 @@ function calculateRadiativeCapacities() {
     const cross_section_CO2 = lr.map(lambda => crossSectionCO2(lambda));
     const cross_section_H2O = lr.map(lambda => crossSectionH2O(lambda));
     const cross_section_CH4 = lr.map(lambda => crossSectionCH4(lambda));
-    const h2o_eds_scale_cap = EARTH.H2O_EDS_SCALE;
     const ch4_eds_scale_cap = EARTH.CH4_EDS_SCALE;
 
     // Initialiser les intégrales pondérées
@@ -1061,7 +1157,7 @@ function calculateRadiativeCapacities() {
             const n_CH4 = n_air * methaneFractionAtZ(z);
             
             const kappa_CO2 = cross_section_CO2[j] * n_CO2;
-            const kappa_H2O = cross_section_H2O[j] * n_H2O * h2o_eds_scale_cap;
+            const kappa_H2O = cross_section_H2O[j] * n_H2O;
             const kappa_CH4 = cross_section_CH4[j] * n_CH4 * ch4_eds_scale_cap;
 
             const delta_tau_CO2 = kappa_CO2 * delta_z;
@@ -1078,7 +1174,7 @@ function calculateRadiativeCapacities() {
                 __noteBad('H2O', idx, j, i, {
                     lambda: lr[j], z: z, delta_z: delta_z, n_air: n_air, n_H2O: n_H2O,
                     waterVaporFrac_z: waterVaporFractionAtZ(z),
-                    cross_H2O: cross_section_H2O[j], h2o_eds_scale_cap: h2o_eds_scale_cap,
+                    cross_H2O: cross_section_H2O[j],
                     kappa_H2O: kappa_H2O, delta_tau_H2O: delta_tau_H2O
                 });
             }

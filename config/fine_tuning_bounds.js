@@ -1,6 +1,10 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.4.0
+// Version 1.5.2
+// - v1.5.2 (2026-10-13): R_EFF_PLUIE [13 ; 14] µm ajouté (seuil mesuré de la pluie chaude).
+// - v1.5.1 (2026-10-13): H2O_EDS_SCALE retiré (4 → 3 cibles) — les physiques qu'il remplaçait sont codées.
+// - v1.5.0 (2026-10-12): 6 → 4 cibles. CLOUD_FRACTION_BASE, CLOUD_FRACTION_INDEX_GAIN, OPTICAL_EFF_BASE retirés (fraction
+//   mesurée, réflectance calculée — calculations_albedo v1.3.0) ; CDNC_OCEAN_CM3 ajouté (fourchette MODIS, Bennartz 2007).
 // Date: [October 12, 2026]
 // logs :
 // - v1.4.0: 10 → 6 cibles. Retirées : co2OceanEffPump01 (jamais lue — la physique lit CONFIG_COMPUTE, 0,1) ;
@@ -54,42 +58,26 @@
 
 window.FINE_TUNING_BOUNDS = {
     targets: [
+        // CLOUD_FRACTION_BASE [0,17 ; 0,23], CLOUD_FRACTION_INDEX_GAIN [0,08 ; 0,14], OPTICAL_EFF_BASE [1,00 ; 1,20]
+        // RETIRÉS (v1.5.0) : trois plages posées à la main (« calibration interne », « ajustement interne »,
+        // « centrage moderne ») pour une « fraction optique » qui mélangeait couverture et réflectance. La couverture est
+        // MESURÉE (King et al. 2013, EARTH.NUAGES.F_OCEAN / F_CONTINENT), la réflectance CALCULÉE (deux-flux sur le
+        // condensat du profil). Ce qui reste inconnu, et mesuré dans une fourchette : le nombre de gouttes.
         {
             group: 'CLOUD_SW',
-            key: 'CLOUD_FRACTION_BASE',
-            min: 0.17,
-            max: 0.23,
-            default: 0.19,
-            unit: 'fraction',
-            note: 'base couverture nuageuse SW',
-            source: 'CERES EBAF + MODIS (2000-2025), calibration interne pour SW effectif moderne',
+            key: 'CDNC_OCEAN_CM3',
+            // Nombre de gouttes des nuages bas sur océan, Terre actuelle. Bennartz 2007 (JGR 112:D02201), MODIS Aqua :
+            // 64–89 cm⁻³ (hémisphère nord) et 40–67 cm⁻³ (hémisphère sud) sur les océans éloignés → [40 ; 89].
+            // Plus de gouttes = gouttes plus petites (Martin et al. 1994) = nuage plus épais optiquement = plus froid :
+            // 100 % = 89. Le continent (200 cm⁻³, Gultepe & Isaac 2004) et le rapport CCN de l'époque sont ailleurs.
+            min: 40,
+            max: 89,
+            default: 64.5,
+            unit: 'cm⁻³',
+            note: 'nombre de gouttes des nuages bas marins (Terre actuelle)',
+            source: 'Bennartz 2007 JGR 112:D02201 (MODIS Aqua) : 64–89 cm⁻³ HN, 40–67 cm⁻³ HS, océans éloignés.',
             effect: 'negative',
-            biblio_ref: 'CLOUD_FRACTION_BASE'
-        },
-        {
-            group: 'CLOUD_SW',
-            key: 'CLOUD_FRACTION_INDEX_GAIN',
-            baryGroup: 'SCIENCE',
-            min: 0.08,
-            max: 0.14,
-            default: 0.11,
-            unit: 'ratio',
-            note: 'gain index nuageux',
-            source: 'Sundqvist (1989) + ajustement interne cloud_index -> fraction optique',
-            effect: 'negative',
-            biblio_ref: 'CLOUD_FRACTION_INDEX_GAIN'
-        },
-        {
-            group: 'CLOUD_SW',
-            key: 'OPTICAL_EFF_BASE',
-            min: 1.00,
-            max: 1.20,
-            default: 1.10,
-            unit: 'ratio',
-            note: 'efficacité optique de base',
-            source: 'Twomey + AR6 aerosols, centrage moderne',
-            effect: 'negative',
-            biblio_ref: 'OPTICAL_EFF_BASE'
+            biblio_ref: 'CDNC_OCEAN_CM3'
         },
         // OPTICAL_EFF_CCN_GAIN RETIRÉ (v1.3.14) — la sensibilité de l'albédo nuageux aux CCN ne se
         // règle pas, elle se CALCULE : Twomey (1991) donne ΔA/[A(1−A)] = Δ(ln N)/3, donc un gain de
@@ -98,6 +86,22 @@ window.FINE_TUNING_BOUNDS = {
         // forme était linéaire en (ccn_ratio − 1) quand Twomey est logarithmique — équivalent près
         // de 1, faux partout ailleurs. Même traitement que TEMP_FACTOR_REF_K en son temps :
         // une grandeur qu'on sait calculer n'a rien à faire dans le barycentre.
+        {
+            group: 'CLOUD_SW',
+            key: 'R_EFF_PLUIE',
+            // Rayon effectif des gouttes au sommet d'un nuage quand la pluie chaude s'y déclenche : il fixe l'épaisseur
+            // des nuages bas (radiative/calculations.js : LWC_pluie = (4π/3) ρ_w k N r³). MESURÉ, dans une fourchette :
+            // 13 µm (Braga et al. 2021, ACP 21:14079, avions sur l'Amazonie et l'Atlantique tropical) à 14 µm
+            // (Rosenfeld & Gutman 1994 ; Freud & Rosenfeld 2012). Plus grand = nuages plus épais = plus froid : 100 % = 14.
+            min: 13e-6,
+            max: 14e-6,
+            default: 13.5e-6,
+            unit: 'm',
+            note: 'rayon effectif d\'initiation de la pluie chaude (sommet des nuages bas)',
+            source: 'Braga et al. 2021 ACP 21:14079 (13 µm) ; Rosenfeld & Gutman 1994 Atmos. Res. 34:259 ; Freud & Rosenfeld 2012 GRL 39:L12803 (14 µm).',
+            effect: 'negative',
+            biblio_ref: 'R_EFF_PLUIE'
+        },
         {
             group: 'CLOUD_SW',
             key: 'SULFATE_CCN_EXPONENT',
@@ -133,27 +137,11 @@ window.FINE_TUNING_BOUNDS = {
         },
         // TEMP_FACTOR_REF_K retiré : remplacé dans calculations_albedo.js par la
         // partition de phase Hu & Stamnes (1993). Plus de borne arbitraire sur T.
-        {
-            group: 'RADIATIVE',
-            key: 'H2O_EDS_SCALE',
-            baryGroup: 'SCIENCE',
-            // REMIS DANS LE BARYCENTRE (v1.3.13). Sorti en v1.3.12 puis figé à 0,82 — une valeur qui
-            // ne vient de nulle part : le milieu d'une plage elle-même posée à la main. Le figer ne
-            // le rendait pas plus juste, ça ne faisait que masquer qu'on l'ignore.
-            // Il reste vrai que ce scalaire remplace trois physiques absentes (continuum MT_CKD,
-            // overlap CO₂/H₂O, profil HR(z)) et qu'un multiplicateur constant ne peut porter aucune
-            // rétroaction — rétroaction vapeur mesurée à −0,28 W/m²/K contre −1,8 attendus
-            // (doc/DIAGNOSTIC_RETROACTION_VAPEUR.md). Mais tant que ces trois mécanismes ne sont pas
-            // CODÉS, le seul énoncé honnête est « on ne sait pas », et c'est ce que dit la jauge.
-            min: 1.00,       // bary 0 %  → κ_H₂O max (T haute)
-            max: 0.60,       // bary 100 % → κ_H₂O min (T basse, cible littérature Schmidt 2010 ~75 W/m²). min>max volontaire pour cohérence avec autres targets du projet.
-            default: 0.80,
-            unit: 'ratio',
-            note: 'multiplicateur global de κ_H₂O (EARTH.H2O_EDS_SCALE). Capture continuum MT_CKD non implémenté + overlap CO₂/H₂O + approximations HR(z). Scalaire global (pas de dépendance époque — feedback T déjà porté par Clausius-Clapeyron dans waterVaporMixingRatio).',
-            source: 'Schmidt 2010 (attribution EDS H₂O ≈ 50 % de 155 W/m² ≈ 75 W/m²) ; Held & Soden 2006 (CC feedback 6–8 %/K) ; plage ~0.6–1.0 couvre les incertitudes continuum/overlap.',
-            effect: 'positive',
-            biblio_ref: 'H2O_EDS_SCALE'
-        },
+        // H2O_EDS_SCALE [1,00 ; 0,60] RETIRÉ (v1.5.1, 2026-10-13) : il remplaçait trois physiques absentes — continuum
+        // (Roberts 1976, codé le 2026-10-12), profil d'humidité (Manabe & Wetherald, codé le 2026-10-13) et
+        // recouvrement des raies CO₂/H₂O (automatique : les κ sont sommés par longueur d'onde). Avec le facteur de
+        // diffusivité, le ciel clair à 288 K vaut 268,5 W/m² sans lui (CERES 266–269). Un multiplicateur à 1 ne
+        // porte plus rien : il quitte le code.
         {
             group: 'HYSTERESIS',
             key: 'seaIceTransitionRangeK',

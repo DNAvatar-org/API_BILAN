@@ -2,7 +2,8 @@
 // Desc: L'AFFICHAGE DE LA CONFIGURATION : je transforme les objets de config en tableaux lisibles (json2html) et
 //       je développe les formules d'albédo et de flux. Je ne fais que MONTRER — c'est ce découpage qui permet
 //       à API_BILAN d'en dériver une version où les champs deviennent éditables.
-// Version 1.0.0
+// Version 1.0.1
+// - v1.0.1 (2026-10-12): logo 💧 pour CDNC_OCEAN_CM3 ; CLOUD_FRACTION_INDEX_GAIN retiré.
 // Date: [September 19, 2026]
 // logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
@@ -264,12 +265,10 @@ function getTuningLineLogo(groupKey, key) {
         if (key === 'MAX_SEARCH_STEP_K' || key === 'MAX_SEARCH_STEP_LARGE_K') return '🌡️';
         return '🧮';
     }
-    if (groupKey === 'SCIENCE') {
-        if (key === 'CLOUD_FRACTION_INDEX_GAIN') return '☁️';
-        return '🔬';
-    }
+    if (groupKey === 'SCIENCE') return '🔬';
     if (groupKey === 'CLOUD_SW') {
         if (key.indexOf('SULFATE') === 0) return '✈';
+        if (key === 'CDNC_OCEAN_CM3') return '💧';
         if (key.indexOf('CLOUD_') === 0) return '☁️';
         if (key.indexOf('OPTICAL_') === 0) return '🧪';
         if (key.indexOf('TEMP_') === 0) return '🌡️';

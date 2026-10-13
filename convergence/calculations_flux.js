@@ -236,10 +236,7 @@ function buildEdsBreakdown(b) {
         '🧲📛🏭': E * b.CO2.pct,
         '🧲📛💧': E * b.H2O.pct,
         '🧲📛🐄': E * b.CH4.pct,
-        '🧲📛⛅': E * pCloud,
-        // CIA CO₂ (diagnostic séparé) : 🌫️ = watts CIA, 🍰📛🌫️ = ratio CIA/raies-CO₂
-        '🧲📛🌫️': b.CIA.Wm2,
-        '🍰📛🌫️': b.CIA.pct_of_co2
+        '🧲📛⛅': E * pCloud
     };
 }
 
@@ -1244,12 +1241,11 @@ async function probeOLRvsCO2AtFixedT(T_C, co2Grid) {
             const EDS = b.EDS_Wm2;
             const co2W = EDS * b.CO2.pct;
             const h2oW = EDS * b.H2O.pct;
-            const ciaW = b.CIA.Wm2;
             const frac = DATA['🫧']['🍰🫧🏭'];
             const Sabs = DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']);
-            rows.push({ co2, ppm: frac * 1e6, OLR, EDS, co2W, h2oW, ciaW, Sabs });
+            rows.push({ co2, ppm: frac * 1e6, OLR, EDS, co2W, h2oW, Sabs });
             console.log('🔭  CO₂=' + co2.toExponential(2) + ' kg (' + f(frac * 1e6, 0) + ' ppm) | OLR=' + f(OLR, 2)
-                + ' | EDS=' + f(EDS, 2) + ' [CO₂ ' + f(co2W, 1) + ' · H₂O ' + f(h2oW, 1) + '] | CIA=' + f(ciaW, 1)
+                + ' | EDS=' + f(EDS, 2) + ' [CO₂ ' + f(co2W, 1) + ' · H₂O ' + f(h2oW, 1) + ']'
                 + ' | Sabs=' + f(Sabs, 1) + ' W/m²');
         }
         if (rows.length >= 2) {

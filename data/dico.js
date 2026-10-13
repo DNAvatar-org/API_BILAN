@@ -3,9 +3,10 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.3
+// Version 2.0.5
 // Date: [October 10, 2026]
 // logs :
+//   - v2.0.5 (2026-10-12): 🪩🍰⛅ dans DATA['🪩'] (réflectance du nuage calculée) ; FORM de 🍰🪩⛅ = fraction mesurée.
 //   - v2.0.4 (2026-10-12): 📜⏳ = temps écoulé dans l'époque, seule horloge (CLICS / getEpochDateConfig / infoTimeMa).
 //   - v2.0.3 (2026-10-10): 📿💫 déclarée dans 📜 (tout le code lit DATA['📜']['📿💫'] ; déclarée dans 📅, elle
 //     valait undefined au démarrage, masqué par des « != null ? : 0 »). 📜🌡️🧮 retirée (doublon de 📅🌡️🧮).
@@ -37,7 +38,7 @@ const KEYS = {
     // Cycle de l'eau
     '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🌧💧', '🧲⚖️💦', '💭☔'],
     // Albédo
-    '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '☁️'],
+    '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '🪩🍰⛅', '☁️'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
     '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
     // Convergence
@@ -97,12 +98,13 @@ const DESC = {
         '🍰🪩🌳': 'Forêt',
         '🍰🪩🌊': 'Océan',
         '🍰🪩🧊': 'Glace',
-        '🍰🪩⛅': 'Nuages',
+        '🍰🪩⛅': 'Nuages : fraction GÉOMÉTRIQUE du ciel couvert (mesurée, King et al. 2013)',
         '🍰🪩🌍': 'Continents',
         '🍰⚽': 'Voile SW : fraction d’obstruction (0–1) du flux absorbé en surface après albédo (EPOCH+📜+CONFIG)',
         '🍰🪩⚽': 'Transmission du faisceau SW après A_geo seul = 1 − 🍰⚽ (le voile est déjà fusionné dans 🍰🪩📿)',
         '🍰🪩💧': 'Facteur corps-noir : couche d’eau globale / 10 m, plafonné à 1 — A_geo est multiplié par lui',
         '🪩🍰🧊': 'Albédo de glace EFFECTIF (moyenne zonale Briegleb) — celui qui entre dans A_geo, pas le coefficient de config',
+        '🪩🍰⛅': 'Albédo du ciel NUAGEUX vu du sommet (Lacis & Hansen 1974, population de nuages) — remplace la constante r_c = 0,42',
     },
     '🫧': {
         '🎈': 'Pression atmosphérique',
@@ -268,13 +270,14 @@ const FORM = {
         '🍰🪩🏜️': '🍰🪩🌍_ × (base_aridité + variabilité_régionale) où base_aridité = max(0, 1 - min(1, P_ann/1000)) × max(0, 1 - min(1, 🍰🌧💧/0.6)) et variabilité_régionale = 0.6 × max(0.5, min(1, (🧮🌡️_C-5)/10)) × max(0.5, 1-🍰🌧💧×0.6) - Déserts basés sur précipitations (P_ann < 1000 mm/an) et humidité relative (RH < 0.6) avec variabilité régionale',
         '🍰🪩🌍': 'land_coverage = L - 🍰🪩🌳 - 🍰🪩🏜️ où L = terre libre de glace. Absorbe automatiquement : steppes, prairies, toundras, montagnes (albedo ~0.18)',
         '🍰🪩🧊': 'min(🗻.🍰🗻🏔, EARTH.ICE_FORMULA_MAX_FRACTION × (T_NO_POLAR_ICE_K - 🧮🌡️) / T_NO_POLAR_ICE_RANGE_K) - Glace polaire (0% si T > T_NO_POLAR_ICE_K)',
-        '🍰🪩⛅': 'cloud_fraction = clamp((0.19 + 0.11×☁️) × cloud_optical_efficiency, 0, 0.75), avec cloud_optical_efficiency = (1.10 + 0.45×(ccn_ratio-1)) × pressure_factor × oxidation_soft_factor × temp_factor',
+        '🍰🪩⛅': 'f = 0,72 × 🍰🪩🌊 + 0,55 × (1 − 🍰🪩🌊) — MODIS : 0,72 sur océan, 0,55 sur continent (King et al. 2013) ; 0 sans vapeur',
+        '🪩🍰⛅': 'R = √3(1−g)τ / (2 + √3(1−g)τ), g = 0,85 (Lacis & Hansen 1974) ; τ = 3/2 Σ W/(ρ r_eff) sur la colonne (liquide : r_eff de Martin et al. 1994, N = CDNC × rapport CCN ; glace : sédimentation d’Ackerman & Marley 2001)',
         '🍰⚽': 'syncStratosphericVeil01 : clamp(0, 📜[🔺🍰⚽], 0.95) — obstruction',
         '🍰🪩⚽': '1 − 🍰⚽ (transmission SW après voile, écrit dans DATA[🪩] avec 🍰⚽)',
         '🍰🪩💧': 'min(1, volume d’eau / volume d’une couche globale de 10 m) — A_geo × ce facteur. '
             + 'Sur ⚫ (2 météorites = ~2 m d’eau) il vaut ~0,20 : c’est lui qui fait 15 % d’albédo là où les surfaces en donneraient 78 %.',
         '_contribution_glace': 'contribution_glace = (🪩🍰🧊 - albedo_base) × 🍰💧🧊 × 0.5',
-        '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅ ; α_nuageux = 🪩🍰⛅ + (1−🪩🍰⛅)²·albedo/(1 − 🪩🍰⛅·albedo)'
+        '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅ ; α_nuageux = 🪩🍰⛅ + (1−🪩🍰⛅)²·albedo/(1 − 🪩🍰⛅·albedo) (🪩🍰⛅ calculée, DATA)'
     },
     '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',

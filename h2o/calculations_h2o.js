@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.2.0
+// Version 1.2.1
+// - v1.2.1 (2026-10-13): plafond d'Init sur H2O_SURFACE_RH_01 (H2O_SURFACE_RH_INIT_01, sans source, retiré).
 // - v1.2.0 (2026-10-12): saturation IAPWS (PHYS.pSatEau) au lieu de Clausius-Clapeyron à L constante ; ébullition =
 //   tSatEau. Régime sans océan possible (PHYS.eauSansLiquide) : toute l'eau en vapeur (poserToutVapeur), sans
 //   humidité relative de surface, ni Iris, ni pluie — paramétrisations d'un monde à océan.
@@ -602,7 +603,7 @@ function calculateH2OParametersWithIteration() {
     // [EQ] Même remplacement : rapport × saturation exacte, au lieu d'une exponentielle linéarisée
     // autour de 288 K dont le taux (0,013 K⁻¹) ne venait de nulle part et n'était pas Clausius-Clapeyron.
     const q_sat_init = DATA['💧']['🍰🧪🌧'] * (CONST.M_H2O / DATA['🫧']['🧪']);
-    const realistic_vapor_max = EARTH.H2O_SURFACE_RH_INIT_01 * q_sat_init;
+    const realistic_vapor_max = EARTH.H2O_SURFACE_RH_01 * q_sat_init;   // même référence que la vapeur hors Init
     DATA['💧']['🍰🫧💧'] = Math.min(realistic_vapor_max, DATA['💧']['🍰🫧💧']);
     
     return true;

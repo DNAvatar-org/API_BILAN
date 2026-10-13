@@ -3,7 +3,8 @@
 //       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.2.0
+// Version 1.2.1
+// - v1.2.1 (2026-10-13): syncRadiativeConfig retiré avec H2O_EDS_SCALE (plus de groupe RADIATIVE).
 // - v1.2.0: plus de cible `fixed` (factorTropopause → CONFIG_COMPUTE) : interpolate n'a plus de cas particulier.
 // Date: 2026-10-10
 // Logs:
@@ -46,14 +47,6 @@
         return target.min + (target.max - target.min) * alpha;
     }
 
-    /**
-     * Propage les valeurs RADIATIVE de DATA['🎚️'] vers EARTH (constantes physiques tunables).
-     * H2O_EDS_SCALE : multiplicateur global κ_H₂O (cible littérature Schmidt 2010 : ~75 W/m² EDS H₂O).
-     */
-    function syncRadiativeConfig() {
-        window.EARTH.H2O_EDS_SCALE = window.DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE;
-    }
-
     /** % fini, borné à [0, 100] ; un % absent ou non numérique est une erreur. */
     function requirePercent(percentRaw, label) {
         if (!Number.isFinite(percentRaw)) throw new Error('[tuning.js] ' + label + ' requis et invalide: ' + String(percentRaw));
@@ -61,7 +54,7 @@
     }
 
     /**
-     * Remplissage complet DATA['🎚️'].CLOUD_SW / .HYSTERESIS / .RADIATIVE depuis baryByGroup.
+     * Remplissage complet DATA['🎚️'].CLOUD_SW / .HYSTERESIS depuis baryByGroup.
      * Jauge unique ATM : CLOUD_SW et SCIENCE prennent toujours la valeur d'ATM.
      */
     function fillDataTuningFromBary() {
@@ -78,7 +71,6 @@
             const pct = requirePercent(bg[baryKey], 'baryByGroup.' + baryKey);
             T[target.group][target.key] = interpolate(target, pct);
         }
-        syncRadiativeConfig();
     }
 
     /**

@@ -1,7 +1,8 @@
 // File: API_BILAN/demo/scie_results_view.js - Affichage des résultats et de la convergence
 // Desc: Les RÉSULTATS : le pas-à-pas de la convergence, le bilan final, les écarts avec le calcul précédent,
 //       et les replis/dépliages de chaque bloc.
-// Version 1.0.0
+// Version 1.0.1
+// - v1.0.1 (2026-10-13): ligne « pondération vapeur » retirée avec H2O_EDS_SCALE.
 // Date: [September 19, 2026]
 // logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
@@ -161,10 +162,8 @@ function displayConvergence() {
     const breakdown = DATA['📛'];
     if (breakdown) {
         const fmt = (v) => (v != null && Number.isFinite(v)) ? v.toFixed(2) : '—';
-        const h2oScale = EARTH.H2O_EDS_SCALE;
         html += '<div class="config-value convergence-breakdown-block" style="margin-top:10px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;">';
         html += '<strong>EDS (effet de serre)</strong>: 🧲📛 = ' + fmt(breakdown['🧲📛']) + ' W/m²<br>';
-        html += 'Pondération vapeur d\'eau pour l\'EDS : ' + (Number.isFinite(h2oScale) ? h2oScale.toFixed(3) : '—') + '<br>';
         html += '<em>Attribution</em> : part par τ (τ_X/τ_tot) ; overlap H₂O–CO₂ partagé réaliste (Schmidt 2010 « split the difference »).<br>';
         html += '<strong>Répartition (en W/m² retournés par EDS, normalisé, 🍰📛 ∈ [0, 1])</strong>:<br>';
         if (breakdown['🍰📛🏭'] != null && breakdown['🍰📛🏭'] > 0) html += `&nbsp;• CO₂: ${fmt(breakdown['🍰📛🏭'])}<br>`;

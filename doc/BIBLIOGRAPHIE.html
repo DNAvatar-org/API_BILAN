@@ -343,7 +343,7 @@
     <div class="title">Roto-translational collision-induced absorption of CO₂ for the atmosphere of Venus at frequencies from 0 to 250 cm⁻¹, temperatures from 200 to 800 K</div>
     <div class="venue">Icarus, 129(1):172–177 (1997)</div>
     <div class="doi"><a href="https://doi.org/10.1006/icar.1997.5773">10.1006/icar.1997.5773</a></div>
-    <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹), le continuum de collision qui manque à haut CO₂. Utilisée dans : <code>API_BILAN/radiative/calculations.js</code> (<code>ciaCoeffCO2</code>, profil par λ) et <code>API_BILAN/workers/spectral_slice_worker.js</code> (terme binaire κ_CIA ∝ n_CO₂·n_air, normalisé au Loschmidt).</div>
+    <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹), le continuum de collision qui manque à haut CO₂. ⚠️ Retirée du code le 2026-10-13 : le profil codé n’était pas celui de cet article (gaussiennes inventées, ×100). Ordre de grandeur de référence ~1e-4 m⁻¹/amagat² au pic.</div>
 </article>
 
 <article class="ref" id="wordsworth2010" data-tags="CIA co2 far-line dense-atmosphere radiative">
@@ -1321,6 +1321,108 @@
     <div class="venue">Journal of Physical and Chemical Reference Data, 31:387–535 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1063/1.1461829">10.1063/1.1461829</a></div>
     <div class="used-in">Courbe de saturation liquide–vapeur (éq. 2.5) et point critique — <code>physics/physics.js</code> (pSatEau, dLnPSatEau, tSatEau), <code>h2o/calculations_h2o.js</code>.</div>
+</article>
+<article class="ref" id="lacisHansen1974" data-tags="solar radiation clouds ozone water-vapor rayleigh">
+    <div class="cite-key">[lacisHansen1974]</div>
+    <div class="authors">Lacis, A. A. &amp; Hansen, J. E.</div>
+    <div class="title">A parameterization for the absorption of solar radiation in the Earth’s atmosphere</div>
+    <div class="venue">J. Atmos. Sci., 31(1):118–133 (1974)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1974)031<0118:APFTAO>2.0.CO;2">10.1175/1520-0469(1974)031<0118:APFTAO>2.0.CO;2</a></div>
+    <div class="used-in">Tout le transfert solaire : ozone (éq. 8–15), Rayleigh (18, 41), vapeur en distribution de k (table 1), nuages deux-flux (19, 31, 33), sol (39–42). <code>API_BILAN/radiative/solaire.js</code>.</div>
+</article>
+<article class="ref" id="sagan1967" data-tags="two-stream clouds">
+    <div class="cite-key">[sagan1967]</div>
+    <div class="authors">Sagan, C. &amp; Pollack, J. B.</div>
+    <div class="title">Anisotropic nonconservative scattering and the clouds of Venus</div>
+    <div class="venue">J. Geophys. Res., 72(2):469–477 (1967)</div>
+    <div class="used-in">Deux-flux des couches nuageuses absorbantes (via Lacis &amp; Hansen 1974 éq. 31). <code>API_BILAN/radiative/solaire.js</code>.</div>
+</article>
+<article class="ref" id="martinJohnsonSpice1994" data-tags="clouds droplets effective-radius">
+    <div class="cite-key">[martinJohnsonSpice1994]</div>
+    <div class="authors">Martin, G. M., Johnson, D. W. &amp; Spice, A.</div>
+    <div class="title">The measurement and parameterization of effective radius of droplets in warm stratocumulus clouds</div>
+    <div class="venue">J. Atmos. Sci., 51:1823–1842 (1994)</div>
+    <div class="used-in">r_eff³ = 3 LWC/(4π ρ_w k N), k = 0,80 maritime / 0,67 continental. <code>API_BILAN/radiative/calculations.js</code>, <code>API_BILAN/physics/physics.js</code> (EARTH.NUAGES).</div>
+</article>
+<article class="ref" id="bennartz2007" data-tags="clouds droplet-number modis">
+    <div class="cite-key">[bennartz2007]</div>
+    <div class="authors">Bennartz, R.</div>
+    <div class="title">Global assessment of marine boundary layer cloud droplet number concentration from satellite</div>
+    <div class="venue">J. Geophys. Res., 112:D02201 (2007)</div>
+    <div class="used-in">Fourchette 40–89 cm⁻³ de la jauge CDNC_OCEAN_CM3 (<code>config/fine_tuning_bounds.js</code>).</div>
+</article>
+<article class="ref" id="gultepeIsaac2004" data-tags="clouds droplet-number aircraft">
+    <div class="cite-key">[gultepeIsaac2004]</div>
+    <div class="authors">Gultepe, I. &amp; Isaac, G. A.</div>
+    <div class="title">Aircraft observations of cloud droplet number concentration: implications for climate studies</div>
+    <div class="venue">Q. J. R. Meteorol. Soc., 130 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1256/qj.03.120">10.1256/qj.03.120</a></div>
+    <div class="used-in">~100 cm⁻³ maritime, ~200 cm⁻³ continental : CDNC_CONTINENT_CM3. <code>API_BILAN/physics/physics.js</code>.</div>
+</article>
+<article class="ref" id="rosenfeldGutman1994" data-tags="clouds precipitation effective-radius">
+    <div class="cite-key">[rosenfeldGutman1994]</div>
+    <div class="authors">Rosenfeld, D. &amp; Gutman, G.</div>
+    <div class="title">Retrieving microphysical properties near the tops of potential rain clouds by multispectral analysis of AVHRR data</div>
+    <div class="venue">Atmos. Res., 34:259–283 (1994)</div>
+    <div class="used-in">Seuil de rayon effectif ~14 µm pour la pluie chaude : jauge R_EFF_PLUIE (borne haute).</div>
+</article>
+<article class="ref" id="freudRosenfeld2012" data-tags="clouds precipitation effective-radius">
+    <div class="cite-key">[freudRosenfeld2012]</div>
+    <div class="authors">Freud, E. &amp; Rosenfeld, D.</div>
+    <div class="title">Linear relation between convective cloud drop number concentration and depth for rain initiation</div>
+    <div class="venue">J. Geophys. Res., 117 (2012)</div>
+    <div class="used-in">Seuil 13–14 µm et profondeur d’initiation de la pluie ∝ N : sommet des nuages bas (R_EFF_PLUIE).</div>
+</article>
+<article class="ref" id="braga2021" data-tags="clouds precipitation aircraft">
+    <div class="cite-key">[braga2021]</div>
+    <div class="authors">Braga, R. C. et al.</div>
+    <div class="title">Detecting the onset of warm rain using the effective radius (rec) in convective clouds</div>
+    <div class="venue">Atmos. Chem. Phys., 21:14079–14088 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-21-14079-2021">10.5194/acp-21-14079-2021</a></div>
+    <div class="used-in">Seuil ~13 µm mesuré en avion (Amazonie, Atlantique) : jauge R_EFF_PLUIE (borne basse).</div>
+</article>
+<article class="ref" id="toll2019" data-tags="aerosols clouds liquid-water-path">
+    <div class="cite-key">[toll2019]</div>
+    <div class="authors">Toll, V., Christensen, M., Quaas, J. &amp; Bellouin, N.</div>
+    <div class="title">Weak average liquid-cloud water response to anthropogenic aerosols</div>
+    <div class="venue">Nature, 572:51–55 (2019)</div>
+    <div class="used-in">Susceptibilité de l’eau nuageuse au nombre de gouttes ≈ 0 : la profondeur des nuages bas utilise le N actuel, pas celui de l’époque. <code>API_BILAN/radiative/calculations.js</code>.</div>
+</article>
+<article class="ref" id="huStamnes1993" data-tags="clouds phase">
+    <div class="cite-key">[huStamnes1993]</div>
+    <div class="authors">Hu, Y. X. &amp; Stamnes, K.</div>
+    <div class="title">An accurate parameterization of the radiative properties of water clouds suitable for use in climate models</div>
+    <div class="venue">J. Climate, 6:728–742 (1993)</div>
+    <div class="used-in">Partition liquide / glace linéaire entre −40 °C et 0 °C. <code>API_BILAN/physics/physics.js</code> (T_TOUT_GLACE, T_TOUT_LIQUIDE).</div>
+</article>
+<article class="ref" id="manabeWetherald1967" data-tags="water-vapor relative-humidity radiative-convective">
+    <div class="cite-key">[manabeWetherald1967]</div>
+    <div class="authors">Manabe, S. &amp; Wetherald, R. T.</div>
+    <div class="title">Thermal equilibrium of the atmosphere with a given distribution of relative humidity</div>
+    <div class="venue">J. Atmos. Sci., 24:241–259 (1967)</div>
+    <div class="used-in">Humidité relative moyenne r̄ = RH_s (p/p_s − 0,02)/0,98 (vapeur du gaz, pas des nuages) ; RH_s ~0,77. <code>API_BILAN/radiative/calculations.js</code>.</div>
+</article>
+<article class="ref" id="king2013" data-tags="clouds fraction modis">
+    <div class="cite-key">[king2013]</div>
+    <div class="authors">King, M. D., Platnick, S., Menzel, W. P., Ackerman, S. A. &amp; Hubanks, P. A.</div>
+    <div class="title">Spatial and temporal distribution of clouds observed by MODIS onboard the Terra and Aqua satellites</div>
+    <div class="venue">IEEE Trans. Geosci. Remote Sens., 51(7):3826–3852 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1109/TGRS.2012.2227333">10.1109/TGRS.2012.2227333</a></div>
+    <div class="used-in">Contrôles : couverture 0,67 (0,72 océan / 0,55 continent), rayons effectifs 12–13 µm océan / 10–11 µm continent.</div>
+</article>
+<article class="ref" id="stubenrauch2024" data-tags="clouds fraction gewex calipso">
+    <div class="cite-key">[stubenrauch2024]</div>
+    <div class="authors">Stubenrauch, C. J. et al.</div>
+    <div class="title">Lessons learned from the updated GEWEX cloud assessment database</div>
+    <div class="venue">Surv. Geophys., 45:1999–2048 (2024)</div>
+    <div class="used-in">Fractions mesurées en colonne : bas 0,41 ± 0,05, moyens 0,23 ± 0,03, hauts 0,29–0,37 (0,13 de cirrus τ &lt; 0,3, 0,09 opaques) ; total 0,66 ± 0,04. <code>API_BILAN/physics/physics.js</code> (F_BAS, F_HAUT, TAU_HAUT_MIN/MAX).</div>
+</article>
+<article class="ref" id="segura2003" data-tags="ozone oxygen photochemistry">
+    <div class="cite-key">[segura2003]</div>
+    <div class="authors">Segura, A. et al.</div>
+    <div class="title">Ozone concentrations and ultraviolet fluxes on Earth-like planets around other stars</div>
+    <div class="venue">Astrobiology, 3(4):689–708 (2003)</div>
+    <div class="used-in">Colonne d’ozone à 1 % du niveau actuel d’O₂ (124 DU) : loi de puissance de la colonne d’ozone. <code>API_BILAN/radiative/solaire.js</code>.</div>
 </article>
 
 </body>

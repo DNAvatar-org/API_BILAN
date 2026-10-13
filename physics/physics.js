@@ -1,7 +1,13 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.2.0
+// Version 2.3.0
+// - v2.3.0 (2026-10-12): EARTH.NUAGES — microphysique des nuages (Ackerman & Marley 2001 pour la structure verticale et la
+//   glace, Martin et al. 1994 pour les gouttes, fraction mesurée MODIS King et al. 2013, deux-flux g = 0,85).
+//   EARTH['🪩🍰']['🪩🍰⛅'] (r_c = 0,42, réglée) retirée : la réflectance du nuage est calculée (DATA['🪩']['🪩🍰⛅']).
+//   (2026-10-13) Ackerman & Marley abandonné : nuage adiabatique limité par la pluie (14 µm), humidité moyenne de
+//   Manabe & Wetherald, rayon de glace déclaré ; H2O_SURFACE_RH_01 = mesure ; EARTH.DIFFUSIVITE (1,66, Elsasser) ;
+//   EARTH.fractionGelee : glace saisonnière pondérée par l'ensoleillement pour l'albédo.
 // - v2.2.0 (2026-10-12): eau — saturation IAPWS (Wagner & Pruss 2002 / Wagner et al. 2011) et sa dérivée, tSatEau,
 //   eauSansLiquide (état de phase : océan possible ou non) ; H_vap = 1/(Γ·d ln p_sat/dT), valide jusqu'au point
 //   critique (fin de la borne « T < 600 K ») ; cp(T) des gaz (NIST-JANAF). Bloc MT_CKD scalaire (désactivé) retiré.
@@ -199,6 +205,12 @@ EARTH.SEASONAL_AMP_MID_K  = 25;  // [K] mi-lat continentale : amplitude plus lar
 //   Combiné à dT_trop=-5 K → seuil haut T_trop_thresh_high = 271.15 + (-5) + 3 = 269.15 K (-4°C).
 //   Rampe étroite (largeur 6 K) → pente forte → bifurcation Budyko-Sellers classique.
 EARTH.SEASONAL_AMP_TROP_K = 3;   // [K] tropical : amplitude annuelle faible (océan thermique)
+// Mi-latitudes OCÉANIQUES (2026-10-13) : SEASONAL_AMP_MID_K (25 K) est continental ; la surface de la mer des moyennes
+// latitudes varie de quelques K seulement sur l'année et ne gèle pas. La zone 30–60° est pondérée par la part de
+// continent de l'époque (1 − 🍰🗻🌊 ; 0,30 sur 📱, ≈ 0,28 mesurés dans les bandes 30–60° N+S).
+// ⚠️ FOURCHETTE de mémoire : demi-amplitude annuelle de la température de surface de la mer aux moyennes latitudes
+// ~3–5 K (Peixoto & Oort 1992 ch. 7, à vérifier) → 4.
+EARTH.SEASONAL_AMP_MID_OCEAN_K = 4;  // [K]
 
 // ─── Couplage obliquité ε (activé) ─────────────────────────────────────────────
 // ε = obliquité axiale (clé epoch '⚾'). Terre 2025 : ε_REF = 23.44°.
@@ -289,6 +301,53 @@ EARTH.obliquityZoneWarmingK = function (obliquity_deg, obliquity_ref_deg) {
     };
 };
 
+// ─── GLACE SAISONNIÈRE ET ENSOLEILLEMENT (2026-10-13) ─────────────────────────────────────────────────────────────
+// La rampe de computeIceTempFactor donne la fraction de l'ANNÉE où une zone est sous le gel (T_zone ± amplitude
+// saisonnière). Mais la glace saisonnière est là en hiver, quand le soleil est bas ou absent (nuit polaire) : son effet
+// sur l'albédo est la fraction de l'ÉNERGIE solaire annuelle qui tombe sur elle, pas la fraction du temps. Calcul exact :
+// insolation journalière (dailyMeanInsolation, géométrie orbitale) × [T(jour) < T_gel], T(jour) = T_zone + amp·sin(λ − δ),
+// δ = retard des saisons thermiques sur le soleil. ⚠️ MESURE APPROCHÉE : maximum de température ~1 mois après le
+// solstice sur les continents, ~2 mois sur l'océan → 1 mois retenu (borne basse).
+EARTH.RETARD_SAISONS_JOURS = 30;  // [jour]
+var _tableInsolation = {};
+/** Insolation journalière S[lat][jour] d'une bande [l0,l1]° (hémisphère nord), en cache par ε. */
+function tableInsolation(l0_deg, l1_deg, obliquity_deg) {
+    var key = l0_deg + ':' + l1_deg + ':' + Number(obliquity_deg).toFixed(4);
+    if (_tableInsolation[key]) return _tableInsolation[key];
+    var toRad = Math.PI / 180;
+    var nLat = 10, nDay = 73;
+    var t = { poids: [], S: [] };
+    for (var i = 0; i < nLat; i++) {
+        var lat = l0_deg + (l1_deg - l0_deg) * (i + 0.5) / nLat;
+        t.poids.push(Math.cos(lat * toRad));
+        var ligne = [];
+        for (var d = 0; d < nDay; d++) {
+            var lam = 2 * Math.PI * d / nDay;
+            ligne.push(dailyMeanInsolation(lat, Math.asin(Math.sin(obliquity_deg * toRad) * Math.sin(lam)) / toRad));
+        }
+        t.S.push(ligne);
+    }
+    _tableInsolation[key] = t;
+    return t;
+}
+/** { temps, energie } : fractions de l'année et de l'énergie solaire annuelle d'une bande sous le gel. */
+EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) {
+    var t = tableInsolation(l0_deg, l1_deg, obliquity_deg);
+    var retard = 2 * Math.PI * EARTH.RETARD_SAISONS_JOURS / 365.25;
+    var nDay = t.S[0].length;
+    var tps = 0, nrj = 0, nrjTot = 0, n = 0;
+    for (var i = 0; i < t.S.length; i++) {
+        for (var d = 0; d < nDay; d++) {
+            var gel = (T_zone_K + amp_K * Math.sin(2 * Math.PI * d / nDay - retard)) < EARTH.T_FREEZE_SEAWATER_K ? 1 : 0;
+            tps += t.poids[i] * gel;
+            n += t.poids[i];
+            nrj += t.poids[i] * t.S[i][d] * gel;
+            nrjTot += t.poids[i] * t.S[i][d];
+        }
+    }
+    return { temps: tps / n, energie: nrj / nrjTot };
+};
+
 /**
  * EARTH.computeIceTempFactor(T_glob_K, EPOCH) : ice_temp_factor ∈ [0,1].
  * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
@@ -358,13 +417,29 @@ EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
     var widthMid  = Math.max(1e-6, 2 * amp_mid);
     var widthTrop = Math.max(1e-6, 2 * amp_trop);
     var tf_pol  = Math.max(0, Math.min(1, (T_thresh_pol_high  - T_glob_K) / widthPol));
-    var tf_mid  = Math.max(0, Math.min(1, (T_thresh_mid_high  - T_glob_K) / widthMid));
+    // Mi-latitudes : part continentale (amplitude amp_mid) + part océanique (amplitude SEASONAL_AMP_MID_OCEAN_K).
+    var fContinent = 1 - EPOCH['🗻']['🍰🗻🌊'];
+    var amp_mid_oc = EARTH.SEASONAL_AMP_MID_OCEAN_K * obliquity_factor;
+    var tf_mid_oc = Math.max(0, Math.min(1, (EARTH.T_FREEZE_SEAWATER_K + dT_mid + amp_mid_oc - T_glob_K) / Math.max(1e-6, 2 * amp_mid_oc)));
+    var tf_mid  = fContinent * Math.max(0, Math.min(1, (T_thresh_mid_high  - T_glob_K) / widthMid)) + (1 - fContinent) * tf_mid_oc;
     var tf_trop = Math.max(0, Math.min(1, (T_thresh_trop_high - T_glob_K) / widthTrop));
     // Somme pondérée directe : les 3 zones sommant à 1.0 par construction (géométrie sphérique),
     // ice_tf ∈ [0,1] est directement la fraction de surface glacée — plus besoin de normalisation.
     var ice_tf = f_pol * tf_pol + f_mid * tf_mid + f_trop * tf_trop;
+    // Pondération par l'ensoleillement (EARTH.fractionGelee) : rapport énergie/temps de la glace, sur les 3 zones.
+    // Ne sert qu'à l'ALBÉDO (calculations_albedo) ; l'étendue et la masse de glace restent ice_tf.
+    var gPol = EARTH.fractionGelee(T_glob_K - dT_pol, amp_pol, 60, 90, obliquity_deg);
+    var gMidC = EARTH.fractionGelee(T_glob_K - dT_mid, amp_mid, 30, 60, obliquity_deg);
+    var gMidO = EARTH.fractionGelee(T_glob_K - dT_mid, amp_mid_oc, 30, 60, obliquity_deg);
+    var gMid = { temps: fContinent * gMidC.temps + (1 - fContinent) * gMidO.temps,
+                 energie: fContinent * gMidC.energie + (1 - fContinent) * gMidO.energie };
+    var gTrop = EARTH.fractionGelee(T_glob_K - dT_trop, amp_trop, 0, 30, obliquity_deg);
+    var gTemps = f_pol * gPol.temps + f_mid * gMid.temps + f_trop * gTrop.temps;
+    var gEnergie = f_pol * gPol.energie + f_mid * gMid.energie + f_trop * gTrop.energie;
     return {
         ice_tf: ice_tf,
+        // sans glace (gTemps = 0) le rapport est sans objet : 1
+        rapport_ensoleillement: gTemps > 0 ? gEnergie / gTemps : 1,
         tf_pol: tf_pol, tf_mid: tf_mid, tf_trop: tf_trop,
         T_thresh_pol_high:  T_thresh_pol_high,  T_thresh_pol_low:  T_thresh_pol_low,
         T_thresh_mid_high:  T_thresh_mid_high,  T_thresh_mid_low:  T_thresh_mid_low,
@@ -412,15 +487,13 @@ EARTH.EVAPORATION_T_SCALE = 20;  // [K]
 // relative de surface, pas un rapport de colonne. L'erreur de nom avait produit une erreur
 // d'analyse (comparaison à 0,232, un rapport de colonne) — voir
 // doc/DIAGNOSTIC_RETROACTION_VAPEUR.md § « la deuxième erreur, trouvée sur commande ».
-// Repère de mesure : humidité relative de surface moyenne globale ~0,70–0,75 (ERA5). Le modèle
-// est à 0,623, donc un peu BAS. Non modifié ici : ce serait un calage.
-EARTH.H2O_SURFACE_RH_01 = 0.623;  // [Pa/Pa (humidité relative e/e_sat)]
-// Humidité relative de surface imposée en fin d'Init seulement (calculations_h2o.js). Remplace
-// H2O_VAPOR_REALISTIC_MAX_REF/RATE, dont le taux (0,013 K⁻¹) n'était PAS Clausius-Clapeyron et ne
-// venait de nulle part. Valeur = 0,0052/q_sat(288 K), pour que l'Init soit inchangée à 288 K.
-// ⚠️ Ce plafond fait doublon avec le précédent, en plus serré. Deux plafonds pour la même grandeur,
-// avec deux nombres différents et aucune source : à supprimer ou à justifier. SANS SOURCE.
-EARTH.H2O_SURFACE_RH_INIT_01 = 0.4986;  // [Pa/Pa (humidité relative e/e_sat)]
+// v-2026-10-13 : 0,623 n'avait pas de source (0,0065/q_sat(288 K), le 0,0065 venait de nulle part). Remplacé par la
+// MESURE : humidité relative de surface moyenne globale 0,70–0,75 (ERA5, repère déjà noté ici) ; 0,77 dans le profil
+// observé de Manabe & Wetherald (1967). ⚠️ FOURCHETTE 0,70–0,77 → milieu 0,735. Elle ancre aussi le profil
+// d'humidité moyenne en altitude (radiative/calculations.js, EARTH.NUAGES.MW_P_RESIDU).
+EARTH.H2O_SURFACE_RH_01 = 0.735;  // [Pa/Pa (humidité relative e/e_sat)]
+// H2O_SURFACE_RH_INIT_01 (0,4986, SANS SOURCE, second plafond de la même grandeur en fin d'Init) retiré le
+// 2026-10-13 : l'Init lit la même référence H2O_SURFACE_RH_01.
 /** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
 EARTH.IRIS_STRENGTH = 0.02;   // [sans dimension (coefficient de ΔT/IRIS_T_SCALE_K)] amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
 EARTH.IRIS_T_SCALE_K = 10;    // [K] échelle thermique (par 10 K)
@@ -440,9 +513,8 @@ EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // [K] T ref (réutilise EVAPORATION_T_
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // [sans dimension (exposant)] adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // [Pa/Pa (humidité relative)] seuil RH convective typique (~70 %)
 EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposant facteur humidité (calib v1.0.8)
-// Facteur κ_H2O global dans EDS. Piloté par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE (baryGroup SCIENCE, sync via tuning.js).
-// Défaut 0.60 = bary SCIENCE 100 % = cible Schmidt 2010 (EDS H₂O ~75 W/m²). Ex-recalcul dynamique sqrt(P_ratio)×CO2_factor retiré v2.0.10 (double-comptait pressure broadening HITRAN).
-EARTH.H2O_EDS_SCALE = 0.60;  // [sans dimension (facteur sur κ_H₂O)]
+// EARTH.H2O_EDS_SCALE (multiplicateur de κ_H₂O, 0,60–1,00 au barycentre) retiré le 2026-10-13 : continuum, profil
+// d'humidité et diffusivité codés, le ciel clair moderne tombe juste sans lui (fine_tuning_bounds v1.5.1).
 
 // ─── Facteur κ_CH4 global dans EDS (pressure broadening / saturation bandes) ─────
 // Parallèle à H2O_EDS_SCALE. Ajouté pour permettre un tuning fin du méthane sans toucher le line-by-line HITRAN.
@@ -458,14 +530,8 @@ EARTH.H2O_EDS_SCALE = 0.60;  // [sans dimension (facteur sur κ_H₂O)]
 // NB : le seuil haze CH4/CO2 = 0.1 peut être vérifié dans calculateAlbedo (SW) plus tard.
 EARTH.CH4_EDS_SCALE = 1.0;  // [sans dimension (facteur sur κ_CH₄)]
 
-// ─── Collision-Induced Absorption (CIA) CO₂–CO₂ / CO₂–N₂ ───────────────────────────────────
-// Réfs : Gruszka & Borysow 1997 (Icarus 129:172) ; Wordsworth et al. 2010 (Icarus 210:992) ; Hu et al. 2011.
-// Absorption BINAIRE ∝ n_CO₂·n_total : kappa_CIA = cia_CO2(λ)·(n_CO₂/N_L)·(n_air/N_L)·CIA_CO2_SCALE.
-// Manquait jusqu'ici → la serre CO₂ décroissait à haut CO₂ et le snowball ne pouvait pas déglacer.
-// Unité [m⁻¹ par amagat²]. Ordre de grandeur Gruszka-Borysow (pic far-IR ~1e-6 cm⁻¹/amagat² ≈ 1e-4 m⁻¹/amagat²).
-// Négligeable à bas CO₂ (∝ n_CO₂²) → n'affecte PAS la Terre moderne ni les époques ≤ quelques % CO₂.
-// À CALIBRER (par test) pour reproduire le seuil de déglaciation ~0.38 bar à albédo 0.6 (Hu et al. 2011). 0 = désactivé.
-EARTH.CIA_CO2_SCALE = 1.0e-2;   // [m⁻¹·amagat⁻²] v-2026-07-15 : 1e-4→1e-2 (×100) TEST — la serre CO₂ s'inversait encore à 1e-4 (CIA trop faible OU pas branchée). Si ×100 casse l'inversion (EDS CO₂ MONTE avec le CO₂) → calibrer à la baisse. Si ça inverse TOUJOURS → la CIA n'atteint pas le worker (bug de branchement à déboguer).
+// EARTH.CIA_CO2_SCALE (1e-2, « ×100 TEST » du 2026-07-15) retiré le 2026-10-13 avec le profil inventé qu'il multipliait
+// (radiative/calculations.js, en-tête CIA). La CIA mesurée (HITRAN CIA) reste à brancher.
 
 // ─── Seuil de brume organique (Haqq-Misra 2008 Fig. 1) ─────────────────────────
 // Rapport molaire CH4/CO2 au-delà duquel le méthane polymérise en Tholin (brume organique)
@@ -493,12 +559,80 @@ EARTH.CONTINUUM_H2O = {
     NU_MIN: 400,          // [cm⁻¹] domaine de la mesure
     NU_MAX: 1250          // [cm⁻¹]
 };
+
+// ─── FACTEUR DE DIFFUSIVITÉ ─────────────────────────────────────────────────────────────────────────────────────────
+// Le transfert est calculé en flux, pas en luminance : un rayonnement isotrope qui traverse une couche d'épaisseur
+// optique VERTICALE τ est transmis en 2E₃(τ) ≈ exp(−D·τ), D = 1,66 (Elsasser 1942 ; Goody & Yung 1989, Atmospheric
+// Radiation §2.5 ; Liou 2002). Sans lui, chaque couche est traitée comme si tout le flux montait à la verticale :
+// l'atmosphère paraît 1,66 fois trop transparente. Équation (angle moyen d'un flux isotrope), pas un réglage.
+EARTH.DIFFUSIVITE = 1.66;  // [-]
+
+// ─── NUAGES : nuage ADIABATIQUE de la parcelle, limité par la pluie ; fraction mesurée ──────────────────────────────
+// La parcelle sature au niveau de condensation (base), son excès d'eau condense en montant ; les gouttes grossissent
+// jusqu'au rayon d'initiation de la pluie (14 µm), où le nuage précipite (sommet). Épaisseur, eau et τ sortent de là.
+// Essais rejetés (2026-10-13) : Ackerman & Marley 2001 (colonne 1D saturée de la base à la tropopause, W ≈ 2 kg/m²,
+// 20× la mesure) ; schéma statistique de Sommeria & Deardorff (nuages étalés sur 5 km, eau dans le nuage 0,5–1,3 kg/m²).
+// Dans les deux cas il manque l'INVERSION qui coupe les vrais nuages : c'est de la dynamique 3D, hors d'un modèle 1D.
+EARTH.NUAGES = {
+    // Humidité relative MOYENNE du gaz (le nuage n'en dépend pas) : Manabe & Wetherald (1967, J. Atmos. Sci. 24:241),
+    // loi tirée des observations, standard des modèles radiatifs-convectifs 1D : r̄ = RH_s · (p/p_s − 0,02) / (1 − 0,02),
+    // RH_s = humidité de surface du modèle (H2O_SURFACE_RH_01). ⚠️ MESURE (forme), pas une équation de la physique.
+    MW_P_RESIDU: 0.02,         // [-]
+    RHO_LIQUIDE: 1000,         // [kg/m³]
+    RHO_GLACE: 917,            // [kg/m³]
+    // ─── Gouttes liquides : rayon effectif de Martin, Johnson & Spice (1994, J. Atmos. Sci. 51:1823), mesures avion
+    //     en stratocumulus : r_eff³ = 3·LWC / (4π ρ_w k N). k = (r_volumique / r_eff)³ dépend de la masse d'air :
+    K_MARTIN_OCEAN: 0.80,      // [-] masse d'air maritime (Martin et al. 1994)
+    K_MARTIN_CONTINENT: 0.67,  // [-] masse d'air continentale (Martin et al. 1994)
+    //     N = nombre de gouttes. Sur océan, il est une JAUGE (DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3, fourchette MODIS
+    //     de Bennartz 2007) ; sur continent, valeur typique des mesures avion (Gultepe & Isaac 2004, QJRMS 130, doi:10.1256/qj.03.120 :
+    //     ~100 cm⁻³ maritime, ~200 cm⁻³ continental). Les deux sont la Terre actuelle : le rapport de CCN de l'époque
+    //     (ALBEDO.rapportCCN, loi sulfate de McCoy 2018) les multiplie — Twomey sort alors seul, r_eff ∝ N^(−1/3).
+    CDNC_CONTINENT_CM3: 200,   // [cm⁻³]
+    // ─── Pluie : les gouttes coalescent et précipitent dès que leur rayon effectif atteint ~13–14 µm (seuil MESURÉ
+    //     d'initiation de la pluie chaude : Rosenfeld & Gutman 1994, Atmos. Res. 34:259 ; Freud & Rosenfeld 2012,
+    //     GRL 39:L12803 ; Braga et al. 2021, ACP 21:14079). Avec Martin et al., l'eau liquide qu'un nuage peut garder
+    //     est donc LWC_pluie = (4π/3) ρ_w k N r_pluie³ ; au-delà elle tombe. Plus de gouttes → nuage plus chargé
+    //     avant de pleuvoir. Le seuil est une JAUGE mesurée : DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE (13 µm Braga et al. 2021,
+    //     14 µm Rosenfeld & Gutman 1994 / Freud & Rosenfeld 2012).
+    // ─── Glace : pas de loi physique simple de la taille des cristaux (habitus, agrégation). ⚠️ FOURCHETTE de mémoire
+    //     des rayons effectifs MODIS de la glace, ~20–40 µm (King et al. 2013 fig. 13–14, à relever) → 30 µm.
+    R_EFF_GLACE: 30e-6,        // [m]
+    // ─── Phase : partition linéaire liquide/glace entre −40 °C et 0 °C (Hu & Stamnes 1993, J. Climate 6:728).
+    T_TOUT_GLACE: 233.15,      // [K]
+    T_TOUT_LIQUIDE: 273.15,    // [K]
+    // ─── Diffusion solaire : facteur d'asymétrie des gouttes dans le visible (Hansen & Travis 1974, Space Sci. Rev.
+    //     16:527 ; Lacis & Hansen 1974, J. Atmos. Sci. 31:118). Réflectance deux-flux d'un nuage conservatif :
+    //     R = √3(1−g)τ / (2 + √3(1−g)τ) = 0,13 τ / (1 + 0,13 τ) pour g = 0,85.
+    G_ASYMETRIE: 0.85,         // [-]
+    // ─── FRACTIONS — MESURÉES, pas prévisibles en 1D (Windsor et al. 2022 §3.2 : la dynamique 3D qui les fixe n'a pas
+    //     d'équation fermée dans une colonne). Évaluation GEWEX mise à jour (Stubenrauch et al. 2024, Surv. Geophys.
+    //     45:1999), vue en colonne (CloudSat-CALIPSO + ISCCP corrigé) : bas 0,41 ± 0,05, moyens 0,23 ± 0,03, hauts 0,29
+    //     (passifs) à 0,37 (lidar CALIPSO, cirrus fins compris) ; total 0,66 ± 0,04 (≈ recouvrement aléatoire des trois).
+    //     Les nuages MOYENS ne sont pas représentés (⚠️ déclaré) : bas = population adiabatique, hauts = enclumes.
+    F_BAS: 0.41,               // [m²/m²]
+    F_HAUT: 0.37,              // [m²/m²] lidar : les cirrus fins comptent en infrarouge
+    // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
+    //     s'amincit à mesure que la glace tombe ; à amincissement exponentiel, une population en régime établi a ln τ
+    //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3 et
+    //     0,09 sont opaques (τ ≳ 3), soit environ un tiers par décade ; ⚠️ bornes 0,03–30 ajustées sur ces tiers.
+    // Altitude des enclumes : la convection se détend là où la vapeur devient trop rare pour refroidir l'air par
+    // rayonnement ; ce niveau est fixé par la pression de vapeur saturante, donc par une TEMPÉRATURE (« fixed anvil
+    // temperature », Hartmann & Larson 2002, GRL 29:1951). ⚠️ ~220 K de mémoire, à vérifier. Si la tropopause est plus
+    // chaude, l'enclume est à la tropopause.
+    T_ENCLUME: 220,            // [K]
+    TAU_HAUT_MIN: 0.03,        // [-]
+    TAU_HAUT_MAX: 30           // [-]
+    // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².
+};
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;  // [J/(kg·K)]
 EARTH['🪩🍰'] = {
     '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
-    '🪩🍰🧊': 0.70, '🪩🍰⛅': 0.42, '🪩🍰🌍': 0.18, // ⛅ v-2026-09-15 : 0.50→0.42 = réflectance nuage r_c de la méthode d'addition 2 couches (albedo v1.2.64) ; même α nuageux moderne (α_s≈0.18) que l'ancien 0.50 linéaire. Plage lit. 0.4–0.6.
+    '🪩🍰🧊': 0.70, '🪩🍰🌍': 0.18,
+    // ⛅ retiré (2026-10-12) : la réflectance du nuage n'est plus une constante réglée (0,42) mais le résultat du
+    // condensat calculé (deux-flux, EARTH.NUAGES) — DATA['🪩']['🪩🍰⛅'].
     // ❄️ = neige propre profonde (T_polaire ≤ −30 °C) — Warren & Wiscombe (1980) J. Atmos. Sci. 37:2734 ;
     // Warren (1982) Rev. Geophys. 20:67. Plage pristine snow 0.80–0.90 ; 0.85 = médiane broadband.
     '🪩🍰❄️': 0.85,
@@ -564,6 +698,7 @@ function pSatEau(T) {
     return CONST.P_TRIPLE_WATER * Math.exp(s / th);
 }
 PHYS.pSatEau = pSatEau;
+
 
 /** [1/K] d(ln p_sat)/dT, dérivée analytique des deux mêmes formules (T < T_c). */
 function dLnPSatEau(T) {

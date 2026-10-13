@@ -1,6 +1,15 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.2.67
+// Version 1.4.1
+// - v1.4.1 (2026-10-13): glace saisonnière pondérée par l'ensoleillement dans l'albédo (EARTH.fractionGelee).
+// - v1.4.0 (2026-10-13): albédo au SOMMET de l'atmosphère par radiative/solaire.js (Lacis & Hansen 1974 : Rayleigh,
+//   ozone, vapeur, nuages, surface) ; l'addition à 2 couches sans atmosphère est retirée. 🪩🍰⛅ = albédo du ciel nuageux.
+// - v1.3.1 (2026-10-13): réflectance du nuage adiabatique de la parcelle, limité par la pluie (RADIATIVE.colonneNuageuse).
+// - v1.3.0 (2026-10-12): NUAGES — 🍰🪩⛅ = fraction géométrique MESURÉE (King et al. 2013 : 0,72 océan / 0,55 continent) ;
+//   réflectance 🪩🍰⛅ CALCULÉE en deux-flux (Lacis & Hansen 1974, g = 0,85) depuis τ_SW du condensat du profil
+//   (RADIATIVE.colonneNuageuse). Retirés : r_c = 0,42, CLOUD_FRACTION_BASE / _INDEX_GAIN / _MAX, OPTICAL_EFF_BASE,
+//   facteurs pression / oxydation / température, Twomey sur l'albédo (il est dans r_eff ∝ N^(−1/3)).
+//   Proxy CCN extrait en ALBEDO.rapportCCN() (lu par le profil).
 // - v1.2.67 (2026-10-12): seaIceStrength01 et iceImpactFactor01 retirés (= 1 à la jauge : multiplicateurs identité).
 // Date: [September 16, 2026]
 // logs :
@@ -319,6 +328,110 @@ function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establis
     // 🪩🍰🧊 (0.70, annuel Arctique 0.6–0.7), pas α_melt 0.50 d'une moyenne annuelle > 0 °C. Plafond T à
     // 268.15 K ⇒ α(T) MONOTONE et CONTINUE (plus froid ⇒ jamais plus sombre) : pas de racine parasite.
     return brieglebIceAlbedoMature(Math.min(T_local_K, 268.15), alphaSnowDeep, albedo_coeff);
+}
+
+// ============================================================================
+// RAPPORT DE CCN DE L'ÉPOQUE (sans dimension, 1 = Terre actuelle)
+// ============================================================================
+// Multiplie le nombre de gouttes de la Terre actuelle (EARTH.NUAGES, DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3) dans le
+// profil nuageux (radiative/calculations.js) : r_eff ∝ N^(−1/3), c'est Twomey (1977), sans coefficient à régler.
+// Chaîne reprise telle quelle de l'ancien bloc « proxy CCN » de calculateAlbedo (2026-10-12).
+// ⚠️ Le terme O₂ × biomasse × anthro (CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_*) n'a pas de physique : l'O₂ n'est pas
+// un CCN (κ-Köhler, Petters & Kreidenweis 2007) — même argument qu'au retrait de 🍰💭. À remplacer par les masses
+// des CCN réels (sel de mer, organiques, poussière) avec les exposants de McCoy 2018.
+function rapportCCN() {
+    const DATA = window.DATA;
+    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    // [OBS/CALIB] 0.15 et 0.85 calibrés pour rester dans les ordres de grandeur littérature FYSP/Twomey.
+    const biomass_proxy = 1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🪩']['🍰🪩🌳'];
+    let anthro_factor = 1.0;
+    if (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) {
+        anthro_factor = 1.0 + DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_WINDOW_YEARS);
+    }
+    if (EPOCH['▶'] > DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) {
+        anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
+    }
+    // 🧫 = facteur biosphère MARINE (gate CLAW) — symétrique de 🌱 (biosphère terrestre).
+    // Réf. princeps : Charlson, Lovelock, Andreae & Warren (1987) Nature 326:655-661
+    //   "Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate" (hypothèse CLAW).
+    // Chaîne physique proxy (4 étages) :
+    //   1. Phytoplancton marin (⇐ EPOCH['🧫']) émet du diméthylsulfure (DMS) par catabolisme du DMSP.
+    //   2. DMS → SO₂ → acide sulfurique H₂SO₄ par oxydation atmosphérique (OH, BrO).
+    //   3. Sulfate (DATA['🫧']['🍰🫧✈']) nuclée des CCN marins de taille sous-micrométrique.
+    //   4. CCN ↑ ⇒ nombre de gouttelettes ↑ ⇒ rayon effectif ↓ ⇒ albédo nuageux ↑ (Twomey 1977).
+    // Refs complémentaires : Andreae & Crutzen 1997 (Science 276:1052), Vallina & Simó 2007 (Science
+    // 315:506), Quinn & Bates 2011 (Nature 480:51, critique amplitude CLAW), Kloster 2006
+    // (J. Geophys. Res.), Woodhouse 2010 (ACP 10:7545).
+    // Paléo : Knoll 2003 Life on a Young Planet ; Falkowski 2004 Science 305:354 (évolution
+    // plancton marin) ; Knoll & Follows 2016 Proc. R. Soc. B 283:20161755.
+    //
+    // Justification ⛄ Néoprotérozoïque (-735 Ma) : l'océan est gelé (glace de mer globale),
+    // le plancton photosynthétique est quasi-absent de la colonne d'eau sous la banquise, et
+    // les eucaryotes marins n'ont pas encore pleinement diversifié (avant radiation Cambrienne).
+    // → 🧫 ≈ 0.05 : quasi-éteint le couplage DMS-CCN, seul reste le sulfate volcanique direct.
+    //
+    // C'est un PROXY paramétrique (pas de modèle DMS/DMSP dynamique couplé à la bio marine).
+    // On peut donc jouer dessus sans remords — ajuster 🧫 pour chaque époque selon la paléo-
+    // abondance plausible du plancton marin (0=stérile, 1=moderne pleinement opérationnel).
+    //
+    // NaN-crash policy : EPOCH['🧫'] lu sans fallback — si absent → NaN → crash explicite
+    // (regle-data-territoire.mdc : pas de Number.isFinite guard, on veut savoir si ça manque).
+    // Note v1.2.52 : EPOCH['🧫'] sorti hors du Math.min pour éviter 0 × Infinity = NaN
+    // quand '⚖️🫧' = 0 (⚫ Corps noir, pas d'atmosphère) : 🍰🫧✈ = ⚖️✈/⚖️🫧 → Infinity,
+    // Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity × 0) = NaN (cascade).
+    // Le gate biosphère marine s'applique au *boost* (enhancement au-dessus de 1.0), pas à la
+    // fraction sulfate elle-même — physiquement équivalent quand 🍰🫧✈ est fini.
+    // ── SULFATE → CCN : la loi publiée, plus le proxy ────────────────────────────────────
+    // Remplace (2026-09-22) : 1 + 🧫 × Math.min(SULFATE_BOOST_MAX, 🍰🫧✈ × SULFATE_BOOST_SCALE).
+    // Les deux constantes étaient inventées et mesurées sans effet au banc ; surtout la FORME
+    // était fausse — linéaire, et toujours ≥ 1, c'est-à-dire que le sulfate ne pouvait
+    // qu'AJOUTER des CCN par rapport à la référence moderne, alors que c'est le moderne qui en
+    // a le plus. La vraie loi est une puissance, écrite en rapport à la référence :
+    //
+    //     CDNC / CDNC_ref = (m_SO₄ / m_ref)^a
+    //
+    // Boucher & Lohmann 1995 (Tellus B 47:281) pour la forme, McCoy et al. 2018 (ACP 18:2035,
+    // Table 1) pour l'exposant, calé sur MESURES — CDNC de MODIS, sulfate de MERRA2, 19 régions.
+    // a est la seule jauge qui reste (FINE_TUNING_BOUNDS.SULFATE_CCN_EXPONENT, quartiles mesurés
+    // [0,11 ; 0,29]) ; le plafond posé à la main disparaît, une loi de puissance sature seule.
+    //
+    // Plus de porte « ▶ >= 1900 » non plus : elle servait à n'allumer le proxy que sur le
+    // moderne, et elle était cassée (elle compare des années avant le présent à des années du
+    // calendrier — 🚂 en était exclue, l'Archéen y passait). La masse de sulfate porte maintenant
+    // elle-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond naturel
+    // (configTimeline v1.4.89). La porte n'a plus d'objet ICI ; elle reste à réparer sur
+    // anthro_factor ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
+    //
+    // 🧫 (biosphère marine) devient ce qu'il a toujours voulu dire : la part du soufre qui vient
+    // du DMS. Le partage entre les deux sources naturelles est mesuré —
+    //     volcanisme  11,5 Tg S/an  (Carn et al. 2017, Sci. Rep. 7:44095 : 23 ± 2 Tg SO₂/an)
+    //     DMS marin   28,1 Tg S/an  (Lana et al. 2011, GBC 25:GB1004)
+    //     part volcanique = 11,5 / (11,5 + 28,1) = 0,29, part DMS = 0,71
+    // — donc 🧫 = 0 (océan stérile ou sous banquise) laisse la part volcanique, 🧫 = 1 rend tout.
+    // C'est la dérivation qui était écrite en dur dans la fiche ⛄ ; elle passe dans le code, où
+    // elle s'applique à toutes les époques. Règle du projet : ce qu'on sait calculer se calcule.
+    const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
+    const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * EPOCH['🧫']);
+    // m_SO₄ = 0 (⚫ sans atmosphère, 🔥 à 2650 °C où rien ne condense) → rapport 0 : pas de gouttes liquides
+    // (τ liquide nul dans le profil). Pas de NaN possible ici, contrairement à 🍰🫧✈ = ⚖️✈/⚖️🫧 qui valait 0/0
+    // sur ⚫ (cf. note v1.2.52).
+    const sulfate_boost = window.AEROSOL.sulfateCcnRatio(
+        sulfate_kg_effective,
+        CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
+        DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
+    );
+    const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
+    // [OBS/CALIB] Référence moderne explicite : O₂ = 0,2313 kg/kg (massique, = 21 % molaire), biomasse efficace ~3%, anthro courant.
+    // On compare les époques en relatif, plutôt qu'en absolu, pour éviter d'écraser le moderne.
+    const ccn_ref_modern = DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🎚️'].CLOUD_SW.MODERN_REF_O2 * (1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🎚️'].CLOUD_SW.MODERN_REF_FOREST) * anthro_factor;
+    const ccn_ratio = ccn_proxy / ccn_ref_modern;
+    window._hystDiag.ccnProxy = ccn_proxy;
+    window._hystDiag.ccnRefModern = ccn_ref_modern;
+    window._hystDiag.ccnRatio = ccn_ratio;
+    window._hystDiag.sulfateBoost = sulfate_boost;
+    window._hystDiag.sulfateKgEffective = sulfate_kg_effective;
+    window._hystDiag.anthroFactor = anthro_factor;
+    return ccn_ratio;
 }
 
 function calculateAlbedo() {
@@ -779,7 +892,12 @@ function calculateAlbedo() {
         weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
         weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
         weighted_albedo += desert_surface * albedo_coeff['🪩🍰🏜️'];
-        weighted_albedo += ice_surface * iceAlbedoEff;
+        // Glace pondérée par l'ensoleillement (EARTH.fractionGelee) : la part r de la glace présente quand le soleil
+        // brille réfléchit à iceAlbedoEff ; le reste de l'année la surface est libre — surtout de la mer (glace de mer
+        // saisonnière), d'où l'albédo de l'océan (approximation déclarée : la neige sur continent découvre la terre, 0,18).
+        const r_ens = _iceTF.rapport_ensoleillement;
+        weighted_albedo += ice_surface * (r_ens * iceAlbedoEff + (1 - r_ens) * albedo_coeff['🪩🍰🌊']);
+        window._hystDiag.rapportEnsoleillementGlace = r_ens;
     }
 
     albedo_base = weighted_albedo;
@@ -795,225 +913,49 @@ function calculateAlbedo() {
     const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction;
     albedo = albedo_base + ice_albedo_contribution;
 
-    // Contribution des nuages (H2O activé)
-    // 🔒 REFONTE : Les nuages ne sont pas un stock d'eau, mais un phénomène optique
-    // 🍰🪩⛅ n'est pas une proportion de surface au sol, mais une fraction optique moyenne vue par le Soleil
-    //
-    // FORMULE EXPLICITE :
-    // 🍰🪩⛅ = C_max × eta_cloud × ☁️
-    //
-    // Où :
-    //   C_max = 0.65 × pressure_factor (plafond physique ajusté par pression)
-    //   eta_cloud = 0.40 × temp_factor_optique (efficacité optique ajustée par température)
-    //   ☁️ = CloudFormationIndex (calculé par calculateCloudFormationIndex())
-    //
-    // Exemple Terre 1800 :
-    //   P0 = 1.0 atm → pressure_factor = 1.0 → C_max = 0.65
-    //   T = 14°C → temp_factor_optique ≈ 1.0 → eta_cloud = 0.40
-    //   ☁️ = 1.0
-    //   🍰🪩⛅ = 0.65 × 0.40 × 1.0 = 0.26
-    //
-    // Les nuages saturent vite : au-delà d'un certain seuil d'humidité, c'est l'optique — pas l'eau — qui limite leur effet
-    let cloud_fraction = 0;
-    if (DATA['💧']['🍰🫧💧'] > 0) {
-        // 🔒 calculateCloudFormationIndex() a déjà été appelé plus haut (ligne ~262)
-        // On réutilise DATA['🪩']['☁️'] déjà calculé
-        const cloud_index = DATA['🪩']['☁️'];
-        // ====================== NUAGES - VERSION PHYSIQUE (pas de patch arbitraire) ======================
-        // Références synthèse :
-        // - Goldblatt & Zahnle (2011), Climate of the Past, FYSP : baisse low-clouds/CCN -> +10 à +25 W/m².
-        // - Wolf & Toon (2013), Feulner et al. (2012) : GCM Archéen, faible CCN -> nuages SW moins réfléchissants.
-        // - CERES EBAF + MODIS (2000-2025) : fraction optique SW effective moderne ~0.28-0.35.
-        // - Twomey + AR6 aérosols : hausse CCN (SO2, VOCs, anthropique) -> albédo nuageux +10 à +30%.
-        // Cette paramétrisation vise donc une efficacité basse en atmosphère peu oxydée/peu biotique,
-        // et une efficacité proche/modérément au-dessus de 1 en moderne.
-
-        // 1) Proxy CCN (conservé)
-        // [OBS/CALIB] 0.15 et 0.85 calibrés pour rester dans les ordres de grandeur littérature FYSP/Twomey.
-        const biomass_proxy = 1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🪩']['🍰🪩🌳'];
-        let anthro_factor = 1.0;
-        if (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) {
-            anthro_factor = 1.0 + DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_WINDOW_YEARS);
-        }
-        if (EPOCH['▶'] > DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) {
-            anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
-        }
-        // 🧫 = facteur biosphère MARINE (gate CLAW) — symétrique de 🌱 (biosphère terrestre).
-        // Réf. princeps : Charlson, Lovelock, Andreae & Warren (1987) Nature 326:655-661
-        //   "Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate" (hypothèse CLAW).
-        // Chaîne physique proxy (4 étages) :
-        //   1. Phytoplancton marin (⇐ EPOCH['🧫']) émet du diméthylsulfure (DMS) par catabolisme du DMSP.
-        //   2. DMS → SO₂ → acide sulfurique H₂SO₄ par oxydation atmosphérique (OH, BrO).
-        //   3. Sulfate (DATA['🫧']['🍰🫧✈']) nuclée des CCN marins de taille sous-micrométrique.
-        //   4. CCN ↑ ⇒ nombre de gouttelettes ↑ ⇒ rayon effectif ↓ ⇒ albédo nuageux ↑ (Twomey 1977).
-        // Refs complémentaires : Andreae & Crutzen 1997 (Science 276:1052), Vallina & Simó 2007 (Science
-        // 315:506), Quinn & Bates 2011 (Nature 480:51, critique amplitude CLAW), Kloster 2006
-        // (J. Geophys. Res.), Woodhouse 2010 (ACP 10:7545).
-        // Paléo : Knoll 2003 Life on a Young Planet ; Falkowski 2004 Science 305:354 (évolution
-        // plancton marin) ; Knoll & Follows 2016 Proc. R. Soc. B 283:20161755.
-        //
-        // Justification ⛄ Néoprotérozoïque (-735 Ma) : l'océan est gelé (glace de mer globale),
-        // le plancton photosynthétique est quasi-absent de la colonne d'eau sous la banquise, et
-        // les eucaryotes marins n'ont pas encore pleinement diversifié (avant radiation Cambrienne).
-        // → 🧫 ≈ 0.05 : quasi-éteint le couplage DMS-CCN, seul reste le sulfate volcanique direct.
-        //
-        // C'est un PROXY paramétrique (pas de modèle DMS/DMSP dynamique couplé à la bio marine).
-        // On peut donc jouer dessus sans remords — ajuster 🧫 pour chaque époque selon la paléo-
-        // abondance plausible du plancton marin (0=stérile, 1=moderne pleinement opérationnel).
-        //
-        // NaN-crash policy : EPOCH['🧫'] lu sans fallback — si absent → NaN → crash explicite
-        // (regle-data-territoire.mdc : pas de Number.isFinite guard, on veut savoir si ça manque).
-        // Note v1.2.52 : EPOCH['🧫'] sorti hors du Math.min pour éviter 0 × Infinity = NaN
-        // quand '⚖️🫧' = 0 (⚫ Corps noir, pas d'atmosphère) : 🍰🫧✈ = ⚖️✈/⚖️🫧 → Infinity,
-        // Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity × 0) = NaN (cascade).
-        // Le gate biosphère marine s'applique au *boost* (enhancement au-dessus de 1.0), pas à la
-        // fraction sulfate elle-même — physiquement équivalent quand 🍰🫧✈ est fini.
-        // ── SULFATE → CCN : la loi publiée, plus le proxy ────────────────────────────────────
-        // Remplace (2026-09-22) : 1 + 🧫 × Math.min(SULFATE_BOOST_MAX, 🍰🫧✈ × SULFATE_BOOST_SCALE).
-        // Les deux constantes étaient inventées et mesurées sans effet au banc ; surtout la FORME
-        // était fausse — linéaire, et toujours ≥ 1, c'est-à-dire que le sulfate ne pouvait
-        // qu'AJOUTER des CCN par rapport à la référence moderne, alors que c'est le moderne qui en
-        // a le plus. La vraie loi est une puissance, écrite en rapport à la référence :
-        //
-        //     CDNC / CDNC_ref = (m_SO₄ / m_ref)^a
-        //
-        // Boucher & Lohmann 1995 (Tellus B 47:281) pour la forme, McCoy et al. 2018 (ACP 18:2035,
-        // Table 1) pour l'exposant, calé sur MESURES — CDNC de MODIS, sulfate de MERRA2, 19 régions.
-        // a est la seule jauge qui reste (FINE_TUNING_BOUNDS.SULFATE_CCN_EXPONENT, quartiles mesurés
-        // [0,11 ; 0,29]) ; le plafond posé à la main disparaît, une loi de puissance sature seule.
-        //
-        // Plus de porte « ▶ >= 1900 » non plus : elle servait à n'allumer le proxy que sur le
-        // moderne, et elle était cassée (elle compare des années avant le présent à des années du
-        // calendrier — 🚂 en était exclue, l'Archéen y passait). La masse de sulfate porte maintenant
-        // elle-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond naturel
-        // (configTimeline v1.4.89). La porte n'a plus d'objet ICI ; elle reste à réparer sur
-        // anthro_factor ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
-        //
-        // 🧫 (biosphère marine) devient ce qu'il a toujours voulu dire : la part du soufre qui vient
-        // du DMS. Le partage entre les deux sources naturelles est mesuré —
-        //     volcanisme  11,5 Tg S/an  (Carn et al. 2017, Sci. Rep. 7:44095 : 23 ± 2 Tg SO₂/an)
-        //     DMS marin   28,1 Tg S/an  (Lana et al. 2011, GBC 25:GB1004)
-        //     part volcanique = 11,5 / (11,5 + 28,1) = 0,29, part DMS = 0,71
-        // — donc 🧫 = 0 (océan stérile ou sous banquise) laisse la part volcanique, 🧫 = 1 rend tout.
-        // C'est la dérivation qui était écrite en dur dans la fiche ⛄ ; elle passe dans le code, où
-        // elle s'applique à toutes les époques. Règle du projet : ce qu'on sait calculer se calcule.
-        const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
-        const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * EPOCH['🧫']);
-        // m_SO₄ = 0 (⚫ sans atmosphère, 🔥 à 2650 °C où rien ne condense) → rapport 0, et le
-        // Math.max(1e-6, ccn_ratio) du Twomey plus bas encaisse le log. Pas de NaN possible ici,
-        // contrairement à 🍰🫧✈ = ⚖️✈/⚖️🫧 qui valait 0/0 sur ⚫ (cf. note v1.2.52).
-        const sulfate_boost = window.AEROSOL.sulfateCcnRatio(
-            sulfate_kg_effective,
-            CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
-            DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
-        );
-        const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
-        // [OBS/CALIB] Référence moderne explicite : O₂ = 0,2313 kg/kg (massique, = 21 % molaire), biomasse efficace ~3%, anthro courant.
-        // On compare les époques en relatif, plutôt qu'en absolu, pour éviter d'écraser le moderne.
-        const ccn_ref_modern = DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🎚️'].CLOUD_SW.MODERN_REF_O2 * (1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🎚️'].CLOUD_SW.MODERN_REF_FOREST) * anthro_factor;
-        const ccn_ratio = ccn_proxy / ccn_ref_modern;
-
-        // 2) Facteurs physiques d'efficacité nuageuse
-        // [EQ] Forme analytique simple (pression/oxydation/température) pour la microphysique effective.
-        const pressure_factor = Math.min(DATA['🎚️'].CLOUD_SW.PRESSURE_FACTOR_MAX, DATA['🫧']['🎈']);
-        const oxidation_factor = Math.min(1.0, DATA['🎚️'].CLOUD_SW.OXIDATION_BASE + DATA['🎚️'].CLOUD_SW.OXIDATION_O2_GAIN * DATA['🫧']['🍰🫧🫁']);
-        // [EQ] Hu & Stamnes (1993) — partition phase liquide/glace des nuages.
-        // Réf : Hu Y.X. & Stamnes K., J. Climate 6, 728–742. Paramétrisation standard (CAM, CICE, AR6).
-        // f_liq = 1 pour T ≥ 273.15 K (nuages liquides : gouttelettes ~10-15 μm, SW efficace ~1.0)
-        // f_liq = 0 pour T ≤ 233.15 K (nuages glace : cristaux ~30-50 μm, SW efficace ~0.6)
-        // Transition linéaire dans [-40°C, 0°C] ; plus de bornes arbitraires MIN/MAX.
-        const f_liq = Math.max(0, Math.min(1, (DATA['🧮']['🧮🌡️'] - 233.15) / 40.0));
-        const temp_factor = f_liq * 1.0 + (1 - f_liq) * 0.6;
-
-        // 3) Efficacité optique réelle — TWOMEY (1991), forme analytique, plus de coefficient réglé.
-        //
-        //   ΔA / [A(1−A)] = Δ(ln N) / 3
-        //
-        // Ce n'est pas une paramétrisation ajustable : à eau liquide constante l'épaisseur optique
-        // va comme N^⅓ et l'albédo comme τ/(τ+cste) ; en différenciant on obtient ce résultat.
-        // Deux conséquences, et le code d'avant se trompait sur les deux :
-        //   • la sensibilité NE SE RÈGLE PAS — elle vaut (1−A)/3 et se lit sur l'albédo nuageux du
-        //     modèle (🪩🍰⛅ = 0,42 → 0,193). L'ancien OPTICAL_EFF_CCN_GAIN = 0,45 sur une base de
-        //     1,10 donnait 0,409, soit 2,1× trop ;
-        //   • la réponse est LOGARITHMIQUE en N, pas linéaire. Les deux coïncident au voisinage de
-        //     ccn_ratio = 1 — la Terre moderne — et divergent partout ailleurs, c'est-à-dire
-        //     exactement sur les époques à CCN extrême (Archéen sans oxygène, snowball sans plancton).
-        // Réf. : Twomey 1977 J. Atmos. Sci. 34:1149 ; Twomey 1991 Atmos. Environ. 25A:2435 ;
-        //        Platnick & Twomey 1994 (validation sur traces de navires).
-        //
-        // On applique l'incrément à l'ALBÉDO nuageux puis on en prend le rapport : borné par
-        // construction dans [0,1], là où appliquer ln() au multiplicateur le laissait filer négatif
-        // aux très faibles CCN.
-        const A_cloud_ref = albedo_coeff['🪩🍰⛅'];
-        const twomeyA = Math.max(0, Math.min(1,
-            A_cloud_ref + A_cloud_ref * (1 - A_cloud_ref) / 3 * Math.log(Math.max(1e-6, ccn_ratio))));
-        let cloud_optical_efficiency = DATA['🎚️'].CLOUD_SW.OPTICAL_EFF_BASE * (twomeyA / A_cloud_ref);
-        // Oxydation déjà partiellement portée par ccn_proxy : on la garde mais en pondération douce.
-        // [EQ] Pondération douce pour limiter la double comptabilisation.
-        const oxidation_soft_factor = DATA['🎚️'].CLOUD_SW.OXIDATION_SOFT_BASE + DATA['🎚️'].CLOUD_SW.OXIDATION_SOFT_GAIN * oxidation_factor;
-        cloud_optical_efficiency = cloud_optical_efficiency * pressure_factor * oxidation_soft_factor * temp_factor;
-
-        // 4) Couverture optique SW effective (impact albédo)
-        // [EQ] Fermeture diagnostique : cloud_index (dynamique) -> fraction optique efficace.
-        cloud_fraction = (DATA['🎚️'].CLOUD_SW.CLOUD_FRACTION_BASE + DATA['🎚️'].CLOUD_SW.CLOUD_FRACTION_INDEX_GAIN * cloud_index) * cloud_optical_efficiency;
-
-        // Limites physiques
-        cloud_fraction = Math.max(0, Math.min(DATA['🎚️'].CLOUD_SW.CLOUD_FRACTION_MAX, cloud_fraction));
-        // ── Diagnostic hystérésis (stash) : nuages
-            window._hystDiag.cloudIndex = cloud_index;
-        window._hystDiag.ccnProxy = ccn_proxy;
-        window._hystDiag.ccnRefModern = ccn_ref_modern;
-        window._hystDiag.ccnRatio = ccn_ratio;
-        window._hystDiag.sulfateBoost = sulfate_boost;
-        window._hystDiag.sulfateKgEffective = sulfate_kg_effective;
-        window._hystDiag.anthroFactor = anthro_factor;
-        window._hystDiag.pressureFactor = pressure_factor;
-        window._hystDiag.oxidationFactor = oxidation_factor;
-        window._hystDiag.tempFactor = temp_factor;
-        window._hystDiag.fLiq = f_liq;
-        window._hystDiag.cloudOptEff = cloud_optical_efficiency;
-        window._hystDiag.cloudFraction = cloud_fraction;
-        if (CONFIG_COMPUTE.logCloudProxyDiagnostic) {
-            const mCloud = '[cloud-proxy] epoch=' + DATA['📜']['🗿']
-                + ' T_C=' + CONST.K2C(DATA['🧮']['🧮🌡️']).toFixed(2)
-                + ' cloud_idx=' + cloud_index.toFixed(3)
-                + ' o2=' + DATA['🫧']['🍰🫧🫁'].toFixed(3)
-                + ' forest=' + DATA['🪩']['🍰🪩🌳'].toFixed(3)
-                + ' ccn=' + ccn_proxy.toFixed(3)
-                + ' ccn_ref=' + ccn_ref_modern.toFixed(3)
-                + ' ccn_ratio=' + ccn_ratio.toFixed(3)
-                + ' so4=' + DATA['🫧']['🍰🫧✈'].toExponential(2)
-                + ' so4_boost=' + sulfate_boost.toFixed(3)
-                + ' anthro=' + anthro_factor.toFixed(3)
-                + ' press=' + pressure_factor.toFixed(3)
-                + ' oxy=' + oxidation_factor.toFixed(3)
-                + ' temp=' + temp_factor.toFixed(3)
-                + ' opt=' + cloud_optical_efficiency.toFixed(3)
-                + ' cloud_frac=' + cloud_fraction.toFixed(3);
-            console.log(mCloud);
-            window.debugMirrorConfigLogToFile('logCloudProxyDiagnostic', mCloud);
-        }
-        
-        // Stocker la couverture nuageuse dans DATA['🪩']
-        DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
-    } else {
-        DATA['🪩']['🍰🪩⛅'] = 0;
+    // ── NUAGES (2026-10-13) : fraction MESURÉE, réflectance CALCULÉE (nuage adiabatique limité par la pluie) ─────────
+    // Remplace : 🍰🪩⛅ = (CLOUD_FRACTION_BASE + CLOUD_FRACTION_INDEX_GAIN·☁️) × OPTICAL_EFF_BASE × Twomey × pression ×
+    // oxydation × température, plafonnée à 0,75, avec une réflectance FIXE r_c = 0,42 — une « fraction optique » réglée.
+    //   · f = fraction GÉOMÉTRIQUE du ciel couvert, MESURÉE (King et al. 2013, MODIS) : 0,72 sur océan, 0,55 sur
+    //     continent, pondérée par l'océan libre. La dynamique 3D qui la fixe (subsidence, inversions, convection)
+    //     n'a pas d'équation fermée en 1D ; deux essais physiques ont échoué (RADIATIVE.profilAtmosphere, en-tête nuage).
+    //   · R = réflectance du nuage, deux-flux conservatif (Lacis & Hansen 1974) : R = √3(1−g)τ / (2 + √3(1−g)τ),
+    //     τ = τ_SW du nuage adiabatique de la parcelle, de sa base jusqu'au rayon de pluie (RADIATIVE.colonneNuageuse) —
+    //     MÊME eau, MÊMES rayons que l'opacité IR. Twomey et Albrecht sont dans τ (N des CCN) ; plus aucun facteur
+    //     pression / oxydation / température. ☁️ (Sundqvist) ne pilote plus la couverture.
+    // Colonne : vapeur, nuages bas (population de la base au rayon de pluie) et hauts (enclumes), fractions mesurées
+    // (physics.js EARTH.NUAGES), puis transfert SOLAIRE de Lacis & Hansen (radiative/solaire.js) : Rayleigh, ozone,
+    // vapeur, nuages et surface. L'albédo de surface `albedo` devient l'albédo au sommet de l'atmosphère.
+    // Remplace l'addition à 2 couches sans atmosphère (v1.2.64).
+    const colonne = window.RADIATIVE.colonneNuageuse();
+    const sol = window.SOLAIRE.albedo(albedo, colonne);
+    const cloud_fraction = sol.couverture;
+    DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
+    window._hystDiag.preCloudAlbedo = albedo;            // albédo de SURFACE
+    window._hystDiag.albedoCielClair = sol.Aclair;       // au sommet, ciel clair
+    window._hystDiag.albedoCielBas = sol.Abas;           // au sommet, nuages bas seuls (population)
+    window._hystDiag.albedoCielHaut = sol.Ahaut;         // au sommet, nuages hauts seuls (population)
+    window._hystDiag.colonneOzone = sol.ozone;
+    window._hystDiag.tauNuageSW = colonne.tauSW;         // nuage le plus profond (au seuil de pluie)
+    window._hystDiag.tauNuageIR = colonne.tauIR;
+    window._hystDiag.eauNuage = colonne.W;
+    window._hystDiag.cloudFraction = cloud_fraction;
+    window._hystDiag.cloudCoeff = sol.Abas;
+    if (CONFIG_COMPUTE.logCloudProxyDiagnostic) {
+        const mCloud = '[nuages] epoch=' + DATA['📜']['🗿']
+            + ' T_C=' + CONST.K2C(DATA['🧮']['🧮🌡️']).toFixed(2)
+            + ' f=' + cloud_fraction.toFixed(3)
+            + ' base=' + colonne.base.toFixed(0) + 'm sommet=' + colonne.sommet.toFixed(0) + 'm'
+            + ' W=' + (1000 * colonne.W).toFixed(1) + 'g/m²'
+            + ' τ_SW=' + colonne.tauSW.toFixed(2)
+            + ' A_sol=' + albedo.toFixed(3) + ' A_clair=' + sol.Aclair.toFixed(3) + ' A_bas=' + sol.Abas.toFixed(3) + ' A_haut=' + sol.Ahaut.toFixed(3)
+            + ' ccn=' + window._hystDiag.ccnRatio.toFixed(3);
+        console.log(mCloud);
+        window.debugMirrorConfigLogToFile('logCloudProxyDiagnostic', mCloud);
     }
-
-    // 🔒 FORMULE ALBEDO CORRIGÉE :
-    // 🍰🪩📿 = 🍰🪩⛅ × 🪩🍰⛅ + Σ(🍰🪩❀ × 🪩🍰❀) | ❀ ∈ { 🎾,🌊,🌳,🏜️,🧊 }
-    // [DIAG v-2026-07-16] Capture pré-nuage + coeff nuage pour tracer la divergence albédo test vs visu.
-    const _preCloudAlbedo = albedo;
-    const _cloudCoeff = albedo_coeff['🪩🍰⛅'];
-    window._hystDiag.preCloudAlbedo = _preCloudAlbedo;
-    window._hystDiag.cloudCoeff = _cloudCoeff;
-    // [v1.2.64] [EQ] Méthode d'addition 2 couches (nuage non absorbant r_c sur surface α_s, réflexions multiples) :
-    //   α_nuageux = r_c + (1−r_c)²·α_s / (1 − r_c·α_s)   (Liou 2002 §3.4 ; Coakley & Chylek 1975).
-    // Le mélange linéaire α_s(1−c) + r_c·c faisait ASSOMBRIR la glace par les nuages (0.775 → 0.738 en ⛄) :
-    // faux au-dessus d'une surface brillante, où le nuage ne peut qu'ajouter de la réflexion.
-    const _rc = albedo_coeff['🪩🍰⛅'];
-    const _albedoCloudy = _rc + (1 - _rc) * (1 - _rc) * albedo / (1 - _rc * albedo);
-    albedo = albedo * (1 - cloud_fraction) + _albedoCloudy * cloud_fraction;
+    // 🪩🍰⛅ : albédo des nuages BAS vus du sommet (population, absorption comprise).
+    DATA['🪩']['🪩🍰⛅'] = sol.Abas;
+    albedo = sol.A;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
     
@@ -1114,6 +1056,7 @@ var ALBEDO = window.ALBEDO = {};
 ALBEDO.syncStratosphericVeil01 = syncStratosphericVeil01;
 ALBEDO.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 ALBEDO.calculateAlbedo = calculateAlbedo;
+ALBEDO.rapportCCN = rapportCCN;
 ALBEDO.calculateCloudCoverage = calculateCloudCoverage; // DEPRECATED: utiliser calculateCloudFormationIndex() + 🍰🪩⛅
 ALBEDO.calculateCloudFormationIndex = calculateCloudFormationIndex;
 ALBEDO.calculateSolarFluxAbsorbed = calculateSolarFluxAbsorbed;
