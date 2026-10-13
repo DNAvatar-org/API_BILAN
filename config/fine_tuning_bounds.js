@@ -1,6 +1,8 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.6.1
+// Version 1.7.0
+// - v1.7.0 (2026-10-13): FROID et CHAUD inversés — 100 % = le plus chaud (🔺, monter réchauffe) ; champ `sens` des jauges
+//   retiré (le sens est calculé : TUNING.sensJauge). Valeurs à 50 % inchangées.
 // - v1.6.1 (2026-10-13): classement remesuré après les corrections physiques : humidité de surface → CHAUD.
 // - v1.6.0 (2026-10-13): barycentre unique éclaté en jauges FROID / CHAUD / SUBTIL / HYSTERESIS (classement mesuré) ;
 //   cibles F_BAS, F_HAUT, H2O_SURFACE_RH_01 (fourchettes mesurées).
@@ -70,26 +72,30 @@ window.FINE_TUNING_BOUNDS = {
     //            du facteur « Iris » ; avant, son signe changeait selon l'époque — artefact) ;
     //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +0,8 à +1,5 avant l'industrie) ;
     //   HYSTERESIS — rampe de la mer gelée : sans effet aux graines, n'agit qu'au passage du gel.
-    // Convention du projet conservée pour FROID et CHAUD : 100 % = la valeur la plus REFROIDISSANTE de chaque plage.
+    // Convention (v1.7.0, 2026-10-13, demande de l'utilisateur) : FROID et CHAUD vont dans le même sens que le climat —
+    // 100 % = la valeur la plus RÉCHAUFFANTE de chaque plage (🔺). Avant : 100 % = la plus refroidissante. Bornes inversées,
+    // valeurs à 50 % inchangées (milieu des plages).
     // SUBTIL : 100 % = borne haute de chaque plage (pas de sens unique).
     // `explication` et `mesure` sont affichées par les pages scientifique et banc (pas par la visu).
     jauges: {
-        FROID: { logo: '☁️', titre: 'nuages qui refroidissent', sens: 'refroidit',
+        FROID: { logo: '☁️', titre: 'nuages bas : gouttes, épaisseur, fraction',
             explication: 'Paramètres qui refroidissent TOUJOURS quand ils augmentent : plus de gouttes (nuages plus brillants, '
-                + 'Twomey), seuil de pluie plus grand (nuages bas plus épais), plus de nuages bas. 100 % = valeurs les plus froides.',
+                + 'Twomey), seuil de pluie plus grand (nuages bas plus épais), plus de nuages bas. 100 % = valeurs les plus CHAUDES '
+                + '(moins de gouttes, seuil 13 µm, 0,36 de nuages bas) : monter la jauge réchauffe.',
             mesure: 'Bilan net à la graine, borne basse → haute (W/m²) : CDNC −10 à −11 ; seuil de pluie −5 à −6 ; nuages bas −5 à −6 '
-                + '(+3 sur ⛄ : nuages au-dessus de la glace). Jauge entière 0 → 100 % : −10 (🦠) à −21 (📱).' },
-        CHAUD: { logo: '🌥', titre: 'ce qui réchauffe : nuages hauts, humidité', sens: 'réchauffe',
+                + '(+3 sur ⛄ : nuages au-dessus de la glace). Jauge entière 0 → 100 % : +10 (🦠) à +21 (📱) W/m².' },
+        CHAUD: { logo: '🌥', titre: 'nuages hauts et humidité',
             explication: 'Nuages hauts (enclumes, cirrus : froids, ils piègent l\'infrarouge plus qu\'ils ne réfléchissent) et humidité '
-                + 'relative de surface (plus de vapeur) : réchauffent TOUJOURS. 100 % = valeurs les plus froides (bornes basses).',
+                + 'relative de surface (plus de vapeur) : réchauffent TOUJOURS. 100 % = valeurs les plus CHAUDES (0,37 ; 0,77) : '
+                + 'monter la jauge réchauffe.',
             mesure: 'Bilan net à la graine, borne basse → haute : nuages hauts 0,29 → 0,37 : +2 à +5 W/m² ; humidité 0,70 → 0,77 : '
                 + '+1 à +1,8. (Avant le retrait du facteur « Iris », l\'humidité changeait de signe selon l\'époque : artefact.)' },
-        SUBTIL: { logo: '🔀', titre: 'exposant sulfate : effet selon l\'époque', sens: 'selon l\'époque',
+        SUBTIL: { logo: '🔀', titre: 'exposant sulfate : effet incertain suivant le contexte',
             explication: 'Exposant a de la loi gouttes ∝ (masse de sulfate)^a, rapportée à la charge actuelle : sans effet sur 📱, '
                 + 'il réchauffe une époque moins chargée en sulfate qu\'aujourd\'hui et refroidirait une époque plus chargée. '
                 + '100 % = borne haute.',
             mesure: 'Bilan net à la graine, 0,11 → 0,29 : 0 sur 📱, +0,8 à +1,5 W/m² avant l\'industrie.' },
-        HYSTERESIS: { logo: '🧊', titre: 'rampe de la mer gelée', sens: 'au passage du gel',
+        HYSTERESIS: { logo: '🧊', titre: 'rampe de la mer gelée',
             explication: 'Largeur, sous le point de gel, de la rampe qui fait passer la mer de libre à gelée. Sans effet loin du gel ; '
                 + 'elle règle les bascules (snowball, sorties).',
             mesure: 'Sans effet sur le bilan aux graines des sept époques testées.' }
@@ -107,9 +113,9 @@ window.FINE_TUNING_BOUNDS = {
             // Nombre de gouttes des nuages bas sur océan, Terre actuelle. Bennartz 2007 (JGR 112:D02201), MODIS Aqua :
             // 64–89 cm⁻³ (hémisphère nord) et 40–67 cm⁻³ (hémisphère sud) sur les océans éloignés → [40 ; 89].
             // Plus de gouttes = gouttes plus petites (Martin et al. 1994) = nuage plus épais optiquement = plus froid :
-            // 100 % = 89. Le continent (200 cm⁻³, Gultepe & Isaac 2004) et le rapport CCN de l'époque sont ailleurs.
-            min: 40,
-            max: 89,
+            // 100 % = 40 (le plus chaud). Le continent (200 cm⁻³, Gultepe & Isaac 2004) et le rapport CCN de l'époque sont ailleurs.
+            min: 89,
+            max: 40,
             default: 64.5,
             unit: 'cm⁻³',
             note: 'nombre de gouttes des nuages bas marins (Terre actuelle)',
@@ -131,9 +137,9 @@ window.FINE_TUNING_BOUNDS = {
             // Rayon effectif des gouttes au sommet d'un nuage quand la pluie chaude s'y déclenche : il fixe l'épaisseur
             // des nuages bas (radiative/calculations.js : LWC_pluie = (4π/3) ρ_w k N r³). MESURÉ, dans une fourchette :
             // 13 µm (Braga et al. 2021, ACP 21:14079, avions sur l'Amazonie et l'Atlantique tropical) à 14 µm
-            // (Rosenfeld & Gutman 1994 ; Freud & Rosenfeld 2012). Plus grand = nuages plus épais = plus froid : 100 % = 14.
-            min: 13e-6,
-            max: 14e-6,
+            // (Rosenfeld & Gutman 1994 ; Freud & Rosenfeld 2012). Plus grand = nuages plus épais = plus froid : 100 % (le plus chaud) = 13.
+            min: 14e-6,
+            max: 13e-6,
             default: 13.5e-6,
             unit: 'm',
             note: 'rayon effectif d\'initiation de la pluie chaude (sommet des nuages bas)',
@@ -146,9 +152,9 @@ window.FINE_TUNING_BOUNDS = {
             key: 'F_BAS',
             baryGroup: 'FROID',
             // Fraction de nuages BAS (vue en colonne, nuages masqués compris) : 0,41 ± 0,05 (Stubenrauch et al. 2024,
-            // Surv. Geophys. 45:1999, CloudSat-CALIPSO + ISCCP corrigé). Plus de nuages bas = plus froid : 100 % = 0,46.
-            min: 0.36,
-            max: 0.46,
+            // Surv. Geophys. 45:1999, CloudSat-CALIPSO + ISCCP corrigé). Plus de nuages bas = plus froid : 100 % (le plus chaud) = 0,36.
+            min: 0.46,
+            max: 0.36,
             default: 0.41,
             unit: 'm²/m²',
             note: 'fraction de nuages bas (en colonne)',
@@ -161,9 +167,9 @@ window.FINE_TUNING_BOUNDS = {
             key: 'F_HAUT',
             baryGroup: 'CHAUD',
             // Fraction de nuages HAUTS : 0,29 (capteurs passifs, ISCCP corrigé) à 0,37 (lidar CALIPSO, cirrus fins compris)
-            // (Stubenrauch et al. 2024 §3.1). Plus de nuages hauts = plus chaud : 100 % (le plus froid) = 0,29.
-            min: 0.37,
-            max: 0.29,
+            // (Stubenrauch et al. 2024 §3.1). Plus de nuages hauts = plus chaud : 100 % (le plus chaud) = 0,37.
+            min: 0.29,
+            max: 0.37,
             default: 0.33,
             unit: 'm²/m²',
             note: 'fraction de nuages hauts (enclumes, cirrus)',
@@ -176,9 +182,9 @@ window.FINE_TUNING_BOUNDS = {
             key: 'H2O_SURFACE_RH_01',
             baryGroup: 'CHAUD',
             // Humidité relative de surface, moyenne globale : 0,70–0,75 (ERA5) ; 0,77 dans le profil observé de Manabe &
-            // Wetherald 1967. Plus d'humidité = plus chaud sur toutes les époques testées : 100 % (le plus froid) = 0,70.
-            min: 0.77,
-            max: 0.70,
+            // Wetherald 1967. Plus d'humidité = plus chaud sur toutes les époques testées : 100 % (le plus chaud) = 0,77.
+            min: 0.70,
+            max: 0.77,
             default: 0.735,
             unit: 'Pa/Pa',
             note: 'humidité relative de surface',

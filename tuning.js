@@ -86,7 +86,7 @@
     const SENS = {
         monte:  { logo: '🔺', titre: 'monter la jauge RÉCHAUFFE' },
         baisse: { logo: '🔻', titre: 'monter la jauge REFROIDIT' },
-        ambigu: { logo: '↕️', titre: 'sens selon l\'époque ou l\'état (ambigu)' }
+        ambigu: { logo: '↕️', titre: 'effet incertain suivant le contexte' }
     };
     /** +1 : la cible réchauffe quand sa jauge monte ; −1 : refroidit ; 0 : ambigu. */
     function signeCible(target) {

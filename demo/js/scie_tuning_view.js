@@ -224,8 +224,8 @@ function displayFineTuning() {
         const pct = Math.round(bg[j]);
         html += '<div class="config-section">'
             + '<div class="config-value" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-            + '<strong>' + J.logo + ' ' + j + ' — ' + J.titre + '</strong> (' + J.sens + ')'
-            + ' <span title="' + window.TUNING.sensJauge(j).titre + '">' + window.TUNING.sensJauge(j).logo + '</span>'
+            + '<strong>' + J.logo + ' ' + j + ' — ' + J.titre + '</strong> '
+            + window.TUNING.sensJauge(j).logo + ' (' + window.TUNING.sensJauge(j).titre + ')'
             + '<input data-jauge-curseur="' + j + '" id="fine-tuning-bary-slider-' + j + '" type="range" min="0" max="100" step="1" value="' + pct + '" oninput="onFineTuningBaryInput(\'' + j + '\', this.value)">'
             + '<span data-jauge-pct="' + j + '">' + pct + '%</span>'
             + '<button class="toggle-button" onclick="applyFineTuningBaryGroupAndRun(\'' + j + '\', document.getElementById(\'fine-tuning-bary-slider-' + j + '\').value); return false;">▶️</button>'

@@ -93,14 +93,14 @@
             // SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX supprimés (2026-09-22) : le facteur linéaire
             // et son plafond posé à la main sont remplacés par la loi de puissance mesurée de
             // McCoy 2018 (aerosols/sulfate_ccn.js). Une loi de puissance sature toute seule.
-            SULFATE_CCN_EXPONENT: 0.29,      // [sans dimension (exposant de McCoy 2018)] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            SULFATE_CCN_EXPONENT: 0.29,      // [sans dimension (exposant de McCoy 2018)] valeur d'amorce, réinterpolée par tuning.js au chargement
             // Nombre de gouttes des nuages sur OCÉAN, Terre actuelle — jauge de FINE_TUNING_BOUNDS (Bennartz 2007, MODIS :
             // 40–89 cm⁻³ sur les océans éloignés). Lu par le profil nuageux (radiative/calculations.js, EARTH.NUAGES).
             // v-2026-10-12 : remplace PRESSURE_FACTOR_MAX, OXIDATION_*, OPTICAL_EFF_BASE, OXIDATION_SOFT_*,
             // CLOUD_FRACTION_BASE / _INDEX_GAIN / _MAX — la fraction est mesurée, la réflectance calculée.
-            CDNC_OCEAN_CM3: 89,              // [cm⁻³] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            CDNC_OCEAN_CM3: 89,              // [cm⁻³] valeur d'amorce, réinterpolée par tuning.js au chargement
             // Rayon effectif d'initiation de la pluie (sommet des nuages bas) — jauge mesurée 13–14 µm.
-            R_EFF_PLUIE: 14e-6,              // [m] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
+            R_EFF_PLUIE: 14e-6,              // [m] valeur d'amorce, réinterpolée par tuning.js au chargement
             // Fractions de nuages bas / hauts (GEWEX 2024) — jauges FROID / CHAUD ; interpolées par tuning.js.
             F_BAS: 0.41,                     // [m²/m²]
             F_HAUT: 0.33                     // [m²/m²]
