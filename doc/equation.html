@@ -503,13 +503,17 @@ Logs:
         <p class="corr">✔ corrigé : fractions 0,13 / 0,37 (arrondis de config) au lieu de la géométrie 0,134 / 0,366.</p>
         <p class="code">physics.js → EARTH.computeIceTempFactor, EARTH.*_ZONE_FRAC</p>
     </div>
-    <div class="eq C">
-        <div class="titre"><span class="cl C">C</span> Écart de température de chaque zone</div>
-        <div class="f" data-tex="T_z = T - \Delta T_z,\qquad \Delta T_{\text{pol}} \in \{10,\dots,20\}\ \text{K},\ \Delta T_{\text{mid}} \in \{2,\dots,5\},\ \Delta T_{\text{trop}} = -5\ \text{(posés par époque, 🥶)}"></div>
-        <p>Moderne : gradient observé (+20 / +5 / −5 K, Peixoto &amp; Oort). Les autres époques ont des valeurs <b>posées</b>
-            (10 à 20 K) sans calcul : c'est le transport méridien de chaleur, qu'un bilan diffusif (Budyko-Sellers, North 1975)
-            donnerait à partir de l'insolation et de la glace.</p>
-        <p class="code">configTimeline.js → EPOCH['🥶']</p>
+    <div class="eq P corrige">
+        <div class="titre"><span class="cl P">P</span> Bilan d'énergie méridien : écart de chaque zone</div>
+        <div class="f" data-tex="T(x) = \bar T + T_2 P_2(x),\qquad T_2 = \frac{5\int_0^1 P_2(x)\,I(x)\,a(x)\,dx}{6D + B},\qquad B = 2{,}09,\ D = 0{,}649\ \text{W m}^{-2}\,^\circ\text{C}^{-1}"></div>
+        <p>Modèle diffusif de North, Cahalan &amp; Coakley 1981 (éq. 22, solution à deux modes). \(I(x)\) : insolation annuelle exacte
+            (obliquité comprise) ; \(a(x)\) : co-albédo de la zone, calculé par le transfert solaire avec les angles solaires de la zone
+            et sa glace ; point fixe glace ↔ gradient. \(\bar T\) vient du transfert radiatif complet. B et D publiés (D calé par North
+            sur le gradient observé, T₂ = −28 °C) ; ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078.</p>
+        <p class="corr">✔ remplace les écarts POSÉS par époque (🥶, moderne +20 / +5 / −5, pas même de moyenne nulle) et la correction
+            d'obliquité ΔS̄(1 − 0,30)/2,0. ⚠️ Moderne calculé T₂ = −20,7 : la zone polaire est trop sombre (co-albédo 0,674 contre
+            0,518 observé) — les calottes permanentes (Antarctique, Groenland) manquent.</p>
+        <p class="code">physics/meridien.js → MERIDIEN.resoudre ; physics.js → EARTH.facteurGlaceZones</p>
     </div>
     <div class="eq X">
         <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières</div>
@@ -517,13 +521,6 @@ Logs:
         <p>ERA5 / Peixoto &amp; Oort cités, valeurs non relevées (4 K « de mémoire »). Le facteur \(\sin\varepsilon\) est une
             approximation (P).</p>
         <p class="code">physics.js → EARTH.SEASONAL_AMP_*</p>
-    </div>
-    <div class="eq F">
-        <div class="titre"><span class="cl F">F</span> Obliquité (Milankovitch)</div>
-        <div class="f" data-tex="\Delta T_z = \frac{\Delta\bar S_z(\varepsilon)\,(1-0{,}30)}{B},\qquad B = 2{,}0\ \text{W/m}^2/\text{K}\ \ [1{,}45\ ;\ 2{,}1]"></div>
-        <p>Insolation annuelle exacte par zone (Berger 1978) ; coefficient de refroidissement d'un modèle de bilan d'énergie
-            (Budyko 1969). Appliqué en écart à l'ε de l'époque seulement.</p>
-        <p class="code">physics.js → EARTH.obliquityZoneWarmingK</p>
     </div>
     <div class="eq F">
         <div class="titre"><span class="cl F">F</span> Mer gelée</div>

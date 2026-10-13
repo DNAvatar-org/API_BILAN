@@ -223,3 +223,14 @@ Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`)
   Chaîne des clics : 🪸 gèle au 2ᵉ clic (l'interpolation 🔀 mène son CO₂ vers les 72 ppm de ☃), et la sortie par 1b ne dégèle plus
   (−18 °C au clic, +19 depuis la graine). Les configs frontières ☃ / 1b / 1c sont à redéterminer par dichotomie avec la nouvelle
   physique (N₂ à 1 PAL : ~0,75 atm au Néoprotérozoïque).
+
+## 8. Bilan méridien (13 octobre, suite)
+
+- **Fait** : `physics/meridien.js`, modèle diffusif de North, Cahalan & Coakley 1981 (éq. 22, deux modes, B = 2,09, D = 0,649
+  W m⁻² °C⁻¹ publiés). Remplace les 19 `🥶` posés et la correction d'obliquité ΔS̄(1 − 0,30)/2,0. Co-albédo par zone = transfert solaire
+  du modèle (angles solaires de la zone, glace pondérée par l'ensoleillement), point fixe glace ↔ gradient.
+- **Sonde** : 📱 15,4 · 🚂 14,1 ✓ · 🦕 19,9 · 🐊 20,6 · 🪸 14,2 ✓ · 🦠 16,2 ✓ (ε = 45° → T₂ = −5).
+- ⚠️ **Gradient moderne trop faible** : T₂ calculé −20,7 contre −28,0 mesuré. Zone polaire trop sombre (co-albédo 0,674 contre 0,518
+  observé, a = 0,681 − 0,202 P₂). Manquent les CALOTTES PERMANENTES (Antarctique ~2,7 % du globe, Groenland ~0,4 % : ~24 % de la zone
+  polaire), glacées par l'ALTITUDE (plateau antarctique ~2–3 km), pas seulement par le froid de la zone. À ajouter (géologie de
+  l'époque + gradient vertical), pas en réglant D (ce serait compenser l'albédo par le transport).
