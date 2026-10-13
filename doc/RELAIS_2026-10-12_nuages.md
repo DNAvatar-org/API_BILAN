@@ -180,3 +180,12 @@ Littérature sur les oscillations : Trias inférieur (Payne et al. 2004 ; instab
 **CHANTIER SUIVANT (proposé)** : le transfert IR échantillonne σ en UN point par intervalle spectral et multiplie toutes les
 σ par √(P/P₀) (« [OBS/CALIB] », CONFIG_COMPUTE.pressureBroadening). Correct = distribution de k corrélée (tables k(T, P) par
 intervalle, précalculées hors ligne avec HAPI). Suspect principal de l'Archéen trop chaud (2,26 atm → σ ×1,5 partout).
+
+## Essai 7 (2026-10-13, NON commité) — page des équations + audit des réglages hérités
+- `doc/equation.html` réécrite depuis le code : 72 cartes classées P/M/F/C/N/⚠️ (css/equation.css, js/equation.js),
+  encadré « la fraction nuageuse n'a pas de solution 1D ». Liste d'action : `doc/AUDIT_REGLAGES_HERITES.md`.
+- Corrigé : M_sec harmonique (C1) ; fractions de zones géométriques (C2) ; proxy CCN O₂ × biomasse × anthro retiré,
+  loi sulfate seule (C3) ; CH4_EDS_SCALE retiré (C4) ; lave = fraction fondue péridotite à T courante (C5) ;
+  factorTropopause 1,0261 retiré (C6). demo/parametres.html régénérée (générateur débloqué).
+- Banc 9/21 → 10/21 : 📱 14,8 ✓, 💀 20,0 ✓, 🍄 sort du snowball (15,3) ; 🪸 bascule en snowball (−78,7) ; 🦠 46,0.
+- Reste en tête : √(P/P₀) / correlated-k ; 🥶 posé par époque (EBM méridien) ; forêts / déserts / ⚫ par la masse d'eau.

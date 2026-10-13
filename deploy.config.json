@@ -213,8 +213,12 @@
       "dest": "pages/bilan_radiatif/API_BILAN/doc/BIBLIOGRAPHIE.html"
     },
     {
-      "src": "doc/equation.css",
-      "dest": "pages/bilan_radiatif/API_BILAN/doc/equation.css"
+      "src": "doc/css/equation.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/css/equation.css"
+    },
+    {
+      "src": "doc/js/equation.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/js/equation.js"
     },
     {
       "src": "doc/equation.html",

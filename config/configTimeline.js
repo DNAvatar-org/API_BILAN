@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.4.96
+// Version 1.4.97
+// - v1.4.97 (2026-10-13): polarZoneFraction / midlatZoneFraction (0,13 / 0,37) et factorTropopause (1,0261 [CALIB]) retirés.
 // - v1.4.96: durées sur les entrées de 🕰.order ; rayon de 🔥 = 6371 km froid (le rayon suit l'intérieur, plus de
 //   🔺📐) ; eau : ⚫ sans eau, ses 2 ☄️ apportent EAU_ACCRETEE_KG = l'eau de départ de 🔥 (référence unique).
 // Date: [October 12, 2026]
@@ -2145,8 +2146,8 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
 // CONFIG_COMPUTE.polarAmplificationK / midlatAmplificationK SUPPRIMÉS v1.4.51 — dead code après
 // migration vers EPOCH['🥶'] (cf. albedo v1.2.51, flux v1.2.93, h2o v1.0.23).
 // Géométrie sphérique conservée ici (POLAR/MIDLAT/TROPICAL_ZONE_FRAC) car non per-époque.
-window.CONFIG_COMPUTE.polarZoneFraction = 0.13;       // ~60°–90° les 2 pôles
-window.CONFIG_COMPUTE.midlatZoneFraction = 0.37;      // ~30°–60° les 2 hémisphères
+// polarZoneFraction (0,13) / midlatZoneFraction (0,37) retirés le 2026-10-13 : arrondis de la géométrie, qui
+// est calculée une fois dans physics.js (EARTH.POLAR_ZONE_FRAC = 1 − sin 60° = 0,134 ; EARTH.MIDLAT_ZONE_FRAC = 0,366).
 // ⚾ OBLIQUITÉ AXIALE ε (degrés). Défaut Terre 2025 = 23.44° (= EARTH.OBLIQUITY_DEG_REF).
 // Par époque : clé '⚾' sur l'objet epoch écrase ce défaut (ex. Archéen ε ~ 45–70° hyp. Williams 1993).
 // Effet : amp_z_eff = SEASONAL_AMP_z_K × sin(ε)/sin(23.44°) dans EARTH.computeIceTempFactor.
@@ -2218,9 +2219,8 @@ window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB
 window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
 // Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
-// Facteur sur la hauteur d'échelle RT/Mg (ATM.calculateTropopauseHeight). Calage v1.4.51 : 1,03 + (1,0 − 1,03) × 0,13.
-// Aucune jauge ne le bougeait (cible `fixed`) : c'est une constante, donc ici, une seule fois. 1 = échelle RT/Mg seule.
-window.CONFIG_COMPUTE.factorTropopause = 1.0261;                     // [CALIB]
+// factorTropopause (1,0261, [CALIB] « 1,03 + (1,0 − 1,03) × 0,13 ») retiré le 2026-10-13 : il ne réglait plus que la limite
+// de la grille verticale fine (ATM.calculateTropopauseHeight = RT/Mg) ; la tropopause sort du profil.
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]

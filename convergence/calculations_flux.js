@@ -202,7 +202,7 @@ function getBinsFromDelta(delta) {
 // window.epoch est utilisé directement (pas de fonction getEpochConfig)
 // On utilise les fonctions globales définies dans compute.js
 
-/** Log EDS breakdown + EARTH.H2O_EDS_SCALE pour debug (valeur H₂O vs scale). */
+/** Log EDS breakdown pour debug (part H₂O). */
 /** Log unique à la convergence : 1) W/m² (flux in/out, Δ, EDS total + par composant) ; 2) T°C, albedo, % EDS. */
 function logConvergenceT() {
     const DATA = window.DATA;

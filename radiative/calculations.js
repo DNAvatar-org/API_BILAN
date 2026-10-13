@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.8.0
+// Version 1.8.1
+// - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
 // - v1.8.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN CIA 2024, tablesCIA) ; raies H₂O de la fenêtre (850–1200 cm⁻¹) et
 //   CO₂ 850–2500 cm⁻¹ ajoutées aux données ; LCL par dichotomie ; HR de radiosonde / eau liquide.
 // - v1.7.0 (2026-10-13): CIA CO₂ inventée retirée ; nuages bas adiabatiques limités par la pluie (population) et hauts
@@ -808,9 +809,8 @@ async function calculateFluxForT0() {
         window.debugMirrorConfigLogToFile('logEdsDiagnostic', mK4);
     }
 
-    // EARTH.CH4_EDS_SCALE : parallèle à H2O_EDS_SCALE. Défaut 1.0 (line-by-line HITRAN + √(P/P_ref) natif).
-    // Pilotable via FINE_TUNING_BOUNDS.RADIATIVE.CH4_EDS_SCALE (si exposé) pour caler sur cible Haqq-Misra 2008.
-    const ch4_eds_scale = EARTH.CH4_EDS_SCALE;
+    // EARTH.CH4_EDS_SCALE (multiplicateur de κ_CH₄, toujours 1) retiré le 2026-10-13 : un réglage-identité « pour caler
+    // sur Haqq-Misra 2008 » ; le retrait du CH₄ (computeEdsRemovalShares) met sa fraction à 0, comme pour le CO₂.
 
     // h2o_enabled et ch4_enabled sont déjà lus depuis DATA au début de la fonction
 
@@ -852,7 +852,7 @@ async function calculateFluxForT0() {
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
             sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, cia_CO2: tablesCIA(lambda_range), continuum_H2O,
-            earth_flux, layers: layers_w, i_trop, ch4_eds_scale,
+            earth_flux, layers: layers_w, i_trop,
             effective_delta_lambda,
             diffusivite: window.EARTH.DIFFUSIVITE,
             T_surf: DATA['🧮']['🧮🌡️'],
@@ -1075,13 +1075,13 @@ async function computeEdsRemovalShares() {
         cloud: DATA['🪩']['🍰🪩⛅'],
         co2:   DATA['🫧']['🍰🫧🏭'],
         h2o:   DATA['💧']['🍰🫧💧'],
-        ch4Sc: EARTH.CH4_EDS_SCALE
+        ch4:   DATA['🫧']['🍰🫧🐄']
     };
     const restore = function () {
         DATA['🪩']['🍰🪩⛅'] = save.cloud;
         DATA['🫧']['🍰🫧🏭'] = save.co2;
         DATA['💧']['🍰🫧💧'] = save.h2o;
-        EARTH.CH4_EDS_SCALE = save.ch4Sc;
+        DATA['🫧']['🍰🫧🐄'] = save.ch4;
         DATA['🧮']['🧮🌡️']  = T_K;
     };
     const olrSans = async function (poser) {
@@ -1096,7 +1096,7 @@ async function computeEdsRemovalShares() {
         eff['⛅'] = (await olrSans(function () { DATA['🪩']['🍰🪩⛅'] = 0; })) - olrRef;   // fraction nuageuse à 0
         eff['🏭'] = (await olrSans(function () { DATA['🫧']['🍰🫧🏭'] = 0; })) - olrRef;
         eff['💧'] = (await olrSans(function () { DATA['💧']['🍰🫧💧'] = 0; })) - olrRef;   // raies ET continuum
-        eff['🐄'] = (await olrSans(function () { EARTH.CH4_EDS_SCALE = 0; })) - olrRef;
+        eff['🐄'] = (await olrSans(function () { DATA['🫧']['🍰🫧🐄'] = 0; })) - olrRef;
     } finally {
         // ⚠️ Les quatre passes ont laissé DATA['📊'] (total_flux, upward_flux, lambda_range…) et
         // window.EDS_SPECTRAL dans l'état de la DERNIÈRE, c'est-à-dire « sans CH₄ ». Le spectre
@@ -1181,7 +1181,6 @@ function calculateRadiativeCapacities() {
     const cross_section_CO2 = lr.map(lambda => crossSectionCO2(lambda));
     const cross_section_H2O = lr.map(lambda => crossSectionH2O(lambda));
     const cross_section_CH4 = lr.map(lambda => crossSectionCH4(lambda));
-    const ch4_eds_scale_cap = EARTH.CH4_EDS_SCALE;
 
     // Initialiser les intégrales pondérées
     let integral_H2O = 0;
@@ -1211,7 +1210,7 @@ function calculateRadiativeCapacities() {
             
             const kappa_CO2 = cross_section_CO2[j] * n_CO2;
             const kappa_H2O = cross_section_H2O[j] * n_H2O;
-            const kappa_CH4 = cross_section_CH4[j] * n_CH4 * ch4_eds_scale_cap;
+            const kappa_CH4 = cross_section_CH4[j] * n_CH4;
 
             const delta_tau_CO2 = kappa_CO2 * delta_z;
             const delta_tau_H2O = kappa_H2O * delta_z;

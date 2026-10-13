@@ -3,7 +3,8 @@
 // Desc: Les trois réservoirs océaniques (couche de mélange, thermocline, profond) et leur relaxation.
 //       Rien d'autre : la partition Henry de fond vit dans co2/calculations_co2.js, le puits
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
-// Version 1.2.0
+// Version 1.2.1
+// - v1.2.1 (2026-10-13): fractions de zones = EARTH (géométrie) au lieu de CONFIG_COMPUTE (0,13 / 0,37).
 // Date: 2026-09-20
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -79,15 +80,14 @@ function assertOceanCapacity(boxes) {
  */
 function zonalSolubilityFactor() {
     const DATA = window.DATA;
-    const CC = window.CONFIG_COMPUTE;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const ice = EPOCH['🥶'];
     const T_glob = DATA['🧮']['🧮🌡️'];
     const T_ref = EPOCH['🌡️🧮'];
     const freeze = window.EARTH.T_FREEZE_SEAWATER_K;
-    const fPol = CC.polarZoneFraction;
-    const fMid = CC.midlatZoneFraction;
-    const fTrop = 1 - fPol - fMid;
+    const fPol = window.EARTH.POLAR_ZONE_FRAC;
+    const fMid = window.EARTH.MIDLAT_ZONE_FRAC;
+    const fTrop = window.EARTH.TROPICAL_ZONE_FRAC;
     const vh = function (dT) {
         return Math.exp(2400.0 * (1.0 / Math.max(freeze, T_glob - dT) - 1.0 / T_ref));
     };

@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.3.0
+// Version 2.3.1
+// - v2.3.1 (2026-10-13): fractions de zones calculées (1 − sin 60°…) et seules utilisées ; CH4_EDS_SCALE et T_LAVA_* retirés.
 // - v2.3.0 (2026-10-12): EARTH.NUAGES — microphysique des nuages (Ackerman & Marley 2001 pour la structure verticale et la
 //   glace, Martin et al. 1994 pour les gouttes, fraction mesurée MODIS King et al. 2013, deux-flux g = 0,85).
 //   EARTH['🪩🍰']['🪩🍰⛅'] (r_c = 0,42, réglée) retirée : la réflectance du nuage est calculée (DATA['🪩']['🪩🍰⛅']).
@@ -91,8 +92,8 @@ CONST.CP_AIR = 1005;  // [J/(kg·K)] Capacité calorifique air sec J/(kg·K)
 CONST.T_BOIL = 373.15;  // [K] Ébullition eau 1 atm (K)
 CONST.T0_WATER = 273.15;  // [K] K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
 // triple (273,16 K, cf. CONST.T_TRIPLE_WATER) : l'ancien commentaire le disait à tort.
-CONST.T_LAVA_START = 1000;   // [K] Transition lave (K)
-CONST.T_LAVA_COMPLETE = 2373;  // [K] Lave complète (K)
+// CONST.T_LAVA_START (1000 K) / T_LAVA_COMPLETE (2373 K), sans source, retirées le 2026-10-13 : la surface en fusion suit
+// le solidus / liquidus mesurés de la péridotite (INTERIEUR.CONST.T_SOLIDUS / T_LIQUIDUS, Katz 2003).
 CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // [m] CO₂ 15 μm
 CONST.LAMBDA_H2O_1 = 6.3e-6;  // [m]
 CONST.LAMBDA_H2O_2 = 17.0e-6;  // [m]
@@ -189,9 +190,11 @@ EARTH.T_ICE_TRANSITION_RANGE_K = 20;  // [K]
 //   Mid (30°–60°)  = sin 60° − sin 30° = 0.366
 //   Trop (0°–30°)  = sin 30° − sin 0°  = 0.500
 //   Σ = 1.000  (cap physique correct, remplace l'artefact ICE_FORMULA_MAX_FRACTION=0.46)
-EARTH.POLAR_ZONE_FRAC    = 0.134;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface polaire
-EARTH.MIDLAT_ZONE_FRAC   = 0.366;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface mi-latitude
-EARTH.TROPICAL_ZONE_FRAC = 0.500;                              // [m²/m² (surface de la zone / surface du globe)] fraction surface tropicale (0°–30°)
+// Calculées (géométrie), pas recopiées : depuis le 2026-10-13 ce sont les SEULES fractions de zones du modèle
+// (CONFIG_COMPUTE.polarZoneFraction / midlatZoneFraction, 0,13 / 0,37 arrondis, retirés).
+EARTH.POLAR_ZONE_FRAC    = 1 - Math.sin(Math.PI / 3);                      // [m²/m² (surface de la zone / surface du globe)] 60°–90°, 0,134
+EARTH.MIDLAT_ZONE_FRAC   = Math.sin(Math.PI / 3) - Math.sin(Math.PI / 6);  // [m²/m² (surface de la zone / surface du globe)] 30°–60°, 0,366
+EARTH.TROPICAL_ZONE_FRAC = Math.sin(Math.PI / 6);                          // [m²/m² (surface de la zone / surface du globe)] 0°–30°, 0,500
 
 // ─── Amplitude saisonnière : largeur physique de la rampe glace ────────────────
 // Amplitude saisonnière pic-à-pic divisée par 2 (half-range été-hiver), CALIBRÉES à ε_REF.
@@ -381,8 +384,8 @@ EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) 
  */
 EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
     var cc = window.CONFIG_COMPUTE;
-    var f_pol = cc.polarZoneFraction;
-    var f_mid = cc.midlatZoneFraction;
+    var f_pol = EARTH.POLAR_ZONE_FRAC;
+    var f_mid = EARTH.MIDLAT_ZONE_FRAC;
     var f_trop = EARTH.TROPICAL_ZONE_FRAC;
     // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'].
     var dT_pol  = EPOCH['🥶'].dT_pol;
@@ -514,19 +517,8 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposa
 // EARTH.H2O_EDS_SCALE (multiplicateur de κ_H₂O, 0,60–1,00 au barycentre) retiré le 2026-10-13 : continuum, profil
 // d'humidité et diffusivité codés, le ciel clair moderne tombe juste sans lui (fine_tuning_bounds v1.5.1).
 
-// ─── Facteur κ_CH4 global dans EDS (pressure broadening / saturation bandes) ─────
-// Parallèle à H2O_EDS_SCALE. Ajouté pour permettre un tuning fin du méthane sans toucher le line-by-line HITRAN.
-// Défaut 1.0 : HITRAN natif (= cross_section × √(P/P_ref) déjà appliqué dans spectral_slice_worker).
-// Réf. Haqq-Misra et al. 2008 (Astrobiology 8:1127) « A revised, hazy methane greenhouse » :
-//   - CH4 en atmosphère CO2-riche (Archéen) : chauffage maximum ~9–11 K pour 1000–5000 ppm ;
-//   - Saturation radiative IR au-delà de ~1000 ppm (bandes 3.3 / 7.7 µm opaques).
-//   - Au-dessus de CH4/CO2 > 0.1 molaire : formation brume organique (Tholin) → anti-greenhouse SW
-//     dominant → refroidissement net. Seuil strict ε ≈ 0.1 (non modélisé ici, à ajouter via SW).
-//   - Pressure-broadening (déjà dans HITRAN + √(P/P_ref) du worker) couvre partiellement la
-//     non-linéarité ; un scalar supplémentaire reste utile pour caler EDS_CH4 sur cible litt.
-// Plage tolérée pour tuning : [0.3, 1.5] (0.3 = bandes fortement saturées / overlap H2O, 1.5 = bonus Haqq-Misra bandes mineures).
-// NB : le seuil haze CH4/CO2 = 0.1 peut être vérifié dans calculateAlbedo (SW) plus tard.
-EARTH.CH4_EDS_SCALE = 1.0;  // [sans dimension (facteur sur κ_CH₄)]
+// EARTH.CH4_EDS_SCALE (facteur sur κ_CH₄, 1,0, « tunable [0,3 ; 1,5] pour caler EDS_CH4 sur Haqq-Misra 2008 ») retiré le
+// 2026-10-13 : un multiplicateur-identité posé sur le raie par raie, dont la plage déclarée était un calage.
 
 // EARTH.CIA_CO2_SCALE (1e-2, « ×100 TEST » du 2026-07-15) retiré le 2026-10-13 avec le profil inventé qu'il multipliait
 // (radiative/calculations.js, en-tête CIA). La CIA mesurée (HITRAN CIA) reste à brancher.
@@ -548,7 +540,7 @@ EARTH.CH4_EDS_SCALE = 1.0;  // [sans dimension (facteur sur κ_CH₄)]
 // DOMAINE DE LA MESURE : 400–1250 cm⁻¹ (8–25 µm). Ailleurs (fenêtres de 4 µm et du proche IR, qui comptent sur
 // un océan de magma), le continuum n'est PAS représenté : absence déclarée, pas une valeur inventée.
 // Remplace le « piégeage » MT_CKD scalaire (W/m² ∝ PWV², calé à 12 W/m², désactivé).
-EARTH.CONTINUUM_H2O = {
+EARTH.CONTINUUM_H2O = {   // [objet — unité de chaque champ sur sa ligne]
     A: 1.25e-22,          // [cm² molécule⁻¹ atm⁻¹]
     B: 1.67e-19,          // [cm² molécule⁻¹ atm⁻¹]
     BETA: 7.87e-3,        // [cm]
@@ -571,7 +563,7 @@ EARTH.DIFFUSIVITE = 1.66;  // [-]
 // Essais rejetés (2026-10-13) : Ackerman & Marley 2001 (colonne 1D saturée de la base à la tropopause, W ≈ 2 kg/m²,
 // 20× la mesure) ; schéma statistique de Sommeria & Deardorff (nuages étalés sur 5 km, eau dans le nuage 0,5–1,3 kg/m²).
 // Dans les deux cas il manque l'INVERSION qui coupe les vrais nuages : c'est de la dynamique 3D, hors d'un modèle 1D.
-EARTH.NUAGES = {
+EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // Humidité relative MOYENNE du gaz (le nuage n'en dépend pas) : Manabe & Wetherald (1967, J. Atmos. Sci. 24:241),
     // loi tirée des observations, standard des modèles radiatifs-convectifs 1D : r̄ = RH_s · (p/p_s − 0,02) / (1 − 0,02),
     // RH_s = humidité de surface du modèle (H2O_SURFACE_RH_01). ⚠️ MESURE (forme), pas une équation de la physique.

@@ -20,7 +20,7 @@ Documentation technique du modèle et de l'API (algorithmes, convergence, formul
 | Page | Description |
 |------|-------------|
 | **[Algorithmes.html](Algorithmes.html)** | Les deux algorithmes (dichotomie, transfert radiatif) : localisation dans le code, grilles, complexité. |
-| **[equation.html](equation.html)** | Les équations du bilan, présentées en colonnes. |
+| **[equation.html](equation.html)** | Les équations du moteur telles qu'elles sont codées, chacune classée P / M / F / C / N / ⚠️ (physique, mesure, fourchette, calage, numérique, sans source). |
 | **[BIBLIOGRAPHIE.html](BIBLIOGRAPHIE.html)** | Références, avec pour chacune où elle est utilisée dans le code. |
 | **jgrd11691.html** | Article archivé (copie locale). |
 

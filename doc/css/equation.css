@@ -1,0 +1,143 @@
+/* File: API_BILAN/doc/css/equation.css
+ * Desc: Mise en page de doc/equation.html — les équations du moteur, chacune classée P / M / F / C / N / ⚠️.
+ *       Fond transparent : la page s'ouvre dans la modale de CO2/index.html (iframe), qui porte le fond.
+ * Version 2.0.0
+ * Date: [October 13, 2026]
+ * Copyright 2026 DNAvatar.org - Arnaud Maignan
+ * Licensed under Apache License 2.0 with Commons Clause.
+ * Logs:
+ *   - v2.0.0 (2026-10-13): réécrite avec la page (cartes par équation, pastilles de classe) ; déplacée de doc/ vers doc/css/.
+ *   - v1.2.0: fond et couleur non imposés (transparent + #e0e0e0) pour reprendre la modale.
+ */
+
+:root {
+    --texte: #e0e0e0;
+    --texte-doux: rgba(224, 224, 224, 0.62);
+    --carte: #1a1a1a;
+    --carte-bord: #2a2a2a;
+    --lien: #7fd8ff;
+    --code: #b8c7d6;
+    /* Classes de source (même légende que AUDIT_PARAMETRES_SOURCES.md) */
+    --cl-P: #4caf7d;
+    --cl-M: #4a9eff;
+    --cl-F: #a07cff;
+    --cl-C: #ff5a5a;
+    --cl-N: #8a8a8a;
+    --cl-X: #ffa53a;
+}
+
+body {
+    font-family: 'Verdana', 'Tahoma', 'Roboto', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    background: transparent;
+    color: var(--texte);
+    margin: 0;
+    padding: 16px 12px 24px;
+}
+
+a:link    { color: var(--lien); }
+a:visited { color: #4aa8cc; }
+
+code {
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 0.92em;
+    color: var(--code);
+}
+
+h1 { font-size: 17px; margin: 0 0 6px; }
+h2 {
+    font-size: 14px;
+    margin: 26px 0 10px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--carte-bord);
+}
+.intro { color: var(--texte-doux); max-width: 70em; margin: 0 0 12px; }
+
+/* ── Légende et compte ─────────────────────────────────────────────────────── */
+.legende {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 6px 14px;
+    background: var(--carte);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.legende div { display: flex; gap: 8px; align-items: baseline; }
+.compte { margin: 8px 0 0; color: var(--texte-doux); }
+.compte b { color: var(--texte); }
+
+/* ── Pastille de classe ────────────────────────────────────────────────────── */
+.cl {
+    display: inline-block;
+    min-width: 1.6em;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 11px;
+    text-align: center;
+    color: #111;
+    flex: none;
+}
+.cl.P { background: var(--cl-P); }
+.cl.M { background: var(--cl-M); }
+.cl.F { background: var(--cl-F); }
+.cl.C { background: var(--cl-C); }
+.cl.N { background: var(--cl-N); }
+.cl.X { background: var(--cl-X); }
+
+/* ── Cartes d'équation ─────────────────────────────────────────────────────── */
+.grille {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 10px;
+}
+.eq {
+    background: var(--carte);
+    border: 1px solid var(--carte-bord);
+    border-left: 4px solid var(--cl-N);
+    border-radius: 6px;
+    padding: 8px 10px;
+    min-width: 0;
+}
+.eq.P { border-left-color: var(--cl-P); }
+.eq.M { border-left-color: var(--cl-M); }
+.eq.F { border-left-color: var(--cl-F); }
+.eq.C { border-left-color: var(--cl-C); }
+.eq.N { border-left-color: var(--cl-N); }
+.eq.X { border-left-color: var(--cl-X); }
+
+.eq .titre { display: flex; gap: 8px; align-items: baseline; font-weight: bold; }
+.eq .f { overflow-x: auto; overflow-y: hidden; margin: 4px 0; }
+.eq p { margin: 4px 0; }
+.eq .src { color: var(--texte-doux); font-size: 12px; }
+.eq .code { color: var(--texte-doux); font-size: 11.5px; word-break: break-word; }
+.eq.corrige { box-shadow: inset 0 0 0 1px rgba(76, 175, 125, 0.45); }
+.eq .corr { color: var(--cl-P); font-size: 12px; }
+
+/* Encadré (ce qui n'a pas d'équation) */
+.encadre {
+    background: rgba(255, 165, 58, 0.08);
+    border: 1px solid rgba(255, 165, 58, 0.45);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+}
+.encadre h3 { margin: 0 0 6px; font-size: 13px; }
+
+/* Source LaTeX sélectionnable sous chaque formule (ajoutée par js/equation.js) */
+.latex-source {
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.45);
+    user-select: text;
+    margin-top: 2px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+mjx-container[display="true"] { margin: 0.3em 0 !important; }
+
+@media (max-width: 420px) {
+    .grille { grid-template-columns: 1fr; }
+}

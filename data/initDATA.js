@@ -5,7 +5,8 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.4.3
+// Version 1.4.4
+// - v1.4.4 (2026-10-13): CLOUD_SW sans le proxy CCN (CCN_BASE, CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_*, MODERN_REF_*).
 // - v1.4.3 (2026-10-13): barycentre ATM 62 → 15 % ; jauge R_EFF_PLUIE.
 // - v1.4.2 (2026-10-12): CLOUD_SW — 9 constantes réglées des nuages SW retirées ; CDNC_OCEAN_CM3 (mesurée, Bennartz 2007).
 // - v1.4.1 (2026-10-12): DEFAULT.TUNING sans OPTICAL_EFF_CCN_GAIN, seaIceStrength01, iceImpactFactor01, co2OceanEffPump01, factorTropopause.
@@ -82,29 +83,17 @@
         // FROID 50 entre les deux (attendu ≈ 📱 15,0 / 🚂 13,7).
         baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70, HYSTERESIS: 100 },
 
-        // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
+        // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
         // 🔎 Paramètres (CO2/scripts/params_doc/generate.py) la lit là et REFUSE d'écrire si elle manque.
         CLOUD_SW: {
-            CCN_BASE: 0.15,                  // [sans dimension (proxy CCN relatif)]
-            CCN_O2_WEIGHT: 0.85,             // [(kg/kg)⁻¹ — multiplie 🍰🫧🫁, massique]
-            BIOMASS_GAIN: 4.0,               // [(m²/m²)⁻¹ — multiplie 🍰🪩🌳, surfacique]
-            ANTHRO_RISE_START_YEAR: 1900,    // [an (calendrier) — ⚠️ comparé à EPOCH['▶']]
-            ANTHRO_RISE_WINDOW_YEARS: 80,    // [an]
-            ANTHRO_RISE_MAX: 0.25,           // [sans dimension (hausse relative du proxy CCN)]
-            ANTHRO_DECAY_START_YEAR: 1980,   // [an (calendrier) — ⚠️ comparé à EPOCH['▶']]
-            ANTHRO_DECAY_WINDOW_YEARS: 40,   // [an]
-            ANTHRO_DECAY_MAX: 0.15,          // [sans dimension (baisse relative du proxy CCN)]
+            // CCN_BASE, CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_RISE_* / ANTHRO_DECAY_*, MODERN_REF_O2, MODERN_REF_FOREST
+            // retirés le 2026-10-13 avec le « proxy CCN » O₂ × biomasse × anthropique (sans physique : l'O₂ n'est pas un
+            // CCN). Le rapport de CCN n'est plus que la loi sulfate mesurée (calculations_albedo.js → rapportCCN).
             // SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX supprimés (2026-09-22) : le facteur linéaire
             // et son plafond posé à la main sont remplacés par la loi de puissance mesurée de
             // McCoy 2018 (aerosols/sulfate_ccn.js). Une loi de puissance sature toute seule.
             SULFATE_CCN_EXPONENT: 0.29,      // [sans dimension (exposant de McCoy 2018)] = max de FINE_TUNING_BOUNDS (bary 100 %) ; interpolé par tuning.js
-            // MODERN_REF_O2 est lue à côté de 🍰🫧🫁, qui est MASSIQUE (règle de l'alphabet) : elle doit
-            // l'être aussi. v-2026-09-23 : valait 0,21, la fraction MOLAIRE — formule non homogène.
-            //   w_O₂ = x_O₂ · M_O₂ / M_air = 0,209390 × 31,9988 / 28,96546 = 0,23132 kg/kg
-            //   x_O₂ et M_air : air sec de référence CIPM-2007 (Picard et al. 2008, Metrologia 45:149).
-            MODERN_REF_O2: 0.23132,          // [kg/kg (massique, comme 🍰🫧🫁)]
-            MODERN_REF_FOREST: 0.03,         // [m²/m² (surfacique, comme 🍰🪩🌳)]
             // Nombre de gouttes des nuages sur OCÉAN, Terre actuelle — jauge de FINE_TUNING_BOUNDS (Bennartz 2007, MODIS :
             // 40–89 cm⁻³ sur les océans éloignés). Lu par le profil nuageux (radiative/calculations.js, EARTH.NUAGES).
             // v-2026-10-12 : remplace PRESSURE_FACTOR_MAX, OXIDATION_*, OPTICAL_EFF_BASE, OXIDATION_SOFT_*,

@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.4.2
+// Version 1.4.3
+// - v1.4.3 (2026-10-13): rapportCCN = loi sulfate mesurée seule (proxy O₂ × biomasse × anthropique, sans physique, retiré) ; surface en fusion = fraction fondue de la péridotite à la T courante (Katz 2003) au lieu de la rampe 1000–2373 K sur la T de graine.
 // - v1.4.2 (2026-10-13): double comptage de la glace retiré (« CONTRIBUTION H2O (GLACE) », depuis V1.0.0).
 // - v1.4.1 (2026-10-13): glace saisonnière pondérée par l'ensoleillement dans l'albédo (EARTH.fractionGelee).
 // - v1.4.0 (2026-10-13): albédo au SOMMET de l'atmosphère par radiative/solaire.js (Lacis & Hansen 1974 : Rayleigh,
@@ -148,7 +149,7 @@
 //   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
 //   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅, α_nuageux = r + (1−r)²·albedo/(1 − r·albedo), r = 🪩🍰⛅ (addition 2 couches, v1.2.64)
 // 🍰🪩📿 (DATA) = 1 − (1−A_geo)(1−🍰⚽) après blackbody_factor sur A_geo
-// 🍰🪩🎾 = volcano_coverage = f(T, flux_geo) : Hadéen=1.0, sinon min(1.0, flux_geo/10000)
+// 🍰🪩🎾 = volcano_coverage = fraction fondue de la péridotite à T_surface (solidus → liquidus, Katz 2003)
 // 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
 //   où ocean_volume_m3 = (⚖️💧 × 🍰💧🌊) / 1000
 // 🍰🪩🌳 = forest_coverage = f(T, ocean_coverage) : si T<30°C et ocean>0.1 alors min(0.5, ocean × (1-T/30))
@@ -336,102 +337,30 @@ function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establis
 // ============================================================================
 // Multiplie le nombre de gouttes de la Terre actuelle (EARTH.NUAGES, DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3) dans le
 // profil nuageux (radiative/calculations.js) : r_eff ∝ N^(−1/3), c'est Twomey (1977), sans coefficient à régler.
-// Chaîne reprise telle quelle de l'ancien bloc « proxy CCN » de calculateAlbedo (2026-10-12).
-// ⚠️ Le terme O₂ × biomasse × anthro (CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_*) n'a pas de physique : l'O₂ n'est pas
-// un CCN (κ-Köhler, Petters & Kreidenweis 2007) — même argument qu'au retrait de 🍰💭. À remplacer par les masses
-// des CCN réels (sel de mer, organiques, poussière) avec les exposants de McCoy 2018.
+// Une seule loi, MESURÉE : CDNC / CDNC_ref = (m_SO₄ / m_ref)^a (forme de Boucher & Lohmann 1995, Tellus B 47:281 ;
+// exposant a de McCoy et al. 2018, ACP 18:2035, Table 1 — CDNC MODIS, sulfate MERRA2, 19 régions, quartiles
+// [0,11 ; 0,29], jauge SUBTIL). m_ref = charge moderne 1,05e9 kg SO₄ (Tsigaridis et al. 2006) : le rapport vaut 1 sur 📱.
+// Sulfate efficace = part volcanique + part DMS modulée par la biosphère marine 🧫 de l'époque. Partage MESURÉ des deux
+// sources naturelles : volcanisme 11,5 Tg S/an (Carn et al. 2017, Sci. Rep. 7:44095), DMS 28,1 Tg S/an (Lana et al. 2011,
+// Glob. Biogeochem. Cycles 25:GB1004) → 0,29 / 0,71. ⚠️ 🧫 est posée par époque (paléo-abondance du plancton, sans mesure).
+// Retiré le 2026-10-13 : le « proxy » (CCN_BASE + CCN_O2_WEIGHT·🍰🫧🫁·(1 + BIOMASS_GAIN·🍰🪩🌳)·anthro) / référence
+// moderne, qui multipliait cette loi. L'O₂ n'est pas un noyau de condensation (activation de Köhler, κ-Köhler : Petters &
+// Kreidenweis 2007, ACP 7:1961) ; les 0,15 / 0,85 / 4,0 étaient « calibrés », et la rampe anthropique 1900–1980 comparait
+// des années du calendrier à EPOCH['▶'] (des âges géologiques). Il divisait le nombre de gouttes par ~2,5 sur toute
+// époque sans oxygène. ⚠️ Les autres CCN réels (sel de mer, organiques, poussière) ne sont pas suivis : McCoy 2018 publie
+// leurs exposants, il manque leurs masses par époque.
 function rapportCCN() {
     const DATA = window.DATA;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    // [OBS/CALIB] 0.15 et 0.85 calibrés pour rester dans les ordres de grandeur littérature FYSP/Twomey.
-    const biomass_proxy = 1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🪩']['🍰🪩🌳'];
-    let anthro_factor = 1.0;
-    if (EPOCH['▶'] >= DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) {
-        anthro_factor = 1.0 + DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_RISE_WINDOW_YEARS);
-    }
-    if (EPOCH['▶'] > DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) {
-        anthro_factor = anthro_factor * (1 - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_MAX * Math.min(1, (EPOCH['▶'] - DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_START_YEAR) / DATA['🎚️'].CLOUD_SW.ANTHRO_DECAY_WINDOW_YEARS));
-    }
-    // 🧫 = facteur biosphère MARINE (gate CLAW) — symétrique de 🌱 (biosphère terrestre).
-    // Réf. princeps : Charlson, Lovelock, Andreae & Warren (1987) Nature 326:655-661
-    //   "Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate" (hypothèse CLAW).
-    // Chaîne physique proxy (4 étages) :
-    //   1. Phytoplancton marin (⇐ EPOCH['🧫']) émet du diméthylsulfure (DMS) par catabolisme du DMSP.
-    //   2. DMS → SO₂ → acide sulfurique H₂SO₄ par oxydation atmosphérique (OH, BrO).
-    //   3. Sulfate (DATA['🫧']['🍰🫧✈']) nuclée des CCN marins de taille sous-micrométrique.
-    //   4. CCN ↑ ⇒ nombre de gouttelettes ↑ ⇒ rayon effectif ↓ ⇒ albédo nuageux ↑ (Twomey 1977).
-    // Refs complémentaires : Andreae & Crutzen 1997 (Science 276:1052), Vallina & Simó 2007 (Science
-    // 315:506), Quinn & Bates 2011 (Nature 480:51, critique amplitude CLAW), Kloster 2006
-    // (J. Geophys. Res.), Woodhouse 2010 (ACP 10:7545).
-    // Paléo : Knoll 2003 Life on a Young Planet ; Falkowski 2004 Science 305:354 (évolution
-    // plancton marin) ; Knoll & Follows 2016 Proc. R. Soc. B 283:20161755.
-    //
-    // Justification ⛄ Néoprotérozoïque (-735 Ma) : l'océan est gelé (glace de mer globale),
-    // le plancton photosynthétique est quasi-absent de la colonne d'eau sous la banquise, et
-    // les eucaryotes marins n'ont pas encore pleinement diversifié (avant radiation Cambrienne).
-    // → 🧫 ≈ 0.05 : quasi-éteint le couplage DMS-CCN, seul reste le sulfate volcanique direct.
-    //
-    // C'est un PROXY paramétrique (pas de modèle DMS/DMSP dynamique couplé à la bio marine).
-    // On peut donc jouer dessus sans remords — ajuster 🧫 pour chaque époque selon la paléo-
-    // abondance plausible du plancton marin (0=stérile, 1=moderne pleinement opérationnel).
-    //
-    // NaN-crash policy : EPOCH['🧫'] lu sans fallback — si absent → NaN → crash explicite
-    // (regle-data-territoire.mdc : pas de Number.isFinite guard, on veut savoir si ça manque).
-    // Note v1.2.52 : EPOCH['🧫'] sorti hors du Math.min pour éviter 0 × Infinity = NaN
-    // quand '⚖️🫧' = 0 (⚫ Corps noir, pas d'atmosphère) : 🍰🫧✈ = ⚖️✈/⚖️🫧 → Infinity,
-    // Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity × 0) = NaN (cascade).
-    // Le gate biosphère marine s'applique au *boost* (enhancement au-dessus de 1.0), pas à la
-    // fraction sulfate elle-même — physiquement équivalent quand 🍰🫧✈ est fini.
-    // ── SULFATE → CCN : la loi publiée, plus le proxy ────────────────────────────────────
-    // Remplace (2026-09-22) : 1 + 🧫 × Math.min(SULFATE_BOOST_MAX, 🍰🫧✈ × SULFATE_BOOST_SCALE).
-    // Les deux constantes étaient inventées et mesurées sans effet au banc ; surtout la FORME
-    // était fausse — linéaire, et toujours ≥ 1, c'est-à-dire que le sulfate ne pouvait
-    // qu'AJOUTER des CCN par rapport à la référence moderne, alors que c'est le moderne qui en
-    // a le plus. La vraie loi est une puissance, écrite en rapport à la référence :
-    //
-    //     CDNC / CDNC_ref = (m_SO₄ / m_ref)^a
-    //
-    // Boucher & Lohmann 1995 (Tellus B 47:281) pour la forme, McCoy et al. 2018 (ACP 18:2035,
-    // Table 1) pour l'exposant, calé sur MESURES — CDNC de MODIS, sulfate de MERRA2, 19 régions.
-    // a est la seule jauge qui reste (FINE_TUNING_BOUNDS.SULFATE_CCN_EXPONENT, quartiles mesurés
-    // [0,11 ; 0,29]) ; le plafond posé à la main disparaît, une loi de puissance sature seule.
-    //
-    // Plus de porte « ▶ >= 1900 » non plus : elle servait à n'allumer le proxy que sur le
-    // moderne, et elle était cassée (elle compare des années avant le présent à des années du
-    // calendrier — 🚂 en était exclue, l'Archéen y passait). La masse de sulfate porte maintenant
-    // elle-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond naturel
-    // (configTimeline v1.4.89). La porte n'a plus d'objet ICI ; elle reste à réparer sur
-    // anthro_factor ci-dessus. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
-    //
-    // 🧫 (biosphère marine) devient ce qu'il a toujours voulu dire : la part du soufre qui vient
-    // du DMS. Le partage entre les deux sources naturelles est mesuré —
-    //     volcanisme  11,5 Tg S/an  (Carn et al. 2017, Sci. Rep. 7:44095 : 23 ± 2 Tg SO₂/an)
-    //     DMS marin   28,1 Tg S/an  (Lana et al. 2011, GBC 25:GB1004)
-    //     part volcanique = 11,5 / (11,5 + 28,1) = 0,29, part DMS = 0,71
-    // — donc 🧫 = 0 (océan stérile ou sous banquise) laisse la part volcanique, 🧫 = 1 rend tout.
-    // C'est la dérivation qui était écrite en dur dans la fiche ⛄ ; elle passe dans le code, où
-    // elle s'applique à toutes les époques. Règle du projet : ce qu'on sait calculer se calcule.
     const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
     const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * EPOCH['🧫']);
-    // m_SO₄ = 0 (⚫ sans atmosphère, 🔥 à 2650 °C où rien ne condense) → rapport 0 : pas de gouttes liquides
-    // (τ liquide nul dans le profil). Pas de NaN possible ici, contrairement à 🍰🫧✈ = ⚖️✈/⚖️🫧 qui valait 0/0
-    // sur ⚫ (cf. note v1.2.52).
-    const sulfate_boost = window.AEROSOL.sulfateCcnRatio(
+    const ccn_ratio = window.AEROSOL.sulfateCcnRatio(
         sulfate_kg_effective,
         CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
         DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
     );
-    const ccn_proxy = (DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🫧']['🍰🫧🫁'] * biomass_proxy * anthro_factor) * sulfate_boost;
-    // [OBS/CALIB] Référence moderne explicite : O₂ = 0,2313 kg/kg (massique, = 21 % molaire), biomasse efficace ~3%, anthro courant.
-    // On compare les époques en relatif, plutôt qu'en absolu, pour éviter d'écraser le moderne.
-    const ccn_ref_modern = DATA['🎚️'].CLOUD_SW.CCN_BASE + DATA['🎚️'].CLOUD_SW.CCN_O2_WEIGHT * DATA['🎚️'].CLOUD_SW.MODERN_REF_O2 * (1.0 + DATA['🎚️'].CLOUD_SW.BIOMASS_GAIN * DATA['🎚️'].CLOUD_SW.MODERN_REF_FOREST) * anthro_factor;
-    const ccn_ratio = ccn_proxy / ccn_ref_modern;
-    window._hystDiag.ccnProxy = ccn_proxy;
-    window._hystDiag.ccnRefModern = ccn_ref_modern;
     window._hystDiag.ccnRatio = ccn_ratio;
-    window._hystDiag.sulfateBoost = sulfate_boost;
     window._hystDiag.sulfateKgEffective = sulfate_kg_effective;
-    window._hystDiag.anthroFactor = anthro_factor;
     return ccn_ratio;
 }
 
@@ -543,10 +472,12 @@ function calculateAlbedo() {
     // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
     ALBEDO.calculateGeologySurfaces();
     
-    // 🔒 ÉTAPE 1.5 : Calculer volcano_coverage depuis la température de base de l'époque
-    // À 2100°C (2373K), tout est lave → volcano_coverage = 1.0
-    // Transition progressive : T < 1000K → 0, T > 2373K → 1.0
-    const volcano_coverage = Math.max(0, Math.min(1.0, (DATA['📅']['🌡️🧮'] - CONST.T_LAVA_START) / (CONST.T_LAVA_COMPLETE - CONST.T_LAVA_START)));
+    // 🔒 ÉTAPE 1.5 : surface en fusion = fraction fondue de la péridotite à la température de surface COURANTE, entre son
+    // solidus et son liquidus à 0 GPa (Katz, Spiegelman & Langmuir 2003, G³ 4:1073) — la même loi que l'intérieur
+    // (geology/interieur.js). Avant le 2026-10-13 : rampe 1000 K → 2373 K (CONST.T_LAVA_*, sans source ; 2100 °C n'est le
+    // liquidus d'aucune roche terrestre), évaluée sur la T de GRAINE de l'époque (📅🌡️🧮) au lieu de l'état.
+    const LAVE = window.INTERIEUR.CONST;
+    const volcano_coverage = Math.max(0, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - LAVE.T_SOLIDUS) / (LAVE.T_LIQUIDUS - LAVE.T_SOLIDUS)));
     
     // 🔒 ÉTAPE 2 : Calculer la couverture océanique réelle depuis la géologie + stocks d'eau
     // La surface océanique est limitée par la géologie ET par la quantité d'eau disponible

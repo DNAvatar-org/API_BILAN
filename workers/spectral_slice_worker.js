@@ -1,6 +1,7 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.13.0
+// Version 0.13.1
+// - v0.13.1 (2026-10-13): ch4_eds_scale retiré (toujours 1).
 // - v0.13.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN 2024), tables k(λ, T) comme σ.
 // - v0.12.0 (2026-10-13): terme CIA CO₂ (profil inventé ×100) retiré.
 // - v0.11.0 (2026-10-13): facteur de diffusivité D (EARTH.DIFFUSIVITE, 1,66) : transmission d'un flux exp(−D·τ).
@@ -63,7 +64,6 @@ function spectralSliceWorkerMain() {
         var earth_flux = p.earth_flux;
         var layers = p.layers;
         var i_trop = p.i_trop;
-        var ch4_eds_scale = p.ch4_eds_scale;
         var effective_delta_lambda = p.effective_delta_lambda;
         var D = p.diffusivite;   // flux isotrope : transmission exp(−D·τ_vertical) (EARTH.DIFFUSIVITE, Elsasser)
         var nL = lambda_range.length;
@@ -104,7 +104,7 @@ function spectralSliceWorkerMain() {
                 var lambda = lambda_range[j];
                 var kappa_CO2 = (sC0[j] + w * (sC1[j] - sC0[j])) * sigma_broad * n_CO2;
                 var kappa_H2O = (sH0[j] + w * (sH1[j] - sH0[j])) * sigma_broad_H2O * n_H2O;
-                var kappa_CH4 = (sM0[j] + w * (sM1[j] - sM0[j])) * sigma_broad * n_CH4 * ch4_eds_scale;
+                var kappa_CH4 = (sM0[j] + w * (sM1[j] - sM0[j])) * sigma_broad * n_CH4;
                 var kappa_cont = continuum_H2O[j] * cont_layer;   // continuum H₂O, m⁻¹
                 // CIA CO₂–CO₂ : κ [cm⁻¹] = k·n², ×100 → m⁻¹. Comptée avec le CO₂ (attribution EDS).
                 var kappa_CIA = (cC0[j] + w * (cC1[j] - cC0[j])) * nCO2cm3 * nCO2cm3 * 100;

@@ -3,7 +3,8 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.3.2
+// Version 1.3.3
+// - v1.3.3 (2026-10-13): ch4_eds_scale n'est plus transmis.
 // - v1.3.2 (2026-10-13): table CIA CO₂ découpée par tranche comme les σ.
 // - v1.3.1 (2026-10-13): diffusivite transmise ; h2o_eds_scale retiré.
 // - v1.3.0 (2026-10-12): tables σ[T][λ] et continuum découpés par tranche ; somme continuum.
@@ -160,7 +161,6 @@
                     // Données z partagées (toutes les couches, lecture seule, petites ~50 couches)
                     layers:              params.layers,
                     i_trop:              params.i_trop,
-                    ch4_eds_scale:       params.ch4_eds_scale,
                     effective_delta_lambda: params.effective_delta_lambda,
                     diffusivite:         params.diffusivite,
                     T_surf:              params.T_surf,

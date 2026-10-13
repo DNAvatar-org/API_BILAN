@@ -1,6 +1,7 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.3.1
+// Version 1.3.2
+// - v1.3.2 (2026-10-13): calculateTropopauseHeight = RT/Mg (limite de la grille fine) ; facteur 1,0261 [CALIB] retiré.
 // - v1.3.1 (2026-10-12): facteur de tropopause = CONFIG_COMPUTE.factorTropopause (constante ; plus de drapeau ni de cible fixe).
 // Date: [October 10, 2026]
 // logs :
@@ -283,7 +284,10 @@ function calculateTropopauseHeight() {
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (DATA['⚖️']['⚖️🫧'] === 0) return 0;   // sans atmosphère (⚫)
     const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
-    return scale_height_m * window.CONFIG_COMPUTE.factorTropopause;
+    // ⚠️ Ce n'est PAS la tropopause : la vraie sort du profil (radiative/calculations.js → profilAtmosphere, iTrop, où T
+    // atteint la température de peau). Ce nombre ne fixe que la limite de la grille verticale fine (30 m dessous,
+    // 150 m dessus) et un diagnostic d'affichage. Le facteur 1,0261 [CALIB] qui le multipliait est retiré (2026-10-13).
+    return scale_height_m;
 }
 
 function pressureAtZ(z) {

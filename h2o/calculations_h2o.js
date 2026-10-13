@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.2.3
+// Version 1.2.4
+// - v1.2.4 (2026-10-13): M de l'air sec = Σm/Σ(m/M) (dryMolarMass) au lieu de Σ(m·M)/Σm.
 // - v1.2.3 (2026-10-13): facteur « Iris » (réglage sans source sur la vapeur) retiré.
 // - v1.2.2 (2026-10-13): humidité de surface lue dans DATA['🎚️'].H2O (jauge SUBTIL).
 // - v1.2.1 (2026-10-13): plafond d'Init sur H2O_SURFACE_RH_01 (H2O_SURFACE_RH_INIT_01, sans source, retiré).
@@ -497,7 +498,7 @@ function calculateH2OParametersWithIteration() {
     DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     
     // 🔒 ÉTAPE 3 : Calculer vapeur potentielle = min(disponible, saturation massique)
-    const M_dry = dryMolarMassWeighted();
+    const M_dry = dryMolarMass();
     const mass_ratio = CONST.M_H2O / M_dry;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
@@ -609,14 +610,17 @@ function calculateH2OParametersWithIteration() {
     return true;
 }
 
-/** M de l'air sec (kg/mol) à partir des masses ⚖️ ; sans atmosphère (⚫), M de référence.
- *  ⚠️ Σ(m·M)/Σm (pondérée par la masse) — voir le log v1.1.0. */
-function dryMolarMassWeighted() {
+/** M de l'air sec (kg/mol) à partir des masses ⚖️ : M = Σm / Σ(m/M) (masse totale / nombre de moles) ;
+ *  sans atmosphère (⚫), M de référence. Avant le 2026-10-13 : Σ(m·M)/Σm, moyenne pondérée par la masse, fausse
+ *  (29,08 au lieu de 28,96 g/mol sur 📱, et l'écart grandit avec le CO₂ : q_sat ∝ M_H₂O / M). */
+function dryMolarMass() {
     const DATA = window.DATA;
     const CONST = window.CONST;
     const m = DATA['⚖️'];
     if (m['⚖️🫧'] === 0) return window.CONV.molar_mass_air_ref;
-    return (m['⚖️🏭'] * CONST.M_CO2 + m['⚖️🐄'] * CONST.M_CH4 + m['⚖️🫁'] * CONST.M_O2 + m['⚖️💨'] * CONST.M_N2) / m['⚖️🫧'];
+    const masse = m['⚖️🏭'] + m['⚖️🐄'] + m['⚖️🫁'] + m['⚖️💨'];
+    const moles = m['⚖️🏭'] / CONST.M_CO2 + m['⚖️🐄'] / CONST.M_CH4 + m['⚖️🫁'] / CONST.M_O2 + m['⚖️💨'] / CONST.M_N2;
+    return masse / moles;
 }
 
 var H2O = window.H2O = {};
@@ -658,7 +662,7 @@ H2O.calculateH2OParameters = function () {
     const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
     DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
     // 🔒 M_dry depuis masses (air sec) : évite dépendance circulaire avec 🍰🫧💧 (M_air = f(🍰🫧💧) → 🍰🫧💧 = f(M_air))
-    const M_dry = dryMolarMassWeighted();
+    const M_dry = dryMolarMass();
     const mass_ratio = CONST.M_H2O / M_dry;
     const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
     const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
