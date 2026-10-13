@@ -219,10 +219,11 @@
             // Rapport de CCN du moteur (rapportCCN, loi sulfate McCoy 2018 ; 1 sur 📱). Remplace min(0,35 ; sulfate × 500), inventé.
             var ccnEcart = (window.ALBEDO.rapportCCN() - 1) * 100;
             var sulfateBoostPct = (ccnEcart >= 0 ? '+' : '') + ccnEcart.toFixed(1);
+            var gouttesCm3 = window.ALBEDO.nombreGouttesCm3().toFixed(0);
             // Après refacto : data 🪩/💧 et Δ sont calculés à T_input (= state.temperature_C), pas à T_next.
             // Affichage cohérent : cycle albédo/water/radiatif tous à T_input.
             var T_alb = safeNumTempConv(state.temperature_C, '-');
-            html += '<div class="iteration-header convergence-cycle"><strong>🪩 cycle albédo ' + albedoIter + '</strong> @' + T_alb + '°C :<span class="convergence-inline-json"> ' + compactAlbedo + '</span> <span class="convergence-inline-json">| ✈️ CCN ' + sulfateBoostPct + '%</span></div>';
+            html += '<div class="iteration-header convergence-cycle"><strong>🪩 cycle albédo ' + albedoIter + '</strong> @' + T_alb + '°C :<span class="convergence-inline-json"> ' + compactAlbedo + '</span> <span class="convergence-inline-json">| ✈️ ' + gouttesCm3 + ' gouttes/cm³ (CCN ' + sulfateBoostPct + ' % vs 2000)</span></div>';
         }
         var innerIter = state.innerIter;
         var T = safeNumTempConv(state.temperature_C, '-');

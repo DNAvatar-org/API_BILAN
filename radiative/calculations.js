@@ -337,8 +337,8 @@ function profilAtmosphere(z_range) {
     const fBas = avecEau ? DATA['🎚️'].CLOUD_SW.F_BAS : 0, fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
     const oc = DATA['🪩']['🍰🪩🌊'];                                  // océan libre : masse d'air maritime / continentale
     const kMartin = N.K_MARTIN_OCEAN * oc + N.K_MARTIN_CONTINENT * (1 - oc);
-    const nGouttesActuel = (DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * oc + N.CDNC_CONTINENT_CM3 * (1 - oc)) * 1e6;   // [m⁻³]
-    const nGouttes = nGouttesActuel * window.ALBEDO.rapportCCN();    // [m⁻³] gouttes de l'époque (Twomey : r_eff ∝ N^(−1/3))
+    const nGouttesActuel = window.ALBEDO.nombreGouttesActuelCm3() * 1e6;   // [m⁻³] Terre actuelle (calculations_albedo.js)
+    const nGouttes = window.ALBEDO.nombreGouttesCm3() * 1e6;                // [m⁻³] gouttes de l'époque (Twomey : r_eff ∝ N^(−1/3))
     // Profondeur du nuage : seuil de pluie atteint avec le nombre de gouttes ACTUEL (mesuré), pas celui de l'époque.
     // Raison mesurée : l'eau nuageuse ne répond presque pas au nombre de gouttes (susceptibilité d ln LWP / d ln N ≈ 0,
     // Toll et al. 2019, Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous
