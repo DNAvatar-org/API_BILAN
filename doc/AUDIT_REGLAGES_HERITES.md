@@ -203,3 +203,23 @@ Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`)
   ALBEDO.rapportCCN(). SUBTIL ne change rien sur 📱 par construction (la référence du sulfate est 2000).
 - Sonde : 🦠 10,3 ✓ ; 🪸 snowball ; 🪼 12,9 (15–25) ; 🍄 15,7 (26–39) ; 💀 21,2 (14,3–20,7) ; 🦕 19,8 (24–32) ;
   🦤 18,5 (25–32) ; 🐊 20,6 (30–39) ; 🏔 15,7 (21–25) ; 🦣 13,7 ✓ ; 🚂 13,3 ✓ ; 📱 14,7 ✓.
+
+## 7. Snowballs aux mauvaises époques : la cause n'était pas le gradient (13 octobre, suite)
+
+- **Hypothèse testée et rejetée** : poser le gradient MESURÉ (North et al. 1981 : T₂ = −28 °C → +10,5 / −6,1 / −22,6 K autour de la
+  moyenne) au lieu des `🥶` posés ne sauve ni 🪸 ni ☃ — il ajoute de la glace polaire, le bilan de 🪸 est pire à toute T. Le bilan
+  méridien reste utile pour le Phanérozoïque chaud (amplification polaire), pas pour ces bascules. ⚠️ Les `🥶` modernes (+20 / +5 / −5)
+  ne sont même pas de moyenne nulle (zones 2 K sous la moyenne globale) et sous-estiment les tropiques de 5,5 K.
+- **Cause trouvée (nuages)** : la masse d'air « maritime » était l'océan LIBRE : la banquise comptait comme un continent (200 gouttes/cm³
+  au lieu de ~65) → nuages plus épais et plus brillants à mesure que la mer gèle → rétroaction artificielle vers le snowball.
+  `ALBEDO.fractionMaritime` = bassins (🍰🗻🌊). 🪸 : bilan au mieux −7,2 → −4,3 W/m².
+- **CO₂ de 🪸** : 9 mbar, sous les mesures. Paléosols vers 2,5 Ga : 45–140 mbar (Kanzaki & Murakami 2015), 2 à 5× moins (Sheldon 2006) ;
+  posé à 57 mbar, milieu du recouvrement. 🪸 −79 → 14,6 °C ✓.
+- **Sonde (13 époques)** : 🦠 16,1 ✓ · 🪸 14,6 ✓ · 🪼 15,5 ✓ · 🍄 17,0 (26–39) · 💀 20,9 (14,3–20,7) · 🦕 19,8 (24–32) · 🦤 18,5 (25–32) ·
+  🐊 20,6 (30–39) · 🏔 15,7 (21–25) · 🦣 13,7 ✓ · 🚂 13,3 ✓ · 📱 14,7 ✓.
+- **Reste à faire** : dichotomie de ☃ (1 000 ppm le gardait chaud avant le N₂ à 1 PAL, plus maintenant) ; bilan méridien pour le
+  Phanérozoïque chaud ; 🔥 (CO₂ en bars, à trancher).
+- **Banc complet (après tout ça)** : 10/21 — gagne 🪸 (14,6, tictime 13,9) ; perd 1b (19,2, sous 20) et 💀 (20,9, au-dessus de 20,7).
+  Chaîne des clics : 🪸 gèle au 2ᵉ clic (l'interpolation 🔀 mène son CO₂ vers les 72 ppm de ☃), et la sortie par 1b ne dégèle plus
+  (−18 °C au clic, +19 depuis la graine). Les configs frontières ☃ / 1b / 1c sont à redéterminer par dichotomie avec la nouvelle
+  physique (N₂ à 1 PAL : ~0,75 atm au Néoprotérozoïque).
