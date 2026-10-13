@@ -170,3 +170,13 @@ sorties de snowball par clic (1b/1c) restent froides (−24 °C).
 ⚠️ vérifiés sans source trouvée : SEASONAL_AMP_MID_OCEAN_K (4 K), R_EFF_GLACE (30 µm) ; T_ENCLUME 220 K partiellement
 appuyé (Kuang & Hartmann 2007 ; contesté par FiTT, Seeley/Romps). À brancher : CIA CO₂ mesurée (HITRAN CIA).
 Littérature sur les oscillations : Trias inférieur (Payne et al. 2004 ; instabilité interne / cycles limites) ; Quaternaire.
+
+## Essai 6 (2026-10-13 nuit, commité : API 87879f4, CO2 000ff47) — spectroscopie complétée
+- Données manquantes trouvées : hitran_fetch_lines.py sautait H₂O 850–1200 cm⁻¹ (FENÊTRE) et CO₂ > 850 cm⁻¹. Ajoutés via
+  HAPI (venv du scratchpad) : +1 505 raies H₂O, +39 926 raies CO₂. CIA CO₂–CO₂ MESURÉE (HITRAN 2024) : data/cia_CO2_CO2.js,
+  tablesCIA, worker κ = k·n². Contrôle 288 K : OLR 240,1, ciel clair 268,5, pente 2,38 W/m²/K, forçage ×256 −35,6.
+- 🦣 glaciaire (clic) : bilan max −0,4 W/m² vers 8 °C dans l'état glaciaire → bascule en snowball (marge trop mince).
+- Bancs : FROID 45 → 8/21 (📱 15,8, 🚂 14,7, 🪸 6,8 ✓, 🦠 48) ; FROID 55 → 7/21 (📱 14,2 ✓, 🚂 12,8, 🪸 snowball). Défaut 50.
+**CHANTIER SUIVANT (proposé)** : le transfert IR échantillonne σ en UN point par intervalle spectral et multiplie toutes les
+σ par √(P/P₀) (« [OBS/CALIB] », CONFIG_COMPUTE.pressureBroadening). Correct = distribution de k corrélée (tables k(T, P) par
+intervalle, précalculées hors ligne avec HAPI). Suspect principal de l'Archéen trop chaud (2,26 atm → σ ×1,5 partout).
