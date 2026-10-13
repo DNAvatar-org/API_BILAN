@@ -150,3 +150,23 @@ Banc sans CIA (bench_lh4.out) — bary 15 % : **11/21** (📱 14,36 · 🚂 13,3
 💀 23,6 (trop chaud), snowballs trop froids (⛄ −78, 🏂 −75), 🪸 bascule (−79), bistabilité selon le bary (🏔 à 20 %, 🐊 à 25 %).
 Restent ⚠️ : nuages moyens (0,23) absents ; O₃/N₂O/CFC absents de l'IR (ciel clair OLR 272 vs ~265–268) ; T_ENCLUME ;
 amplitude océanique ; terme O₂×biomasse de rapportCCN ; F_c du profil lit l'albédo de l'itération précédente.
+
+## Essai 5 (2026-10-13 soir, COMMITÉ sur la branche `algo-solaire-nuages-physique` des deux dépôts)
+Commits API_BILAN : dfc1cf4 (grosse modif d'algo), 4ad1306 (jauges séparées), 5e0e59c (rétroactions vapeur/glace).
+CO2 : abee59d, a59d69f.
+- **Jauges séparées** (FINE_TUNING_BOUNDS.jauges, classement MESURÉ au bilan aux graines) : FROID ☁️ (CDNC, R_EFF_PLUIE,
+  F_BAS), CHAUD 🌥 (F_HAUT, H2O_SURFACE_RH_01), SUBTIL 🔀 (SULFATE_CCN_EXPONENT), HYSTERESIS 🧊. Défauts 45/50/70/100.
+  Visu : une rangée par jauge sans texte ; scie et banc : explication + mesure par jauge. bench19 : jeux de jauges.
+  Les jauges décalent TOUTES les époques ensemble (pentes quasi identiques) : elles ne corrigent pas l'écart entre époques.
+- **Corrections physiques** : facteur Iris retiré ; glace comptée deux fois retirée (V1.0.0) ; LCL par dichotomie ;
+  HR de Manabe & Wetherald / eau liquide (Murphy & Koop 2005, PHYS.pSatLiquide).
+- Rétroactions mesurées : nuages bas +0,28 W/m²/K entre 15 et 35 °C (observations ~+0,2–0,3 : pas de raison de forcer) ;
+  OLR ciel clair ~2,5 W/m²/K (Koll & Cronin 2018 : ~2,2). 🦣 : équilibre stable ~13,5 °C, seuil instable ~3,5 °C.
+Banc (bench_j3.out) : **10/21** — 📱 14,88 · 🚂 13,47 · 🛖 13,33 · 🦣 14,07 · 🦠 18,2 · 🪼 17,9 · 1b 23,9 · 1c 23,6.
+Restent : Phanérozoïque chaud 15–20 °C (cibles PhanDA 21–39) — à CO₂ configuré, pas atteignable avec une sensibilité
+conforme aux observations (« Éocène équable ») ; 💀 21,6 ; snowballs −75/−78 (cibles −60/−50 ; vraie CIA CO₂ absente) ;
+🪸 bascule en snowball (CO₂ 1,1 %, CH₄ 138 ppm massique, Soleil 0,82) ; clic sur 🦣 → snowball (pas de glaciaire) ;
+sorties de snowball par clic (1b/1c) restent froides (−24 °C).
+⚠️ vérifiés sans source trouvée : SEASONAL_AMP_MID_OCEAN_K (4 K), R_EFF_GLACE (30 µm) ; T_ENCLUME 220 K partiellement
+appuyé (Kuang & Hartmann 2007 ; contesté par FiTT, Seeley/Romps). À brancher : CIA CO₂ mesurée (HITRAN CIA).
+Littérature sur les oscillations : Trias inférieur (Payne et al. 2004 ; instabilité interne / cycles limites) ; Quaternaire.
