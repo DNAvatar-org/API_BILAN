@@ -176,7 +176,10 @@ Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`)
 - **Jauges FROID / CHAUD inversées** : 100 % = le plus chaud (🔺). Combinaisons opposées (100/0, 75/25, 25/75) : le niveau
   bouge, l'écart 🦕 − 📱 reste +0,6 à +1,2 K (cible +10 à +17). Garder 📱 à 14,8 °C impose ≈ 50/50.
 - **HYSTERESIS** 0 % = 100 % au centième sur ☃ et 🪸 : la rampe de mer gelée (T globale < 271,15 K) n'agit qu'après la
-  bascule, déclenchée par la glace des trois zones. Candidate au retrait.
+  bascule, déclenchée par la glace des trois zones. ⚠️ À NE PAS retirer (utilisateur) : c'est un SYMPTÔME. La mer qui gèle
+  doit bien faire monter l'albédo ; si sa jauge n'agit pas, c'est que la même physique est comptée ailleurs, sur la mauvaise
+  variable — la rampe de mer gelée porte sur la T GLOBALE, alors que la glace de mer se forme zone par zone (la rampe zonale
+  de computeIceTempFactor, de largeur 2 × amplitude saisonnière). À recâbler sur les zones avec le bilan méridien.
 - **☃ (hysteresis 1a)** : 72 ppm = seuil de l'ancienne physique. Graine : 500 ppm → snowball, 1 000 → 7,6 °C, 2 000 → 11,4.
   Nouvelle frontière entre 500 et 1 000 ppm, DANS la fourchette [500 ; 2 000]. Dichotomie à refaire — par la chaîne de clics
   depuis 🪸, donc après 🪸.
@@ -188,3 +191,15 @@ Méthode : sonde sur quelques époques (bilan détaillé, `scratchpad/sonde.js`)
 - **Piste « couche limite » (nuages bas)** : ne mordrait pas — nuage de 🪸 ≈ 440 m, couche limite marine ≈ 1 km. Et la
   décroissance de l'eau nuageuse avec T dans le régime chaud (W ∝ 1/Γ_l) est le sens observé (Terai et al. 2016) ; le régime
   froid est traité par la précipitation de la glace.
+
+## 6. N₂, O₂, affichage CCN (13 octobre, suite)
+
+- **N₂ = 1 PAL** partout (3,878e18 kg : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) sauf ⚫ et 🔥 ; CO₂ et CH₄
+  à ppm inchangés (tous dans leurs fourchettes). 🔥 laissé tel quel : à l'Hadéen la littérature donne le CO₂ en bars.
+- **O₂ du Phanérozoïque** : il était faux et MASQUÉ par le N₂ « reste » (pression gardée à 1 bar). 🪼 🍄 💀 🦕 :
+  13 / 17 / 13 / 0 % PAL → 9 / 22 / 24 / 24 % de l'air (milieux des fourchettes de Krause et al. 2018, Nat. Commun. 9:4081,
+  et Glasspool & Scott 2010, Nat. Geosci. 3:627).
+- **Affichage « ✈ CCN »** (organigramme, scie) : formule inventée min(0,35 ; sulfate × 500), toujours +0,0 %, remplacée par
+  ALBEDO.rapportCCN(). SUBTIL ne change rien sur 📱 par construction (la référence du sulfate est 2000).
+- Sonde : 🦠 10,3 ✓ ; 🪸 snowball ; 🪼 12,9 (15–25) ; 🍄 15,7 (26–39) ; 💀 21,2 (14,3–20,7) ; 🦕 19,8 (24–32) ;
+  🦤 18,5 (25–32) ; 🐊 20,6 (30–39) ; 🏔 15,7 (21–25) ; 🦣 13,7 ✓ ; 🚂 13,3 ✓ ; 📱 14,7 ✓.
