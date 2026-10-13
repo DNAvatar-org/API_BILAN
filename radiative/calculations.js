@@ -287,8 +287,10 @@ function profilAtmosphere(z_range) {
     const vapeurMoyenne = () => {
         const p = p_a + p_c;
         if (T >= PHYS.EAU.T_C || T_s >= PHYS.EAU.T_C) return p_c / p;
+        // Humidité relative de radiosonde : par rapport à l'eau LIQUIDE, même sous 0 °C (PHYS.pSatLiquide). Appliquée
+        // par rapport à la glace (avant le 2026-10-13), elle privait la haute troposphère de 30–40 % de sa vapeur.
         const r = RH_s * (p / P_s - N.MW_P_RESIDU) / (1 - N.MW_P_RESIDU);
-        return Math.min(p_c / p, r * PHYS.pSatEau(T) / p);
+        return Math.min(p_c / p, r * PHYS.pSatLiquide(T) / p);
     };
     // NUAGE : la parcelle qui sature au niveau de condensation forme le nuage. Au-dessus, son eau en excès condense
     // (adiabatique : q_c = x_surface − x_sat) ; elle reste en gouttes tant que leur rayon effectif est sous le seuil de
@@ -377,14 +379,34 @@ function profilAtmosphere(z_range) {
                 wTotal += wEff(x_v_strato, dz);
                 continue;
             }
+            let pas = dz;                                   // longueur réellement intégrée (raccourcie au niveau de condensation)
             if (p_c < PHYS.pSatEau(T) || T >= PHYS.EAU.T_C) {   // non saturé (ou supercritique) : adiabatique sèche
                 const wc = p_c * M_c / (rho * CONST.R_GAS * T);
-                T = T - g / ((1 - wc) * cpa(T) + wc * cpc(T)) * dz;
-                const pn = p - rho * g * dz;
-                p_c = pn * (p_c / p); p_a = pn - p_c;
-                if (T < PHYS.EAU.T_C && p_c > PHYS.pSatEau(T)) {   // niveau de condensation : base du nuage
-                    p_c = PHYS.pSatEau(T); dansNuage = true; zBase = z;
+                const gammaSec = g / ((1 - wc) * cpa(T) + wc * cpc(T));
+                const T0 = T, x0 = p_c / p;
+                const sec = (h) => {                        // état de la parcelle après h mètres d'adiabatique sèche
+                    const pn = p - rho * g * h;
+                    return { T: T0 - gammaSec * h, pn: pn, pc: x0 * pn };
+                };
+                let e = sec(dz);
+                if (e.T < PHYS.EAU.T_C && e.pc > PHYS.pSatEau(e.T)) {
+                    // Le niveau de condensation est DANS le pas : le trouver (dichotomie) et s'y arrêter ; le reste du pas
+                    // se fait sur l'adiabatique humide. Sans cela la parcelle finissait le pas en sèche, trop froide, avec
+                    // un excès d'eau condensée d'un coup — au chaud, au-delà du seuil de pluie dès la base (nuage nul).
+                    let lo = 0, hi = dz;
+                    for (let k = 0; k < 30; k++) {
+                        const mid = (lo + hi) / 2;
+                        const m = sec(mid);
+                        if (m.pc > PHYS.pSatEau(m.T)) hi = mid; else lo = mid;
+                    }
+                    e = sec(hi);
+                    reste += dz - hi;
+                    z -= dz - hi;
+                    pas = hi;
+                    dansNuage = true; zBase = z;           // base du nuage
                 }
+                T = e.T;
+                p_c = Math.min(e.pc, PHYS.pSatEau(e.T)); p_a = e.pn - p_c;
             } else {                                        // saturé : adiabatique humide non diluée
                 const dln = PHYS.dLnPSatEau(T);
                 const L = R_c * T * T * dln;
@@ -404,10 +426,10 @@ function profilAtmosphere(z_range) {
                 continue;
             }
             if (iEnclume < 0 && T <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = T; }
-            const dw = wEff(vapeurMoyenne(), dz);
+            const dw = wEff(vapeurMoyenne(), pas);
             wTotal += dw;
             if (!dansNuage) wSousBase += dw;
-            if (dansNuage && !sommet) nuage(dz, i - 1);
+            if (dansNuage && !sommet && z > zBase) nuage(pas, i - 1);
         }
         if (strato && iTrop === z_range.length) iTrop = i;
         pousser(i);

@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.2.2
+// Version 1.2.3
+// - v1.2.3 (2026-10-13): facteur « Iris » (réglage sans source sur la vapeur) retiré.
 // - v1.2.2 (2026-10-13): humidité de surface lue dans DATA['🎚️'].H2O (jauge SUBTIL).
 // - v1.2.1 (2026-10-13): plafond d'Init sur H2O_SURFACE_RH_01 (H2O_SURFACE_RH_INIT_01, sans source, retiré).
 // - v1.2.0 (2026-10-12): saturation IAPWS (PHYS.pSatEau) au lieu de Clausius-Clapeyron à L constante ; ébullition =
@@ -509,11 +510,9 @@ function calculateH2OParametersWithIteration() {
     // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
     const c_c_max = DATA['🎚️'].H2O.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur potentielle = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
-    let vapor_potentielle = Math.min(c_c_max, vapor_raw);
-    // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
-    const iris_factor_raw = 1.0 + EARTH.IRIS_STRENGTH * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF) / EARTH.IRIS_T_SCALE_K;
-    const iris_factor = Math.max(EARTH.IRIS_FACTOR_MIN, iris_factor_raw);
-    vapor_potentielle = vapor_potentielle / iris_factor;
+    // Facteur « Iris » (vapeur / (1 + 0,02·(T − 288)/10), « calib 2025 ») RETIRÉ le 2026-10-13 : un réglage qui ôtait 9 %
+    // de vapeur à 35 °C et coupait la rétroaction de la vapeur (l'iris de Lindzen porte sur les nuages, pas sur l'humidité).
+    const vapor_potentielle = Math.min(c_c_max, vapor_raw);
     
     // 🔒 INITIALISATION : Commencer avec la vapeur potentielle
     DATA['💧']['🍰🫧💧'] = vapor_potentielle;
@@ -672,18 +671,8 @@ H2O.calculateH2OParameters = function () {
     // source. Voir le bloc « PLAFOND DE VAPEUR » de physics.js.
     const c_c_max = DATA['🎚️'].H2O.H2O_SURFACE_RH_01 * max_vapor_mass_fraction;
     // [EQ] Fermeture numérique : vapeur effective = min(cap_obs_dynamique, contrainte thermodynamique, eau disponible).
-    let vapor_result = Math.min(c_c_max, vapor_raw);
-    // [OBS/CALIB] Feedback Iris (EARTH.IRIS_*). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025.
-    const iris_factor_raw = 1.0 + EARTH.IRIS_STRENGTH * (DATA['🧮']['🧮🌡️'] - EARTH.EVAPORATION_T_REF) / EARTH.IRIS_T_SCALE_K;
-    const iris_factor = Math.max(EARTH.IRIS_FACTOR_MIN, iris_factor_raw);
-    vapor_result = vapor_result / iris_factor;
-    if (window.CONFIG_COMPUTE.logIrisDiagnostic) {
-        const mIris = '[Iris] T=' + (T - CONST.KELVIN_TO_CELSIUS).toFixed(1)
-            + 'C iris_factor=' + iris_factor.toFixed(3)
-            + ' vapor=' + vapor_result.toFixed(5);
-        console.log(mIris);
-        window.debugMirrorConfigLogToFile('logIrisDiagnostic', mIris);
-    }
+    // Facteur « Iris » retiré le 2026-10-13 (voir calculateH2OParametersWithIteration).
+    const vapor_result = Math.min(c_c_max, vapor_raw);
     // Log cap vapeur (bruyant) : ne log que si logEdsDiagnostic est activé.
     if (vapor_raw > c_c_max && window.CONFIG_COMPUTE.logEdsDiagnostic) {
         const T_C = T - CONST.KELVIN_TO_CELSIUS;

@@ -1,6 +1,7 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.6.0
+// Version 1.6.1
+// - v1.6.1 (2026-10-13): classement remesuré après les corrections physiques : humidité de surface → CHAUD.
 // - v1.6.0 (2026-10-13): barycentre unique éclaté en jauges FROID / CHAUD / SUBTIL / HYSTERESIS (classement mesuré) ;
 //   cibles F_BAS, F_HAUT, H2O_SURFACE_RH_01 (fourchettes mesurées).
 // - v1.5.2 (2026-10-13): R_EFF_PLUIE [13 ; 14] µm ajouté (seuil mesuré de la pluie chaude).
@@ -65,9 +66,9 @@ window.FINE_TUNING_BOUNDS = {
     // borne basse à sa borne haute, les autres à 50 %) :
     //   FROID  — refroidit TOUJOURS (sauf ⛄, sans nuage liquide) : CDNC (−7 à −12 W/m²), seuil de pluie (−4 à −8),
     //            fraction de nuages bas (−5 à −8 ; +3 sur ⛄, nuages au-dessus de la glace) ;
-    //   CHAUD  — réchauffe TOUJOURS : fraction de nuages hauts (+2 à +5) ;
-    //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +1 à +1,5 avant l'industrie), humidité de
-    //            surface (−8 sur 📱, −4 sur 🚂, +1 à +3 sur 🪸 🦕 🐊) ;
+    //   CHAUD  — réchauffe TOUJOURS : fraction de nuages hauts (+2 à +5), humidité de surface (+1 à +1,8 depuis le retrait
+    //            du facteur « Iris » ; avant, son signe changeait selon l'époque — artefact) ;
+    //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +0,8 à +1,5 avant l'industrie) ;
     //   HYSTERESIS — rampe de la mer gelée : sans effet aux graines, n'agit qu'au passage du gel.
     // Convention du projet conservée pour FROID et CHAUD : 100 % = la valeur la plus REFROIDISSANTE de chaque plage.
     // SUBTIL : 100 % = borne haute de chaque plage (pas de sens unique).
@@ -76,18 +77,18 @@ window.FINE_TUNING_BOUNDS = {
         FROID: { logo: '☁️', titre: 'nuages qui refroidissent', sens: 'refroidit',
             explication: 'Paramètres qui refroidissent TOUJOURS quand ils augmentent : plus de gouttes (nuages plus brillants, '
                 + 'Twomey), seuil de pluie plus grand (nuages bas plus épais), plus de nuages bas. 100 % = valeurs les plus froides.',
-            mesure: 'Bilan net à la graine, borne basse → haute (W/m²) : CDNC −7 à −12 ; seuil de pluie −4 à −8 ; nuages bas −5 à −8 '
-                + '(+3 sur ⛄ : nuages au-dessus de la glace). Époques 📱 🚂 🪸 ⛄ 🦕 🐊 « hysteresis 2 ».' },
-        CHAUD: { logo: '🌥', titre: 'nuages hauts, qui réchauffent', sens: 'réchauffe',
-            explication: 'Nuages hauts (enclumes, cirrus) : froids, ils piègent l\'infrarouge plus qu\'ils ne réfléchissent le soleil. '
-                + 'Leur fraction réchauffe TOUJOURS. 100 % = la plus petite fraction (le plus froid).',
-            mesure: 'Bilan net à la graine, 0,29 → 0,37 : +2 à +5 W/m² sur toutes les époques non englacées, 0 sur ⛄.' },
-        SUBTIL: { logo: '🔀', titre: 'paramètres au signe variable selon l\'époque', sens: 'selon l\'époque',
-            explication: 'Le sens de leur effet change d\'une époque à l\'autre : l\'exposant sulfate n\'agit que loin de la charge '
-                + 'actuelle d\'aérosols ; l\'humidité de surface ajoute de la vapeur (réchauffe) mais abaisse et épaissit les nuages '
-                + '(refroidit). 100 % = bornes hautes des plages (pas de sens unique).',
-            mesure: 'Bilan net à la graine, borne basse → haute : exposant sulfate 0 sur 📱, +1 à +1,5 avant l\'industrie ; humidité '
-                + 'de surface −8 sur 📱, −4 sur 🚂, +1 à +3 sur 🪸 🦕 🐊.' },
+            mesure: 'Bilan net à la graine, borne basse → haute (W/m²) : CDNC −10 à −11 ; seuil de pluie −5 à −6 ; nuages bas −5 à −6 '
+                + '(+3 sur ⛄ : nuages au-dessus de la glace). Jauge entière 0 → 100 % : −10 (🦠) à −21 (📱).' },
+        CHAUD: { logo: '🌥', titre: 'ce qui réchauffe : nuages hauts, humidité', sens: 'réchauffe',
+            explication: 'Nuages hauts (enclumes, cirrus : froids, ils piègent l\'infrarouge plus qu\'ils ne réfléchissent) et humidité '
+                + 'relative de surface (plus de vapeur) : réchauffent TOUJOURS. 100 % = valeurs les plus froides (bornes basses).',
+            mesure: 'Bilan net à la graine, borne basse → haute : nuages hauts 0,29 → 0,37 : +2 à +5 W/m² ; humidité 0,70 → 0,77 : '
+                + '+1 à +1,8. (Avant le retrait du facteur « Iris », l\'humidité changeait de signe selon l\'époque : artefact.)' },
+        SUBTIL: { logo: '🔀', titre: 'exposant sulfate : effet selon l\'époque', sens: 'selon l\'époque',
+            explication: 'Exposant a de la loi gouttes ∝ (masse de sulfate)^a, rapportée à la charge actuelle : sans effet sur 📱, '
+                + 'il réchauffe une époque moins chargée en sulfate qu\'aujourd\'hui et refroidirait une époque plus chargée. '
+                + '100 % = borne haute.',
+            mesure: 'Bilan net à la graine, 0,11 → 0,29 : 0 sur 📱, +0,8 à +1,5 W/m² avant l\'industrie.' },
         HYSTERESIS: { logo: '🧊', titre: 'rampe de la mer gelée', sens: 'au passage du gel',
             explication: 'Largeur, sous le point de gel, de la rampe qui fait passer la mer de libre à gelée. Sans effet loin du gel ; '
                 + 'elle règle les bascules (snowball, sorties).',
@@ -173,16 +174,16 @@ window.FINE_TUNING_BOUNDS = {
         {
             group: 'H2O',
             key: 'H2O_SURFACE_RH_01',
-            baryGroup: 'SUBTIL',
+            baryGroup: 'CHAUD',
             // Humidité relative de surface, moyenne globale : 0,70–0,75 (ERA5) ; 0,77 dans le profil observé de Manabe &
-            // Wetherald 1967. Le signe de son effet change selon l'époque (classement ci-dessus).
-            min: 0.70,
-            max: 0.77,
+            // Wetherald 1967. Plus d'humidité = plus chaud sur toutes les époques testées : 100 % (le plus froid) = 0,70.
+            min: 0.77,
+            max: 0.70,
             default: 0.735,
             unit: 'Pa/Pa',
             note: 'humidité relative de surface',
             source: 'ERA5 (0,70–0,75) ; Manabe & Wetherald 1967 J. Atmos. Sci. 24:241 (0,77).',
-            effect: 'epoch-dependent',
+            effect: 'positive',
             biblio_ref: 'H2O_SURFACE_RH_01'
         },
         {

@@ -77,8 +77,9 @@
         // adiabatiques limités par la pluie + enclumes, fractions GEWEX). Les jauges ATM portent maintenant des
         // fourchettes MESURÉES (CDNC 40–89 cm⁻³, seuil de pluie 13–14 µm, exposant sulfate 0,11–0,29). Banc 15/20/25 %
         // sans CIA inventée : 15 % recolle 1800 (13,37 °C) et 2000 (14,36 °C), 11/21 époques dans leur fourchette.
-        // v-2026-10-13 (soir) : jauges séparées (fine_tuning_bounds v1.6.0). Valeurs de départ, à affiner au banc.
-        baryByGroup: { FROID: 35, CHAUD: 50, SUBTIL: 50, HYSTERESIS: 100 },
+        // v-2026-10-13 (soir) : jauges séparées (fine_tuning_bounds v1.6.x). 45 / 50 / 70 : bilan aux graines de 📱, 🚂, 🦣
+        // à moins de 2 W/m² de l'équilibre (pentes mesurées par jauge), au plus près de 50 %.
+        baryByGroup: { FROID: 45, CHAUD: 50, SUBTIL: 70, HYSTERESIS: 100 },
 
         // Nuages SW : proxy CCN + efficacité optique (calibrations calculations_albedo.js).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page

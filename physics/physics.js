@@ -494,10 +494,8 @@ EARTH.EVAPORATION_T_SCALE = 20;  // [K]
 // → jauge SUBTIL : DATA['🎚️'].H2O.H2O_SURFACE_RH_01 (fine_tuning_bounds.js, fourchette 0,70–0,77), 2026-10-13.
 // H2O_SURFACE_RH_INIT_01 (0,4986, SANS SOURCE, second plafond de la même grandeur en fin d'Init) retiré le
 // 2026-10-13 : l'Init lit la même référence H2O_SURFACE_RH_01.
-/** Feedback Iris simplifié (vapeur / iris_factor). Lit. Lindzen 2001, Mauritsen & Stevens 2015, Sherwood 2020 ; calib 2025 amplitude prudente. */
-EARTH.IRIS_STRENGTH = 0.02;   // [sans dimension (coefficient de ΔT/IRIS_T_SCALE_K)] amplitude (sans dimension, × (T - T_REF) / IRIS_T_SCALE_K)
-EARTH.IRIS_T_SCALE_K = 10;    // [K] échelle thermique (par 10 K)
-EARTH.IRIS_FACTOR_MIN = 0.7;  // [sans dimension (plancher d'un facteur multiplicatif)] plancher iris_factor (évite sur-assèchement)
+// EARTH.IRIS_STRENGTH / _T_SCALE_K / _FACTOR_MIN (« calib 2025 ») retirés le 2026-10-13 : ils divisaient la vapeur par
+// 1 + 0,02·(T − 288)/10 et coupaient la rétroaction de la vapeur ; l'iris de Lindzen porte sur les nuages.
 EARTH.T_FREEZE_SEAWATER_K = 271.15;  // [K]
 EARTH.T_WATER_CYCLE_MIN_C = -10;  // [°C]
 EARTH.T_WATER_CYCLE_MAX_C = 150;  // [°C]
@@ -693,6 +691,16 @@ function pSatEau(T) {
     return CONST.P_TRIPLE_WATER * Math.exp(s / th);
 }
 PHYS.pSatEau = pSatEau;
+
+/** [Pa] Saturation sur EAU LIQUIDE, y compris surfondue sous le point triple : Murphy & Koop 2005 (QJRMS 131:1539,
+ *  éq. 10, valable 123–332 K) ; au-dessus du point triple, IAPWS (pSatEau). Sert aux humidités relatives MESURÉES,
+ *  que les radiosondes donnent par rapport à l'eau liquide, même sous 0 °C (convention de l'OMM). */
+function pSatLiquide(T) {
+    if (T >= CONST.T_TRIPLE_WATER) return pSatEau(T);
+    return Math.exp(54.842763 - 6763.22 / T - 4.210 * Math.log(T) + 0.000367 * T
+        + Math.tanh(0.0415 * (T - 218.8)) * (53.878 - 1331.22 / T - 9.44523 * Math.log(T) + 0.014025 * T));
+}
+PHYS.pSatLiquide = pSatLiquide;
 
 
 /** [1/K] d(ln p_sat)/dT, dérivée analytique des deux mêmes formules (T < T_c). */

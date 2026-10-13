@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.4.1
+// Version 1.4.2
+// - v1.4.2 (2026-10-13): double comptage de la glace retiré (« CONTRIBUTION H2O (GLACE) », depuis V1.0.0).
 // - v1.4.1 (2026-10-13): glace saisonnière pondérée par l'ensoleillement dans l'albédo (EARTH.fractionGelee).
 // - v1.4.0 (2026-10-13): albédo au SOMMET de l'atmosphère par radiative/solaire.js (Lacis & Hansen 1974 : Rayleigh,
 //   ozone, vapeur, nuages, surface) ; l'addition à 2 couches sans atmosphère est retirée. 🪩🍰⛅ = albédo du ciel nuageux.
@@ -904,14 +905,11 @@ function calculateAlbedo() {
 
     let albedo = albedo_base;
 
-    // 🔒 CONTRIBUTION H2O (GLACE) : Calculée séparément, n'affecte PAS la somme des surfaces
-    // Mais elle doit rester bornée par le support de surface réellement disponible :
-    // une masse d'eau infime ne doit pas produire un gros albédo global juste parce que 🍰💧🧊 = 1.
-    const ice_albedo = iceAlbedoEff;
-    const ice_fraction_stock = Math.min(1.0, Math.max(0, DATA['💧']['🍰💧🧊']));
-    const ice_effective_fraction = Math.min(DATA['🪩']['🍰🪩🧊'], ice_fraction_stock * hydrosphere_surface_support);
-    const ice_albedo_contribution = (ice_albedo - albedo_base) * ice_effective_fraction;
-    albedo = albedo_base + ice_albedo_contribution;
+    // « CONTRIBUTION H2O (GLACE) » RETIRÉE le 2026-10-13 (présente depuis V1.0.0) : elle tirait encore l'albédo vers celui
+    // de la glace, au prorata de la masse de glace (🍰💧🧊), alors que la surface de glace (🍰🪩🧊) est DÉJÀ dans le
+    // mélange des surfaces ci-dessus — la glace comptait deux fois (la seconde sans pondération par l'ensoleillement).
+    // Nulle en snowball (surface déjà toute en glace), elle amplifiait la bascule aux états intermédiaires : sur 🦣,
+    // rétroaction glace–albédo ~1,9 W/m²/K entre 16 et 8 °C, et plus aucun équilibre tempéré.
 
     // ── NUAGES (2026-10-13) : fraction MESURÉE, réflectance CALCULÉE (nuage adiabatique limité par la pluie) ─────────
     // Remplace : 🍰🪩⛅ = (CLOUD_FRACTION_BASE + CLOUD_FRACTION_INDEX_GAIN·☁️) × OPTICAL_EFF_BASE × Twomey × pression ×
