@@ -216,12 +216,13 @@
         var html = '';
         if (state.data_snapshot && state.data_snapshot['🪩']) {
             var compactAlbedo = formatJSONCompact(state.data_snapshot['🪩']).replace(/"/g, "'");
-            var sulfateFrac = (state.data_snapshot['🫧'] && state.data_snapshot['🫧']['🍰🫧✈'] != null && Number.isFinite(state.data_snapshot['🫧']['🍰🫧✈'])) ? state.data_snapshot['🫧']['🍰🫧✈'] : 0;
-            var sulfateBoostPct = (Math.min(0.35, sulfateFrac * 500) * 100).toFixed(1);
+            // Rapport de CCN du moteur (rapportCCN, loi sulfate McCoy 2018 ; 1 sur 📱). Remplace min(0,35 ; sulfate × 500), inventé.
+            var ccnEcart = (window.ALBEDO.rapportCCN() - 1) * 100;
+            var sulfateBoostPct = (ccnEcart >= 0 ? '+' : '') + ccnEcart.toFixed(1);
             // Après refacto : data 🪩/💧 et Δ sont calculés à T_input (= state.temperature_C), pas à T_next.
             // Affichage cohérent : cycle albédo/water/radiatif tous à T_input.
             var T_alb = safeNumTempConv(state.temperature_C, '-');
-            html += '<div class="iteration-header convergence-cycle"><strong>🪩 cycle albédo ' + albedoIter + '</strong> @' + T_alb + '°C :<span class="convergence-inline-json"> ' + compactAlbedo + '</span> <span class="convergence-inline-json">| ✈️ CCN +' + sulfateBoostPct + '%</span></div>';
+            html += '<div class="iteration-header convergence-cycle"><strong>🪩 cycle albédo ' + albedoIter + '</strong> @' + T_alb + '°C :<span class="convergence-inline-json"> ' + compactAlbedo + '</span> <span class="convergence-inline-json">| ✈️ CCN ' + sulfateBoostPct + '%</span></div>';
         }
         var innerIter = state.innerIter;
         var T = safeNumTempConv(state.temperature_C, '-');
