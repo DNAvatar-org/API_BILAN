@@ -3,18 +3,10 @@
 //       synchronisation avec la page parente. C'est la partie qui rend visible le flou scientifique.
 // Version 1.3.0
 //   - v1.3.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
-//   - v1.2.0 (2026-10-13): jauges séparées (FINE_TUNING_BOUNDS.jauges) — une section par jauge avec son sens, son
-//     explication et la mesure qui l'a classée ; plus de jauge unique ATM / CLOUD_SW / SCIENCE / SOLVER.
 // Date: [September 19, 2026]
-// logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
-//   - v1.1.0: fillDataTuningFromBary retiré — appel à window.TUNING.fillDataTuningFromBary (API).
-//     Deuxième écriture de la même interpolation, avec une sémantique de barycentre périmée.
-//   - v1.0.0: extraction depuis le <script> en ligne de CO2/html/scie_compute.html (1810 lignes d'un bloc).
-//     Découpage par responsabilité, à code IDENTIQUE : seule l'indentation change. Les fichiers restent des
-//     scripts classiques chargés dans l'ordre des dépendances — la page garde son chargement synchrone.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

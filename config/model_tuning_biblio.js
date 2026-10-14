@@ -3,17 +3,12 @@
 // Version 1.0.3
 // - v1.0.3 (2026-10-12): CLOUD_FRACTION_BASE / _INDEX_GAIN / OPTICAL_EFF_BASE → CDNC_OCEAN_CM3 (Bennartz 2007).
 // Date: [October 12, 2026]
-// logs :
-// - v1.0.2: entrées retirées avec leurs paramètres : OPTICAL_EFF_CCN_GAIN (Twomey), HYST_SEA_ICE_STRENGTH,
-//   HYST_ICE_IMPACT (identités à la jauge), HYST_CO2_OCEAN_EFF (jamais lue : CONFIG_COMPUTE fait foi).
-// - v1.0.1: groupe HYSTERESIS (recherche seuil / cryosphère / CO₂ mer)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.0: catalogue des parametres CLOUD_SW/SOLVER avec references et effet +/- sur le rechauffement
 
 window.TUNING_BIBLIO = {
     CLOUD_SW: {

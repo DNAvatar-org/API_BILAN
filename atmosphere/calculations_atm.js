@@ -10,20 +10,6 @@
 //   sur CONFIG_COMPUTE puis 1 masquait une page sans tuning.js) ; conversions kg → fraction sans M_air de repli.
 //   Restent des branches physiques : sans atmosphère (⚫, ⚖️🫧 = 0), corps massif.
 //   ⚠️ calculatePressureAtm lit le rayon de la racine (EPOCH['📐']) et non le rayon courant 📜📐 (accrétion 🔥).
-// - v1.2.5: miroir debugMirrorConfigLogToFile('logCo2RadiativeDiagnostic', …) → _logs/co2Rad.txt
-// - v1.2.4: factorTropopause — si DATA[🎚️] non fini, reprise CONFIG_COMPUTE.radiativeFactorTropopauseFixed (sinon 1), pas throw
-//   (pages scie/hyst fillDataTuningFromBary sans tuning.js corrigées v1.0.11 — baryByGroup.RADIATIVE absent).
-// - v1.2.3: calculateTropopauseHeight — throw si useFactorTropopause et factorTropopause absent/non fini (Number(undefined)
-//   → f=NaN → z_trop NaN, OLR NaN, bench/hyst "sortant_olr=NaN"). Même contrat explicite sur g (TIMELINE[👉].🍎) et 🫧.🧪.
-// - v1.2.2: doc useFactorTropopause — défaut config true (FINE_TUNING 1,03–1,00) ; false = hauteur = échelle RT/Mg × 1.
-// - v1.2.1: calculateTropopauseHeight — CONFIG_COMPUTE.useFactorTropopause (défaut false) : si false, pas de × factorTropopause (patch jauge) ; hauteur = échelle RT/Mg seule.
-// - v1.2.0: calculateTropopauseHeight lit DATA['🎚️'].RADIATIVE.factorTropopause (FINE_TUNING_BOUNDS SCIENCE / tuning.js).
-// - v1.1.9: calculateTropopauseHeight = hauteur radiative effective RT/Mg × facteur d'extension (ex-CONFIG 1,03).
-//   Ce n'est pas la tropopause WMO stricte ; c'est la coupure thermique effective du modèle spectral 0D/1D.
-// - v1.1.8: calculateTropopauseHeight corrige la confusion hauteur d'échelle RT/Mg vs tropopause.
-//   Nouvelle définition lapse-rate : z=(T_surface−CONFIG_COMPUTE.tropopauseReferenceTemperatureK)
-//   / CONFIG_COMPUTE.troposphericLapseRateKPerM (WMO / U.S. Standard Atmosphere).
-// - v1.1.7: expositions fonctions regroupées sous window.ATM (doublons window.foo retirés). Appelants migrés window.foo() → ATM.foo() dans radiative/calculations.js, albedo/calculations_albedo.js, ui/main.js, courbes/plot.js, sync_panels.js, scie_hysteresis_search.js, organigramme.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -34,13 +20,6 @@
 // - Suppression logs calculateMolarMassAir
 // - co2KgToFraction, ch4KgToFraction (masse kg → fraction molaire pour updateLevelsConfig)
 // - updateAtmosphereHeightFromCurrentT() : met à jour 📏🫧🧿 et 📏🫧🛩 depuis T courante (même grille verticale cold/warm start)
-// - v1.1.4 : 🎈 inclut vapeur d'eau : P = (⚖️🫧 + masse_vapeur) × 🍎 / (4π×R²), masse_vapeur = ⚖️🫧×🍰🫧💧/(1−🍰🫧💧)
-// - v1.1.6 : CONFIG_COMPUTE.logCo2RadiativeDiagnostic → console 🔎 DIAG CO2 (⚖️🏭, 🍰🫧🏭, ppm)
-// - v1.2.6 : 🧪 = 1/Σ(wᵢ/Mᵢ) — moyenne HARMONIQUE. Les 🍰🫧❀ sont des fractions MASSIQUES ; le code
-//   faisait Σ(wᵢ·Mᵢ) en les prenant pour des fractions molaires. Erreur mesurée : 0,5 % sur 📱,
-//   3,7 % sur 🦠, 6,7 % sur 🔥. 🧪 entre dans la pression, la hauteur d'échelle et toutes les
-//   conversions massique ↔ molaire. Voir doc/DIAGNOSTIC_RETROACTION_VAPEUR.md § deuxième erreur.
-// - v1.1.5 : add sulfate proxy fraction 🍰🫧✈ from DATA['⚖️']['⚖️✈'] (separate from dry-air renormalization)
 //
 // ============================================================================
 // CALCUL DE PRESSION ET STRUCTURE ATMOSPHÉRIQUE

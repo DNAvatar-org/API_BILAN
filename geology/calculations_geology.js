@@ -1,12 +1,6 @@
 // ============================================================================
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
-// Logs:
-// - v1.0.5: flux/puissance intérieurs lus dans DATA['🌕'] (geology/interieur.js) pour l'époque courante, NaN ailleurs ;
-//   voie legacy core_temperature × facteur et calculateGeothermalFlux retirées (clés retirées de TIMELINE, plus lues).
-// - v1.0.4: epochIndex() rend les entrées TIMELINE (alias non énumérables) : type/id/name/startYears/endYears reportés.
-// - v1.0.3: lecture de window.epochIndex() (configTimeline.js) au lieu de window.configOrganigramme.timeline.
-//   Seule dépendance du moteur au dépôt CO2 : supprimée.
 // Version 1.1.0
 // Date: [October 10, 2026]
 // Logs:
@@ -15,7 +9,6 @@
 //   null. Plus de faux champs : core_temperature_k (clé absente de TIMELINE), volcanoFactor de config (aucune
 //   époque ne le déclare : le facteur volcanique est la croûte molle seule), planet_radius / gravity / masse
 //   d'atmosphère lus à leur unique source.
-// - v1.0.2: total_atmosphere_mass_kg — si pas ⚖️🫧 en config, dry sum via COMPUTE.dryAtmosphereMassKgFromComponents(epoch).
 // - v1.0.1: expositions regroupées sous nouveau namespace window.GEOLOGY (getGeologicalPeriodByName, getGeologicalPeriod, getMoltenCrustFactor, getGeologicalEra, calculateGeothermalFlux). Doublons window.foo retirés. Appelants migrés dans physics/climate.js, radiative/calculations.js, organigramme.js, ui/main.js, courbes/plot.js, sync_panels.js, flux_manager.js. Fallbacks inline dans CO2/html/*.html supprimés (dead code : module geology toujours chargé).
 // ============================================================================
 

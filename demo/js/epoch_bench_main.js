@@ -4,12 +4,6 @@
 // Date: 2026-10-13
 // logs :
 //   - v2.2.0: jauges séparées — __BENCH_FT__.onInput(jauge, valeur) ; garde du clic sur toutes les jauges.
-//   - v2.1.0: ouvrirDetail (popup du fine-tuning) remplace togglePanel.
-//   - v2.0.0: PAS DE GARDES. Plus de test « ressources manquantes » (le loader garantit DATA, TIMELINE, CONST,
-//     CONV), plus de `window.TUNING &&`, plus de window.DEBUG (journal de CO2/static/debug.js, jamais chargé
-//     ici).
-//   - v1.1.0: deux boutons ▶ (Époques / Tictimes) ; les petits ▶️ des jauges sont retirés (applyAndRun) :
-//     une jauge règle, un bouton ▶ lance.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

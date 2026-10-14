@@ -7,15 +7,6 @@
 // Logs:
 // - v1.2.0: prepare(config) = tout jusqu'à initForConfig (préchargement « config sans calcul » de la scie) ;
 //   run = prepare + convergence, point d'entrée unique de tout calcul (visu, scie, bancs). Callback = le seul canal.
-// - v1.1.0: PAS DE GARDES. run({ epochId, animEnabled[, tuning] }) seul format (la forme « string » et les
-//   époques par défaut ne servaient à personne) ; run est async et attend vraiment le calcul. Plus de pile
-//   callbackStack (un seul callback y entrait jamais, et son try/catch avalait les erreurs) : le callback de
-//   l'API est appelé directement. isDebugAPI() remplacé par la seule référence UI_STATE.debugAPI (initDATA).
-//   snapshot() en accès direct. Badge de version : c'est l'interface CO2 qui l'écrit, pas le moteur.
-// - v1.0.10: pdTrace retiré (crochet de log fourni par l'hôte).
-// - v1.0.9: window.BILAN_VISU_APP_VERSION (semver API) défini ici.
-// - v1.0.8: api.snapshot() → instantané plat T/glace/snapshots/flux/traps/masses. api.runDiag(epochId) → run + snapshot.
-// - v1.0.5 singleton: new BilanRadiatifAPI / getBilanRadiatifAPI réutilisent la même instance
 
 'use strict';
 

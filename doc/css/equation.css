@@ -7,7 +7,6 @@
  * Licensed under Apache License 2.0 with Commons Clause.
  * Logs:
  *   - v2.0.0 (2026-10-13): réécrite avec la page (cartes par équation, pastilles de classe) ; déplacée de doc/ vers doc/css/.
- *   - v1.2.0: fond et couleur non imposés (transparent + #e0e0e0) pour reprendre la modale.
  */
 
 :root {

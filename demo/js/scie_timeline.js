@@ -14,12 +14,6 @@
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
-//   - v1.0.1: generateVerticalTimeline() retiré — il visait .visu_epochs-container, absent de cette page,
-//     et personne ne l'appelait. La frise verticale du panneau Visuel est construite ailleurs
-//     (organigramme/timeline.js + organigramme.js) : c'était un doublon dormant.
-//   - v1.0.0: extraction depuis le <script> en ligne de CO2/html/scie_compute.html (1810 lignes d'un bloc).
-//     Découpage par responsabilité, à code IDENTIQUE : seule l'indentation change. Les fichiers restent des
-//     scripts classiques chargés dans l'ordre des dépendances — la page garde son chargement synchrone.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

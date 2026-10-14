@@ -9,8 +9,6 @@
 // logs :
 //   - v1.1.0: déplacé de CO2/static/compute/ vers API_BILAN/demo/. resolveImagePath connaît les pages
 //     de demo/, qui ont leur propre fonts/pics/ (le dépôt API doit se tester sans CO2).
-//   - v1.0.0: extraction depuis CO2/static/compute/alphabet.js v1.0.17. Code identique, à ceci près que
-//     CHARS et CHARS_DESC sont lus sur window au lieu d'être des constantes du même fichier.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

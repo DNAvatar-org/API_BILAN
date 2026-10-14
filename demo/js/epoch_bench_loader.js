@@ -7,7 +7,6 @@
 //   - v2.0.0: plus de liste de scripts recopiée (event_bus.js y manquait) : window.ENGINE_SCRIPTS par
 //     BILAN_LOADER. Plus de délai de garde de 120 s qui masquait l'écran : une erreur de chargement s'affiche
 //     telle quelle. epoch_bench_boot.js supprimé (debugAPI : initDATA ; chemin du worker : le loader).
-//   - v1.1.0: + epoch_bench_chain.js (mode tictimes), apres epoch_bench_run.js dont il utilise benchMesurer.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

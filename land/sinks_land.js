@@ -9,11 +9,6 @@
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
 // - v1.2.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
-// - v1.1.0: 3 mécanismes séparés au lieu de la seule fertilisation. β pondéré par l'âge
-//   (β_jeune sur les peuplements < 30 ans, β_mature sur le reste) : c'est ce qui fait disparaître
-//   le biais d'échelle des FACE, dont les parcelles avaient 10-20 ans. Ajout du dépôt d'azote
-//   et de la repousse. Terres 2025 : 21,8 % → 28,6 % des émissions (mesuré ~30 %).
-// - v1.0.0: extrait de co2/calculations_co2.js v1.2.7.
 // ============================================================================
 
 'use strict';

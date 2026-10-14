@@ -2,7 +2,6 @@
 // Desc: En français, module de calcul LBL selon doc/HITRAN.txt (sections efficaces à partir des lignes).
 // Version 1.3.2
 // Date: 2025-02-06
-// logs :
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -10,11 +9,6 @@
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
 // - Initial: Q(T), S(T), γ_air/γ_self, γ_L total, γ_D, Voigt (réf. doc/HITRAN.txt).
-// - v1.1: crossSectionCO2/H2O/CH4FromLines(λ,T,P), getLinesInRange, données window.HITRAN_LINES_*.
-// - v1.2: getSpectralBinBoundsFromHITRAN(λ_min,λ_max,T,P) → { stepMax_m, nMin } pour bornes bins.
-// - v1.1.1: partitionFunctionQ(T,molecule) approx par molécule (CO2/H2O/CH4), crossSectionFromLines passe molecule
-// - v1.3: getSpectralRegionBoundsFromHITRAN(λ_min,λ_max) → { bounds_m, weights } pour grille adaptative (bornes = plages réelles des lignes).
-// - v1.3.1: crossSectionFromLines — troncature propre ailes lointaines |δν|>VOIGT_N_WIDTHS·(γ_L+γ_D) (=100). Corrige σ<0 numérique (Faddeeva eps machine) qui provoquait κ<0→τ<0→exp(-τ)=+∞→integral=-∞→capacités 🌈 à 0.
 // - v1.3.2: voigtNormalized — Math.max(0, Re(w)) : Voigt est une pdf (≥0) ; HALF_WINDOW_CM=5 peut égaler 100×(γ_L+γ_D) donc la troncature v1.3.1 ne coupait pas la ligne fautive (σ_CH4 négatif bit-identique aux ailes).
 
 (function (global) {

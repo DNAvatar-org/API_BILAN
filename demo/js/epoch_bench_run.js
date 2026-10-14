@@ -11,10 +11,6 @@
 //     itération par clic) : elle arrête le run et s'affiche (benchCrash). Retirés : journaux de CO2
 //     (logBenchEpoch / logBenchReset / benchLogFile, jamais chargés ici), snapshot Init qui ne servait qu'à eux,
 //     try/catch autour de calculateRadiativeCapacities.
-//   - v1.1.0: la mesure d'une convergence sort de la boucle (benchMesurer) pour servir aussi au mode
-//     tictimes ; les deux boutons ▶ sont geres ensemble (benchStart / benchEnd) ; la ligne de table est
-//     identifiee par une cle de ligne distincte de l'epoque (plusieurs clics par epoque en mode chaine).
-//     Remise a zero des compteurs = celle d'un clic sur la frise (benchResetCompteurs).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

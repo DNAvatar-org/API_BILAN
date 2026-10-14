@@ -5,51 +5,15 @@
 // - v1.2.4 (2026-10-13): M de l'air sec = Σm/Σ(m/M) (dryMolarMass) au lieu de Σ(m·M)/Σm.
 // - v1.2.3 (2026-10-13): facteur « Iris » (réglage sans source sur la vapeur) retiré.
 // - v1.2.2 (2026-10-13): humidité de surface lue dans DATA['🎚️'].H2O (jauge SUBTIL).
-// - v1.2.1 (2026-10-13): plafond d'Init sur H2O_SURFACE_RH_01 (H2O_SURFACE_RH_INIT_01, sans source, retiré).
-// - v1.2.0 (2026-10-12): saturation IAPWS (PHYS.pSatEau) au lieu de Clausius-Clapeyron à L constante ; ébullition =
-//   tSatEau. Régime sans océan possible (PHYS.eauSansLiquide) : toute l'eau en vapeur (poserToutVapeur), sans
-//   humidité relative de surface, ni Iris, ni pluie — paramétrisations d'un monde à océan.
 // Date: [October 10, 2026]
 // logs :
-// - v1.1.0: PAS DE GARDES. M_dry dans une seule fonction (dryMolarMassWeighted, recopiée 2 fois) — ⚠️ c'est une
-//   moyenne pondérée PAR LA MASSE Σ(m·M)/Σm, pas la masse molaire de l'air Σm/Σ(m/M) (≈ 29,08 au lieu de 28,96
-//   g/mol pour l'air moderne) : à corriger à part, banc à l'appui. `|| 0` sur des masses et des fractions
-//   toujours définies retirés ; `|| 6371` sur le rayon retiré ; DATA['📛'] existe toujours (KEYS).
-//   computeIceTempFactor(T, EPOCH) : le bloc d'options recopié ici est parti dans physics.js.
-// - v1.0.27: époque ⚫ (Corps noir) — toujours branche sans atmosphère (TIMELINE ⚖️🫧=0) même si DATA['⚖️']['⚖️🫧'] résiduel >0 ; évite 🍰💧🧊 ~74 % « climat » au premier rendu.
-// - v1.0.26: ⚖️🫧=0 — après partition, RUNTIME.h2oIceFractionFromCalculation = 🍰💧🧊 (aligné affichage / globe ; évite fraction climat résiduelle).
-// - v1.0.25: ⚖️🫧=0 + eau météorites + T<0°C — 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) (CONFIG_COMPUTE) ; fini 🍰💧🧊=1 d’un coup.
-// - v1.0.24: miroir debugMirrorConfigLogToFile — logIrisDiagnostic → iris.txt, logEdsDiagnostic (cap H2O) → eds.txt
-// - v1.0.23: verrou lockIceInSolver supprimé (user: "virer le verrou tout le temps"). Plus de branche `if (lockIceInSolver)` figeant 🍰💧🧊/🍰💧🌊 en Search/Dicho : la glace suit désormais 🧮🌡️ à chaque pas (même branches qu'en Init). Conséquence : le feedback T→glace opère dans le scan hystérésis ⛄ (fix figeage 🍰💧🧊=0.006). Le pilotage temporalité millénaire est assuré en amont par calculations_albedo.js v1.2.53 (blend dt via CONFIG_COMPUTE.iceBlendRelaxation01).
-// - v1.0.22: (doc-only relais) physics.js v2.0.15 — EARTH.computeIceTempFactor intègre désormais 3 zones (pol+mid+trop). h2o utilise uniquement `_iceTF_h2o.tf_pol` (cap calottes polaires 10%), inchangé. Le passage à 3 zones n'affecte donc pas ce module. Bloc gel océan (T < T_FREEZE) toujours géré ici.
-// - v1.0.21: (obsolète marker v1.0.20 remplaçait en place)
-// - v1.0.20: polar_ice_fraction_climate UNIFIÉ avec albedo v1.2.48 / flux v1.2.91 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT_pol (EARTH.POLAR_AMP_POL_K). Remplace l'ancien seuil T_NO_POLAR_ICE_K = 293 K (seuil GLOBAL traité à tort comme seuil LOCAL). Bloc gel océan (T < T_FREEZE) inchangé. Pas d'override par époque.
 // - v1.0.19: expositions fonctions regroupées sous window.H2O (plus de window.foo isolés). Clés ajoutées au namespace : calculateH2OGreenhouseForcing, calculateCloudAlbedoContribution, calculateWaterPartition, calculatePrecipitationFeedback, getBoilingPointKFromPressure. Appelants migrés window.foo() → H2O.foo() dans calculations_flux.js, radiative/calculations.js, ui/main.js, CO2/html/*.html.
-// - v1.0.18: deltaTAccelerationDays lu depuis window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER.
-// - v1.0.17: DELTA_T_ACCELERATION_DAYS lu depuis window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING.
-// - v1.0.16: DELTA_T_ACCELERATION_DAYS lu depuis window.TUNING.SOLVER (source unique, fin DATA['🎚️'].SOLVER).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.1 : M_dry depuis masses (air sec) au lieu de M_air (dépendance circulaire) ; clamp 🍰🫧💧≤1
-// - v1.0.2 : glace figée pendant Search/Dicho via _iceEpochFixedState (séparation échelles de temps)
-// - v1.0.3 : cap vapeur global réaliste (0.55% masse) sur calcul direct + itératif pour limiter sur-EDS H2O
-// - v1.0.4 : annotations explicites OBS vs EQ sur le cap vapeur et la fermeture de partition H2O
-// - v1.0.5 : précipitation quadratique vs vapeur + cap vapeur dynamique C-C + feedback Iris simplifié
-// - v1.0.6 : Iris calibré (0.07/10K) + précipitation convective temp/humidité (CMIP-like) + log Iris optionnel
-// - v1.0.7 : ajout commentaire scientifique sur P_sat(T) (théorie C-C vs limitation dynamique convective observée)
-// - v1.0.8 : recalage humide 2025 (c_c_max base 0.006, iris 0.03, exposants précip 1.2/1.0) avec justification biblio
-// - v1.0.9 : fine-tuning léger 2025 (c_c_max base 0.0065, iris 0.02) pour remonter T sans perdre la stabilité
-// - v1.0.10 : cap vapeur final observé (AIRS/ERA5, ~7%/K) en fin d'itération Init
-// - v1.0.11 : propagation sulfate proxy 🍰🫧✈ depuis ⚖️✈ dans la composition atmosphérique avec vapeur
-// - v1.0.13 : en Search/Dicho pas de cache H2O (recalcul vapeur à T courante) pour reproductibilité albedo_nuages (35.9% vs 35.3%)
-// - v1.0.16 : pdTrace retiré (crochet hôte) — la branche console.log + miroir fichier suffit.
-// - v1.0.15 : cap vapeur log → pdTrace
-// - v1.0.14 : logs cap vapeur C-C simplifiés en "[cycle] H2O cap @...°C"
-// - v1.0.12 : sans atmosphère (⚖️🫧=0) avec ⚖️💧>0 (Corps noir météorites) : 🍰💧🧊=1 si T<0°C, sinon 🍰💧🌊=1 (didactique)
 // ============================================================================
 
 // TODO: Évolutions futures du cycle de l'eau

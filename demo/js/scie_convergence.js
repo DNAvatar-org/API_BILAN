@@ -2,7 +2,6 @@
 // Desc: Module partagé parent + iframe scie : buildStepHtml(state) → fragment HTML pour #convergence-steps.
 //       Utilisé par le shell pour stocker des chaînes HTML au lieu des payloads complets.
 // Version 1.0.5
-// logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
@@ -12,11 +11,6 @@
 // Date: 2025-02-25
 // Logs:
 // - v1.0.5: stringifyDataValue — nombres |x|>1e3 ou |x|<1e-3 en toExponential(3) (évite 15000000000000000 en log) ; scieStringifyDataPretty
-// - v1.0.2: export scieFormatJSONCompact pour logs hystérésis (💧🪩 instantanés)
-// - v1.0.3: ligne radiatif — albédo en % (×100, fraction DATA) ; hint Δ = ☀️🔽+🌕🔽−🌈🔼 (🌑🔼/🪩🔼 hors bilan)
-// - v1.0.4: titre sur « EDS H2O » — part dans sum_blocked (τ), pas vapeur molaire ni capacités 🌈 ; évite lecture « 0 % = pas d’eau »
-// - v1.0.1: renomme H2O% en % EDS H2O pour éviter la confusion avec 🍰🫧💧
-// - v1.0.0: extraction depuis scie_compute.html ; json2html, formatJSONCompact, buildStepHtml
 
 (function () {
     'use strict';

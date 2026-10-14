@@ -7,24 +7,9 @@
 // - v1.3.3 (2026-10-13): ch4_eds_scale n'est plus transmis.
 // - v1.3.2 (2026-10-13): table CIA CO₂ découpée par tranche comme les σ.
 // - v1.3.1 (2026-10-13): diffusivite transmise ; h2o_eds_scale retiré.
-// - v1.3.0 (2026-10-12): tables σ[T][λ] et continuum découpés par tranche ; somme continuum.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: April 23, 2026
-// Logs:
-// - v1.2.0 dispatch renvoie `spectra` — l'attribution EDS résolue par longueur d'onde (worker v0.7.0),
-//   recollée depuis les tranches. `sums` en est désormais la somme, plus un scalaire envoyé par le worker.
-// - v1.1.6 dispatch non réentrant : throw si un dispatch est encore en cours. worker.onmessage est réaffecté à chaque appel
-//   et le filtre msg.id === k ne distingue pas les appels → 2 calculs concurrents mélangeaient des tranches de T différentes.
-// - v1.1.5 passage de ch4_eds_scale (EARTH.CH4_EDS_SCALE) au worker slice_transfer (parallèle à h2o_eds_scale).
-// - v1.1.4 URL worker : window.__SPECTRAL_WORKER_SCRIPT__ (epoch_bench doc/) sinon ../API_BILAN/workers/ (CO2)
-// - v1.1.4 Repli blob: si new Worker(chemin) est refusé (file://) — source prise dans window.__SPECTRAL_WORKER_MAIN__,
-//   publié par spectral_slice_worker.js v0.6.0 quand la page le charge en <script>.
-// - v1.1.3 __API_BILAN_WORKER_POOL__ + silence console si __EPOCH_BENCH_PAGE__ (résumé dans epoch_bench)
-// - v1.0.0 Initial: N-1 workers, SAB Float32 pour upward_flux, sums EDS via postMessage
-// - v1.1.0 Transferable au lieu de SharedArrayBuffer (pas de headers COOP/COEP requis, compatible prod)
-// - v1.1.1 Retrait typeof navigator guard (regle-js-crash)
-// - v1.1.2 Plafond optionnel CONFIG_COMPUTE.maxWorkers (si défini) ; sinon nCPU - 1
 
 (function () {
     'use strict';

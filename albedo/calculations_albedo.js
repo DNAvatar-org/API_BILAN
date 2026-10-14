@@ -4,99 +4,8 @@
 // - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
 // - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
 // - v1.4.4 (2026-10-13): ALBEDO.nombreGouttesActuelCm3 / nombreGouttesCm3 — une seule définition du nombre de gouttes (profil, affichage).
-// - v1.4.3 (2026-10-13): rapportCCN = loi sulfate mesurée seule (proxy O₂ × biomasse × anthropique, sans physique, retiré) ; surface en fusion = fraction fondue de la péridotite à la T courante (Katz 2003) au lieu de la rampe 1000–2373 K sur la T de graine.
-// - v1.4.2 (2026-10-13): double comptage de la glace retiré (« CONTRIBUTION H2O (GLACE) », depuis V1.0.0).
-// - v1.4.1 (2026-10-13): glace saisonnière pondérée par l'ensoleillement dans l'albédo (EARTH.fractionGelee).
-// - v1.4.0 (2026-10-13): albédo au SOMMET de l'atmosphère par radiative/solaire.js (Lacis & Hansen 1974 : Rayleigh,
-//   ozone, vapeur, nuages, surface) ; l'addition à 2 couches sans atmosphère est retirée. 🪩🍰⛅ = albédo du ciel nuageux.
-// - v1.3.1 (2026-10-13): réflectance du nuage adiabatique de la parcelle, limité par la pluie (RADIATIVE.colonneNuageuse).
-// - v1.3.0 (2026-10-12): NUAGES — 🍰🪩⛅ = fraction géométrique MESURÉE (King et al. 2013 : 0,72 océan / 0,55 continent) ;
-//   réflectance 🪩🍰⛅ CALCULÉE en deux-flux (Lacis & Hansen 1974, g = 0,85) depuis τ_SW du condensat du profil
-//   (RADIATIVE.colonneNuageuse). Retirés : r_c = 0,42, CLOUD_FRACTION_BASE / _INDEX_GAIN / _MAX, OPTICAL_EFF_BASE,
-//   facteurs pression / oxydation / température, Twomey sur l'albédo (il est dans r_eff ∝ N^(−1/3)).
-//   Proxy CCN extrait en ALBEDO.rapportCCN() (lu par le profil).
-// - v1.2.67 (2026-10-12): seaIceStrength01 et iceImpactFactor01 retirés (= 1 à la jauge : multiplicateurs identité).
 // Date: [September 16, 2026]
-// logs :
-// - v1.2.66: DATA['🪩']['🍰🪩💧'] — le facteur corps-noir (couche d'eau globale / 10 m, plafond 1) est
-//   désormais écrit dans DATA. Il multiplie A_geo et expliquait à lui seul l'écart entre le détail
-//   affiché et le badge albédo sur ⚫ (7,6 % avec une glace donnée à 2,3 % × 0,70).
-//   DATA['🪩']['🪩🍰🧊'] — albédo de glace effectif (moyenne zonale Briegleb) réellement utilisé dans A_geo,
-//   à afficher à la place du coefficient de config.
-// - v1.2.65: retrait de la journalisation par appel (FNTRACE + DATA_DUMP de DATA complet vers _logs/) — diagnostic du 16/07 devenu inutile (cause trouvée en v1.2.64), coûteux en I/O.
-// - v1.2.64: HYSTÉRÉSIS 1 — suppression des racines parasites de Δ(T) (albédo non monotone) + physique nuages :
-//   (1) calcGlaceEquilibre CONTINU au gel : max(0.1 calottes, 0.9·gel mer) (avant 0.10 → 0.009 à −2.0/−2.2 °C :
-//       faux puits qui piégeait la visu ⛄ à −2 °C et fabriquait la « surfusion » 1a) ;
-//   (2) retrait du gate de vote zonal (v1.2.61) et du gate d'établissement (v1.2.63) : la zone mi-lat passait d'un coup
-//       de 0 à 0.19 de poids avec α≈0.55 → albédo ↓ en refroidissant vers +3 °C ; le gate v1.2.63 plaquait 0.85 sur la
-//       glace moderne (📱 13.2 °C, 🍄 10.8 °C hors bench). Désormais α_zone = Briegleb(min(T_locale, −5 °C)) : glace
-//       saisonnière = 🪩🍰🧊 (annuel Arctique 0.6–0.7), neige ❄️ sous −10 °C → α(T) monotone et continue ;
-//   (3) nuages : méthode d'addition 2 couches (r_c 🪩🍰⛅=0.42, physics.js) au lieu du mélange linéaire qui assombrissait
-//       la glace (⛄ 0.738 → 0.78, bench [0.80,0.90] ; ⛄ −45.9 → −56 °C, dans [−60,−50]) ;
-//   (4) mudball piloté par EPOCH['🌫️❄️'] (albédo glace sale, 1b) — plus de détection par nom d'époque.
-// - v1.2.63: gate ÉTABLISSEMENT (f_global_ice) sur toute la courbe Briegleb — glace neuve = plateau ❄️
-//   (0.85) quelle que soit T_locale ; aging + melt-pond + assombrissement tropical ne s'activent que
-//   quand le snowball s'établit (Pierrehumbert/Abbot : sublimation + poussière sur des Ma). Corrige le
-//   pas 2 du scan 1a où la mi-lat votait melt-pond (~0.58) sur glace fraîche → ice_eff 0.693 → T↑ malgré CO₂↓.
-// - v1.2.62: plateau tropical ❄️→🧊 lié à f_global_ice (sublimation snowball établi).
-// - v1.2.61: FIX moyenne zonale — une zone ne vote QUE si T_locale < gel
-// - v1.2.60: albédo glace = moyenne zonale EBM 3 zones (f_z·tf_z) via Briegleb(T_local, α_snow_deep_z) — plus de ICE_ALBEDO_BARE_SNOWBALL / F_BARE_ONSET (réglages). Pol/mi-lat : plateau ❄️ ; tropiques : plateau 🧊 (sublimation, pas d'accumulation neige propre — Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010). α_melt depuis EARTH['🪩🍰']['🪩🍰🏊'] (paramètre équation Briegleb).
-// - v1.2.59: blend dt invariant aux itérations Search/Dicho + couplage masse↔surface optique de glace.
-//   PROBLÈME (cas 1800 → 21°C en 33 iter) : (a) le blend dt sur 🍰💧🧊 (ligne 282) lisait DATA['💧']['🍰💧🧊']
-//   *courant* à chaque appel — appliqué N=33 fois, le τ effectif passait de 50 000 ans (config) à ~1 500 ans,
-//   incohérent avec Marshall & Clark 2002 GRL 29(24):2214 (τ continental ~10⁴–10⁵ ans) ; (b) 🍰🪩🧊 (surface
-//   optique, ligne 411) écrasé directement par ice_temp_factor pur-en-T, sans inertie : reculait 3.6× plus
-//   vite que la masse (🍰💧🧊), ce qui viole la chaleur latente de fusion (Hansen et al. 2013 Phil. Trans.
-//   R. Soc. A 371:20120294 — séparation feedbacks rapides vapeur/clouds vs lents calotte).
-//   FIX : (1) snapshot ANCRÉ SUR EPOCH['🌡️🧮'] (T seed config) à chaque 🧮⚧ === 'Init' — repère
-//   calibration-stable, indépendant du parcours utilisateur (clic timeline vs bench séquentiel donnaient
-//   des résultats différents si le snapshot lisait DATA leaké de l'époque précédente). Le blend lit FROM
-//   snapshot pendant Search/Dicho → résultat invariant au nombre d'itérations numériques. (2) 🍰🪩🧊
-//   blendée avec même fraction_fonte que 🍰💧🧊 — la surface optique ne peut pas reculer plus vite que
-//   la masse ne fond. ⛄ scan hystérésis : feedback T→glace via le terme cible glace_equilibre(T_courant)
-//   du blend (Pierrehumbert 2005), snapshot reste ancré T_seed. Réfs : Pierrehumbert 2005 JGR 110:D01111 (feedback glace-albédo
-//   doit suivre T dans la branche froide), Marshall & Clark 2002 GRL (τ géologique calotte), Hansen et al.
-//   2013 PTRSA (séparation timescales).
-// - v1.2.58: blend 🍰💧🧊 ← calcGlaceEquilibre uniquement si atm+hydro (⚖️🫧>0, ⚖️💧>0) et époque ≠ ⚫ — sinon écrasait la partition H₂O (~72 % à 255 K pour Corps noir sans eau).
-// - v1.2.57: miroir debugMirrorConfigLogToFile pour logIceFractionDiagnostic / logCloudProxyDiagnostic → _logs/iceFraction.txt, cloudProxy.txt
-// - v1.2.56: pdTrace SEA_ICE_BLEND — même garde que logIceFractionDiagnostic (défaut false config v1.4.52) ; évite 🔍
-//   [alb] à chaque calculateAlbedo quand les longs messages 🧊 sont déjà off.
-// - v1.2.55: retrait HYSTERESIS.active / freezePolarIceDuringSearch / rampe solver du calcul de glace. La rétroaction glace-albédo suit désormais directement T dans tous les onglets ; l'hystérésis reste un pilote de scan, pas une physique spéciale.
-// - v1.2.54: passage fraction_fonte LINÉAIRE → EXPONENTIELLE. Nouvelle formule : tau_eff = tauGlaceAns × iceInertiaFactor01 ; fraction_fonte = 1 − exp(−duree_ans/tau_eff). Rename CONFIG_COMPUTE.iceBlendRelaxation01 → iceInertiaFactor01 (cohérence sémantique : facteur multiplieur du temps caractéristique). Avantages : (1) intrinsèquement ∈ [0,1) (pas de clamp arbitraire qui écrête à 1 quand duree_ans dépasse tau × factor), (2) sémantique physique claire (half-life = ln(2) × tau_eff), (3) composable (cascades exp). factor=1.0 standard ; factor=0 → tau_eff=0 → fraction_fonte=1 (équilibre instantané, cas limite safe). Cf. configTimeline.js v1.4.28.
-// - v1.2.53: verrou STATE.iceEpochFixedWaterState supprimé (user: "doit sauter", "virer le verrou tout le temps"). Le blend dt se ré-évalue désormais à CHAQUE pas (plus de garde epochId). T source = DATA['🧮']['🧮🌡️'] (T courante solver) au lieu de EPOCH['🌡️🧮'] (seed config) → feedback T→glace opérationnel dans scan hystérésis ⛄. Nouveau paramètre CONFIG_COMPUTE.iceBlendRelaxation01 (défaut 1.0) pour calibrer la temporalité sans désactiver brutalement le couplage (0.0 = blend off, 0.5 = amortissement Picard). STATE.iceEpochFixedState / iceDurationBlendState ne sont plus posés ici. Fix bug ⛄ : 🍰💧🧊 figé à 0.006 pendant tout le scan CO₂ à cause de calcGlaceEquilibre(T_seed=290K) verrouillé une fois. Ref : Hoffman & Schrag 2002 + Pierrehumbert 2005 (feedback glace-albédo doit suivre T dans la branche froide de la bifurcation).
-// - v1.2.66: 🍰💭 SUPPRIMÉE. La fraction nuageuse ne dépend plus que de l'humidité relative
-//   (Sundqvist 1989), ce qui est sa physique. 🍰💭 mélangeait O₂, CH₄ et sulfate dans un « proxy CCN »
-//   sans fondement (ni O₂ ni CH₄ n'interviennent dans l'activation de Köhler), et son clamp la
-//   figeait de toute façon à 1,000 sur 18 époques sur 19. L'apport des CCN passe désormais
-//   uniquement par la loi mesurée sulfate → gouttelettes (McCoy 2018) puis Twomey.
-//   Disparaissent avec elle : CONV.CCN_O2_REF_KG, CONV.CCN_CH4_REF_KG, et la modulation
-//   τ_LW = 2,6 × 🍰💭 de radiative/calculations.js.
-// - v1.2.65: sulfate → CCN passe du proxy linéaire à la LOI DE PUISSANCE mesurée. sulfate_boost =
-//   AEROSOL.sulfateCcnRatio(m_eff, CCN_SULFATE_REF_KG, SULFATE_CCN_EXPONENT) = (m/m_ref)^a,
-//   Boucher & Lohmann 1995 / McCoy et al. 2018 ACP 18:2035 (a mesuré sur 19 régions, quartiles
-//   [0,11 ; 0,29]). Disparaissent : SULFATE_BOOST_SCALE, SULFATE_BOOST_MAX (deux constantes
-//   inventées, mesurées sans effet au banc — une loi de puissance sature d'elle-même) et la porte
-//   « ▶ >= ANTHRO_RISE_START_YEAR » sur le sulfate (cassée, et sans objet depuis que ⚖️✈ porte
-//   lui-même le signal anthropique : 1,05e9 kg sur 📱 contre 4,0e8 de fond). 🧫 devient la part du
-//   soufre d'origine DMS, avec le partage MESURÉ volcanique/DMS = 0,29/0,71 (Carn 2017 + Lana 2011) :
-//   la dérivation qui était en dur dans la fiche ⛄ passe dans le code et vaut pour les 19 époques.
-//   Changement de SENS important : le rapport est normalisé au moderne, donc il vaut 1 sur 📱 et
 //   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
-// - v1.2.52: fix NaN cascade sulfate_boost — EPOCH['🧫'] sorti hors Math.min pour éviter 0×Infinity=NaN quand '⚖️🫧'=0 (⚫ Corps noir : pas d'atmosphère → 🍰🫧✈=⚖️✈/⚖️🫧=Infinity). Math.min(MAX, Infinity) = MAX (safe), mais Math.min(MAX, Infinity×0) = NaN (cascade via ccn_proxy → cloud_fraction → final_albedo). Nouveau : sulfate_boost = 1 + 🧫 × Math.min(MAX, 🍰🫧✈ × SCALE). Gate biosphère marine appliqué au *boost* (enhancement > 1.0), physiquement équivalent quand 🍰🫧✈ fini. Fix signalé par Zorba sur epoch-click setEpoch (main.js:2485).
-// - v1.2.51: Briegleb étendu — seuil plateau α_snow_deep abaissé de −30°C → −10°C (Gardner & Sharp 2010 JGR 115:F01009 : α_fresh=0.84 à −10°C, standard CICE/CLM/MPAS-Seaice ; Flanner-Zender 2006 ; Domine 2008). 3 segments linéaires : [−∞,−10°C] plateau 0.85 ; [−10,−5°C] snow aging 0.85→0.70 ; [−5,0°C] melt pond onset 0.70→0.50 ; [0°C,+∞] melt 0.50. Effet : ⛄ Snowball atteignable dès T_pol ≤ −10°C (= T_glob ≤ +10°C avec amp 20 K) — active la rétroaction glace-albédo Pierrehumbert 2005 sur la gamme physique d'un scan hystérésis.
-// - v1.2.50: sulfate_boost × EPOCH['🧫'] — gate biosphère MARINE sur le couplage DMS-CCN (hypothèse CLAW, Charlson-Lovelock-Andreae-Warren 1987 Nature 326:655). 🧫=0 (Hadéen/Corps noir) à 1 (moderne), avec 🧫=0.05 pour ⛄ Plein Snowball → DMS quasi-éteint sous banquise, couplage CCN-sulfate neutralisé, reste seul le sulfate volcanique direct. Lecture directe EPOCH['🧫'] sans fallback (regle-data-territoire.mdc : NaN-crash si clé absente). Couple avec configTimeline.js v1.4.25.
-// - v1.2.49: plumbing 3e zone tropicale (physics.js v2.0.15) — ice_tf_trop + T_thresh_trop ajoutés aux logs diagnostics. Rétro-compat : `ICE_FORMULA_MAX_FRACTION × ice_temp_factor` devient `1.0 × ice_tf` (pas de changement API). La formule pol+mid+trop autorise Snowball (ice_tf → 1.0 quand T_glob < −4°C et que les 3 zones gèlent).
-// - v1.2.48: ice_temp_factor UNIFIÉ — formule physiquement ancrée sur T_FREEZE_SEAWATER (fonte mer) + amplification polaire globale EARTH.POLAR_AMP_POL_K/MID_K (pas d'override par époque). Suppression des clés EPOCH['polarAmplificationK'/'midlatAmplificationK'] : constantes géophysiques (Terre-moderne), mêmes pour toutes les époques. Seuils : T_thresh_pol = T_FREEZE + dT_pol (≈18°C global) ; T_thresh_mid = T_FREEZE + dT_mid (≈3°C global). Correction du bug sémantique v1.2.47 où T_NO_POLAR_ICE_K (seuil global calibré à 20°C) était utilisé comme seuil LOCAL → ice_tf saturait toujours à 1.0 dans la plage utile.
-// - v1.2.47: (déprécié par v1.2.48) amplification polaire epoch-spécifique.
-// - v1.2.46: 3 zones latitudinales EBM 0D (Budyko-Sellers) — ice_temp_factor pondéré polaire/mi-latitude/tropiques. Rétroaction glace-albédo activée à T réaliste (T_glob − dT_pol < T_NO_POLAR_ICE_K).
-// - v1.2.45: amplification polaire simple (T_K − POLAR_OFFSET) — remplacé par 3-zones en v1.2.46.
-// - v1.2.44: expositions fonctions regroupées sous window.ALBEDO (doublons window.foo retirés). Ajout ALBEDO.updateLevelsConfig. Appelants migrés window.foo() → ALBEDO.foo() dans radiative/calculations.js, convergence/calculations_flux.js, ui/main.js, organigramme/organigramme.js.
-// - v1.2.43: updateLevelsConfig — lecture directe DATA['⚖️']['⚖️🫧'] / DATA['🫧']['🧪'] (pas de const stale)
-// - v1.2.42: diagnostics glace / albédo → pdTrace au lieu de pd
-// - v1.2.41: CONFIG_COMPUTE.logIceFractionDiagnostic — journal chaîne complète vers 🍰🪩🧊 (polaire, mer gelée, verrous, surface finale)
-// - v1.2.40: recherche HYSTERESIS.active — pas de verrou glace époque / gel polaire / rampe (🍰🪩🧊 suit T et CO₂ pour chute brutale)
-// - v1.2.39: 🍰🪩📿 albédo effectif (voile inclus) ; 🧲☀️🔽 = S×(1−🍰🪩📿)
-// - v1.2.36: clés lave 🍰🪩🎾 / 🪩🍰🎾 (ex-🍰🪩🌋 / 🪩🍰🌋) ; événement TIMELINE 🌋 inchangé
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -105,47 +14,6 @@
 // UTF8 est la sémantique pour CODE & UI
 // - epochId Archéen : 🦠 (🌋 réservé actions). Archéen utilise clouds modernes pour ~15°C.
 // - 🧲⚖️💦 : formule P = W/τ (litt. 8–10 j), ⏳☔ = 1/τ_global ; rampe (RH−💭☔)/0,2 ; ref. Nature Rev. Earth Env. 2021, HESS 2017, GPCP ~2,7 mm/j.
-// - v1.2.1 : rampe douce 🍰🪩🧊 en Search/Dicho (premières itérations) pour éviter saut de bassin albédo/glace
-// - v1.2.2 : verrou optionnel glace initiale pendant Search du premier bassin (🧮🔄🌊=0) pour stabiliser le point fixe froid
-// - v1.2.3 : retrait gardes défensives CONFIG_COMPUTE sur rampe glace (règle crash)
-// - v1.2.4 : héritage glaciaire pondéré par durée d'époque (blend une fois/époque entre glace héritée et glace d'équilibre à T_config)
-// - v1.2.5 : expose une glace d'époque figée (_iceEpochFixedState) pour bloquer le recalcul glace dans le solver radiatif
-// - v1.2.6 : rampe glace renforcée au début Search (0.001 pendant 10 itérations), puis step nominal
-// - v1.2.7 : verrou glace par époque en phase solver (Search/Dicho) via _iceEpochFixedState (anti-bistabilité)
-// - v1.2.8 : proxy CCN continu (O2, T, CO2) pour 🍰🪩⛅ sans if d'époque + refs CERES/MODIS/FYSP en commentaires
-// - v1.2.9 : proxy CCN enrichi (O2 + biomasse + facteur anthropique) + efficacité optique type Twomey
-// - v1.2.10 : facteur anthropique progressif (1900→1980 puis déclin SO2) + sulfate_proxy ; commentaires justificatifs littérature
-// - v1.2.11 : log updateLevelsConfig clarifié (vapeur init UI vs état cycle eau) + ajout masse totale H2O
-// - v1.2.12 : priorité verrou glace d'époque sur _iceCoverageLock (évite 🧊=0.09 quand _iceEpochFixedState=0.022)
-// - v1.2.13 : séparation verrou glace albédo (🍰🪩🧊) du verrou glace eau (🍰💧🧊) + log proxy nuages optionnel
-// - v1.2.14 : calibration CCN normalisée sur un référentiel moderne (eta_cloud ~1 en 📱), logs cloud-proxy enrichis
-// - v1.2.15 : nuages SW "version physique" (CCN+pression+oxydation+température), doc scientifique intégrée en commentaires
-// - v1.2.16 : recalibration physique nuages SW (référence moderne explicite) pour retrouver 🍰🪩⛅~0.28-0.35 en 📱
-// - v1.2.17 : annotation explicite OBS vs EQ dans le bloc nuages (traçabilité source des constantes)
-// - v1.2.18 : formule forêt revue (land_frac + suitability thermique + modulation océanique) pour éviter 🌳=0 en moderne
-// - v1.2.19 : fine-tuning forêt réaliste (31% terres, suitability thermique bornée) pour stabiliser CCN moderne
-// - v1.2.20 : normalisation stricte des surfaces au sol + nuages traités en voile optique (pas en surface additionnelle)
-// - v1.2.21 : retour calculateAlbedo aligné sur DATA['🪩']['🍰🪩📿'] (final_albedo_with_water) pour cohérence solveur/UI
-// - v1.2.22 : SO₄²⁻ branché dans proxy CCN via DATA (⚖️✈, 🍰🫧✈) + log cloud-proxy enrichi
-// - v1.2.23 : coefficients cloud SW externalisés vers static/tuning/model_tuning.js (iso-résultats)
-// - v1.2.24 : fallback synchrone cloud tuning si window.TUNING absent
-// - v1.2.25 : Corps noir avec ⚖️💧>0 → ice_cap_surface 0.9 pour 🍰🪩🧊 (glace météorites didactique)
-// - v1.2.27 : ne pas écraser iceEpochFixedWaterState en Search/Dicho (bloc blend glace) pour reproductibilité visu vs scie
-// - v1.2.26 : source unique CLOUD_SW : lecture DATA['🎚️'].CLOUD_SW en priorité (pas variable dupliquée)
-// - v1.2.28 : ice_cap_surface piloté par la couche d'eau globale équivalente (⚖️💧 / surface planète), sans if spécial corps noir
-// - v1.2.29 : contribution_glace recouplée au support de surface hydrique pour éviter un gros albédo avec une masse d'eau microscopique
-// - v1.2.30 : si 🍰🪩📿 final non fini (NaN/Inf) → throw explicite (pas de stockage silencieux dans DATA)
-// - v1.2.31 : surface océanique réelle : si 📏🌊=0 (pas de colonne d’eau géométrique), éviter 0/0 → surface océanique 0 (ex. ⚫)
-// - v1.2.32 : gel océan lissé (fonction de T), plus de bascule brutale ocean→glace (sans if d'époque)
-// - v1.2.33 : conserve somme des surfaces (=1) après SEA_ICE_BLEND (fraction manquante → glace)
-// - v1.2.34 : ice_impact_factor paramétrable via CONFIG_COMPUTE.iceImpactFactor01 (tests)
-// - v1.2.35 : 🍰⚽ atténuation solaire absorbée en surface (événements 🌋 + jauge hyst) ; indép. τ LW nuages
-// - v1.2.36 : clés DATA lave 🍰🪩🎾 / 🪩🍰🎾 (remplace 🌋 pour la fraction surface magmatique)
-// - v1.2.37 : 🍰🪩⚽ dans DATA['🪩'] (puis aligné v1.2.38 : transmission = 1−🍰⚽) ; purge 🍰🪩🌋
-// - v1.2.38 : 🍰⚽ obstruction, 🍰🪩⚽ = 1−🍰⚽ ; flux × transmission (priorité lecture 🍰⚽)
-// - v1.2.46: ice_temp_factor — 3 zones latitudinales (Budyko-Sellers EBM 0D) : polaire (f=0.13, −20K) + mi-latitude (f=0.37, −5K) ; tropiques implicitement compensés (+9K). ice_temp_factor = moyenne pondérée normalisée des 2 zones froides. Remplace v1.2.45 mono-zone −15K qui causait gel immédiat à T_glob>20°C.
-// - v1.2.45: ice_temp_factor — amplification polaire EBM 0D (Budyko-Sellers) : T_K_polar = T_K − CONFIG_COMPUTE.polarAmplificationK (défaut 15 K). Sans ce décalage, ice_temp_factor=0 à T_globale>20°C → rétroaction glace-albédo inactive, snowball impossible.
-// - v1.2.39 : 🍰🪩📿 inclut voile (A_eff) ; calculateSolarFluxAbsorbed = S×(1−A_eff) sans double ×🍰🪩⚽
 //
 // FORMULES ALBEDO :
 // A_geo = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages

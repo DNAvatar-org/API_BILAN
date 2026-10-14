@@ -10,8 +10,6 @@
 // Date: [April 18, 2026] [21:00 UTC+1]
 // Logs:
 // - v1.2.0: STUB — retrait complet du bundle (crash-first via désynchro bundle/sources impossibles). Les HTML chargent directement model_tuning_biblio.js / configTimeline.js / alphabet.js / dico.js / initDATA.js / fine_tuning_bounds.js. SOLVER = source unique window.CONFIG_COMPUTE (plus de DATA['🎚️'].SOLVER ni DEFAULT.TUNING.SOLVER).
-// - v1.1.0: window.DEFAULT.TUNING (source unique defaults) + window.DEFAULT.BOUNDS.HYSTERESIS ; DATA['🎚️'] = clone(DEFAULT.TUNING). Retrait window.TUNING.
-// - v1.0.x: historique bundle manuel (voir git log).
 
 // Stub : aucun code actif. Les HTML doivent charger les 6 sources listées ci-dessus.
 // Si ce fichier est chargé seul, les lecteurs downstream planteront visiblement (crash-first).

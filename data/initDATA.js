@@ -9,44 +9,13 @@
 // - v1.4.4 (2026-10-13): CLOUD_SW sans le proxy CCN (CCN_BASE, CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_*, MODERN_REF_*).
 // - v1.4.3 (2026-10-13): barycentre ATM 62 → 15 % ; jauge R_EFF_PLUIE.
 // - v1.4.2 (2026-10-12): CLOUD_SW — 9 constantes réglées des nuages SW retirées ; CDNC_OCEAN_CM3 (mesurée, Bennartz 2007).
-// - v1.4.1 (2026-10-12): DEFAULT.TUNING sans OPTICAL_EFF_CCN_GAIN, seaIceStrength01, iceImpactFactor01, co2OceanEffPump01, factorTropopause.
 // Date: [October 10, 2026]
-// Logs:
-// - v1.4.0: PAS DE GARDES. DEFAULT, UI_STATE, RUNTIME_STATE créés ici et nulle part ailleurs (plus de `x = x || {}`).
-//   Paramètres de scan hystérésis et DEFAULT.BOUNDS.HYSTERESIS supprimés avec la page hystérésis (plus de lecteur).
-//   Miroir CONFIG_COMPUTE.baryByGroupDefault supprimé : DEFAULT.TUNING.baryByGroup est la seule référence.
-//   UI_STATE.debugAPI lu une fois dans l'URL (?debugAPI=1|true) : le moteur ne relit plus l'URL.
-// - v1.3.9: plus de cas 🔺🧲🌕💫 (clé retirée : le flux intérieur sort de geology/interieur.js).
-// - v1.3.8: DATA['🔘'] = { '🔘🎞': false } — init hors KEYS/dico (catégorie 🔘 retirée du dico ; anim reste runtime)
-// - v1.3.7: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 45 % (flou scientifique / jauge titre visu).
-// - v1.3.6: baryByGroup.ATM / CLOUD_SW / SCIENCE défaut 13 % (calage utilisateur flou) ; miroir CONFIG_COMPUTE.baryByGroupDefault.
-// - v1.3.5: RADIATIVE.factorTropopause = 1,0261 (aligné CONFIG_COMPUTE.radiativeFactorTropopauseFixed, hors bary).
-// - v1.3.4: doc RADIATIVE.factorTropopause — plage FINE_TUNING resserrée 1,03–1,00 (v1.3.9) ; défaut numérique 1,03 inchangé.
-// - v1.3.3: DEFAULT.TUNING.RADIATIVE.factorTropopause (interpolé FINE_TUNING_BOUNDS SCIENCE) — source unique lue par ATM.calculateTropopauseHeight ; CONFIG_COMPUTE.radiativeTropopauseExtensionFactor retiré.
-// - v1.3.2: window.DEBUG_SYNC_PANELS / DEBUG_CONVERGENCE_BINS / DEBUG_TIMELINE_HIDDEN = false (source unique, évite rester true après session debug)
-// - v1.3.1: CONFIG_COMPUTE.baryByGroupDefault = copie profonde de DEFAULT.TUNING.baryByGroup après init DATA['🎚️'] — ref unique utilisateur (plus de littéral dupliqué dans configTimeline qui écrasait CLOUD_SW/SCIENCE vs ATM au bench).
-// - v1.3.0: création window.UI_STATE (flags UI) + window.RUNTIME_STATE (état d'exécution live). Regroupe les dizaines de window.minuscule épars (waterVaporEnabled, methaneEnabled, calculationConverged, fps, plotData, currentEpochName, spectralConverged, h2oVaporPercent…) sous deux namespaces source unique. Initialisation au tout début du boot (avant loader_panels charge les consommateurs).
-// - v1.2.0: retrait bloc SOLVER de DEFAULT.TUNING (+ plus de DATA['🎚️'].SOLVER) → source unique SOLVER = window.CONFIG_COMPUTE (configTimeline.js clés tolMinWm2/maxSearchStepK/maxSearchStepLargeK/largeDeltaFactor/deltaTAccelerationDays/firstSearchStepCapK). DATA['🎚️'] = clone(DEFAULT.TUNING) = baryByGroup/CLOUD_SW/HYSTERESIS/RADIATIVE uniquement.
-// - v1.1.0: window.DEFAULT.TUNING (source unique defaults : baryByGroup/CLOUD_SW/SOLVER/HYSTERESIS/RADIATIVE) + window.DEFAULT.BOUNDS.HYSTERESIS (plages UI). DATA['🎚️'] = clone(DEFAULT.TUNING). Retrait de window.TUNING (remplacé dans model_tuning.js + migrations lecteurs live).
-// - v1.0.12: retrait DATA['🎚️'].SOLVER + baryByGroup.SOLVER + _solverDefault (déplacés vers window.TUNING.SOLVER, source unique lue par calculations_flux.js / calculations_h2o.js). Bary SOLVER jamais exposée en UI.
-// - v1.0.11: FIRST_SEARCH_STEP_CAP_K 4 K (amortissement 1er pas après Init, plus fort que 8 K)
-// - v1.0.10: SOLVER.FIRST_SEARCH_STEP_CAP_K 8 (1er pas après Init ; lissage trajet vs 0) ; aligné configsAll / TUNING / configTimeline fallback
-// - v1.0.9: baryByGroup défaut CLOUD_SW 65 + SCIENCE 65 (bench / convergence ajustée ailleurs) ; aligné CONFIG_COMPUTE
-// - v1.0.8: baryByGroup défaut CLOUD_SW 50 + SCIENCE 50 (jauge unique scie/bench) ; aligné CONFIG_COMPUTE.baryByGroupDefault
-// - v1.0.7: baryByGroup défaut aligné CONFIG_COMPUTE — CLOUD_SW 100, SCIENCE 50, SOLVER 100, HYSTERESIS 100 ; H2O_EDS_SCALE 0.80 (= interp. SCIENCE 50 % sur cible min 1 / max 0.60)
-// - v1.0.6: DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE (défaut 0.60 = bary SCIENCE 100 % = valeur max fine_tuning_bounds)
-// - v1.0.5: FIRST_SEARCH_STEP_CAP_K défaut 0 (désactivé ; aligné configsAll v1.0.17)
-// - v1.0.4: SOLVER.FIRST_SEARCH_STEP_CAP_K (aligné configsAll / fine_tuning_bounds)
-// - v1.0.3: DATA['🎚️'].HYSTERESIS + baryByGroup.HYSTERESIS (fillDataTuningFromBary / sync scie → parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.0: extraction init DATA depuis dico.js (KEYS → DATA, puis 🎚️)
-// - v1.0.1: init DATA['🌊'] pour cycle CO2 océan
-// - v1.0.2: init DATA['🌊']['⚖️🌊🏭']=0 (debug/affichage)
 
 (function () {
     'use strict';

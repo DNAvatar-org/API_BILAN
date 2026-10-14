@@ -4,85 +4,8 @@
 // - v1.8.3 (2026-10-13): k de Martin pondéré par ALBEDO.fractionMaritime (banquise = air maritime).
 // - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
 // - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
-// - v1.8.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN CIA 2024, tablesCIA) ; raies H₂O de la fenêtre (850–1200 cm⁻¹) et
-//   CO₂ 850–2500 cm⁻¹ ajoutées aux données ; LCL par dichotomie ; HR de radiosonde / eau liquide.
-// - v1.7.0 (2026-10-13): CIA CO₂ inventée retirée ; nuages bas adiabatiques limités par la pluie (population) et hauts
-//   (enclumes à T_ENCLUME), vapeur moyenne de Manabe & Wetherald, eau précipitable effective pour solaire.js.
-// - v1.6.0 (2026-10-12): NUAGES par la physique. Condensat d'Ackerman & Marley 2001 (q_t transportée, f_sed), accumulé
-//   à chaque pas d'intégration (100 m) et non plus échantillonné aux nœuds de la grille ; gouttes liquides de Martin
-//   et al. 1994 (N du rapport CCN), glace par sédimentation (A&M), phase Hu & Stamnes ; τ_IR = ¾ W/(ρ r), τ_SW = 3/2 W/(ρ r),
-//   recouvrement maximal. colonneNuageuse() donne τ_SW à l'albédo. CLOUD_LW_TAU_REF (2,6, sans source) retiré.
-// - v1.5.0 (2026-10-12): σ(λ) à la température de chaque couche (tables HITRAN S(T), γ(T) sur 10 T, 100–3000 K) ;
-//   élargissement par la pression sans plafond (min(2,…) retiré) + auto-élargissement H₂O tiré des raies ;
-//   continuum H₂O de Roberts et al. 1976 résolu en λ (remplace le « piégeage » MT_CKD scalaire désactivé) ;
-//   profil sans océan (profilVapeurSeule) : hydrostatique, adiabatique sèche cp(T), saturation, peau.
-//   Attribution par retrait : retirer la vapeur = vapeur à 0 (raies ET continuum).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// - v1.4.0 (2026-10-10): PAS DE GARDES. displayDichotomyStep (dessin) et l'ancien solveur simulateRadiativeTransfer /
-//   finalizeResults* (1 250 lignes de DOM) sortis du moteur → CO2/static/compute/visu_/visu_dichotomie.js.
-//   Code mort retiré : waterVaporMixingRatio, evaporationRate, densité d'air locale de calculateRadiativeCapacities,
-//   diagnostics jamais lus (flux < 9 µm, hitranBinBounds — un balayage HITRAN complet à chaque appel —), contrôles
-//   de longueur recopiés. Replis retirés : M_air 0,02897, g 9,81, P_ref 101325, MT_CKD_SCALE 1,71, CIA / CH4 scale,
-//   bins 500, couches 800 (tous déclarés en config / EARTH). getSpectralResultFromDATA ne rend plus d'objet vide.
-//   Restent : le plancher HITRAN (0 = aucun, config), « rien n'absorbe » (⚫), l'assertion OLR non fini,
-//   le relevé __noteBad (signale, ne masque rien).
-// - v1.3.10: flux géothermique lu dans DATA['🌕']['🧲🌕'] (geology/interieur.js) — plus EPOCH['🧲🌕'] ni EPOCH.geothermal_flux.
-// - v1.3.7: maxDichotomyIterations — lecture sécurisée (nombre fini > 0) ; si absent/NaN → 30 (iter >= undefined ne stoppe jamais).
-// - v1.3.6: plafond dichotomie T0 — CONFIG_COMPUTE.maxDichotomyIterations (défaut 30) au lieu de 20 codé en dur (max_iterations + sortie iter).
-// - v1.3.5: miroir debugMirrorConfigLogToFile('logEdsDiagnostic', …) des lignes DIAG CO2 / workers / performDichotomy → _logs/eds.txt
-// - v1.3.4: workers dispatch/done + début performDichotomy + max-iter — logs uniquement si CONFIG_COMPUTE.logEdsDiagnostic
-//   (évite console sur chaque calculateFluxForT0 quand debugAPI/UI_STATE est false).
-// - v1.3.3: calculateFluxForT0 — throw si intégrale OLR (total_flux) non finie + index du 1er bin NaN/λ
-//   (même T solaire/entrant finis — cause typique: chaîne P(z)/n_air ou workers ; ATM v1.2.3 factorTropopause).
-// - v1.3.2: temperatureAtZ revient au gradient effectif historique (EPOCH.lapse_rate ou −g/Cp).
-//   Le test 0.0065 global refroidissait 2000 en réduisant l'absorption via airNumberDensityAtZ.
-// - v1.3.1: Gradient troposphérique lu depuis CONFIG_COMPUTE.troposphericLapseRateKPerM afin d'aligner
-//   la structure thermique radiative avec calculateTropopauseHeight() (WMO / U.S. Standard Atmosphere).
-// - v1.3.0: intégration EARTH.CH4_EDS_SCALE (Haqq-Misra 2008) en parallèle de H2O_EDS_SCALE. Passé au dispatch des workers (spectral_slice_worker v1.0.X + worker_pool). Également appliqué dans calculateRadiativeCapacities (capacité IR normalisée CH4). Défaut 1.0 = HITRAN native, tunable [0.3, 1.5] pour caler EDS_CH4 sur littérature (saturation bandes 3.3/7.7 µm, overlap H2O). Seuil haze Haqq-Misra CH4/CO2 > 0.1 documenté dans physics.js mais pas encore câblé côté SW.
-// - v1.2.9: expositions regroupées sous nouveau namespace window.RADIATIVE (getSpectralResultFromDATA, calculateRadiativeCapacities, temperatureAtZ, simulateRadiativeTransfer). Doublons window.foo retirés. Consommateurs migrés : convergence/calculations_flux.js, sync_panels.js, ui/main.js, atmosphere/calculations_atm.js, doc/epoch_bench.html. Appels H2O/ALBEDO/ATM/GEOLOGY/CLIMATE migrés vers namespaces correspondants.
-// - v1.2.8: calculateFluxForT0 — retrait du fallback silencieux voie série (111 lignes). Si spectralWorkerPool absent/non-ready → throw (crash-first). Cause historique scie 15.28°C vs bench 15.35°C (📱 2000) : scie/visu (index.html) n'avait pas workers/worker_pool.js dans loader_panels.js → silencieusement voie série, ordre addition float différent (0.115 W/m² sur 348 W/m²). Fix loader : v1.1.19.
-// - v1.2.7: waterVaporMixingRatio + waterVaporFractionAtZ utilisent window.PHYS.computeH2OScaleHeight() (= R·T²/(L·Γ), dépend T et g_epoch). Remplace la constante EARTH.H2O_SCALE_HEIGHT_M (retirée) pour couvrir Hadéen (P, T extrêmes). Voir physics.js v2.0.12.
-// - v1.2.6: waterVaporMixingRatio + waterVaporFractionAtZ utilisent EARTH.H2O_SCALE_HEIGHT_M (=2200 m, Clausius-Clapeyron effectif) au lieu de R·T/(M_H2O·g) (≈13,6 km, hydrostatique pur — irréaliste car H₂O condense avec T(z), surestimait PWV ×2,6 et τ_H₂O d'autant).
-// - v1.2.5: retrait recalcul dynamique EARTH.H2O_EDS_SCALE (0.92·√P_ratio·CO2_factor) — double-comptait pressure broadening HITRAN. Valeur pilotée par FINE_TUNING_BOUNDS.RADIATIVE.H2O_EDS_SCALE via tuning.js (sync SCIENCE bary).
-// - v1.1.9: plafond couches (maxLayersConvergence 800) + sous-échantillonnage stockage (max 400×600 en DATA) pour limiter RAM
-// - v1.2.0: format 3-flottants-par-λ (flux_init, ychange, flux_final) — supprime 4 matrices nZ×nL (×800 moins RAM) ; reconstruction 100 lignes dans getSpectralResultFromDATA
-// - v1.2.1: 🔬🌈 absent/NaN → fallback bins (CONFIG maxSpectralBinsConvergence) ; calculateRadiativeCapacities sans lambda_range → no-op (capacités 0)
-// - v1.2.2: getSpectralResultFromDATA — effective_temperature : si total_flux≤0 ou absent, même repli T_surface que sync_panels (évite null après Object.assign → plot)
-// - v1.2.3: calculateRadiativeCapacities crash-first : suppression gardes isFinite dans kappa_CO2/H2O/CH4 (masquage silencieux de NaN en 0 → capacités 🌈 toujours nulles)
-// - v1.2.4: calculateRadiativeCapacities — sonde firstBad {lambda,z,n_air,kappa,...} → __RAD_CAP_LAST_DBG__ pour localiser la 1re δτ non-finie ou négative (cause integral=-Infinity)
-// Logs: v1.3.9 - RADIATIVE.computeEdsRemovalShares() : l'attribution EDS par gaz passe à la MÉTHODE DE
-//   RETRAIT (Schmidt 2010 / Lacis 2010) — on enlève un absorbeur à T figée et on lit la remontée d'OLR.
-//   L'ancienne (Σ des interceptions par couche) donnait les nuages à 3 % quand le retrait en mesure 37 %.
-//   5 passes spectrales de plus (4 retraits + 1 remise en état), une fois par époque à la convergence.
-//   CONFIG_COMPUTE.edsAttributionByRemoval.
-// Logs: v1.3.8 - window.EDS_SPECTRAL : l'attribution EDS résolue PAR LONGUEUR D'ONDE (worker v0.7.0,
-//   pool v1.2.0). Les quatre sum_blocked_* étaient des scalaires ; ce sont maintenant quatre spectres,
-//   dont les totaux sont la somme. Hors DATA à dessein (snapshotEdsForConvergence deep-copie DATA['📛']).
-//   Sert au diagnostic des nuages et à l'affichage de la part d'EDS par bande sur le spectre d'émission.
-// Logs: v1.0.2 - kappa_H2O × H2O_VAPOR_EDS_SCALE (évite masquage CO2, doc/API/VAPEUR_VS_NUAGES.md)
-// Logs: v1.0.3 - Attribution EDS Schmidt 2010 : transfert overlap/2 de H2O vers CO2 à chaque (couche,λ), total 100%
-// Logs: v1.0.4 - Nuages EDS : τ_cloud (corps gris) ∝ 🍰🪩⛅ (albédo), réparti troposphère ; eds_breakdown.Clouds
-// Logs: v1.0.5 - CLOUD_LW_TAU_REF = 1 (lit. Stephens 1978, Chylek 1982 : τ overcast ~ 0.5–2 ; ref=1 → τ=coverage)
-// Logs: v1.0.6 - Attribution EDS : part par τ, overlap H2O–CO2 partagé réaliste (Schmidt), doc + commentaires
-// Logs: v1.0.7 - Stratosphère delta_z_real = z_range[i]-z_range[i-1] ; commentaires pas spectral HITRAN, pas / n_layers
-// Logs: v1.0.8 - τ nuages LW : ☁️ (CloudFormationIndex) + CLOUD_LW_TAU_REF (10→1.5, évite runaway H₂O)
-// Logs: v1.0.9 - Attribution EDS nuages en contribution marginale (gaz + nuages découplés) pour éviter l'écrasement par τ_H2O dominant
-// Logs: v1.0.10 - Attribution EDS par absorption propre de composant (1-exp(-τ_i)) avec normalisation globale ; nuages non écrasés par τ_tot
-// Logs: v1.0.11 - Diagnostic aliasing CO2 bande 15µm (13–17µm) : table sigma/kappa + ratio modèle/théorie
-// Logs: v1.0.12 - Grille spectrale λ adaptative (zones CO2/CH4/H2O densifiées) + lambda_weights non-uniformes
-// Logs: v1.1.7 - displayDichotomyStep émet plot:drawn(iteration) après draw spectral pour bridge IO_LISTENER
-// - v1.1.8: max bins spectral = déf en pixels axe X (PLOT_AXIS_X_PX), fallback CONFIG/2000 ; même seuil pour showSpectralBackground
-// Logs: v1.0.13 - retrait gardes défensives CONFIG_COMPUTE sur les derniers ajouts (règle crash)
-// Logs: v1.0.14 - Grille λ : retour aux bornes d'origine (calculs spectraux inchangés)
-// Logs: v1.0.15 - CONFIG_COMPUTE.spectralGridHomogeneous : si true, poids ∝ largeur (répartition homogène)
-// Logs: v1.0.16 - getSpectralResultFromDATA : effective_temperature depuis total_flux (évite crash createPlanckTrace)
-// Logs: v1.1.1 - calculateFluxForT0 async + dispatch workers Transferable (N-1 workers, fallback série) ; fix: retrait auto-resume FPS organigramme.js
-// Logs: v1.1.2 - anim mode: baseTemp = DATA['🧮']['🧮🌡️'] (source unique, pas plotData.temp_surface) ; retrait guards abusifs lines 1060-1067
-// Logs: v1.1.3 - precisionFactor = 1 fixe (getPrecisionFactorFromFPS retiré FPS.js v1.2.0)
-// Logs: v1.1.4 - displayDichotomyStep: retrait setTimeout(100) sur updateSpectralVisualization (évite flush tardif des draws inter)
-// Logs: v1.1.5 - displayDichotomyStep pousse _cycleToken pour bridge draw ack (attente API en mode visu_+anim)
-// - v1.1.6: supprime IO_LISTENER.emit('compute:progress') dans displayDichotomyStep — appel direct uniquement
 
 
 function temperatureAtZ(z) {

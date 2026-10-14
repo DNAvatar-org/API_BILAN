@@ -4,29 +4,9 @@
 // - v0.13.1 (2026-10-13): ch4_eds_scale retiré (toujours 1).
 // - v0.13.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN 2024), tables k(λ, T) comme σ.
 // - v0.12.0 (2026-10-13): terme CIA CO₂ (profil inventé ×100) retiré.
-// - v0.11.0 (2026-10-13): facteur de diffusivité D (EARTH.DIFFUSIVITE, 1,66) : transmission d'un flux exp(−D·τ).
-// - v0.10.0 (2026-10-12): τ nuage par couche (L.tauNuage) au lieu d'un τ uniforme sous la tropopause.
-// - v0.9.0 (2026-10-12): σ interpolée en T par couche (tables), continuum H₂O, élargissement H₂O propre.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: [September 18, 2026]
-// Logs:
-// - v0.8.0 (2026-10-10): PAS DE GARDES. runSlice et runSliceShared supprimés (le pool n'envoie que
-//   'slice_transfer' : deux copies mortes du même transfert radiatif) ; planck et les échelles CH4 / CIA sans
-//   replis ni tests de finitude.
-// - v0.6.0 Corps encapsulé dans spectralSliceWorkerMain(). Chargé comme worker → il s'exécute ; chargé comme
-//   <script> par une page → il se publie dans window.__SPECTRAL_WORKER_MAIN__, ce qui permet à worker_pool.js
-//   d'en faire un Blob. C'est le SEUL chemin possible en file:// : Chrome refuse new Worker('file://…')
-//   (origine 'null') et importScripts d'un file://, mais accepte un blob:. Code de calcul inchangé.
-// - v0.7.0 runSliceTransfer : l'attribution EDS devient un SPECTRE. Les quatre scalaires
-//   sum_blocked_{CO2,H2O,CH4,clouds} deviennent quatre Float64Array(nL) accumulés par λ et
-//   renvoyés en Transferable. Les totaux se retrouvent en sommant côté pool — mêmes nombres.
-//   ⚠️ runSlice et runSliceShared n'ont PAS été changés : le pool n'envoie que 'slice_transfer'.
-// - v0.5.0 ch4_eds_scale (Haqq-Misra 2008) appliqué sur kappa_CH4 dans les 3 fonctions (runSlice / runSliceShared / runSliceTransfer). Défaut 1.0 si param absent ou non-fini.
-// - v0.4.1 Retrait guards abusifs (Number.isFinite, != null, || fallbacks) dans runSliceShared/Transfer (regle-js-crash)
-// - v0.4.0 Add slice_transfer message type: Transferable Float32Array (compatible prod, sans headers COOP/COEP)
-// - v0.3.0 Add slice_shared message type: write upward_flux directly into SharedArrayBuffer (zero-copy result)
-// - v0.2.0 constantes depuis payload (CONST côté main), plus de doublon
 
 
 /**

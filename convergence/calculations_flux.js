@@ -27,72 +27,7 @@
 //   date courante (bilan d'énergie) ; tant qu'il est fondu, la surface EST le magma (T de départ = 🌡️🌕) et le
 //   flux intérieur 🧲🌕 = OLR − solaire absorbé, lu sur le transfert radiatif de l'init. olrNetA(T) : OLR − S à
 //   T imposée, pour intégrer le refroidissement de l'océan de magma.
-// - v1.2.106: detectDeltaPeriod2Stall — sur 4 pas, signes strictement alternés et Δ[i]≈Δ[i−2] (hystérésis type
-//   −0,68/+1,79/−0,60/+1,72). Chaîne boucle branchée : hist 🧮🌡️Hist, stagnation T vs n−1/n−2/n−3,
-//   detectOscillationStallOnTrace après trace (plus seulement au max_iter). Fin max_iter utilise le même agrégat.
-//   Ordre : append trace puis oscillation (inclut le pas courant dans le motif n−2).
-// - v1.2.105: oscillation hystérésis — detectMicroHysteresisStall (4 pas : T ±1 °C, Δ alterne, spread modeste) ;
-//   🧮🌡️Hist pour stagnation vs n−2 / n−3 (log ; branchement effectif v1.2.106).
-// - v1.2.104: stagnation T (élargir bracket / inner converged) — comparer T sortie pas au n−1 (🧮🌡️⏮) et
-//   aux sorties n−2 et n−3 (🧮🌡️Hist) pour attraper oscillations 2T/3T où |T−T_{n−1}| > ε mais T revient.
-// - v1.2.103: detectConvergenceLimitCycle — second critère (Plein Snowball / ⛄) : sur 6 pas, étalement Δ
-//   max−min > 12 W/m² (sauts type Briegleb α 37–41 % → pic +11 W/m²) + T sur ≤10 °C + ≥1 flip + |Δ| moyen haut ;
-//   sans ça le yoyo restait classé max_iter alors que c’est une limite cycle évidente.
-// - v1.2.102: fin boucle radiative — si plafond itérations et motif yoyo (T sur ≤5 °C, |Δ| moyen ≫ tol, ≥2
-//   changements de signe sur Δ) → 🧮🛑='oscillation' (limite cycle / plusieurs bassins) au lieu de 'max_iter'.
-//   Buffer _convergenceOscTrace 6 pas (T°C, Δ W/m²). UI scie/hyst: libellé dédié.
-// - v1.2.101: computeSearchIncrement + Init radiatif — throw explicite si contrat rompu (🧮🌡️ fini>0, 🔺🧲 fini,
-//             pas de NaN sur ΔT=Δ/4σT³) ; sinon T devient NaN avant calculateAlbedo (hyst, logs T_K=NaN).
-//             Même exigence sur delta_equilibre_init après OLR. Pas de repli, pas de if/else de secours.
-// - v1.2.100: garde T0 (calculateT0) : rejette aussi !Number.isFinite(T0), pas seulement T0≤0 — NaN
-//             passait (NaN≤0 est false) et propageait jusqu'à calculateAlbedo. Aucun repli sur d'autres champs.
-// - v1.2.99: retire l'initialisation iceCoverageRampState / iceCoverageLock devenue morte depuis albedo v1.2.55. Le solver ne pose plus d'état de stabilisation glace distinct de la rétroaction calculée.
-// - v1.2.98: Init eau/nuages — cycleDeLeau applique partition CO₂ + composition ATM AVANT H2O,
-//            sinon ATM.calculateAtmosphereComposition remettait 🍰🫧💧=0 après H2O. Avant flux Init,
-//            recalcul albédo après refresh H2O Search pour aligner Init avec le 1er pas Search sans cap solver.
-// - v1.2.97: Seed océan CO₂ multiplié par CONFIG_COMPUTE.co2OceanPartitionFactor01. 1 = comportement
-//            v1.2.96 ; 0 = test off strict sans mémoire ⚖️🌊🏭 au démarrage.
-// - v1.2.96: SEED ocean CO₂ à l'équilibre Henry analytique dans initForConfig (après ATM.calculatePressureAtm).
-//            ⚖️🌊🏭 = ratio_ref × ⚖️🏭 (T=T_ref ⇒ ratio_T=ratio_ref, pump net flux=0 au pas 0). Garantit que le
-//            bench radiatif ne déclenche pas la pompe à l'init d'époque (user: "pompe toujours active, juste à
-//            l'équilibre sur les conditions init"). Désactivé si ⚖️💧=0 ou EPOCH['🌊🏭']=0 (⚫ 🔥 🦠 ⛄ ⇒ ⚖️🌊🏭=0).
-//            Corrèle avec calculations_co2.js v1.2.0 qui retire le NO-OP co2OceanPartitionInRadiativeConvergence.
-// - v1.2.95: verrous glace d'époque supprimés (user: "virer le verrou tout le temps"). initForConfig ne pose plus STATE.iceEpochFixedWaterState / iceEpochFixedAlbedoState / iceEpochFixedState. Les reset à null sont conservés (état propre pour lecteurs UI legacy api.js / sync_panels.js — ils afficheront simplement "n/a"). Le blend dt 🍰💧🧊 est désormais piloté à chaque pas par calculations_albedo.js v1.2.53 (facteur CONFIG_COMPUTE.iceBlendRelaxation01, défaut 1.0). ice_fixed_value continue d'être calculé pour le diagnostic [ice-nolock].
-// - v1.2.94: (doc-only relais) physics.js v2.0.15 — ice_tf passe à 3 zones (pol+mid+trop, Σf=1.0). ICE_FORMULA_MAX_FRACTION devient 1.0 (artefact 0.46 supprimé), donc `ICE_FORMULA_MAX_FRACTION * ice_temp_factor` (ligne 341) reste no-op. Aucun changement de logique flux.
-// - v1.2.93: (doc-only relais) intégration ch4_eds_scale côté radiative/calculations.js v1.2.6 + worker_pool v1.0.X + spectral_slice_worker — propagé EARTH.CH4_EDS_SCALE (défaut 1.0, Haqq-Misra 2008) jusqu'aux workers. Aucune logique convergence modifiée ici.
-// - v1.2.92: (obliquité) plumbing EPOCH['⚾'] → EARTH.computeIceTempFactor(opts.obliquity_deg) pour ice_formula_epoch ; même contrat que albedo v1.2.49 / h2o v1.0.21.
-// - v1.2.91: ice_formula_epoch UNIFIÉ avec albedo v1.2.48 — formule 3-zones ancrée sur T_FREEZE_SEAWATER + dT (EARTH.POLAR_AMP_POL_K/MID_K). Remplace l'ancienne formule mono-zone (T_NO_POLAR_ICE − T_epoch)/RANGE qui divergeait de la formule albédo et saturait à 1.0 dans la plage utile. Pas de dépendance par époque (constantes géophysiques globales).
-// - v1.2.107: attribution EDS par RETRAIT à la convergence (RADIATIVE.computeEdsRemovalShares, calculations
-//   v1.3.9). Les 🍰📛❀/🧲📛❀ posés par buildEdsBreakdown depuis `sum_blocked` sont écrasés par la mesure :
-//   on enlève chaque absorbeur à T figée et on lit la remontée d'OLR (Schmidt 2010, Lacis 2010). L'ancienne
-//   voie sommait les interceptions couche par couche — les nuages y valaient 4,6 W/m² sur 📱 quand le retrait
-//   en mesure 54,9. Coût : 4 passes spectrales par époque, une seule fois. Flag edsAttributionByRemoval.
-// - v1.2.90: avant 1er calculateFluxForT0 — updateAtmosphereHeightFromCurrentT + calculateH2OParameters en phase Search (restauration phase). Corrige 🍰🫧💧≈0 après cycles (Init+précip ou spin-up+🔺⏳ long) → OLR trop haute / EDS H2O affiché 0% alors que C–C à T impose vapeur >0.
 // - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
-// - v1.2.88: retrait des console.warn DIAG temporaires (entry + step) ajoutés pour diagnostiquer la divergence scie/bench ; cause trouvée (worker_pool absent coté scie) et corrigée dans radiative/calculations.js v1.2.8 + loader_panels.js v1.1.19.
-// - v1.2.87: lectures SOLVER migrées vers window.CONFIG_COMPUTE (source unique configTimeline.js v1.4.13). Retrait DATA['🎚️'].SOLVER / DEFAULT.TUNING.SOLVER. Clés : tolMinWm2, maxSearchStepK, maxSearchStepLargeK, largeDeltaFactor, firstSearchStepCapK, deltaTAccelerationDays.
-// - v1.2.86: lectures live SOLVER migrées vers window.DATA['🎚️'].SOLVER (source unique, clonée depuis window.DEFAULT.TUNING.SOLVER par initDATA.js v1.1.0). Fin de window.TUNING. FIRST_SEARCH_STEP_CAP_K / DELTA_T_ACCELERATION_DAYS modifiables live via DATA['🎚️'].SOLVER.
-// - v1.2.85: source unique window.TUNING.SOLVER pour les 4 lectures (tolérance, cap Search, cap 1er pas, DELTA_T_ACCELERATION_DAYS). Fin DATA['🎚️'].SOLVER (plus d'interpolation bary sur le solveur — calibration statique).
-// - v1.2.84: retrait updateConvergenceBounds(dT_first_after_init) post-Init (ajout v1.2.80 soupçonné de changer le bassin de 📱 vers 21,2 °C) ; bornes posées par la boucle Search comme avant. Cap 1er pas conservé (neutre si FIRST_SEARCH_STEP_CAP_K=0, défaut). Logs diag gated logEdsDiagnostic : bornes/☯/phase
-// - v1.2.83: plafond 1er pas — Number.isFinite(capRaw) && capRaw>0 (évite chaîne "8" coercée par >0 → bassin ~21 °C 📱)
-// - v1.2.82: 1er pas après Init — plafond FIRST_SEARCH_STEP_CAP_K via Math.min(|dT|, lim) ; lim = cap si cap>0 sinon +∞ (un seul chemin, pas de if chaîne)
-// - v1.2.81: FIRST_SEARCH_STEP_CAP_K — défaut 0 = désactivé (héritage : même bassin convergence qu’avant, ex. 📱 ~15,6 °C). Si >0 seul, plafond 1er pas + bornes Init (tradeoff : trajet Protérozoïque moins « en V »)
-// - v1.2.80: après Init — cap optionnel 1er pas Search (🎚️.SOLVER.FIRST_SEARCH_STEP_CAP_K) pour bornes + incInit
-// - v1.2.79: calculateT0 — tic×ΔT : NaN si 📿💫/🔺🌡️💫 non finis (undefined×0) ; garde finie comme getEpochDateConfig
-// - v1.2.78: debugAPI → console.groupCollapsed computeRadiativeTransfer + log chaque itération boucle radiatif
-// - v1.2.78: bloc de log partition CO2 océan retiré (il dépendait de window.pd ET window.pdTrace,
-//   deux crochets fournis par l'hôte : le moteur n'a pas à en dépendre pour tracer).
-// - v1.2.77: log partition CO2 océan → pdTrace
-// - v1.2.66: calculateT0 nouveau run (previous vide) toujours T0=époque ; reset 🧮🌡️🔽/🔼 pour convergence reproductible visu/scie
-// - v1.2.68: mode anim: yield 1 frame par cycle (await requestAnimationFrame) pour affichage inter progressif, éviter flush final
-// - v1.2.69: computeRadiativeTransfer(callback, options): renderMode visu_/scie_ + attente bridge draw par cycle (visu_+anim)
-// - v1.2.70: attente draw via window.VISUALWAIT.isDrawn(cycleToken) (globals rangées)
-// - v1.2.71: supprime double émission compute:progress (visu_+anim→displayDichotomyStep direct ; scie_/non-anim→IO_LISTENER seul)
-// - v1.2.72: supprime VISUALWAIT.isDrawn (boucle while morte) ; remplace par await RAF direct après displayDichotomyStep (seul async indispensable)
-// - v1.2.73: bridge anim+visu_ via IO_LISTENER: compute:progress(payload spectral) -> plot:drawn -> await RAF
-// - v1.2.74: initForConfig ne re-clamp plus le verrou albédo glace sur 🍰🗻🏔 ; conserve la glace de surface déjà calculée
-// - v1.2.75: initForConfig — snapshot 📿☄️ avant getEpochDateConfig ; restaure si même 🗿 mais 📿☄️ remis à 0 (bug setEpoch / transition)
-// - v1.2.76: await calculateFluxForT0() partout (async + workers) avant calculateRadiativeCapacities / getSpectralResultFromDATA
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -133,47 +68,8 @@
 // - Snapshot CycleEau après calculateAlbedo : 🧮🔄🪩 (index affichage) pour nouvelle div
 // - Init : 🧮🔄🪩++ pour que premier cycle après Init = 1 (pas 0)
 // - Crossing pushPayload : T_input=T_prev, next_T=T_crossing (afficher pas 224.6=>263.9°C, pas 263.9=>304.7)
-// - v1.2.25 : waterPass→albedoIter/waterIter, waterPassCrossing supprimé
-// - v1.2.26 : 💧 cycle eau utilise albedoIter (0,1,2..) ; calcul radiatif albedoIter=🧮🔄🪩-1
-// - v1.2.27 : 🧮🔄🪩++ déplacé en fin de boucle (après push calcul radiatif) et entre pushPayload/CycleEauCrossing
 // - CycleEauCrossing : T_transition_C, P_atm pour affichage 💧┴ = T°C [🎈=P atm]
 // - pushPayload : albedoIter (🪩), waterIter (💧) ; waterPassCrossing supprimé
-// - v1.2.28 : yinYangForPush = ☯ avant mise à jour ligne 709 pour afficher ☯ ancien (changement signe→Dicho visible)
-// - v1.2.29 : 🧮🛑 raison arrêt (converged|max_iter|oscillation|abort|crash|max_water) affichée dans convergence
-// - v1.2.30 : push état convergé avant break pour cohérence affichage (Δ final listé)
-// - v1.2.31 : phaseForStep = phase avant changement ; afficher phase réelle du pas (Search vs Dicho)
-// - v1.2.32 : fix clampBracketToEpochMax (supprimé, non défini) ; logs DEBUG_ANALYSE CO2, cloud_index, CycleEau T/albedo/vapor
-// - v1.2.33 : console.log complets (DEBUG_ANALYSE) pour copie/colle depuis la console
-// - v1.2.34 : fix ReferenceError DATA in computeSearchIncrement + newDate (const DATA = window.DATA)
-// - v1.2.35 : fix updateConvergenceBounds — définir les deux bornes (🔼 restait undefined → NaN)
-// - v1.2.36 : DEBUG_ANALYSE_DETAIL + logDetailPremiersCalculs (CYCLE0, Init, CycleEau iter=0) pour transmettre à une autre IA
-// - v1.2.37 : Search step : clamp explicite 80 K pour T>2000 K (Hadéen) pour éviter oscillation
-// - v1.2.38 : initForConfig : T_epoch si |T_solver-T_epoch|≤20K (1800 OK), T réelle si transition extrême (Corps noir→Archéen)
-// - v1.2.39 : cycleDeLeau : guard _lastCycleRef undefined avant accès albedo/vapor (runComputeInParent crossing)
-// - v1.2.42 : postMessage compute:progress iframe→parent pour actualiser organigramme (core_flux_wm, atm_height_km, h2o, albedo)
-// - v1.2.43 : logEdsBreakdownWithScale() — log EARTH.H2O_EDS_SCALE + répartition CO2/H2O/CH4% à chaque EDS breakdown
-// - v1.2.44 : retrait logEdsBreakdownWithScale (verbeux) ; logConvergenceT() une seule fois à la convergence (T°C, albedo, flux, Δ, EDS %) ; CLOUD_LW_TAU_REF = 1 (calculations.js) selon lit. Stephens 1978 / Chylek 1982 — voir FORMULES_FLUX.md § τ nuages LW
-// - v1.2.45 : commentaire arrêt convergence : 🔺🧲 = résidu (pas 0) ; 🧲🔬 = 4σT³×precision_K → plus T haute, plus tol grande → T cesse d’augmenter
-// - v1.2.47 : updateAtmosphereHeightFromCurrentT() au début de chaque pas radiatif : même 📏🫧🧿 à 15,8°C en cold/warm start (Δ cohérent)
-// - v1.2.48 : maxWaterAlbedoCyclesAtInit (5 par défaut) : converger météo à T_init avant premier flux pour même Δ qu'en cold start
-// - v1.2.49 : data_snapshot Init/Search/Dicho/converged : ajout 🫧 (🍰🫧📿🌈) pour affichage correct dans debug (évite 0.000 vs 0.023–0.030)
-// - v1.2.50 : reset _iceCoverageRampState dans initForConfig (nouveau run/epoch démarre sans inertie glace résiduelle)
-// - v1.2.51 : initForConfig fixe _iceCoverageLock (🍰🪩🧊 initial) pour stabiliser Search sur bassin froid (waterPass=0)
-// - v1.2.52 : reset _iceDurationBlendState/_iceEpochFixedState au début d'époque (glace d'époque recalculée une fois puis figée en solver)
-// - v1.2.53 : spin-up climatologique paramétrable avant solver (climateSpinupCycles) avec snapshots CycleEau visibles
-// - v1.2.54 : spin-up pondéré par quantités (⚖️🫧, ⚖️💧) pour neutralité corps noir sans if d'époque
-// - v1.2.55 : initForConfig fixe _iceEpochFixedState en fin d'init (formule glace + override OVERRIDES['⛄'])
-// - v1.2.56 : vérif cohérence glace (logs DATA vs EPOCH) ; continuité DATA par défaut, override epoch optionnel via config
-// - v1.2.57 : continuité glace nettoyée physiquement (atm/eau/hautes terres) + log raw/effective pour éviter faux diagnostics
-// - v1.2.58 : séparation verrous glace eau/albédo (_iceEpochFixedWaterState vs _iceEpochFixedAlbedoState) + log double
-// - v1.2.59 : spin-up eau/albédo : sortie anticipée si cycleDeLeau(false) ne change plus l'état (évite tours inutiles)
-// - v1.2.60 : paramètres solveur de tuning centralisé (static/tuning/model_tuning.js), sans changement de résultat
-// - v1.2.61 : fallback synchrone local si window.TUNING absent (évite crash runtime)
-// - v1.2.62 : bins = 980000/(19*|delta|+800) minoré 100 via getBinsFromDelta, init utilise delta précédent ou 0
-// - v1.2.63 : hooks convergence définis ici en no-op (scie_compute.html les remplace si chargé) — évite crash runComputeInParent
-// - v1.2.64 : à la convergence, sync DATA['📊'] avec 🔬🌈 si actualBins !== currentBins (Hadéen 1re iter → rendu 2000 bins)
-// - v1.2.65 : source unique SOLVER : lecture DATA['🎚️'].SOLVER en priorité (computeToleranceWm2, computeSearchIncrement)
-// - v1.2.67 : fix mode anim calculateT0 : suppression && !isNewRun (previous=[] à chaque epoch, bloquait toujours la branche anim)
 // ============================================================================
 
 var CONVERGE = window.CONVERGE = {};

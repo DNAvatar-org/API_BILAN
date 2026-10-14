@@ -9,9 +9,6 @@
 // Logs:
 // - v1.2.0: le moteur ne parle plus que par le callback de api.run : ORG, isVisuPanelActive et displayConvergence
 //   ne font plus partie du contrat. Restent SYNC_STATE, le miroir de journal et ABORT_COMPUTE.
-// - v1.1.0: fichier unique des stubs hôtes (le banc headless avait sa copie inline) ; + displayConvergence,
-//   debugMirrorConfigLogToFile ; plus de `x = x || {}`.
-// - v1.0.1 — 2026-10-10 : + isVisuPanelActive (mode Tictimes du banc : 1 seule iteration par clic sans lui)
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

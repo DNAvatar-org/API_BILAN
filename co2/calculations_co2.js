@@ -21,32 +21,6 @@
 //   Chacun relaxe vers k_i·A avec A = excès resté dans l'air ; Σratio inchangé (capacité totale identique),
 //   seuls les temps diffèrent. Les 3 réservoirs ne vivent PAS dans DATA : neuf points du modèle remettent
 //   📜🔺⚖️🌊🏭 à 0 sans les connaître. Ils sont donc resynchronisés sur ce total à chaque appel.
-// - v1.2.6: advanceCarbonSinks INTÈGRE À L'ANNÉE (CARBON_SINKS.stepYears = 1) au lieu d'un seul pas de Δt.
-//   Un clic de 25 ans versait la totalité de l'émission à l'instant zéro puis laissait les puits agir
-//   25 ans dessus : le CO₂ émis en 2024 avait autant de temps d'absorption que celui de 2000. Le pas
-//   annuel étale l'émission (émis/n par an) et relaxe d'un an à la fois — même équation, intégrale juste.
-//   Effet mesuré sur 2000→2025 (850 GtCO₂) : 423,9 → 438,1 ppm sec, océan 24,1 → 14,9 %, terres 25,3 → 21,4 %.
-//   Les 424 ppm d'avant tenaient donc sur l'erreur d'intégration. Recalage des puits sur les parts
-//   mesurées (océan 26 %, terres 30 %) et passage des émissions à 973 GtCO₂ : étapes suivantes.
-// - v1.2.5: advanceCarbonSinks(dt, émis) — puits océan (Henry/Revelle, relaxation τ) + forêts (fertilisation β ln) du CO₂ injecté.
-// - v1.2.4: après variation ⚖️🏭 (Henry) → COMPUTE.syncDryAtmosphereMassKg(DATA['⚖️']) — ⚖️🫧 = somme sèche (plus += delta).
-// - v1.2.3: miroir debugMirrorConfigLogToFile('logCo2PartitionDiagnostic', …) (load, NO-OP, APPLY) → _logs/co2Partition.txt
-// - v1.2.2: pdTrace load / NO-OP / APPLY — uniquement si CONFIG_COMPUTE.logCo2PartitionDiagnostic === true
-//   (défaut false, configTimeline v1.4.53) ; évite spam console par pas Henry.
-// - v1.2.1: Ajout CONFIG_COMPUTE.co2OceanPartitionFactor01 comme multiplicateur contractuel de la
-//           partition CO₂ océan-atmosphère. 1 = comportement v1.2.0 ; 0 = test off strict via eff=0.
-// - v1.2.0: POMPE TOUJOURS ACTIVE (bench = visu). NO-OPs HYSTERESIS.active / co2OceanPartitionInRadiativeConvergence RETIRÉS.
-//           Nouvelle clé EPOCH['🌊🏭'] (facteur pompe océanique par époque ∈ [0, +∞[) — multiplie effPump01.
-//           0 désactive la pompe pour l'époque (pas de mer liquide : ⚫ 🔥 🦠). 0.15 Protérozoïque (Urey lent pré-Rodinia).
-//           0.5 Sturtien (Rodinia break-up accélère silicate weathering). 2.0 Marinoen (déglaciation catastrophique,
-//           Higgins & Schrag 2003). 1.0 ≥ Paléozoïque (Urey stable). 1.3 Carbonifère (forêts→altération accélérée,
-//           Berner & Kothavala 2001 GEOCARB III). 0.7 P/T (Trapps sibériens saturent océan, Walker Hays Kasting 1981).
-//           L'équilibre à l'init d'époque est garanti par initForConfig qui seed ⚖️🌊🏭 = ratio_ref × ⚖️🏭 (T=T_ref
-//           ⇒ ratio_T = ratio_ref ⇒ pump net flux = 0 au pas 0). Pump se re-active dès qu'⚖️🏭 dévie (anthropique,
-//           user click, tranche 🏭📊) ou que T dévie de T_ref (convergence radiative).
-// - v1.1.1: traces load/NO-OP/APPLY via pdTrace (pd réservé aux erreurs)
-// - v1.1.0: NO-OP si HYSTERESIS.active ou si co2OceanPartitionInRadiativeConvergence !== true (pompe hors convergence naturelle)
-// - v1.0.9: pompe océan uniquement via CONFIG_COMPUTE (co2OceanEffPump01 + défauts pump/scale) ; plus de 🌊🏭🧲 dans TIMELINE
 // - Doc: CONFIG_COMPUTE co2Ocean* défauts / plages ajustés après tests convergence ; UI = jauges hystérésis search / scie
 // - Add ocean pump factor and conserve CO2 mass from current state
 // - Make pump=0 a strict no-op (no memory side effects)

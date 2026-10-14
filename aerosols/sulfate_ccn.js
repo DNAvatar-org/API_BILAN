@@ -9,16 +9,6 @@
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
 // - v1.3.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
-// - v1.2.0: BRANCHÉ dans calculations_albedo.js v1.2.65. SULFATE_BOOST_SCALE / SULFATE_BOOST_MAX et la
-//   porte « ▶ >= 1900 » supprimés ; seule jauge restante = l'exposant a (quartiles mesurés McCoy 2018).
-//   ERFaci vérifié au banc : −0,908 W/m² contre −0,97 (McCoy 2017a) et −1,0 [−1,7 ; −0,3] (AR6).
-//   Le modèle produisait −0,037 W/m² la veille.
-// - v1.1.0: contrat d'entrée TENU — les 19 ⚖️✈ sont passées à des charges atmosphériques réelles en kg
-//   de SO₄, une source par époque (configTimeline v1.4.89 ; doc/MASSES_SULFATE_PAR_EPOQUE.md). Le rapport
-//   📱/🚂 vaut 2,6 (Tsigaridis 2006) au lieu de 53, et 2,6^(−0,22) = 81 % de CDNC préindustriel, dans les
-//   70-80 % mesurés. Reste à brancher dans calculations_albedo.js.
-// - v1.0.0: loi de puissance McCoy 2018 / Boucher & Lohmann 1995, en remplacement du proxy linéaire
-//   🍰🫧✈ × SULFATE_BOOST_SCALE. ⚠️ PAS ENCORE BRANCHÉ — voir le contrat d'entrée plus bas.
 // ============================================================================
 
 'use strict';

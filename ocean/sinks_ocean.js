@@ -5,17 +5,9 @@
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
 // Version 1.2.2
 // - v1.2.2 (2026-10-13): écarts de zone du bilan méridien (STATE.dTzones) au lieu d'EPOCH['🥶'] posés.
-// - v1.2.1 (2026-10-13): fractions de zones = EARTH (géométrie) au lieu de CONFIG_COMPUTE (0,13 / 0,37).
 // Date: 2026-09-20
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Logs:
-// - v1.2.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
-// - v1.1.0: solubilité pondérée par ZONE au lieu de la température moyenne globale. Le CO₂ anthropique
-//   entre dans l'océan aux hautes latitudes froides, pas à la température moyenne de la planète.
-//   Océan 2025 : 24,4 % → 25,7 % des émissions (mesuré ~26 %). Aucun paramètre nouveau : réutilise
-//   EPOCH['🥶'] et les fractions de zone déjà présentes pour l'albédo de glace.
-// - v1.0.0: extrait de co2/calculations_co2.js v1.2.7 (océan et forêts séparés en deux fichiers).
 // ============================================================================
 
 'use strict';

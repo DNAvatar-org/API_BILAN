@@ -7,18 +7,6 @@
 // Date: [October 10, 2026]
 // logs :
 //   - v2.0.5 (2026-10-12): 🪩🍰⛅ dans DATA['🪩'] (réflectance du nuage calculée) ; FORM de 🍰🪩⛅ = fraction mesurée.
-//   - v2.0.4 (2026-10-12): 📜⏳ = temps écoulé dans l'époque, seule horloge (CLICS / getEpochDateConfig / infoTimeMa).
-//   - v2.0.3 (2026-10-10): 📿💫 déclarée dans 📜 (tout le code lit DATA['📜']['📿💫'] ; déclarée dans 📅, elle
-//     valait undefined au démarrage, masqué par des « != null ? : 0 »). 📜🌡️🧮 retirée (doublon de 📅🌡️🧮).
-//   - v2.0.2 (2026-09-24): 🌕 porte l'état de l'INTÉRIEUR (🌡️🌕, 📅🌕, 📅🧊🌕 — geology/interieur.js) ; 🔺🧲🌕💫 retirée
-//     (rampe de flux par tic : remplacée par le bilan d'énergie).
-//   - v2.0.1 (2026-09-23): 4 clés mortes retirées — ⏳☔ (lue seulement dans des lignes commentées),
-//     🧮🔄 (remise à 0, jamais lue), 🎈┴💧 et 🌡️┴💧 (jamais des valeurs de DATA : le code lit
-//     CONST.P_TRIPLE_WATER / CONST.T_TRIPLE_WATER ; la famille 💎 disparaît avec elles).
-//   - v2.0.0: séparation définitions / rendu. Ce fichier revient dans API_BILAN — son en-tête l'y plaçait
-//     depuis toujours (« File: API_BILAN/data/dico.js ») alors qu'il vivait dans CO2/static/compute/.
-//     KEYS est la seule chose que le moteur lise vraiment (initDATA.js) ; DESC et FORM justifient les calculs.
-//   - v1.0.21 et avant : voir l'historique de CO2/static/compute/dico.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

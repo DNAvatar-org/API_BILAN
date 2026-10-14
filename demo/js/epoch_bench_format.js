@@ -5,16 +5,6 @@
 // Logs:
 // - v1.4.0: benchLogFile (journal de CO2, jamais chargé ici) et stubs displayConvergence / epochName retirés
 //   (demo_host.js et le moteur les fournissent) ; plus de contrôle de présence de BENCH_LIT_BY_EPOCH_ID.
-// - v1.3.0: fmtTinitCell(epoch, tInitC) : en mode tictimes, la T init est celle d'arrivée du clic précédent.
-// - v1.2.0: chaque fourchette affiche son statut (✅ mesure · 🧮 équation · ⚠️ non sourcée · 🔀 hystérésis),
-//   la référence en infobulle — champ src de BENCH_LIT_BY_EPOCH_ID (configTimeline.js).
-// - v1.1.0: CO₂ et CH₄ en fraction molaire d'AIR SEC. Les mesures (NOAA, carottes de glace, proxies)
-//   sont toutes en air sec ; la conversion passait par 🧪, masse molaire de l'air HUMIDE (vapeur
-//   incluse), et comparait donc deux grandeurs différentes : 📱 affichait 363 ppm pour 2,887e15 kg
-//   de CO₂, soit 369 ppm en air sec — exactement la valeur NOAA posée en config. Formule :
-//     x_sec = (w_gaz / M_gaz) / (1/M_air − w_H₂O / M_H₂O)
-//   où w = fraction massique (🍰🫧…) et 1/M_air = Σ w_i / M_i (moyenne harmonique, calculations_atm).
-//   La vapeur, elle, reste en fraction de l'air humide : c'est sa définition.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

@@ -6,8 +6,6 @@
 //       Chemins relatifs à API_BILAN/.
 // Version 1.0.3
 // - v1.0.3 (2026-10-13): physics/meridien.js (bilan d'énergie méridien de North et al. 1981).
-// - v1.0.2 (2026-10-13): data/cia_CO2_CO2.js (CIA CO₂–CO₂ mesurée, HITRAN 2024).
-// - v1.0.1 (2026-10-13): radiative/solaire.js (Lacis & Hansen 1974).
 // Date: 2026-10-10
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 

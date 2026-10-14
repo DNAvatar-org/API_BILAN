@@ -7,20 +7,6 @@
 // Date: [September 19, 2026]
 // logs :
 //   - v2.2.1: 📅 = date en ANNÉES (était « Ma », faux : 📜📅, ▶ et ◀ sont en années) ; 📅🌕 / 📅🧊🌕 = âges de l'intérieur.
-//   - v2.2.0: le Cryogénien a DEUX glaciations (Hoffman et al. 2017) : ⛄ Snowball Sturtien (717–659),
-//     🌦 hysteresis 1b Sortie Sturtienne + interglaciaire (659–639), 🏂 Snowball Marinoen (639–635,2),
-//     ⛈ hysteresis 1c Sortie Marinoenne (635,2–538,8). Avant, un seul Snowball fusionnait les deux.
-//   - v2.1.0: LA RÈGLE DE L'ALPHABET écrite (1ᵉʳ caractère = unité ; pour 🍰, le 2ᵉ dit la nature du
-//     rapport). ⚗ quitte la colonne Unités pour Événements — c'est une action d'interface. 🧪 devient
-//     le marqueur MOLAIRE, 🧲⚖️ le flux de masse. Deux clés renommées pour respecter la règle :
-//     🍰🧪🌧 → 🍰🧪🌧 (molaire) et 🧲⚖️💦 → 🧲⚖️💦 (kg/m²/s). Ce sont les deux qui produisaient
-//     les bugs massique/molaire à répétition.
-//   - v2.0.2: EMISSIONS_HIGH passe de 🐖 à 🪾 (configTimeline v1.4.91 — 2 × le bidon par tranche).
-//   - v2.0.1: 🐖 EMISSIONS_HIGH — la branche d'émissions la plus forte de 📱 (configTimeline v1.4.90).
-//   - v2.0.0: séparation définitions / rendu. Ce fichier revient dans API_BILAN — son en-tête l'y plaçait
-//     depuis toujours (« File: API_BILAN/data/alphabet.js ») alors qu'il vivait dans CO2/static/compute/.
-//     Il ne contient plus que CHARS, CHARS_DESC et epochName ; tout ce qui dessine est parti côté CO2.
-//   - v1.0.17 et avant : voir l'historique de CO2/static/compute/alphabet.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

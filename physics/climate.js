@@ -9,7 +9,6 @@
 //   maintenant ce qu'elle était en fait : ALBEDO_REF = 0,3, sans détour. Tests `<= 0` / `null` / `< 1e-6` retirés
 //   (max(C, C₀) les couvre ; le moteur passe toujours un albédo). ⚠️ T_eff et ΔF albédo utilisent le Soleil
 //   ACTUEL (CONST.SOLAR_CONSTANT) quelle que soit l'époque — diagnostic d'affichage à revoir.
-// - v1.0.2: expositions regroupées sous nouveau namespace window.CLIMATE (getEffectiveTemperatureNoGreenhouse, calculateCO2Forcing, calculateCH4Forcing, calculateH2OForcing, calculateAlbedoForcing). Doublons window.foo retirés. Appelants migrés dans radiative/calculations.js, ui/main.js, organigramme.js.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

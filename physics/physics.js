@@ -11,34 +11,7 @@
 //   (2026-10-13) Ackerman & Marley abandonné : nuage adiabatique limité par la pluie (14 µm), humidité moyenne de
 //   Manabe & Wetherald, rayon de glace déclaré ; H2O_SURFACE_RH_01 = mesure ; EARTH.DIFFUSIVITE (1,66, Elsasser) ;
 //   EARTH.fractionGelee : glace saisonnière pondérée par l'ensoleillement pour l'albédo.
-// - v2.2.0 (2026-10-12): eau — saturation IAPWS (Wagner & Pruss 2002 / Wagner et al. 2011) et sa dérivée, tSatEau,
-//   eauSansLiquide (état de phase : océan possible ou non) ; H_vap = 1/(Γ·d ln p_sat/dT), valide jusqu'au point
-//   critique (fin de la borne « T < 600 K ») ; cp(T) des gaz (NIST-JANAF). Bloc MT_CKD scalaire (désactivé) retiré.
 // Date: [October 10, 2026]
-// logs :
-// - v2.1.0: PAS DE GARDES. computeIceTempFactor(T, EPOCH) lit lui-même 🥶 et l'obliquité (ε courant 📜⚾, ε de
-//   l'époque EPOCH['⚾'] sinon CONFIG_COMPUTE.obliquityDeg) : le bloc qui fabriquait ces options était recopié
-//   4 fois (albedo ×2, h2o, flux). Plus d'options amp_* / f_* (aucune époque ne les déclare). Une seule source
-//   par paramètre : fractions de zones pol/mid = CONFIG_COMPUTE (comme avant, ⚠️ 0,13/0,37 ≠ géométrie
-//   0,134/0,366 — à trancher), trop = EARTH ; EARTH.OBLIQUITY_DEG_DEFAULT retirée (doublon de
-//   CONFIG_COMPUTE.obliquityDeg). planckFunction et getWaterCycleTempBoundsFromPressure sans tests de
-//   finitude ; CONST/CONV/EARTH/STATE/PHYS créés ici, sans `x = x || {}`.
-// - v2.0.19: CONV.CCN_SULFATE_REF_KG 1,0e14 → 1,05e9 kg SO₄ — la référence sulfate de 🍰💭 suit la même
-//   source que les masses d'époque (Tsigaridis et al. 2006 ACP 6:5143, Table 5 : nss-sulfate an 2000).
-//   Ce n'est pas un recalage : ⚖️✈ cesse d'être un « proxy CCN » pour devenir une charge atmosphérique
-//   en kg de SO₄ (configTimeline v1.4.89), et une référence est par définition dans l'unité de ce qu'elle
-//   normalise. Effet : le terme sulfate de 🍰💭 vaut 0,100 sur 📱 (il valait 0,080) et 0,038 sur les
-//   époques préindustrielles (il valait 0,001 — le proxy les avait rendues aveugles au sulfate).
-// - v2.0.18: obliquité — redistribution méridienne de l'insolation annuelle (EARTH.zoneAnnualInsolation / obliquityZoneWarmingK) : ε > ε_époque → pôles plus chauds (ΔS·(1−α)/B, Budyko 1969). Corrige le SIGNE Milankovitch (avant : ε forte = refroidissement). Appliqué en ÉCART vs EPOCH['⚾'] → banc inchangé.
-// - v2.0.17: EARTH['🪩🍰']['🪩🍰⛅'] 0.50 → 0.42 = réflectance r_c de la méthode d'addition 2 couches (calculations_albedo v1.2.64) ; même albédo nuageux moderne que l'ancien mélange linéaire à 0.50.
-// - v2.0.16: EARTH['🪩🍰']['🪩🍰🏊'] = 0.50 — paramètre Briegleb/CCSM3 melt pond (bare ice + ponds, Perovich SHEBA 2002 ; NCAR/TN-463 §5). Consommé par calculations_albedo.js brieglebIceAlbedoLocal().
-// - v2.0.15: computeIceTempFactor passe à 3 zones (polaire/mi-lat/TROPICAL). Ajout EARTH.POLAR_AMP_TROP_K=-5 K (tropical plus chaud que la moyenne globale), EARTH.SEASONAL_AMP_TROP_K=3 K (faible saisonnalité tropicale, Peixoto & Oort 1992 ch.7), EARTH.TROPICAL_ZONE_FRAC=0.50 (0°-30° lat., 2 hémisphères, géométrie sphérique sin(30°)=0.5). ice_tf devient la somme pondérée directe (f_pol×tf_pol + f_mid×tf_mid + f_trop×tf_trop), plus de normalisation par fsum : les 3 zones somment à 1.0 par construction. ICE_FORMULA_MAX_FRACTION passe de 0.46 (artefact Terre-moderne, cf. point 2 review Zorba) à 1.0 (physique correcte, autorise Snowball). Rétro-compat : à T_glob ≥ −4°C, tf_trop=0 → identique à avant avec normalisation ; au-dessous, la rampe tropicale (largeur 6 K) active la bifurcation Budyko-Sellers.
-// - v2.0.14: EARTH.CH4_EDS_SCALE (défaut 1.0) + EARTH.CH4_HAZE_RATIO_THRESHOLD (0.1) ajoutés. CH4_EDS_SCALE parallèle à H2O_EDS_SCALE, tuning fin du line-by-line HITRAN (saturation bandes 3.3/7.7 µm, overlap H2O). CH4_HAZE_RATIO_THRESHOLD = seuil Haqq-Misra 2008 pour formation brume organique (pas encore câblé, hook SW futur).
-// - v2.0.13: EARTH.OBLIQUITY_DEG_REF/DEFAULT (23.44°) + couplage ε dans computeIceTempFactor (amp_pol/amp_mid = SEASONAL_AMP_* × sin(ε)/sin(23.44°)). Plumbing EPOCH['⚾'] dans calculations_{albedo,flux,h2o}.
-// - v2.0.12: H_vap passe de constante (2200 m) à fonction computeH2OScaleHeight() = R·T²/(L·Γ) (Clausius-Clapeyron + gradient adiabatique). Dépend de T courant et g de l'époque. EARTH.CP_AIR_MOIST_J_KG_K = 1005 ajouté. EARTH.H2O_SCALE_HEIGHT_M retiré.
-// - v2.0.11: EARTH.H2O_SCALE_HEIGHT_M = 2200 (hauteur d'échelle H₂O effective, Clausius-Clapeyron ; ex-calcul hydrostatique R·T/(M·g) ≈ 13,6 km, irréaliste, surestimait PWV ×2,6).
-// - v2.0.10: EARTH.H2O_EDS_SCALE défaut 0.60 (ex-0.92). Piloté par FINE_TUNING_BOUNDS.RADIATIVE via tuning.js. Recalcul dynamique sqrt(P_ratio)·CO2_factor retiré (radiative/calculations.js v1.2.5).
-// - v2.0.9: EARTH['🪩🍰']['🪩🍰🎾'] albédo lave (ex-🪩🍰🌋)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -49,11 +22,6 @@
 // - getH2OVaporEDSScale() — formule T,P,vapor,CO2 (pas d'époque), doc/API/VAPEUR_VS_NUAGES.md
 // - Convention : Credence (%) + Plage lit. / écart-type en commentaire pour params tunables (éviter patch en aveugle). v2.0.3.
 // - getH2OVaporEDSScale : 1.0→0.70 pour CO2≥400 ppm (cible EDS_H₂O ~72 W/m², lit. ~75).
-// - v2.0.4 : atténuation thermique h2o_eds_scale (5–10%) au-dessus de 20°C pour limiter la sur-rétroaction chaude
-// - v2.0.5 : règle simple h2o_eds_scale = 0.92 si T>290K, sinon 1.0
-// - v2.0.6 : essai calibration 2025 (EDS H2O) : h2o_eds_scale = 0.92 en base, sans branchement epoch
-// - v2.0.7 : CONV (convention) et EARTH (terrestre) extraits de CONST ; albédos 🪩🍰 dans EARTH, override par EPOCH['🪩🍰']
-// - v2.0.9 : clé albédo lave 🪩🍰🎾 (remplace 🪩🍰🌋 pour cohérence avec 🍰🪩🎾)
 // ============================================================================
 
 // Initialiser CONST (pointeur vers window.CONST)

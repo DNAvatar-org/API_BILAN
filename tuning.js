@@ -7,32 +7,7 @@
 // - v1.4.0 (2026-10-13): TUNING.sensJauge / sensCible — 🔺 monter la jauge réchauffe, 🔻 refroidit, ↕️ ambigu (lu sur effect + min/max).
 // - v1.3.0 (2026-10-13): jauges séparées FROID / CHAUD / SUBTIL / HYSTERESIS ; chaque cible lit target.baryGroup.
 // - v1.2.1 (2026-10-13): syncRadiativeConfig retiré avec H2O_EDS_SCALE (plus de groupe RADIATIVE).
-// - v1.2.0: plus de cible `fixed` (factorTropopause → CONFIG_COMPUTE) : interpolate n'a plus de cas particulier.
 // Date: 2026-10-10
-// Logs:
-// - v1.1.0: PAS DE GARDES. Un seul format de payload ({ baryByGroup }) : le format « { CLOUD_SW: 70, … } »
-//   (applyBaryGroup) et les valeurs directes (CLOUD_SW / updates, aussitôt écrasées par l'interpolation)
-//   n'avaient plus d'appelant. factorTropopause = cible ordinaire avec `fixed` (fine_tuning_bounds v1.3.16) :
-//   plus de cas particulier ni de CONFIG_COMPUTE.radiativeFactorTropopauseFixed. Plus de création de
-//   sous-objets à la volée (DATA['🎚️'] les a tous), plus de tests sur FINE_TUNING_BOUNDS.
-// - v1.0.20: doc `fixed` corrigée — réservé à une valeur déterminée AILLEURS, jamais à geler une
-//   inconnue. Un paramètre sans fondement scientifique RESTE dans le barycentre : c'est justement
-//   son rôle de dire qu'on ne sait pas.
-// - v1.0.19: `fixed` générique sur une cible FINE_TUNING_BOUNDS — la sort du barycentre sans cas
-//   particulier dans ce fichier.
-// - v1.0.18: RADIATIVE.factorTropopause — si CONFIG_COMPUTE.radiativeFactorTropopauseFixed != null, valeur fixe (hors bary SCIENCE) ; sinon interp. comme avant via atmPct.
-// - v1.0.17: doc factorTropopause — useFactorTropopause défaut true (config v1.4.50).
-// - v1.0.16: doc syncRadiativeConfig — factorTropopause appliqué seulement si CONFIG_COMPUTE.useFactorTropopause (ATM v1.2.1).
-// - v1.0.15: syncRadiativeConfig — commentaire RADIATIVE.factorTropopause (ATM, pas EARTH).
-// - v1.0.14: ATM obligatoire (crash-first). Suppression des fallbacks CLOUD_SW/SCIENCE quand ATM absent/invalide ; throw explicite.
-// - v1.0.13: bary ATM source unique (🎚️.baryByGroup.ATM). CLOUD_SW et SCIENCE sont forcés à la même valeur ATM dans applyBaryGroup/fillData/applyTuningPayload.
-// - v1.0.12: expositions regroupées sous nouveau namespace window.TUNING (applyTuningPayload, fillDataTuningFromBary). Doublons window.foo retirés. Consommateurs migrés : api.js, ui/main.js, sync_panels.js, API_BILAN/doc/epoch_bench.html.
-// - v1.0.11: syncRadiativeConfig — retrait garde silencieuse `if (!R || !window.EARTH) return` (crash-first). Pré-requis : physics.js chargé avant tuning.js (loader_panels.js v1.1.18).
-// - v1.0.10: auto-init fillDataTuningFromBary() à la fin du module — corrige scie/visu qui restaient aux defaults bruts (13.4°C au lieu de 15.35°C pour 📱 2000). Bench (iframe, recharge stack complet) écrase ensuite via applyTuningPayload → idempotent.
-// - v1.0.9: retrait syncSolverConfig + gestion SOLVER dans applyTuningPayload / fillDataTuningFromBary (plus de bary SOLVER, plus de CONFIG_COMPUTE.xxx dead).
-// - v1.0.8: retrait fillDataTuningFromBary() automatique au chargement du module (init pages / bench)
-// - v1.0.6: syncRadiativeConfig — DATA['🎚️'].RADIATIVE.H2O_EDS_SCALE → EARTH.H2O_EDS_SCALE. Remplace le recalcul dynamique 0.92·√P_ratio·CO2_factor (physics.js v2.0.8) par un paramètre fine-tuning dédié.
-// - v1.0.1: sous-objets DATA['🎚️'][group] créés si absents ; bary % manquant → 100 (sync scie/parent)
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

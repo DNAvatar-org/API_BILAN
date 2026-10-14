@@ -4,15 +4,10 @@
 //       à API_BILAN d'en dériver une version où les champs deviennent éditables.
 // Version 1.0.2
 // - v1.0.2 (2026-10-13): picto par clé (jauges séparées) ; curseurs retirés du panneau bibliographie.
-// - v1.0.1 (2026-10-12): logo 💧 pour CDNC_OCEAN_CM3 ; CLOUD_FRACTION_INDEX_GAIN retiré.
 // Date: [September 19, 2026]
-// logs :
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
-//   - v1.0.0: extraction depuis le <script> en ligne de CO2/html/scie_compute.html (1810 lignes d'un bloc).
-//     Découpage par responsabilité, à code IDENTIQUE : seule l'indentation change. Les fichiers restent des
-//     scripts classiques chargés dans l'ordre des dépendances — la page garde son chargement synchrone.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

@@ -15,51 +15,13 @@
 //   sur DATA['📜'], dont la chaîne du banc). Supprimés : 📜🌡️🧮 (doublon de 📅🌡️🧮, aucun lecteur), code 🏭📊
 //   (aucune époque n'a ce profil) et window._co2ProfileLog, getEnabledStates (rendait true), alias getDateConfig,
 //   reprise 🍎/📐 (DATA['📅'] est fusionné, jamais partiel).
-// - v1.0.29: getNoyau publie l'état de l'INTÉRIEUR (geology/interieur.js, bilan d'énergie) — plus de 🧲🌕/🔋🌕
-//   par époque, plus de rampe 🔺🧲🌕💫, plus de barycentre '🌕' (🔀 qui le liste = crash : il écraserait l'état).
-// - v1.0.28: 🕰.'🌙' → 📜🌙 (carte de nuit superposée, lue par organigramme.js).
-// - v1.0.27: 🕰.'🖼' = suite d'images parcourue par 📿💫 (modulo) → 📜🖼. Remplace le 🖼 par état 🔁 (une seule clé de config).
-// - v1.0.26: état 🔁 — clé '🖼' publiée dans 📜🖼 (texture de la planète pour l'état ; lue par organigramme.js).
-// - v1.0.25: 🕰.🔁 — états par tic (obliquité 📜⚾, masses 📜🔁⚖️ appliquées par getMasses, texte 📜🔁📝) ; générique, aucun if d'époque.
-// - v1.0.24: getMasses 📱 — ⚖️🏭 = époque + injecté − océan − forêts (puits CARBON_SINKS).
-// - v1.0.23: 📱 🕰 indexé par année — date = ▶ + 📿💫 × 🔺⏳ des tranches (restait figée à 2000) ; getMasses ajoute le cumul 📜🔺⚖️🏭 (injection CO₂ perdue au refactor d92a02e).
-// - v1.0.22: boucles sur EPOCH['🕰'] — ignorer la clé baryFromDate (flag booléen, pas un groupe tic) pour éviter accès cfg['🔺⏳'] undefined / biais sur deltaYearsFromTics et cohérence Δ📐.
-// - v1.0.21: bary — 🕰.baryFromDate (interpolation linéaire selon DATA📜📅 / ▶◀) ; 🔀/'📜' merge 📜.🔺🍰⚽ (voile SW le long de l’époque). Impulsion racine 🔺🍰⚽ désactivée si 🔀 inclut 📜 (évite conflit avec rampe).
-// - v1.0.20: getEpochDateConfig — bary 🕰.🔀 inclut '📅' : merge 📅 (Object.assign) pour ne pas écraser l’objet, sync 📜.🌡️🧮←📅 ; maxTics≥2 si ▶−◀ > 1 pas Ma alors que floor donnait 1 (🦣 : bary=0.5 à 1 tic). Autres groupes ⚖️/🌕 : remplacement par out inchangé.
-// - v1.0.19: ⚖️🫧 = somme sèche (⚖️🏭+⚖️🐄+⚖️💨+⚖️🫁+⚖️✈) dans getMasses — plus de lecture EPOCH['⚖️🫧'] ;
-//   COMPUTE.syncDryAtmosphereMassKg / dryAtmosphereMassKgFromComponents pour alignement runtime (ex. CO₂ océan).
-// - v1.0.18: voile cross-époque — fix leak 📜🔺🍰⚽ : si la nouvelle époque n'a pas la clé 🔺🍰⚽,
-//   on reset 📜🔺🍰⚽=0 (pas seulement _veilTimelinePulseActive). Bug bench : ⛄ (snowball) posait 0.02
-//   et toutes les époques suivantes héritaient → albédo +1.45 % → 📱 convergeait à 12.4 °C au lieu de 15
-//   en bench (vs visu OK car parcours single-epoch). Cf. _logs/iceSnapshot.txt POST_CALC veil=0.02 leak.
-// - v1.0.17: getMasses/getEpochDateConfig — ignorer la clé 🕰.order (liste d’actions UI) lors des itérations sur les tics.
-// - v1.0.16: voile — impulsion seulement EPOCH['🔺🍰⚽'] (racine) à 📿💫===0 ; remise 📜🔺🍰⚽ au clic 💫 via 🕰.💫.🍰⚽ dans events.js.
-// - v1.0.15: impulsion voile — lire EPOCH['🔺🍰⚽'] (racine TIMELINE, même niveau que 📅), plus 🕰.💫.🔺🍰⚽.
-// - v1.0.14: getEpochDateConfig — impulsion voile TIMELINE : si 🕰.💫 définit la clé 🔺🍰⚽ (fraction 0–1),
-//   pose 📜🔺🍰⚽ à l’entrée (📿💫=0, une fois par « salve » tic 0) puis retire ce montant au premier tic (📿💫≥1) ;
-//   état interne 📜._veilTimelinePulseActive ; reset sur transition auto d’époque.
-// - v1.0.13: getEpochDateConfig — log 🏭📊 (console) retiré ; window._co2ProfileLog reste pour inspection manuelle
-//   (évite I/O console à chaque pas temps quand le profil est actif).
-// - v1.0.12: getEpochDateConfig — après bary, si 🕰['◀'] remplace un groupe par un out partiel, DATA['📅'] peut
-//   n’inclure que les clés interpolées ; reprise explicite de 🍎 et 📐 depuis EPOCH (TIMELINE) pour pression/échelle.
-//   Évite ℎ NaN, P0 NaN, n_air NaN, OLR NaN. Si demain '🔀' contient '⚖️' sans masses complètes, même logique côté getMasses.
-// - v1.0.11: getMasses/getEpochDateConfig/getNoyau — retrait fallbacks contractuels restants
-//   (⚖️🫧/⚖️💨, 🧲🔬, 📐, ▶/◀, airborne, géothermie moderne silencieuse).
-// - v1.0.10: getMasses crash-first — retrait des fallbacks isFinite(...)?...:0 sur masses EPOCH obligatoires (dont ⚖️✈).
 // - v1.0.9: expositions fonctions regroupées sous window.COMPUTE (doublons window.foo retirés). Appelants migrés window.foo() → COMPUTE.foo() dans api.js, scie_hysteresis_search.js, sync_panels.js, ui/main.js, events.js, CO2/html/*.html.
-// - v1.0.2: getEpochDateConfig applies 🔺📐 generically from all 🕰 tic keys; getNoyau uses DATA['📜']['📐'] effective radius
-// - v1.0.3: bary (📿💫+📿☄️)/maxTics; interpolation via 🕰['🔀'] and 🕰['◀']; getMasses/getSoleil/getNoyau use interpolated DATA when 🔀
-// - v1.0.4: si date <= ◀(epoch) passer à l'époque suivante et remettre 📿💫/📿☄️ à 0 (ex. -50 Ma → Cénozoïque -66 Ma)
-// - v1.0.5: debug log getEpochDateConfig (transition époque + état tics)
-// - v1.0.6: transition époque : support direction forward (▶ < ◀, ex. 🚂 1800→2025) — dateYears additionne deltaTics, condition >=
-// - v1.0.7: logs détaillés deltaYearsFromTics (tic par tic) + état TIMELINE[epochIndex+1] pour débug grande coupure 🦣→🏔
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.1: add sulfate mass key ⚖️✈ in DATA init from epoch (proxy CCN, separate from dry-air mass)
 // ============================================================================
 
 /** 📱 : 🕰 indexé par année (clés numériques '2000', '2025'…), chaque tranche porte ses actions (⛽, 🛢, 🪾). */

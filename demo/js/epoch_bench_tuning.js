@@ -4,16 +4,6 @@
 // Version 3.1.0
 // - v3.1.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
 // Date: 2026-10-13
-// logs :
-//   - v3.0.0: jauges FROID / CHAUD / SUBTIL / HYSTERESIS au lieu de la jauge unique ATM ; popup = explication et mesure
-//     de chaque jauge, puis ses paramètres.
-//   - v2.1.0: détail en popup (<dialog> large, tableau : paramètre, valeur, plage, jauge, rôle — la note se
-//     déroule sur toute la largeur) au lieu d'une liste tassée sous l'en-tête. Plus de colonne « fixe ».
-//   - v2.0.0: PAS DE GARDES, référence unique. Les valeurs affichées sont lues dans DATA['🎚️'] (écrites par
-//     API_BILAN/tuning.js) : le panneau ne réinterpole plus lui-même (sa copie d'interpolate ignorait `fixed`).
-//     Plus de groupe SOLVER (aucune cible), plus de copie du barycentre depuis CONFIG_COMPUTE.baryByGroupDefault
-//     (miroir supprimé : DATA['🎚️'] naît de DEFAULT.TUNING). Payload émis = { baryByGroup: { ATM, HYSTERESIS } }.
-//   - v1.1.0: plus de petit ▶️ à côté des jauges (le calcul se lance par ▶ Époques / ▶ Tictimes).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';

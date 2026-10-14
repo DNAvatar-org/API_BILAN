@@ -6,7 +6,6 @@
 // Date: [September 19, 2026]
 // logs :
 //   - v1.1.0: déplacé de CO2/static/compute/ vers API_BILAN/demo/ (rendu des définitions de l'API).
-//   - v1.0.0: extraction depuis CO2/static/compute/dico.js v1.0.21, code identique.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.

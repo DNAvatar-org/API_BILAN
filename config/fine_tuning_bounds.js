@@ -6,60 +6,13 @@
 // - v1.6.1 (2026-10-13): classement remesuré après les corrections physiques : humidité de surface → CHAUD.
 // - v1.6.0 (2026-10-13): barycentre unique éclaté en jauges FROID / CHAUD / SUBTIL / HYSTERESIS (classement mesuré) ;
 //   cibles F_BAS, F_HAUT, H2O_SURFACE_RH_01 (fourchettes mesurées).
-// - v1.5.2 (2026-10-13): R_EFF_PLUIE [13 ; 14] µm ajouté (seuil mesuré de la pluie chaude).
-// - v1.5.1 (2026-10-13): H2O_EDS_SCALE retiré (4 → 3 cibles) — les physiques qu'il remplaçait sont codées.
-// - v1.5.0 (2026-10-12): 6 → 4 cibles. CLOUD_FRACTION_BASE, CLOUD_FRACTION_INDEX_GAIN, OPTICAL_EFF_BASE retirés (fraction
-//   mesurée, réflectance calculée — calculations_albedo v1.3.0) ; CDNC_OCEAN_CM3 ajouté (fourchette MODIS, Bennartz 2007).
 // Date: [October 12, 2026]
-// logs :
-// - v1.4.0: 10 → 6 cibles. Retirées : co2OceanEffPump01 (jamais lue — la physique lit CONFIG_COMPUTE, 0,1) ;
-//   seaIceStrength01 et iceImpactFactor01 (= 1 à la jauge HYSTERESIS 100 % : des multiplicateurs identité posés
-//   sur des équations déjà là — rampe de mer gelée, contribution d'albédo de la glace) ; factorTropopause
-//   (`fixed` : aucune jauge ne le bougeait → constante CONFIG_COMPUTE.factorTropopause). Le mécanisme `fixed`
-//   disparaît avec lui. Restent les vraies inconnues : 3 nuages SW, l'exposant sulfate mesuré, κ_H₂O, la largeur
-//   de la rampe de mer gelée. Aucun chiffre ne change.
-// - v1.3.16: factorTropopause porte `fixed: 1.0261` et baryGroup SCIENCE (ex-CONFIG_COMPUTE.radiativeFactorTropopauseFixed,
-//   lue à trois endroits avec des replis différents).
-// - v1.3.15: SULFATE_BOOST_SCALE et SULFATE_BOOST_MAX SUPPRIMÉS, remplacés par SULFATE_CCN_EXPONENT.
-//   Même règle que OPTICAL_EFF_CCN_GAIN en v1.3.14, appliquée une marche plus haut : on ne remplace
-//   pas une valeur par une autre, on remplace la FORME. Le facteur linéaire 🍰🫧✈ × SCALE, borné à la
-//   main par un Math.min(MAX, …), devient la loi de puissance mesurée de McCoy 2018 — qui sature
-//   d'elle-même, donc le plafond n'a plus d'objet. Deux jauges inventées → une jauge mesurée.
-//   Le barycentre ATM passe de 6 à 5 paramètres. Voir doc/DIAGNOSTIC_SULFATES_CCN.md.
-// - v1.3.14: OPTICAL_EFF_CCN_GAIN retiré des targets — remplacé par la forme analytique de Twomey
-//   dans calculations_albedo.js. Première application de la règle dans le bon sens : on sait le
-//   calculer, donc il quitte le barycentre par le CODE (pas par `fixed`).
-// - v1.3.13: SULFATE_BOOST_MAX et H2O_EDS_SCALE REMIS dans le barycentre. Les sorties v1.3.11/12
-//   appliquaient la règle à l'envers : on avait figé les deux seuls paramètres sans aucun fondement,
-//   c'est-à-dire exactement ceux qui doivent pouvoir varier. Règle corrigée — ce qu'on CONNAÎT se
-//   calcule dans le code et quitte les targets ; ce qu'on IGNORE reste ici. Le mécanisme `fixed`
-//   reste disponible pour une valeur déterminée AILLEURS, pas pour geler une inconnue.
-// - v1.3.12: H2O_EDS_SCALE sorti du barycentre (fixed: 0.82 = sa valeur effective à 45 %). Sa note
-//   nomme trois physiques absentes, pas une incertitude. Aucune formule de remplacement à ce jour :
-//   on le fige pour que les six autres cibles redeviennent réglables sans l'entraîner. Voir TODO 1.
-// - v1.3.11: SULFATE_BOOST_MAX sorti du barycentre (fixed: 0.3125 = sa valeur effective à 45 %).
-//   Audit des 7 cibles CLOUD_SW/RADIATIVE : une plage n'est un barycentre légitime que si c'est une
-//   vraie incertitude. Celle-ci était une borne numérique de sécurité, de l'aveu de sa propre source.
-// - v1.3.10: RADIATIVE.factorTropopause — baryGroup retiré (fixe par CONFIG_COMPUTE.radiativeFactorTropopauseFixed, tuning v1.0.18).
-// - v1.3.9: RADIATIVE.factorTropopause — plage resserrée 0 % → 1,03 ; 100 % → 1,00 (moins violente que 1,05–1,0) ; défaut 1,03.
-// - v1.3.8: RADIATIVE.factorTropopause (baryGroup SCIENCE) — 0 % → 1,05 ; 100 % → 1,0 ; défaut doc 1,03 (~40 % ATM avec cette pente). Hauteur radiative RT/Mg × facteur (calculations_atm).
-// - v1.3.7: retrait des 4 targets group:'SOLVER' (TOL_MIN_WM2, MAX_SEARCH_STEP_K, MAX_SEARCH_STEP_LARGE_K, LARGE_DELTA_FACTOR) : plus de bary SOLVER, calibration statique via window.TUNING.SOLVER (source unique).
-// - v1.3.6: groupe RADIATIVE + cible H2O_EDS_SCALE (multiplicateur κ_H₂O global) — diagnostic : EDS H2O ~145 W/m² @ 0.92 vs ~75 W/m² litt. (Schmidt 2010). baryGroup SCIENCE ; min=1.00 max=0.60 volontaire (bary 100 % → valeur basse → T basse, convention projet).
-// - v1.3.5: retrait cible FIRST_SEARCH_STEP_CAP_K (interp. jauge 0–100 % → min/max faussait le défaut ; plafond = DATA['🎚️'].SOLVER optionnel, défaut 0 hors configsAll)
-// - v1.3.4: SOLVER.FIRST_SEARCH_STEP_CAP_K — plafond 1er pas après Init (atmosphère grise vs linéarisation 4σT³)
-// - v1.3.3: groupe HYSTERESIS (mer gelée / CO₂ mer / impact glace) — bornes type littérature + preset scie_compute
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
 // "La carte c'est le territoire, le territoire c'est le code."
 // UTF8 est la sémantique pour CODE & UI
-// - v1.0.0: cible CLOUD_SW.CLOUD_FRACTION_BASE avec 3 points d'essai (min/moy/max)
-// - v1.1.0: plusieurs paramètres CLOUD_SW avec bornes min/max pour essais batch
-// - v1.2.0: biblio intégrée dans chaque target (source + effet + référence)
-// - v1.3.0: couverture complète biblio CLOUD_SW + SOLVER (toutes entrées avec bornes)
-// - v1.3.1: default (nominal) par target ; 100% jauge = default (OPTICAL_EFF_CCN_GAIN etc. pris en compte)
-// - v1.3.2: baryGroup SCIENCE pour CLOUD_FRACTION_INDEX_GAIN + OPTICAL_EFF_CCN_GAIN (jauge Science)
 
 window.FINE_TUNING_BOUNDS = {
     // ── JAUGES (v1.6.0, 2026-10-13) : le barycentre unique ATM est éclaté. Avec la nouvelle physique des nuages, ses

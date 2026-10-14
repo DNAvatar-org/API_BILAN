@@ -12,12 +12,6 @@
 // Version 1.3.1
 // - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
 // Date: 2026-10-12
-// Logs:
-// - v1.3.0: la durée d'un clic est sur l'entrée de séquence ({ '🕰': action, '🔺⏳': Ma }), plus sur l'action : un
-//   même 💫 peut valoir 1 ka puis 379 Ma (🔥). pas(key) pour les libellés ; 📿🕰 compte tous les clics de l'époque.
-// - v1.2.0: 🕰.order dans toutes les époques (config) : prochaineAction = order au curseur (plus de repli 💫 ni
-//   « l'unique action »), jouer crashe sur une action hors séquence, et chaque séquence est vérifiée au
-//   chargement (elle doit atteindre la fin de l'époque à son dernier clic, ou finir par 🎇 ⏩).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
