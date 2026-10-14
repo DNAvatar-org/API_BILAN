@@ -15,6 +15,7 @@ window.ENGINE_SCRIPTS = [
     'config/model_tuning_biblio.js',
     'config/configTimeline.js',
     'data/alphabet.js',
+    'data/episteme.js',     // liens épistémiques 🧭 / 🛠 (référence → valeur, avec statut) ; après l'alphabet
     'data/dico.js',
     'data/initDATA.js',
     'config/fine_tuning_bounds.js',

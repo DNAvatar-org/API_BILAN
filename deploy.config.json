@@ -303,6 +303,26 @@
     {
       "src": "physics/calottes.js",
       "dest": "pages/bilan_radiatif/API_BILAN/physics/calottes.js"
+    },
+    {
+      "src": "data/episteme.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/episteme.js"
+    },
+    {
+      "src": "doc/js/episteme_rendu.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/js/episteme_rendu.js"
+    },
+    {
+      "src": "doc/js/bibliographie.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/js/bibliographie.js"
+    },
+    {
+      "src": "doc/css/episteme.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/css/episteme.css"
+    },
+    {
+      "src": "doc/css/bibliographie.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/doc/css/bibliographie.css"
     }
   ]
 }

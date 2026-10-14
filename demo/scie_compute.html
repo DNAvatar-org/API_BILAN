@@ -24,6 +24,7 @@
     <title>Vue scientifique — API Bilan Radiatif</title>
     <link href="css/emoji-fonts.css" rel="stylesheet">
     <link href="css/scie_compute.css" rel="stylesheet">
+    <link href="../doc/css/episteme.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -84,7 +85,7 @@
     window.BILAN_LOADER.load({
         apiBase: '../',
         before: ['js/demo_host.js'],
-        after: ['js/alphabet_render.js', 'js/dico_render.js', 'js/scie_convergence.js',
+        after: ['js/alphabet_render.js', '../doc/js/episteme_rendu.js', 'js/dico_render.js', 'js/scie_convergence.js',
                 'js/scie_boot.js', 'js/scie_timeline.js', 'js/scie_actions.js', 'js/scie_config_view.js',
                 'js/scie_tuning_view.js', 'js/scie_results_view.js', 'js/scie_demo.js', 'js/scie_main.js'],
         cacheBust: '',

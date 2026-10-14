@@ -1,0 +1,23 @@
+/* File: API_BILAN/doc/css/bibliographie.css
+   Desc: Style de la bibliographie (doc/BIBLIOGRAPHIE.html), sorti du <style> de la page ; statuts épistémiques 🧭 / usages 🛠.
+   Version 1.0.0
+   Date: 2026-10-14
+   Copyright 2026 DNAvatar.org - Arnaud Maignan */
+/* v2026-09-17 : thème sombre (affichée dans la popup noire d'index — textes #222 illisibles avant) */
+body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #e0e0e0; background: #1a1a1a; }
+h1 { border-bottom: 2px solid #666; color: #f0f0f0; }
+h2 { margin-top: 2em; border-bottom: 1px solid #555; color: #9ecbff; }
+code { color: #ffd479; }
+article.ref { margin: 1em 0; padding: 0.5em 0.75em; border-left: 3px solid #5a9; background: #262a2e; }
+article.ref:target { background: #4a4020; border-left-color: #fc3; }
+.ref .cite-key { font-family: "Courier New", monospace; color: #999; font-size: 0.85em; }
+.ref .title { font-weight: bold; color: #fff; }
+.ref .authors { font-style: italic; color: #cfcfcf; }
+.ref .venue { color: #b8b8b8; }
+.ref .doi a { color: #7fc4ff; text-decoration: none; }
+.ref .used-in { font-size: 0.82em; color: #aaa; margin-top: 0.3em; }
+.ref .used-in code { background: #33373d; padding: 0 3px; border-radius: 2px; }
+.todo { color: #ff7b7b; font-weight: bold; }
+nav.toc { background: #262a2e; padding: 0.6em 1em; border-radius: 4px; }
+nav.toc a { text-decoration: none; color: #7fc4ff; }
+.sec-note { font-size: 0.85em; color: #aaa; }

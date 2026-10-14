@@ -19,6 +19,10 @@ Logs:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Équations du modèle</title>
     <link rel="stylesheet" href="css/equation.css">
+    <link rel="stylesheet" href="css/episteme.css">
+    <script src="../data/alphabet.js"></script>
+    <script src="../data/episteme.js"></script>
+    <script src="js/episteme_rendu.js"></script>
     <script src="js/equation.js"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
 </head>
@@ -46,7 +50,7 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>⚖️ Le bilan : ce que le modèle résout</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-equilibre-sommet-atmosphere">
         <div class="titre"><span class="cl P">P</span> Équilibre au sommet de l'atmosphère</div>
         <div class="f" data-tex="\Delta F(T_s) = \bar S\,(1-A) + F_{\text{int}} - \text{OLR}(T_s) = 0"></div>
         <p>Une seule inconnue, la température de surface \(T_s\) : le solveur cherche la racine. L'albédo \(A\), l'OLR et
@@ -54,7 +58,7 @@ Logs:
             il est imposé par les adiabatiques (plus bas) — c'est le schéma radiatif-convectif « inverse » standard en 1D.</p>
         <p class="code">convergence/calculations_flux.js → computeRadiativeTransfer</p>
     </div>
-    <div class="eq N">
+    <div class="eq N" id="eq-tolerance-recherche-racine">
         <div class="titre"><span class="cl N">N</span> Tolérance et recherche de la racine</div>
         <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ 0{,}1\ \text{W/m}^2\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>
         <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 140–200 K, ≤ 101 itérations.</p>
@@ -65,7 +69,7 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>☀️ Soleil et géométrie</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-luminosite-jeune-soleil">
         <div class="titre"><span class="cl P">P</span> Luminosité du jeune Soleil (Gough 1981)</div>
         <div class="f" data-tex="L(t) = \frac{L_\odot}{1 + \frac{2}{5}\,t/t_\odot},\qquad L_\odot = 3{,}828\times10^{26}\ \text{W},\ t_\odot = 4{,}57\ \text{Ga}"></div>
         <p>\(t\) = âge avant le présent. Approximation analytique des modèles solaires standard (à quelques % près sur 4 Ga) :
@@ -73,7 +77,7 @@ Logs:
         <p class="src">Gough 1981, Solar Phys. 74:21</p>
         <p class="code">convergence/compute.js → goughLuminosity, getSoleil</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-flux-recu-moyenne-sur">
         <div class="titre"><span class="cl P">P</span> Flux reçu, moyenne sur la sphère</div>
         <div class="f" data-tex="S = \frac{L}{4\pi d^2},\qquad \bar S = \frac{S}{4}"></div>
         <p>\(d\) = 1 UA (exacte par définition, UAI 2012). Le facteur 4 = surface de la sphère / disque intercepté.</p>
@@ -84,14 +88,14 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🌕 Intérieur : un bilan d'énergie intégré dans le temps</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-refroidissement-interieur">
         <div class="titre"><span class="cl P">P</span> Refroidissement de l'intérieur</div>
         <div class="f" data-tex="C(T)\,\frac{dT}{dt} = H(t) - Q(T),\qquad F_{\text{int}} = \frac{Q}{4\pi R^2}"></div>
         <p>Manteau et noyau en un seul réservoir (approximation déclarée), intégré en RK4 d'un clic à l'autre. Aucune
             valeur de flux posée par époque.</p>
         <p class="code">geology/interieur.js → integrerSolide, publier</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-chaleur-radiogenique">
         <div class="titre"><span class="cl M">M</span> Chaleur radiogénique</div>
         <div class="f" data-tex="H(t) = \sum_{i} m_{e(i)}\,a_i\,h_i\,e^{\ln 2\,t/T_{1/2,i}}"></div>
         <p>²³⁸U, ²³⁵U, ²³²Th, ⁴⁰K. Concentrations de la Terre silicatée (U 20,3 ppb, Th 79,5 ppb, K 240 ppm), chaleur par kg,
@@ -99,28 +103,28 @@ Logs:
         <p class="src">McDonough &amp; Sun 1995 ; Turcotte &amp; Schubert 2014, table 4.2</p>
         <p class="code">interieur.js → puissanceRadiogenique</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-convection-sous-couche-limite">
         <div class="titre"><span class="cl P">P</span> Convection sous couche limite (intérieur solide)</div>
         <div class="f" data-tex="Q(T) = Q_0\left(\frac{T-T_{s0}}{T_0-T_{s0}}\right)^{1+\beta}\exp\!\left[\frac{\beta E}{R}\left(\frac{1}{T_0}-\frac{1}{T}\right)\right]"></div>
         <p>\(\beta = 1/3\) (théorie de la couche limite). Ancrée sur l'état <b>mesuré</b> aujourd'hui : \(Q_0\) = 46 ± 3 TW
             (Jaupart 2015) à \(T_0\) = 1 350 °C (Herzberg 2007) ; \(E\) = 300 kJ/mol (olivine, Karato &amp; Wu 1993).</p>
         <p class="code">interieur.js → puissanceConvective</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-ocean-magma-rayonnement-vide">
         <div class="titre"><span class="cl P">P</span> Océan de magma : c'est le rayonnement qui vide l'intérieur</div>
         <div class="f" data-tex="dt = \frac{C(T)\,dT}{4\pi R^2\left[\text{OLR}(T) - \bar S(1-A)\right] - H}"></div>
         <p>L'OLR est celui du transfert radiatif du modèle à \(T\). Solidus / liquidus de la péridotite à 0 GPa (Katz 2003, M) ;
             transition rhéologique à 40 % de liquide (Abe 1997, M).</p>
         <p class="code">interieur.js → refroidirMagma</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-capacites-thermiques-chaleur-latente">
         <div class="titre"><span class="cl F">F</span> Capacités thermiques et chaleur latente</div>
         <div class="f" data-tex="C = M_{\text{BSE}}\,c_m + M_c\,c_c + \frac{M_{\text{BSE}} L_f}{T_{\text{liq}}-T_{\text{sol}}}\ \ (T_{\text{sol}} \lt T \lt T_{\text{liq}})"></div>
         <p>\(c_m\) 1 000–1 300 → 1 250, \(c_c\) 700–850 → 840 J/kg/K (Stevenson 1983) ; \(L_f\) 4–7·10⁵ → 5,5·10⁵ J/kg
             (Solomatov 2000). Fourchettes de la littérature, non parcourues par une jauge.</p>
         <p class="code">interieur.js → capacite</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-rayon-planete-fonction-temperature">
         <div class="titre"><span class="cl P">P</span> Rayon de la planète, fonction de sa température</div>
         <div class="f" data-tex="R = R_0\left[1 + \tfrac{\alpha_V}{3}(T-T_0) + \tfrac{\varphi\,\Delta V_f}{3}\right]"></div>
         <p>\(\alpha_V\) 1–3·10⁻⁵ K⁻¹ → 2·10⁻⁵ (F) ; \(\Delta V_f\) 0–7 % → 3,5 % (F) ; \(\varphi\) = fraction fondue.</p>
@@ -131,21 +135,21 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🫧 Atmosphère : composition et profil vertical</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-pression-surface-masse-molaire">
         <div class="titre"><span class="cl P">P</span> Pression de surface, masse molaire</div>
         <div class="f" data-tex="P_s = \frac{(m_{\text{sec}} + m_{\text{vap}})\,g}{4\pi R^2},\qquad \frac{1}{\bar M} = \sum_i \frac{w_i}{M_i},\qquad n_i = x_i\,\frac{p}{k_B T}"></div>
         <p>\(w_i\) fractions massiques (l'alphabet les porte : 🍰🫧), \(x_i\) molaires. Masses molaires calculées des masses
             atomiques IUPAC.</p>
         <p class="code">atmosphere/calculations_atm.js → calculatePressureAtm, calculateMolarMassAir</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-hydrostatique-adiabatique-seche">
         <div class="titre"><span class="cl P">P</span> Hydrostatique et adiabatique sèche</div>
         <div class="f" data-tex="\frac{dp}{dz} = -\rho g,\quad \rho = \frac{p_a M_a + p_c M_c}{RT},\qquad \frac{dT}{dz} = -\frac{g}{(1-w_c)\,c_{p,a}(T) + w_c\,c_{p,c}(T)}"></div>
         <p>Intégrée de la surface vers le haut par pas de 100 m (10 m dans le nuage). \(c_p(T)\) de chaque gaz :
             tables NIST-JANAF (M, Chase 1998).</p>
         <p class="code">radiative/calculations.js → profilAtmosphere ; physics.js → PHYS.cpMolaire</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-adiabatique-humide-non-diluee">
         <div class="titre"><span class="cl P">P</span> Adiabatique humide non diluée</div>
         <div class="f" data-tex="\frac{d\ln T}{d\ln p_a} = \frac{R_a}{c_{p,a}}\,\frac{1 + \frac{L r}{R_a T}}{1 + \left[\frac{c_{p,c}}{c_{p,a}} + \left(\frac{L}{R_c T}-1\right)\frac{L}{c_{p,a}T}\right] r},\quad r = \frac{R_a}{R_c}\frac{p_c}{p_a},\quad L = R_c T^2\,\frac{d\ln p_{\text{sat}}}{dT}"></div>
         <p>Tend vers l'adiabatique sèche quand la vapeur est rare, vers la courbe de saturation quand elle domine (atmosphère
@@ -153,7 +157,7 @@ Logs:
         <p class="src">Pierrehumbert 2010, Principles of Planetary Climate, éq. 2.33</p>
         <p class="code">calculations.js → profilAtmosphere</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-pression-vapeur-saturante-eau">
         <div class="titre"><span class="cl M">M</span> Pression de vapeur saturante de l'eau</div>
         <div class="f" data-tex="\ln\frac{p_{\text{sat}}}{p_c} = \frac{T_c}{T}\sum_{k=1}^{6} a_k\,\tau^{n_k},\quad \tau = 1-\frac{T}{T_c}\qquad(T_t \le T \lt T_c)"></div>
         <p>IAPWS (Wagner &amp; Pruss 2002) sur le liquide, Wagner 2011 sur la glace, Murphy &amp; Koop 2005 pour l'eau
@@ -161,14 +165,14 @@ Logs:
             l'eau ne condense plus.</p>
         <p class="code">physics.js → PHYS.pSatEau, pSatLiquide, dLnPSatEau</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-stratosphere-temperature-peau">
         <div class="titre"><span class="cl P">P</span> Stratosphère : température de peau</div>
         <div class="f" data-tex="T_{\text{strato}} = \min\!\left[\left(\frac{\bar S(1-A)}{2\sigma}\right)^{1/4},\ T_s\right]"></div>
         <p>Équilibre radiatif d'une couche grise mince ; isotherme au-dessus de la tropopause, vapeur figée à sa valeur de la
             tropopause (piège froid). Approximation grise déclarée.</p>
         <p class="code">calculations.js → profilAtmosphere</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-humidite-moyenne-altitude">
         <div class="titre"><span class="cl M">M</span> Humidité moyenne en altitude (Manabe &amp; Wetherald 1967)</div>
         <div class="f" data-tex="\bar x_v(p) = \min\!\left[x_{\text{parcelle}},\ RH_s\,\frac{p/p_s - 0{,}02}{1-0{,}02}\,\frac{p_{\text{sat,liq}}(T)}{p}\right]"></div>
         <p>Forme <b>tirée des observations</b>, pas une équation de la physique ; standard des modèles radiatifs-convectifs 1D.
@@ -176,7 +180,7 @@ Logs:
         <p class="src">Manabe &amp; Wetherald 1967, J. Atmos. Sci. 24:241</p>
         <p class="code">calculations.js → profilAtmosphere (vapeurMoyenne) ; EARTH.NUAGES.MW_P_RESIDU</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-vapeur-surface">
         <div class="titre"><span class="cl F">F</span> Vapeur à la surface</div>
         <div class="f" data-tex="q_s = RH_s\,\frac{M_{\text{H}_2\text{O}}}{M_{\text{sec}}}\,\frac{p_{\text{sat}}(T_s)}{P_s},\qquad RH_s \in [0{,}70\ ;\ 0{,}77],\qquad M_{\text{sec}} = \frac{\sum m_i}{\sum m_i/M_i}"></div>
         <p>Humidité relative de surface : ERA5 (0,70–0,75), Manabe &amp; Wetherald (0,77). Jauge CHAUD.</p>
@@ -184,13 +188,13 @@ Logs:
             lieu de 28,96 g/mol, davantage avec du CO₂).</p>
         <p class="code">h2o/calculations_h2o.js → H2O.calculateH2OParameters, dryMolarMass ; fine_tuning_bounds.js</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-ocean-possible-ou-non">
         <div class="titre"><span class="cl P">P</span> Océan possible ou non</div>
         <div class="f" data-tex="\text{pas de liquide} \iff T \ge T_c\ \ \text{ou}\ \ p_{\text{sat}}(T) \ge P_{\text{toute l'eau en l'air}}\cdot x_{\text{eau}}"></div>
         <p>État de phase : océan de magma, atmosphère de vapeur. Alors toute l'eau est vapeur, sans humidité relative ni pluie.</p>
         <p class="code">physics.js → PHYS.eauSansLiquide ; calculations_h2o.js → poserToutVapeur</p>
     </div>
-    <div class="eq N">
+    <div class="eq N" id="eq-grille-verticale">
         <div class="titre"><span class="cl N">N</span> Grille verticale</div>
         <div class="f" data-tex="\Delta z = 30\ \text{m}\ (z \lt H),\quad 150\ \text{m au-dessus},\quad H = \frac{R T_s}{\bar M g},\quad z_{\max} = H\ln\frac{P_s}{0{,}01\ \text{Pa}} \ge 120\ \text{km}"></div>
         <p>Ne fixe que la finesse de la grille ; la vraie tropopause sort du profil (température de peau).</p>
@@ -202,35 +206,35 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🌈 Spectroscopie : sections efficaces raie par raie (HITRAN)</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-intensite-raie-temperature-couche">
         <div class="titre"><span class="cl P">P</span> Intensité de raie à la température de la couche</div>
         <div class="f" data-tex="S(T) = S_{296}\,\frac{Q(296)}{Q(T)}\,e^{-c_2E''\left(\frac{1}{T}-\frac{1}{296}\right)}\,\frac{1-e^{-c_2\nu/T}}{1-e^{-c_2\nu/296}}"></div>
         <p>Raies HITRAN (CO₂, H₂O, CH₄ ; \(S_{296}\), \(E''\), \(\gamma\), \(n\) : M). ⚠️ HITRAN et non HITEMP : les bandes
             chaudes manquent au-delà de ~1 000 K.</p>
         <p class="code">spectroscopy/hitran.js → lineIntensityS</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-fonctions-partition">
         <div class="titre"><span class="cl X">⚠️</span> Fonctions de partition</div>
         <div class="f" data-tex="Q_{\text{CO}_2}(T) = 286{,}09\,\frac{T}{296},\qquad Q_{\text{H}_2\text{O}},\ Q_{\text{CH}_4} \propto \left(\frac{T}{296}\right)^{3/2}"></div>
         <p>Rotateur rigide seul (P), <b>sans les vibrations</b> : écart à TIPS (HITRAN) de quelques % à 296 K, croissant avec T.
             À remplacer par les tables TIPS avec le chantier correlated-k.</p>
         <p class="code">hitran.js → partitionFunctionQ</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-profil-voigt-largeurs">
         <div class="titre"><span class="cl M">M</span> Profil de Voigt : largeurs</div>
         <div class="f" data-tex="\gamma_L = P\left[x_s\gamma_{\text{self}} + (1-x_s)\gamma_{\text{air}}\right]\left(\frac{296}{T}\right)^{n_{\text{air}}},\qquad \gamma_D = 3{,}58\times10^{-7}\,\nu\sqrt{T/M}"></div>
         <p>Coefficients d'élargissement HITRAN (M) ; Doppler (P). Voigt par l'approximation de Humlíček (P),
             fenêtre ±5 cm⁻¹, ailes coupées à 100 largeurs (N).</p>
         <p class="code">hitran.js → gammaLorentzTotal, gammaDoppler, voigtNormalized, crossSectionFromLines</p>
     </div>
-    <div class="eq N">
+    <div class="eq N" id="eq-tables-grille-spectrale">
         <div class="titre"><span class="cl N">N</span> Tables σ(λ, T) et grille spectrale</div>
         <div class="f" data-tex="\sigma(\lambda_j, T) = \sum_i S_i(T)\,f_V(\nu_j-\nu_i)\ \ \text{à } P = 1\ \text{atm},\quad T \in \{20, 50, \dots, 3000\ \text{K}\}"></div>
         <p>Interpolées linéairement à la T de chaque couche. Grille : 0,1–100 µm, jusqu'à 2 000 points. ⚠️ Un intervalle de
             plusieurs cm⁻¹ est représenté par σ en <b>un seul point</b> : c'est ce que corrige la distribution de k corrélée.</p>
         <p class="code">calculations.js → tablesSigma, indexTemperatureSigma, buildAdaptiveLambdaGrid</p>
     </div>
-    <div class="eq C">
+    <div class="eq C" id="eq-elargissement-par-pression">
         <div class="titre"><span class="cl C">C</span> Élargissement par la pression</div>
         <div class="f" data-tex="\kappa_{\text{gaz}}(\lambda, z) = \sigma(\lambda, T)\,\sqrt{\frac{P}{P_0}}\;n_{\text{gaz}}"></div>
         <p>Limite des raies <b>fortes et saturées</b>, appliquée à toutes les raies (fausse pour les raies faibles de la fenêtre)
@@ -239,14 +243,14 @@ Logs:
             plus qu'elle ne l'augmente sous 2 atm. La vérité est entre les deux limites ; remède : k corrélé.</p>
         <p class="code">calculations.js → coucheWorker ; CONFIG_COMPUTE.pressureBroadening</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-auto-elargissement-vapeur">
         <div class="titre"><span class="cl P">P</span> Auto-élargissement de la vapeur</div>
         <div class="f" data-tex="\sqrt{\frac{P}{P_0}\left[1 + x_v\,(R_{\text{self}}-1)\right]},\qquad R_{\text{self}} = \frac{\sum S_i\gamma_{\text{self},i}}{\sum S_i\gamma_{\text{air},i}}"></div>
         <p>Rapport tiré des raies elles-mêmes (≈ 5) ; négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur.
             Hérite de la limite √(P/P₀) ci-contre.</p>
         <p class="code">calculations.js → rapportAutoElargissementH2O, coucheWorker</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-continuum-vapeur-eau">
         <div class="titre"><span class="cl M">M</span> Continuum de la vapeur d'eau</div>
         <div class="f" data-tex="C_s(\nu) = a + b\,e^{-\beta\nu},\qquad \kappa_{\text{cont}} = C_s(\nu)\,e^{T_0\left(\frac{1}{T}-\frac{1}{296}\right)}\left[e + \gamma_f(P-e)\right] n_{\text{H}_2\text{O}}"></div>
         <p>C'est lui qui ferme la fenêtre 8–12 µm d'une atmosphère humide. Domaine de la mesure : 400–1 250 cm⁻¹ ; ailleurs
@@ -254,7 +258,7 @@ Logs:
         <p class="src">Roberts, Selby &amp; Biberman 1976, Appl. Opt. 15:2085</p>
         <p class="code">physics.js → EARTH.CONTINUUM_H2O ; calculations.js → continuumH2OCs, coucheWorker</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-absorption-induite-par-collisions">
         <div class="titre"><span class="cl M">M</span> Absorption induite par collisions CO₂–CO₂</div>
         <div class="f" data-tex="\kappa_{\text{CIA}} = k(\nu, T)\;n_{\text{CO}_2}^2"></div>
         <p>Table mesurée HITRAN CIA 2024. Hors de l'intervalle de T mesuré d'une bande : valeur du jeu le plus proche
@@ -266,7 +270,7 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🔂 Transfert infrarouge</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-epaisseur-optique-une-couche">
         <div class="titre"><span class="cl P">P</span> Épaisseur optique d'une couche, en flux</div>
         <div class="f" data-tex="\tau_i(\lambda) = D\left[\left(\kappa_{\text{CO}_2} + \kappa_{\text{CIA}} + \kappa_{\text{H}_2\text{O}} + \kappa_{\text{cont}} + \kappa_{\text{CH}_4}\right)\Delta z_i + \tau_{\text{nuage},i}\right],\quad D = 1{,}66"></div>
         <p>Un flux isotrope qui traverse une épaisseur verticale τ est transmis en \(2E_3(\tau) \approx e^{-D\tau}\)
@@ -274,27 +278,27 @@ Logs:
             longueur d'onde par longueur d'onde.</p>
         <p class="code">workers/spectral_slice_worker.js → runSliceTransfer ; EARTH.DIFFUSIVITE</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-equation-schwarzschild-flux-montant">
         <div class="titre"><span class="cl P">P</span> Équation de Schwarzschild, flux montant</div>
         <div class="f" data-tex="F_i(\lambda) = F_{i-1}(\lambda)\,e^{-\tau_i} + \left(1-e^{-\tau_i}\right)\pi B_\lambda(T_i)\,\Delta\lambda,\qquad F_0 = \pi B_\lambda(T_s)\,\Delta\lambda"></div>
         <p>Couches isothermes, de la surface au sommet. Surface noire dans l'infrarouge (émissivité 1, hypothèse : l'eau vaut
             ~0,96–0,99).</p>
         <p class="code">spectral_slice_worker.js → runSliceTransfer ; calculations.js → calculateFluxForT0</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-loi-planck">
         <div class="titre"><span class="cl P">P</span> Loi de Planck</div>
         <div class="f" data-tex="B_\lambda(T) = \frac{2hc^2}{\lambda^5}\,\frac{1}{e^{hc/(\lambda k_B T)}-1}"></div>
         <p>\(h\), \(k_B\) exactes (SI 2019), \(c\) exacte (le code écrit 2,998·10⁸, arrondi à 7·10⁻⁵).</p>
         <p class="code">physics.js → planckFunction (et sa copie du worker, qui n'a pas window)</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-olr-effet-serre-repartition">
         <div class="titre"><span class="cl P">P</span> OLR, effet de serre et sa répartition</div>
         <div class="f" data-tex="\text{OLR} = \sum_\lambda F_{\text{sommet}}(\lambda),\qquad \text{EDS} = \sum_\lambda F_0(\lambda) - \text{OLR},\qquad \text{part}_X \propto \text{OLR}_{\text{sans }X} - \text{OLR}"></div>
         <p>Répartition par retrait à température figée (Schmidt et al. 2010 ; Lacis et al. 2010), normalisée à 100 % —
             les retraits ne somment pas à l'EDS (recouvrement).</p>
         <p class="code">calculations.js → calculateFluxForT0, computeEdsRemovalShares</p>
     </div>
-    <div class="eq N">
+    <div class="eq N" id="eq-bornes-numeriques-transfert">
         <div class="titre"><span class="cl N">N</span> Bornes numériques du transfert</div>
         <div class="f" data-tex="0 \le \tau \le 700,\qquad |F| \le 10^{15},\qquad B_\lambda \le 10^{30}"></div>
         <p>Gardes de débordement ; ne mordent jamais dans le domaine du modèle.</p>
@@ -315,7 +319,7 @@ Logs:
         du nuage (base, épaisseur, eau, gouttes, τ) est calculé.</p>
 </div>
 <div class="grille">
-    <div class="eq F">
+    <div class="eq F" id="eq-fractions-nuages-bas-hauts">
         <div class="titre"><span class="cl F">F</span> Fractions de nuages bas et hauts</div>
         <div class="f" data-tex="f_{\text{bas}} \in [0{,}36\ ;\ 0{,}46],\qquad f_{\text{haut}} \in [0{,}29\ ;\ 0{,}37]"></div>
         <p>CloudSat-CALIPSO + ISCCP corrigé. Jauges FROID (bas) et CHAUD (haut). Nuages moyens (0,23) non représentés (déclaré).
@@ -323,19 +327,19 @@ Logs:
         <p class="src">Stubenrauch et al. 2024, Surv. Geophys. 45:1999</p>
         <p class="code">fine_tuning_bounds.js ; calculations.js → profilAtmosphere</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-nuage-bas-adiabatique-eau">
         <div class="titre"><span class="cl P">P</span> Nuage bas adiabatique : eau condensée</div>
         <div class="f" data-tex="q_c(z) = x_{\text{surface}} - x_{\text{sat}}(T, p),\qquad \text{base} = \text{niveau de condensation}"></div>
         <p>La parcelle sature au niveau de condensation, son excès d'eau condense en montant.</p>
         <p class="code">calculations.js → profilAtmosphere (nuage)</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-phase-liquide-glace">
         <div class="titre"><span class="cl M">M</span> Phase liquide / glace</div>
         <div class="f" data-tex="f_{\text{liq}} = \text{clamp}\!\left(\frac{T - 233{,}15}{273{,}15 - 233{,}15},\ 0,\ 1\right)"></div>
         <p class="src">Hu &amp; Stamnes 1993, J. Climate 6:728</p>
         <p class="code">calculations.js → profilAtmosphere ; EARTH.NUAGES.T_TOUT_GLACE / T_TOUT_LIQUIDE</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-rayon-effectif-gouttes">
         <div class="titre"><span class="cl M">M</span> Rayon effectif des gouttes</div>
         <div class="f" data-tex="r_{\text{eff}}^3 = \frac{3\,\text{LWC}}{4\pi\rho_w\,k\,N},\qquad k = 0{,}80\ \text{(maritime)},\ 0{,}67\ \text{(continental)}"></div>
         <p>Mesures avion en stratocumulus. Plus de gouttes → plus petites → nuage plus brillant : Twomey sort seul, sans
@@ -343,13 +347,13 @@ Logs:
         <p class="src">Martin, Johnson &amp; Spice 1994, J. Atmos. Sci. 51:1823</p>
         <p class="code">calculations.js → profilAtmosphere ; EARTH.NUAGES.K_MARTIN_*</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-nombre-gouttes">
         <div class="titre"><span class="cl F">F</span> Nombre de gouttes</div>
         <div class="f" data-tex="N = \left[N_{\text{océan}}\,f_{\text{oc}} + 200\ \text{cm}^{-3}\,(1-f_{\text{oc}})\right]\cdot r_{\text{CCN}},\qquad N_{\text{océan}} \in [40\ ;\ 89]\ \text{cm}^{-3}"></div>
         <p>Océan : MODIS (Bennartz 2007), jauge FROID. Continent : mesures avion (Gultepe &amp; Isaac 2004, M).</p>
         <p class="code">calculations.js → profilAtmosphere ; DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3</p>
     </div>
-    <div class="eq F corrige">
+    <div class="eq F corrige" id="eq-noyaux-condensation-epoque">
         <div class="titre"><span class="cl F">F</span> Noyaux de condensation de l'époque (sulfate)</div>
         <div class="f" data-tex="r_{\text{CCN}} = \left(\frac{m_{\text{SO}_4}\,[0{,}29 + 0{,}71\,b]}{1{,}05\times10^{9}\ \text{kg}}\right)^{a},\qquad a \in [0{,}11\ ;\ 0{,}29]"></div>
         <p>Loi de puissance mesurée sur 19 régions (McCoy 2018) ; forme de Boucher &amp; Lohmann 1995. Partage volcanique / DMS
@@ -360,7 +364,7 @@ Logs:
             à des âges géologiques. Six nombres sans source retirés.</p>
         <p class="code">albedo/calculations_albedo.js → rapportCCN ; aerosols/sulfate_ccn.js</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-sommet-nuage-seuil-pluie">
         <div class="titre"><span class="cl F">F</span> Sommet du nuage : le seuil de pluie</div>
         <div class="f" data-tex="\text{LWC}_{\text{pluie}} = \tfrac{4\pi}{3}\,\rho_w\,k\,N_{\text{actuel}}\,r_{\text{pluie}}^3,\qquad r_{\text{pluie}} \in [13\ ;\ 14]\ \mu\text{m}"></div>
         <p>Les gouttes précipitent dès que leur rayon effectif atteint 13–14 µm (Rosenfeld &amp; Gutman 1994, Freud &amp;
@@ -370,34 +374,34 @@ Logs:
             un nuage froid ne précipitait jamais (jusqu'à 8 kg/m² d'eau sur 🪸).</p>
         <p class="code">calculations.js → profilAtmosphere ; CLOUD_SW.R_EFF_PLUIE</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-epaisseurs-optiques-nuage">
         <div class="titre"><span class="cl P">P</span> Épaisseurs optiques du nuage</div>
         <div class="f" data-tex="\tau_{\text{SW}} = \tfrac{3}{2}\!\int\!\left(\frac{\text{LWC}}{\rho_w r_{\text{eff}}} + \frac{\text{IWC}}{\rho_i r_i}\right)dz,\qquad \tau_{\text{IR}} = \tfrac{1}{2}\,\tau_{\text{SW}}"></div>
         <p>Grosses gouttes devant λ : \(Q_{\text{ext}} \approx 2\) (visible), \(Q_{\text{abs}} \approx 1\) (infrarouge) — approximations
             déclarées.</p>
         <p class="code">calculations.js → profilAtmosphere (nuage)</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-rayon-cristaux-glace">
         <div class="titre"><span class="cl X">⚠️</span> Rayon des cristaux de glace</div>
         <div class="f" data-tex="r_i = 30\ \mu\text{m}"></div>
         <p>Pas de loi simple (habitus, agrégation). Fourchette MODIS ~20–40 µm <b>de mémoire</b> (King et al. 2013, à relever).</p>
         <p class="code">EARTH.NUAGES.R_EFF_GLACE</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-population-nuages-bas">
         <div class="titre"><span class="cl X">⚠️</span> Population de nuages bas</div>
         <div class="f" data-tex="\bar\varepsilon = \frac{1}{10}\sum_{j=1}^{10}\left(1-e^{-D\,\tau_{\text{IR}}(u_j)}\right),\quad u_j = \frac{j-\frac12}{10}"></div>
         <p>Chaque nuage naît à la base et s'épaissit jusqu'à la pluie ; toutes les profondeurs sont supposées également
             représentées (hypothèse de cycle de vie déclarée ; contrôle : τ moyen MODIS ≈ 12).</p>
         <p class="code">radiative/solaire.js → moyennePopulation</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-couverture-partielle-dans-transfert">
         <div class="titre"><span class="cl P">P</span> Couverture partielle dans le transfert infrarouge</div>
         <div class="f" data-tex="\tau_{\text{eff}} = -\frac{\ln\left(1 - f\,\bar\varepsilon\right)}{D}"></div>
         <p>Transmission d'une couche couverte à la fraction \(f\) : \(1 - f\bar\varepsilon\). Recouvrement maximal dans la couche
             basse, aléatoire entre nuages bas et hauts (hypothèses standard).</p>
         <p class="code">calculations.js → profilAtmosphere</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-nuages-hauts-altitude-epaisseurs">
         <div class="titre"><span class="cl X">⚠️</span> Nuages hauts : altitude et épaisseurs</div>
         <div class="f" data-tex="T_{\text{enclume}} = 220\ \text{K},\qquad \ln\tau \sim \mathcal U[\ln 0{,}03\ ;\ \ln 30],\qquad \tau_{\text{IR}} = \tau/2"></div>
         <p>Température fixe des enclumes (Hartmann &amp; Larson 2002) : la loi est physique, la valeur de 220 K est <b>de
@@ -410,7 +414,7 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🌞 Transfert solaire (Lacis &amp; Hansen 1974)</h2>
 <div class="grille">
-    <div class="eq M">
+    <div class="eq M" id="eq-schema">
         <div class="titre"><span class="cl M">M</span> Le schéma</div>
         <div class="f" data-tex="A_{\text{sommet}} = A_{\text{visible}}(\text{Rayleigh, O}_3\text{, sol, nuages}) + \sum_{n=1}^{7} p_n\,R_n(k_n)"></div>
         <p>Paramétrisation <b>ajustée sur des calculs de diffusion multiple</b> (doubling-adding) : 64,7 % du flux hors des
@@ -418,48 +422,48 @@ Logs:
         <p class="src">Lacis &amp; Hansen 1974, J. Atmos. Sci. 31:118</p>
         <p class="code">radiative/solaire.js → albedo, colonneNuageuse</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-ozone-chemin-optique">
         <div class="titre"><span class="cl M">M</span> Ozone et chemin optique</div>
         <div class="f" data-tex="A_{\text{oz}}(x) = \frac{0{,}02118\,x}{1+0{,}042x+0{,}000323x^2} + \frac{1{,}082\,x}{(1+138{,}6x)^{0{,}805}} + \frac{0{,}0658\,x}{1+(103{,}6x)^3},\quad M = \frac{35}{\sqrt{1224\mu_0^2+1}}"></div>
         <p>Éq. 8, 9, 11, 12 de l'article ; remontée diffuse \(\bar M = 1{,}9\).</p>
         <p class="code">solaire.js → aOz, albedo</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-colonne-ozone-selon-oxygene">
         <div class="titre"><span class="cl X">⚠️</span> Colonne d'ozone selon l'oxygène</div>
         <div class="f" data-tex="u = 0{,}30\ \text{cm}\cdot\left(\frac{p_{\text{O}_2}}{0{,}2095\ \text{atm}}\right)^{0{,}19}"></div>
         <p>300 DU aujourd'hui (M) ; loi de puissance par <b>deux points</b> (124 DU à 1 % d'O₂, Segura 2003). Un modèle 3D
             (Cooke 2022) donne 66 DU : facteur 2 d'incertitude aux faibles O₂.</p>
         <p class="code">solaire.js → colonneOzone</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-diffusion-rayleigh">
         <div class="titre"><span class="cl M">M</span> Diffusion de Rayleigh</div>
         <div class="f" data-tex="R_r(\mu_0) = \frac{0{,}28}{1+6{,}43\mu_0},\qquad R(s) = \frac{s\,t_1}{1+s\,t_1},\ t_1 = \frac{R_1}{1-R_1},\qquad s = \frac{P}{1\,\text{atm}}\cdot\frac{g_0}{g}\cdot\frac{M_0}{\bar M}"></div>
         <p>Albédo de Rayleigh de la Terre actuelle (éq. 41, M), étendu à une autre colonne de molécules par la loi d'une couche
             conservative \(R = a\tau/(1+a\tau)\) (P).</p>
         <p class="code">solaire.js → rayleigh, facteurRayleigh</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-eau-precipitable-effective">
         <div class="titre"><span class="cl M">M</span> Eau précipitable effective</div>
         <div class="f" data-tex="y = \int x_v\,\frac{p\,M_{\text{H}_2\text{O}}}{RT}\,\frac{p}{P_0}\sqrt{\frac{273}{T}}\;dz"></div>
         <p>Mise à l'échelle en pression et en température de Lacis &amp; Hansen (éq. 24), intégrée sur le profil du modèle :
             colonne entière, sous le nuage, et tranche par tranche dans le nuage.</p>
         <p class="code">calculations.js → profilAtmosphere (wEff)</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-couche-diffusante-deux-flux">
         <div class="titre"><span class="cl P">P</span> Couche diffusante : deux-flux de Sagan &amp; Pollack</div>
         <div class="f" data-tex="u = \sqrt{\frac{1-g\omega}{1-\omega}},\ t = \sqrt{3(1-\omega)(1-g\omega)}\,\tau,\quad R = \frac{(u^2-1)(1-e^{-2t})}{(u+1)^2-(u-1)^2e^{-2t}},\quad T = \frac{4u\,e^{-t}}{(u+1)^2-(u-1)^2e^{-2t}}"></div>
         <p>Limite conservative : \(R = \sqrt3(1-g)\tau/(2+\sqrt3(1-g)\tau)\). \(g\) = 0,85 (Hansen &amp; Travis 1974, M).
             Absorption des gouttes ≈ 0,08 cm d'eau pour τ = 8 (§4, M).</p>
         <p class="code">solaire.js → couche, nuageVisible</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-addition-couches-moyenne-sur">
         <div class="titre"><span class="cl P">P</span> Addition des couches et moyenne sur la sphère</div>
         <div class="f" data-tex="R = R_1 + \frac{T_1^2 R_b}{1-R_1R_b},\qquad \bar A = \int_0^1 A(\mu_0)\,2\mu_0\,d\mu_0"></div>
         <p>L'hémisphère éclairé est uniformément réparti en \(\mu_0\) : géométrie, pas un angle « effectif » choisi
             (Gauss-Legendre 4 points). Sous-colonnes clair / bas / haut / bas+haut en recouvrement aléatoire.</p>
         <p class="code">solaire.js → poser, albedo</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-voile-stratospherique">
         <div class="titre"><span class="cl P">P</span> Voile stratosphérique (événements)</div>
         <div class="f" data-tex="A_{\text{eff}} = 1 - (1-A)(1-v)"></div>
         <p>\(v\) = obstruction posée par un clic (éruption, impact). Plafond 0,95 (N).</p>
@@ -470,40 +474,40 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🪩 Albédo de surface et glace</h2>
 <div class="grille">
-    <div class="eq P">
+    <div class="eq P" id="eq-melange-surfaces">
         <div class="titre"><span class="cl P">P</span> Mélange des surfaces</div>
         <div class="f" data-tex="A_{\text{sol}} = \sum_i f_i\,\alpha_i,\qquad \sum_i f_i = 1"></div>
         <p>Surfaces : lave, océan libre, forêt, terres, désert, glace. Normalisées si leur somme s'écarte de 1 de plus de 3 % (N).</p>
         <p class="code">calculations_albedo.js → calculateAlbedo</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-albedos-surfaces">
         <div class="titre"><span class="cl M">M</span> Albédos des surfaces</div>
         <div class="f" data-tex="\alpha:\ \text{océan } 0{,}08\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50"></div>
         <p>Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). ⚠️ lave 0,05 et albédo « boue de neige »
             0,48 des snowballs : sans source.</p>
         <p class="code">physics.js → EARTH['🪩🍰'] ; configTimeline.js → '🌫️❄️'</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-albedo-glace-selon-temperature">
         <div class="titre"><span class="cl M">M</span> Albédo de la glace selon sa température (Briegleb)</div>
         <div class="f" data-tex="\alpha_{\text{glace}}(T) = \begin{cases}\alpha_{\text{neige}} &amp; T \le -10\,^\circ\text{C}\\ \text{rampe vers } 0{,}70 &amp; -10 \to -5\,^\circ\text{C}\end{cases}\qquad T = \min(T_{\text{zone}},\ -5\,^\circ\text{C})"></div>
         <p>Paramétrisation NCAR (Briegleb et al., TN-463). La glace d'une zone plus chaude que −5 °C est saisonnière.</p>
         <p class="code">calculations_albedo.js → brieglebIceAlbedoMature, brieglebIceAlbedoLocal</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-glace-saisonniere-voit-soleil">
         <div class="titre"><span class="cl P">P</span> La glace saisonnière ne voit que le soleil d'hiver</div>
         <div class="f" data-tex="\alpha_{\text{eff}} = r\,\alpha_{\text{glace}} + (1-r)\,\alpha_{\text{océan}},\qquad r = \frac{\text{fraction de l'énergie solaire tombée sur la glace}}{\text{fraction du temps englacé}}"></div>
         <p>Insolation journalière exacte (géométrie orbitale) × [T(jour) &lt; T_gel]. Retard des saisons thermiques 30 j
             (M, borne basse : 1 mois sur continent, 2 sur océan).</p>
         <p class="code">physics.js → EARTH.fractionGelee, dailyMeanInsolation</p>
     </div>
-    <div class="eq P">
+    <div class="eq P" id="eq-trois-zones-latitude">
         <div class="titre"><span class="cl P">P</span> Trois zones de latitude</div>
         <div class="f" data-tex="f_{\text{pol}} = 1-\sin 60^\circ,\quad f_{\text{mid}} = \sin 60^\circ - \sin 30^\circ,\quad f_{\text{trop}} = \sin 30^\circ,\qquad g = \sum_z f_z\,\text{clamp}\!\left(\frac{T_{\text{gel}} + \Delta T_z + a_z - T}{2a_z}\right)"></div>
         <p>Fraction englacée : rampe linéaire sur l'amplitude saisonnière \(a_z\) (approximation déclarée).</p>
         <p class="corr">✔ corrigé : fractions 0,13 / 0,37 (arrondis de config) au lieu de la géométrie 0,134 / 0,366.</p>
         <p class="code">physics.js → EARTH.computeIceTempFactor, EARTH.*_ZONE_FRAC</p>
     </div>
-    <div class="eq P corrige">
+    <div class="eq P corrige" id="eq-bilan-energie-meridien">
         <div class="titre"><span class="cl P">P</span> Bilan d'énergie méridien : écart de chaque zone</div>
         <div class="f" data-tex="T(x) = \bar T + T_2 P_2(x),\qquad T_2 = \frac{5\int_0^1 P_2(x)\,I(x)\,a(x)\,dx}{6D + B},\qquad B = 2{,}09,\ D = 0{,}649\ \text{W m}^{-2}\,^\circ\text{C}^{-1}"></div>
         <p>Modèle diffusif de North, Cahalan &amp; Coakley 1981 (éq. 22, solution à deux modes). \(I(x)\) : insolation annuelle exacte
@@ -515,33 +519,33 @@ Logs:
             0,518 observé) — les calottes permanentes (Antarctique, Groenland) manquent.</p>
         <p class="code">physics/meridien.js → MERIDIEN.resoudre ; physics.js → EARTH.facteurGlaceZones</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-amplitudes-saisonnieres">
         <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières</div>
         <div class="f" data-tex="a_{\text{pol}} = 15,\ a_{\text{mid,cont}} = 25,\ a_{\text{mid,océan}} = 4,\ a_{\text{trop}} = 3\ \text{K}\ \times\frac{\sin\varepsilon}{\sin 23{,}44^\circ}"></div>
         <p>ERA5 / Peixoto &amp; Oort cités, valeurs non relevées (4 K « de mémoire »). Le facteur \(\sin\varepsilon\) est une
             approximation (P).</p>
         <p class="code">physics.js → EARTH.SEASONAL_AMP_*</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-mer-gelee">
         <div class="titre"><span class="cl F">F</span> Mer gelée</div>
         <div class="f" data-tex="f_{\text{mer gelée}} = \text{clamp}\!\left(\frac{271{,}15 - T}{\Delta T_{\text{mer}}}\right),\qquad \Delta T_{\text{mer}} \in [1\ ;\ 6]\ \text{K}"></div>
         <p>Point de congélation de l'eau de mer (M). Largeur de rampe : « quelques K en paramétrisation agrégée », source
             faible. Jauge HYSTERESIS.</p>
         <p class="code">calculations_albedo.js → calculateAlbedo ; HYSTERESIS.seaIceTransitionRangeK</p>
     </div>
-    <div class="eq F">
+    <div class="eq F" id="eq-inertie-calottes">
         <div class="titre"><span class="cl F">F</span> Inertie des calottes</div>
         <div class="f" data-tex="f_{\text{fonte}} = 1 - e^{-\text{durée}/\tau},\qquad \tau = 50\,000\ \text{ans}\ \ [10^4\ ;\ 10^5]"></div>
         <p>Marshall &amp; Clark 2002. Mélange l'état de glace de la graine et l'équilibre à T.</p>
         <p class="code">calculations_albedo.js → calculateAlbedo ; CONFIG_COMPUTE.tauGlaceAns</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-glace-equilibre-surface-eau">
         <div class="titre"><span class="cl X">⚠️</span> Glace d'équilibre et surface que l'eau peut couvrir</div>
         <div class="f" data-tex="g_{\text{éq}} = \begin{cases} 0{,}1\cdot\text{rampe}_{20\,\text{K}} &amp; T \ge T_{\text{gel}}\\ \max\!\left(0{,}1,\ 0{,}9\,\frac{T_{\text{gel}}-T}{20}\right) &amp; T \lt T_{\text{gel}}\end{cases},\qquad f_{\max} = \min\!\left(0{,}9,\ \frac{h_{\text{eau}}}{10\ \text{m}}\right)"></div>
         <p>0,1 ; 0,9 ; 20 K ; 10 m : sans source.</p>
         <p class="code">calculations_albedo.js → calcGlaceEquilibre, calculateAlbedo</p>
     </div>
-    <div class="eq P corrige">
+    <div class="eq P corrige" id="eq-surface-fusion">
         <div class="titre"><span class="cl P">P</span> Surface en fusion</div>
         <div class="f" data-tex="f_{\text{lave}} = \text{clamp}\!\left(\frac{T_s - T_{\text{solidus}}}{T_{\text{liquidus}} - T_{\text{solidus}}}\right),\quad T_{\text{sol}} = 1\,359\ \text{K},\ T_{\text{liq}} = 2\,053\ \text{K}"></div>
         <p>Fraction fondue de la péridotite à 0 GPa (Katz 2003, M) — la même loi que l'intérieur.</p>
@@ -549,7 +553,7 @@ Logs:
             évaluée sur la température de <b>graine</b> de l'époque au lieu de la température courante.</p>
         <p class="code">calculations_albedo.js → calculateAlbedo ; INTERIEUR.CONST.T_SOLIDUS / T_LIQUIDUS</p>
     </div>
-    <div class="eq C">
+    <div class="eq C" id="eq-forets-deserts">
         <div class="titre"><span class="cl C">C</span> Forêts et déserts</div>
         <div class="f" data-tex="f_{\text{forêt}} = b_{\text{terre}}\,f_{\text{libre}}\,\text{clamp}_{[0,4\,;1]}\!\left(\tfrac{T-268}{25}\right),\quad f_{\text{désert}} = f_{\text{libre}}\left(1-\tfrac{P_{\text{an}}}{1000}\right)\left(1-\tfrac{RH}{0{,}6}\right) + 0{,}6\,f_{\text{libre}}\,v_T\,v_{RH}"></div>
         <p>\(P_{\text{an}} = x_{\text{sat}}\,f_{\text{oc}}\,F_{\text{conv}}\cdot 2\times10^5\) mm/an, \(F_{\text{conv}} = 1 + (T-288)/50\) ;
@@ -557,7 +561,7 @@ Logs:
             ces lois décident de la surface des époques sans plantes.</p>
         <p class="code">calculations_albedo.js → calculateAlbedo</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-planete-sans-eau-albedo">
         <div class="titre"><span class="cl X">⚠️</span> Planète sans eau : albédo annulé</div>
         <div class="f" data-tex="A \leftarrow A\cdot\min\!\left(1,\ \frac{h_{\text{eau}}}{10\ \text{m}}\right)"></div>
         <p>C'est ce qui rend ⚫ (corps noir, fourchette −19 / −17 °C = albédo nul) noir. Mais il passe par la masse d'eau :
@@ -570,14 +574,14 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>💧 Cycle de l'eau (stocks)</h2>
 <div class="grille">
-    <div class="eq X">
+    <div class="eq X" id="eq-partage-glace-liquide-hydrosphere">
         <div class="titre"><span class="cl X">⚠️</span> Partage glace / liquide de l'hydrosphère</div>
         <div class="f" data-tex="g_{\text{masse}} = 0{,}10\,t_{\text{pol}}\ \text{ou}\ f_{\max}\,\tfrac{T_{\text{gel}}-T}{20},\qquad T_{\text{gel}} = 271{,}15 - (P-1)\cdot 1\ \text{K/atm}"></div>
         <p>Rampes et coefficients sans source. N'agit que sur le stock 🍰💧🧊 (affiché) : la surface englacée qui fait l'albédo
             vient de la carte « trois zones ».</p>
         <p class="code">h2o/calculations_h2o.js → calculateWaterPartition</p>
     </div>
-    <div class="eq X">
+    <div class="eq X" id="eq-precipitations">
         <div class="titre"><span class="cl X">⚠️</span> Précipitations</div>
         <div class="f" data-tex="P = \text{clamp}\!\left(\frac{RH - s}{0{,}2}\right)\frac{W}{\tau}\left(\frac{T}{288}\right)^{1{,}2}\frac{RH}{0{,}7},\quad s = 0{,}75 + 0{,}05\,\frac{T-288}{20},\quad \tau = 10\ \text{j}"></div>
         <p>τ = temps de résidence mesuré (8–10 j, van der Ent 2017, M) ; le reste sans source. N'agit qu'à l'initialisation :
@@ -589,14 +593,14 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>🏭 Carbone</h2>
 <div class="grille">
-    <div class="eq M">
+    <div class="eq M" id="eq-partage-ocean-atmosphere">
         <div class="titre"><span class="cl M">M</span> Partage océan / atmosphère (Henry, Van 't Hoff)</div>
         <div class="f" data-tex="m_{\text{atm}}^{\text{éq}} = \frac{m_{\text{tot}}}{1 + r\,e^{2400\,(1/T - 1/T_{\text{ref}})}},\qquad r = 50"></div>
         <p>2 400 K : dépendance en T de la solubilité du CO₂ (Sander) ; r = 38 000 / 760 GtC (Sarmiento &amp; Gruber 2006).
             ⚠️ Pas de relaxation 0,1 sans source — et mesuré inerte (l'océan est réensemencé à chaque calcul).</p>
         <p class="code">co2/calculations_co2.js → calculateCO2Partition</p>
     </div>
-    <div class="eq M">
+    <div class="eq M" id="eq-puits-co2-injecte">
         <div class="titre"><span class="cl M">M</span> Puits du CO₂ injecté (perturbation)</div>
         <div class="f" data-tex="\frac{dO_i}{dt} = \frac{k_iA - O_i}{\tau_i},\ \ k_i = \frac{r_i}{R}e^{2400(1/T-1/T_{\text{ref}})},\qquad \Delta\text{NPP} = \text{NPP}_0\,\beta_{\text{eff}}\ln\frac{C}{C_0}"></div>
         <p>Océan en 3 réservoirs (1 / 50 / 350 ans ; Broecker &amp; Peng, Sabine 2004), facteur de Revelle (Egleston 2010) ;
@@ -609,14 +613,14 @@ Logs:
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>📊 Affichage seulement (aucun calcul ne les lit)</h2>
 <div class="grille">
-    <div class="eq X">
+    <div class="eq X" id="eq-forcages-convention-organigramme">
         <div class="titre"><span class="cl X">⚠️</span> Forçages « de convention » de l'organigramme</div>
         <div class="f" data-tex="\Delta F_{\text{CO}_2} = 5{,}35\ln\frac{C}{280},\quad \Delta F_{\text{CH}_4} = 0{,}036\left(\sqrt{M}-\sqrt{M_0}\right),\quad \Delta F_{\text{H}_2\text{O}} = 6\ln\frac{q}{10^{-4}}"></div>
         <p>Myhre 1998 (CO₂, CH₄, formule simplifiée sans recouvrement) ; le terme H₂O et ses 6 W/m² sont sans source. Le modèle
             ne s'en sert pas : l'effet de serre vient du transfert raie par raie.</p>
         <p class="code">physics/climate.js ; calculations_h2o.js → calculateH2OGreenhouseForcing</p>
     </div>
-    <div class="eq N">
+    <div class="eq N" id="eq-capacites-radiatives-indice">
         <div class="titre"><span class="cl N">N</span> Capacités radiatives 🌈 et indice ☁️</div>
         <div class="f" data-tex="\langle 1 - e^{-\tau_X}\rangle_{\text{IR}},\qquad \text{☁️} = 1-(1-RH)^{0{,}6}"></div>
         <p>Diagnostics affichés. Les capacités 🌈 sont calculées sur l'ancien profil isotherme exponentiel, pas sur le profil

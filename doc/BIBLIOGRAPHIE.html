@@ -17,25 +17,11 @@
         À compléter par Sonnet : compléter DOI, résumés, ajouter sections manquantes.
         Conserver strictement l'ordre alphabétique par clé à l'intérieur de chaque section.
     -->
-    <style>
-        /* v2026-09-17 : thème sombre (affichée dans la popup noire d'index — textes #222 illisibles avant) */
-        body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #e0e0e0; background: #1a1a1a; }
-        h1 { border-bottom: 2px solid #666; color: #f0f0f0; }
-        h2 { margin-top: 2em; border-bottom: 1px solid #555; color: #9ecbff; }
-        code { color: #ffd479; }
-        article.ref { margin: 1em 0; padding: 0.5em 0.75em; border-left: 3px solid #5a9; background: #262a2e; }
-        article.ref:target { background: #4a4020; border-left-color: #fc3; }
-        .ref .cite-key { font-family: "Courier New", monospace; color: #999; font-size: 0.85em; }
-        .ref .title { font-weight: bold; color: #fff; }
-        .ref .authors { font-style: italic; color: #cfcfcf; }
-        .ref .venue { color: #b8b8b8; }
-        .ref .doi a { color: #7fc4ff; text-decoration: none; }
-        .ref .used-in { font-size: 0.82em; color: #aaa; margin-top: 0.3em; }
-        .ref .used-in code { background: #33373d; padding: 0 3px; border-radius: 2px; }
-        .todo { color: #ff7b7b; font-weight: bold; }
-        nav.toc { background: #262a2e; padding: 0.6em 1em; border-radius: 4px; }
-        nav.toc a { text-decoration: none; color: #7fc4ff; }
-    </style>
+    <link rel="stylesheet" href="css/bibliographie.css">
+    <link rel="stylesheet" href="css/episteme.css">
+    <script src="../data/alphabet.js"></script>
+    <script src="../data/episteme.js"></script>
+    <script src="js/episteme_rendu.js"></script>
 </head>
 <body>
 
@@ -61,7 +47,8 @@
     <a href="#sec-epochs">Compositions d'époques</a> ·
     <a href="#sec-bench">Fourchettes du banc</a> ·
     <a href="#sec-water-rt">Eau &amp; transfert radiatif</a> ·
-    <a href="#sec-composition-2026-10-13">Composition, nuages froids, bilan méridien</a>
+    <a href="#sec-composition-2026-10-13">Composition, nuages froids, bilan méridien</a> ·
+    <a href="#sec-calottes-cryogenien-2026-10-14">Calottes, Cryogénien</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1627,5 +1614,65 @@
     <div class="used-in">Compilation de 53 reconstructions (530 Ma–actuel), terre et mer par ceinture et par hémisphère : contrôle de <a href="#scoteseWright2018">[scoteseWright2018]</a>.</div>
 </article>
 
+<!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-calottes-cryogenien-2026-10-14">14. Calottes, Cryogénien &amp; frontières d’hystérésis (2026-10-14)</h2>
+<p class="sec-note">Usages et statuts (🧭 d’où vient la connaissance, 🛠 ce que le modèle en fait) : sous chaque entrée, lus dans
+    <code>API_BILAN/data/episteme.js</code>.</p>
+<article class="ref" id="citterio2013" data-tags="ice-sheet greenland observation">
+    <div class="cite-key">[citterio2013]</div>
+    <div class="authors">Citterio, M. &amp; Ahlstrøm, A. P.</div>
+    <div class="title">Brief communication: The aerophotogrammetric map of Greenland ice masses</div>
+    <div class="venue">The Cryosphere, 7:445–449 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/tc-7-445-2013">10.5194/tc-7-445-2013</a></div>
+</article>
+<article class="ref" id="dalton2020" data-tags="ice-sheet quaternary deglaciation">
+    <div class="cite-key">[dalton2020]</div>
+    <div class="authors">Dalton, A. S. et al.</div>
+    <div class="title">An updated radiocarbon-based ice margin chronology for the last deglaciation of the North American Ice Sheet Complex</div>
+    <div class="venue">Quat. Sci. Rev., 234:106223 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.quascirev.2020.106223">10.1016/j.quascirev.2020.106223</a></div>
+</article>
+<article class="ref" id="fretwell2013" data-tags="ice-sheet antarctica observation">
+    <div class="cite-key">[fretwell2013]</div>
+    <div class="authors">Fretwell, P. et al.</div>
+    <div class="title">Bedmap2: improved ice bed, surface and thickness datasets for Antarctica</div>
+    <div class="venue">The Cryosphere, 7:375–393 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/tc-7-375-2013">10.5194/tc-7-375-2013</a></div>
+</article>
+<article class="ref" id="krissansenTotton2018" data-tags="precambrian carbon-cycle temperature">
+    <div class="cite-key">[krissansenTotton2018]</div>
+    <div class="authors">Krissansen-Totton, J., Arney, G. N. &amp; Catling, D. C.</div>
+    <div class="title">Constraining the climate and ocean pH of the early Earth with a geological carbon cycle model</div>
+    <div class="venue">PNAS, 115(16):4105–4110 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1721296115">10.1073/pnas.1721296115</a></div>
+</article>
+<article class="ref" id="leHir2009" data-tags="snowball aftermath weathering">
+    <div class="cite-key">[leHir2009]</div>
+    <div class="authors">Le Hir, G., Donnadieu, Y., Goddéris, Y., Pierrehumbert, R. T., Halverson, G. P., Macouin, M., Nédélec, A. &amp; Ramstein, G.</div>
+    <div class="title">The snowball Earth aftermath: Exploring the limits of continental weathering processes</div>
+    <div class="venue">Earth Planet. Sci. Lett. (2009)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
+</article>
+<article class="ref" id="macdonaldWordsworth2017" data-tags="snowball sulfate-aerosol lip">
+    <div class="cite-key">[macdonaldWordsworth2017]</div>
+    <div class="authors">Macdonald, F. A. &amp; Wordsworth, R.</div>
+    <div class="title">Initiation of Snowball Earth with volcanic sulfur aerosol emissions</div>
+    <div class="venue">Geophys. Res. Lett., 44:1938–1946 (2017)</div>
+</article>
+<article class="ref" id="wilson2013" data-tags="ice-sheet antarctica eot gcm">
+    <div class="cite-key">[wilson2013]</div>
+    <div class="authors">Wilson, D. S., Pollard, D., DeConto, R. M., Jamieson, S. S. R. &amp; Luyendyk, B. P.</div>
+    <div class="title">Initiation of the West Antarctic Ice Sheet and estimates of total Antarctic ice volume in the earliest Oligocene</div>
+    <div class="venue">Geophys. Res. Lett., 40:4305–4309 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/grl.50797">10.1002/grl.50797</a></div>
+</article>
+<article class="ref" id="yang2017" data-tags="snowball aftermath ocean">
+    <div class="cite-key">[yang2017]</div>
+    <div class="authors">Yang, J., Jansen, M. F., Macdonald, F. A. &amp; Abbot, D. S.</div>
+    <div class="title">Persistence of a surface freshwater ocean after a Snowball Earth</div>
+    <div class="venue">Geology, 45:615–618 (2017)</div>
+</article>
+
+<script src="js/bibliographie.js"></script>
 </body>
 </html>

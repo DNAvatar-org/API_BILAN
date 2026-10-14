@@ -2,11 +2,12 @@
 // Desc: Page doc/equation.html — configuration MathJax, source LaTeX sous chaque formule, compte des classes
 //       (P / M / F / C / N / ⚠️) lu sur la page elle-même, hauteur envoyée à la modale parente (iframe).
 //       Chargé AVANT le script MathJax (window.MathJax doit exister quand MathJax démarre).
-// Version 1.0.0
-// Date: [October 13, 2026]
+// Version 1.1.0
+// Date: [October 14, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+//   - v1.1.0 (2026-10-14): liens épistémiques 🧭 / 🛠 sous chaque carte (data/episteme.js, js/episteme_rendu.js).
 //   - v1.0.0 (2026-10-13): sorti des scripts en ligne de equation.html ; compte des classes ajouté.
 
 'use strict';
@@ -34,6 +35,14 @@ function ajouterSourcesLatex() {
     });
 }
 
+/** Sous chaque carte, ses liens épistémiques (data/episteme.js) : 🧭 d'où vient la connaissance, 🛠 ce que le modèle en fait. */
+function afficherEpisteme() {
+    document.querySelectorAll('.eq[id]').forEach((c) => {
+        const html = window.EPISTEME_RENDU.bloc(window.EPISTEME_RENDU.parCible('eq:' + c.id), 'ref', 'BIBLIOGRAPHIE.html', 'equation.html');
+        if (html) c.querySelector('.code').insertAdjacentHTML('beforebegin', html);
+    });
+}
+
 /** Hauteur du document → modale parente (CO2/static/ui/modal.js écoute 'resize-iframe'). */
 function envoyerHauteur() {
     const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
@@ -55,6 +64,7 @@ window.MathJax = {
         ready: () => {
             poserFormules();
             compterClasses();
+            afficherEpisteme();
             MathJax.startup.defaultReady();
             MathJax.startup.promise.then(() => {
                 ajouterSourcesLatex();

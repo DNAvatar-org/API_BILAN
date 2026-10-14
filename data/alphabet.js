@@ -3,9 +3,10 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.2.1
-// Date: [September 19, 2026]
+// Version 2.3.0
+// Date: [October 14, 2026]
 // logs :
+//   - v2.3.0: axes épistémiques 🧭 (⚛ 📡 🦴 💻 ❔ ⚠️) et 🛠 (📌 🎚️ 🔧 🔢 🎯), window.EPISTEME (liens : data/episteme.js).
 //   - v2.2.1: 📅 = date en ANNÉES (était « Ma », faux : 📜📅, ▶ et ◀ sont en années) ; 📅🌕 / 📅🧊🌕 = âges de l'intérieur.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -265,7 +266,28 @@ const CHARS_DESC = {
     '📅': 'Date (années : avant 2025 pour une époque géologique, calendaires pour 🛖 🚂 📱)',
     '📐': 'Rayon planète',
     '🍎': 'Gravité (m/s²)',
-    '┴': 'Point triple de l\'eau (🎈,🌡️) = 611,657 Pa à 273,16 K (IAPWS)'
+    '┴': 'Point triple de l\'eau (🎈,🌡️) = 611,657 Pa à 273,16 K (IAPWS)',
+    // ÉPISTÉMOLOGIE (data/episteme.js) — deux axes, chacun = son logo + un logo de statut. Le statut est porté par chaque
+    // USAGE d'une référence (une valeur, une formule), pas par la référence : une même publication peut donner une mesure
+    // ici et une simulation là.
+    '🧭': 'Épistémologie : d\'où vient la connaissance',
+    '⚛': 'Physique : une équation la dérive, ou une définition exacte',
+    '📡': 'Mesure directe : instrument, laboratoire, datation',
+    '🦴': 'Reconstruction : mesure indirecte inversée par un modèle de proxy (paléosols, δ¹⁸O, Δ¹⁷O, PhanDA, PaleoDEM)',
+    '💻': 'Simulation publiée : sortie du modèle d\'un autre — pas une mesure',
+    '❔': 'Inexistant, donc extrapolé : interpolation, ordre de grandeur, bornes',
+    '⚠️': 'Sans source : ni équation, ni mesure, ni reconstruction, ni simulation',
+    '🛠': 'Usage : ce que le modèle en fait',
+    '📌': 'Valeur posée',
+    '🎚️': 'Jauge : fourchette parcourue par le réglage fin',
+    '🔧': 'Calage : posé pour que le résultat tombe juste — à éliminer',
+    '🔢': 'Numérique : grille, borne, tolérance — ne doit jamais mordre',
+    '🎯': 'Comparaison seulement : cible à valider ou invalider, n\'entre jamais dans le calcul'
+};
+// Les deux axes, dans l'ordre d'affichage. Libellés : CHARS_DESC.
+const EPISTEME = {
+    AXE: '🧭', STATUTS: ['⚛', '📡', '🦴', '💻', '❔', '⚠️'],
+    USAGE: '🛠', USAGES: ['📌', '🎚️', '🔧', '🔢', '🎯']
 };
 
 // alt2sec des époques : déplacé dans static/texts/epochs_alt2sec.js (récit + chiffres lus à la source).
@@ -278,6 +300,7 @@ const CHARS_DESC = {
 window.CHARS = CHARS;
 window.LOGOS = CHARS; // Alias historique (configOrganigramme, organigramme)
 window.CHARS_DESC = CHARS_DESC;
+window.EPISTEME = EPISTEME;
 // Source unique pour mapper id époque (emoji ou 'hysteresis Xy') → nom français.
 window.epochName = function (id) {
     return (CHARS_DESC[id] !== undefined) ? CHARS_DESC[id] : id;

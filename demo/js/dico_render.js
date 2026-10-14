@@ -2,9 +2,10 @@
 // Desc: En français, dans l'architecture, je suis la VUE du dictionnaire : la grille du lexique, avec la
 //       valeur courante de chaque clé lue dans DATA. Les définitions (KEYS, DESC, FORM, KEYS_ALT0SEC) ne
 //       sont plus ici : elles vivent dans API_BILAN/data/dico.js, que je lis par window. Chargé après lui.
-// Version 1.1.0
-// Date: [September 19, 2026]
+// Version 1.2.0
+// Date: [October 14, 2026]
 // logs :
+//   - v1.2.0: provenance épistémique de chaque clé (data/episteme.js, doc/js/episteme_rendu.js).
 //   - v1.1.0: déplacé de CO2/static/compute/ vers API_BILAN/demo/ (rendu des définitions de l'API).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -39,7 +40,9 @@ function createDicoHtml() {
         const tipAttr = alt0
             ? ' data-tooltip="' + String(alt0).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') + '"'
             : '';
-        return `<div class="legend-item"${tipAttr}><span class="logo">${key}</span><span class="description">${desc}</span></div>`;
+        // Provenance de la clé (data/episteme.js) : 🧭 d'où vient la connaissance, 🛠 ce que le modèle en fait.
+        const episteme = window.EPISTEME_RENDU.bloc(window.EPISTEME_RENDU.parCible('dico:' + key), 'ref', '../doc/BIBLIOGRAPHIE.html', '../doc/equation.html');
+        return `<div class="legend-item"${tipAttr}><span class="logo">${key}</span><span class="description">${desc}${episteme}</span></div>`;
     };
     
     // Catégories avec leurs logos et noms (utilise directement les emojis)
