@@ -1,12 +1,13 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.2.0 — 2026-10-12 : détail du fine-tuning en popup (.bench-ft-dialog, tableau).
+   Version 1.2.1 — 2026-10-15 : fond transparent (étoiles de l'index dans l'onglet Bench).
+   v1.2.0 — 2026-10-12 : détail du fine-tuning en popup (.bench-ft-dialog, tableau).
    Date: 2026-10-12
    logs : v1.1.0 — deux gros boutons .btn-play (Époques vert, Tictimes bleu) ; .epoch-etape (clic joué).
    Copyright 2026 DNAvatar.org - Arnaud Maignan */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Courier New', monospace; background: #0d0d0d; color: #d0d0d0; font-size: 13px; }
+body { font-family: 'Courier New', monospace; background: transparent;   /* étoiles de l'index (onglet Bench) */ color: #d0d0d0; font-size: 13px; }
 
 /* Loader (aligné CO2/index + index-shell) */
 .app-loader {
