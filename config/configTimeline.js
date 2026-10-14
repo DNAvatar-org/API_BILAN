@@ -1,6 +1,8 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.4
+// Version 1.5.6
+// - v1.5.6 (2026-10-14): tictimes nommés avant les bascules (🫠 660 Ma, ⛄→1b ; 🌨 639,1 Ma, 1b→🏂 ; 🫗 635,3 Ma, 🏂→1c) ; '📅' dans l'entrée.
+// - v1.5.5 (2026-10-14): 🦠 tictimes à 3 500 et 3 200 Ma (bords de la fenêtre Blake 2010).
 // - v1.5.4 (2026-10-14): 🦠 1ᵉʳ tictime à 3 250 Ma (dans la fenêtre Blake 2010 3,5 → 3,2 Ga), était 3 520,67 Ma.
 // - v1.5.3 (2026-10-14): EAU_ACCRETEE_KG = un océan (OCEAN_KG = 1,4e21, Matsui & Abe 1986 / Zahnle 2010), était 6e20.
 // - v1.5.2 (2026-10-14): eau des ☄️ portée par chaque entrée de 🕰.order ; ⚫ = un ☄️ à chaque tic, cumul géométrique.
@@ -408,10 +410,9 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            'order': [{ '🕰': '💫', '🔺⏳': 781 }, { '🕰': '💫', '🔺⏳': 239.6666666666667 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }],
-            // Clics à 3 250 Ma, 3 010,33 Ma, puis 2 500 Ma (passage à 🪸) — durée totale 1 531 Ma.
-            // v-2026-10-14 : le 1ᵉʳ clic passe de 3 520,67 à 3 250 Ma pour tomber DANS la fenêtre océan archéen 3,5 → 3,2 Ga
-            //   (Blake et al. 2010, courbe de la littérature) : à 3 520,67 il calculait juste avant, et son palier la traversait.
+            'order': [{ '🕰': '💫', '🔺⏳': 531 }, { '🕰': '💫', '🔺⏳': 300 }, { '🕰': '💫', '🔺⏳': 700 }],
+            // Clics à 3 500 Ma, 3 200 Ma, puis 2 500 Ma (passage à 🪸) — durée totale 1 531 Ma. Calés sur les bords de la
+            //   fenêtre océan archéen 3,5 → 3,2 Ga (Blake et al. 2010, courbe de la littérature) : la montée et la descente.
             // v-2026-09-24 : 1531/3 → 2 clics à 1/3 et 2/3 de la rampe. ⚠️ Avec 511, le 2ᵉ clic atteignait 100 % de la rampe
             //   (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga.
             '💫': {
@@ -760,7 +761,9 @@ const timeline = [
     // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
     // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
     "🕰": {
-        'order': [{ '🕰': '💫', '🔺⏳': 29 }, { '🕰': '🌋', '🔺⏳': 29 }],
+        // 🫠 Pré-sortie sturtienne : un tictime à 660 Ma, 1 Ma avant la sortie (659), pour que la courbe porte l'état gelé jusqu'à la bascule.
+        //   Un tictime peut porter '📅' (logo, nom dans CHARS_DESC) comme une époque : l'Histoire l'affiche, pas la frise.
+        'order': [{ '🕰': '💫', '🔺⏳': 29 }, { '🕰': '💫', '🔺⏳': 28, '📅': '🫠' }, { '🕰': '🌋', '🔺⏳': 1 }],
         "💫": {
             "🔺🌡️💫": 0,
             "🍰⚽": 0
@@ -826,7 +829,8 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': N2_1PAL_KG,
         '🕰': {
-            'order': [{ '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }],
+            // 🌨 Pré-snowball marinoen : tictime 0,1 Ma avant 🏂 (le 3ᵉ dépassait d'1 Ma, 638 au lieu de 639).
+            'order': [{ '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 5.9, '📅': '🌨' }, { '🕰': '💫', '🔺⏳': 0.1 }],
             // v-2026-09-24 : 🔀 fait glisser les masses de 1b vers celles de 🏂 pendant les 💫 (comme 🪸 → 1a) :
             //   sortie du Sturtien (CO₂ au seuil de sortie), puis retombée du CO₂ jusqu'à la frontière d'entrée
             //   du Marinoen. Le 3ᵉ 💫 (21 Ma ≥ 20) passe dans 🏂.
@@ -919,7 +923,8 @@ const timeline = [
     // v-2026-09-15 : 💫 (+10 Ma) = le voile retombe (🍰⚽=0), la planète reste gelée au même CO₂ (hystérésis visible) ;
     // puis 🌋 (+20 Ma) = volcanisme/poussière de sortie → époque suivante hysteresis 1b (CO₂ + glace sale dans SA config).
     "🕰": {
-        'order': [{ '🕰': '💫', '🔺⏳': 1.9 }, { '🕰': '🌋', '🔺⏳': 1.9 }],
+        // 🫗 Pré-sortie marinoen : tictime 0,1 Ma avant la sortie (1c).
+        'order': [{ '🕰': '💫', '🔺⏳': 1.9 }, { '🕰': '💫', '🔺⏳': 1.8, '📅': '🫗' }, { '🕰': '🌋', '🔺⏳': 0.1 }],
         "💫": {
             "🔺🌡️💫": 0,
             "🍰⚽": 0
@@ -1593,10 +1598,8 @@ window.TIMELINE = timeline;
  * Construit à la demande, pas au chargement : CHARS_DESC (data/alphabet.js) arrive après ce fichier.
  */
 window.epochIndex = function () {
-    // Les ids non-emoji n'ont pas d'entrée CHARS_DESC : repli explicite, pas de nom inventé.
-    const NOMS_HORS_ALPHABET = {
-        'hysteresis 1a': 'Sturtienne', 'hysteresis 1b': 'Sortie Sturtienne', 'hysteresis 1c': 'Sortie Marinoen', 'hysteresis 2': 'Eocène-Oligocène'
-    };
+    // Nom = CHARS_DESC[id] (data/alphabet.js), qui couvre aussi les ids texte (hysteresis …) : une seule source.
+    // (v-2026-10-14 : NOMS_HORS_ALPHABET en était une copie ; renommer 1a dans l'une seule cassait la frise.)
     // RÉFÉRENCE UNIQUE : on rend les entrées de TIMELINE ELLES-MÊMES, pas des copies. Les alias sont des
     // accesseurs non énumérables, lus à la demande dans 📅 / ▶ / ◀ / CHARS_DESC : rien n'est dupliqué, et ils
     // n'apparaissent ni dans Object.keys, ni dans un JSON, ni dans un { ...epoch }. Avant (v1.4.89), chaque
@@ -1607,7 +1610,7 @@ window.epochIndex = function () {
         Object.defineProperties(item, {
             type:       { get() { return this['📅'] ? 'epoch' : 'separator'; } },
             id:         { get() { return this['📅']; } },
-            name:       { get() { const id = this['📅']; return NOMS_HORS_ALPHABET[id] || (window.CHARS_DESC && window.CHARS_DESC[id]) || id; } },
+            name:       { get() { return window.CHARS_DESC[this['📅']]; } },
             startYears: { get() { return this['▶']; } },
             endYears:   { get() { return this['◀']; } }
         });

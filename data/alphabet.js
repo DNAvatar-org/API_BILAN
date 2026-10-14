@@ -3,9 +3,10 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.3.0
+// Version 2.3.1
 // Date: [October 14, 2026]
 // logs :
+//   - v2.3.1: ☃ = Pré-sturtienne ; tictimes nommés 🫠 🌨 🫗 (pré-sortie sturtienne, pré-snowball et pré-sortie marinoens).
 //   - v2.3.0: axes épistémiques 🧭 (⚛ 📡 🦴 💻 ❔ ⚠️) et 🛠 (📌 🎚️ 🔧 🔢 🎯), window.EPISTEME (liens : data/episteme.js).
 //   - v2.2.1: 📅 = date en ANNÉES (était « Ma », faux : 📜📅, ▶ et ◀ sont en années) ; 📅🌕 / 📅🧊🌕 = âges de l'intérieur.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -84,7 +85,10 @@ const CHARS = {
     ARCHEEN: '🦠',  // Archéen : microbe unicellulaire
     PROTEROZOIC: '🪸', // Protérozoïque (2500–750 Ma) : corail (multicellularité, eucaryotes)
     HYSTERESIS_1A: 'hysteresis 1a', // Sturtienne (750–720 Ma) — bascule albédo↓ (id stable, logo ☃)
-    SNOWBALL_ENTRY: '☃', // Entrée Sturtienne (alias affichage hyst 1a)
+    SNOWBALL_ENTRY: '☃', // Pré-sturtienne (alias affichage hyst 1a) : dernier état chaud avant le Snowball Sturtien
+    PRE_STURTIAN_EXIT: '🫠', // Pré-sortie sturtienne (tictime de ⛄, 660 Ma) : dernier état gelé avant la sortie
+    PRE_MARINOAN: '🌨', // Pré-snowball marinoen (tictime de 1b, 639,1 Ma) : dernier état avant le Snowball Marinoen
+    PRE_MARINOAN_EXIT: '🫗', // Pré-sortie marinoen (tictime de 🏂, 635,3 Ma) : dernier état gelé avant la sortie
     SNOWBALL: '⛄',  // Snowball Sturtien (717–659 Ma) : accumulation CO₂ sous glace
     HYSTERESIS_1B: 'hysteresis 1b', // Sortie Sturtienne + interglaciaire (659–639 Ma) — hyst 1b (id stable, logo 🌦)
     CRYO_INTERLUDE: '🌦', // Sortie Sturtienne / interglaciaire cryogénien (alias affichage hyst 1b)
@@ -235,7 +239,10 @@ const CHARS_DESC = {
     '🔥': 'Hadéen',
     '🦠': 'Archéen',
     '🪸': 'Protérozoïque',
-    '☃': 'Sturtienne',
+    '☃': 'Pré-sturtienne',
+    '🫠': 'Pré-sortie sturtienne',
+    '🌨': 'Pré-snowball marinoen',
+    '🫗': 'Pré-sortie marinoen',
     '⛄': 'Snowball Sturtien',
     '🏂': 'Snowball Marinoen',
     '⛈': 'Sortie Marinoen',
@@ -248,7 +255,7 @@ const CHARS_DESC = {
     '🐊': 'Éocène',
     '🐧': 'Eocène-Oligocène',
     '⛰': 'Montagne (relief)',
-    'hysteresis 1a': 'Sturtienne',
+    'hysteresis 1a': 'Pré-sturtienne',
     'hysteresis 1b': 'Sortie Sturtienne',
     'hysteresis 1c': 'Sortie Marinoen',
     'hysteresis 2': 'Eocène-Oligocène',
