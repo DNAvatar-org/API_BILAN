@@ -144,13 +144,16 @@ const EAU_ACCRETEE_KG = 6.0e20;   // [kg] = 🔥 ⚖️💧
 // N₂ = 1 PAL : 5,1352e18 kg d'air sec (Trenberth & Smith 2005) × 0,7552 — une seule valeur pour toutes les époques sauf ⚫ 🔥.
 const N2_1PAL_KG = 3.878e18;
 // Sturtien : ☃ (hysteresis 1a, ◀ = 717 Ma) et ⛄ (▶ = 717 Ma) sont la MÊME planète au même instant — même CO₂, même CH₄,
-// deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14 sur la CHAÎNE DE CLICS (frise 🪸, 💫 ×3 → ☃), CO₂ et
-// CH₄ descendus ENSEMBLE dans leurs fourchettes (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas :
-//   s = 0,42041 → 1 130,6 ppm / 26,82 ppm : ☃ 6,61 °C (glace 0,14, vapeur 0,94 %) ; 🗻 → ⛄ −76,8 °C ; 💫 (voile retiré) ⛄ −77,0 °C
-//   s = 0,42017 → 1 130,2 ppm / 26,81 ppm : ☃ −77,5 °C (snowball)
-// Aux maxima (2 000 / 50 ppm), ☃ 10,5 °C ; aux minima (500 / 10 ppm), ☃ arrive gelé. Remesurer après tout changement de physique.
-const STURTIEN_CO2_KG = 6.920409e15;   // [kg] 1 130,6 ppm d'air sec
-const STURTIEN_CH4_KG = 5.982332e13;   // [kg] 26,82 ppm d'air sec
+// deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14, CO₂ et CH₄ descendus ENSEMBLE dans leurs fourchettes
+// (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas, critère « frise = clic » : ☃ chaud au CLIC
+// FRISE ET à l'arrivée par la CHAÎNE (frise 🪸, 💫 ×3 → ☃) :
+//   s = 0,51196 → 1 267,9 ppm / 30,48 ppm : frise ☃ 7,16 °C, chaîne ☃ 7,09 °C (glace 0,14, vapeur 0,97 %) ; 🗻 → ⛄ −76,4 °C ;
+//                 💫 (voile retiré) ⛄ −76,8 °C, reste gelé
+//   s = 0,51182 → 1 267,7 ppm / 30,47 ppm : frise ☃ −73,6 °C (snowball)
+// La chaîne seule tenait jusqu'à 1 130,6 ppm, mais la branche chaude n'y est plus qu'une tangente : le clic frise (premier pas
+// plus grand) passait dessous. Remesurer après tout changement de physique.
+const STURTIEN_CO2_KG = 7.762073e15;   // [kg] 1 267,9 ppm d'air sec
+const STURTIEN_CH4_KG = 6.800241e13;   // [kg] 30,48 ppm d'air sec
 const CALOTTES_SANS = { S_pol: 0, N_pol: 0, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
 const CALOTTES_ACTUELLES = { S_pol: 0.35984, N_pol: 0.050239, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
 // Snowball (Sturtien, Marinoen) : continents englacés jusqu'à l'équateur (Hoffman et al. 2017, Science Advances
