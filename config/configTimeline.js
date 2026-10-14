@@ -1,6 +1,8 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.1
+// Version 1.5.3
+// - v1.5.3 (2026-10-14): EAU_ACCRETEE_KG = un océan (OCEAN_KG = 1,4e21, Matsui & Abe 1986 / Zahnle 2010), était 6e20.
+// - v1.5.2 (2026-10-14): eau des ☄️ portée par chaque entrée de 🕰.order ; ⚫ = un ☄️ à chaque tic, cumul géométrique.
 // - v1.5.1 (2026-10-14): calottes au clic frise (EPOCH['🗻']['🍰🗻🧊'], aires sourcées : CALOTTES_* en tête de fichier).
 // - v1.5.0 (2026-10-13): EPOCH['🥶'] retirés de toutes les époques — écarts de zone calculés (physics/meridien.js).
 // - v1.4.99 (2026-10-13): N₂ = 1 PAL (3,878e18 kg) sauf ⚫ et 🔥 ; O₂ de 🪼 🍄 💀 🦕 sourcé (Krause 2018).
@@ -127,10 +129,27 @@
 // Détail, dérivations et ce qui reste non contraint : doc/MASSES_SULFATE_PAR_EPOQUE.md
 // ═══════════════════════════════════════════════════════════════════════════
 // EAU ACCRÉTÉE : l'eau avec laquelle la Terre sort de l'impact géant. Pour la pédagogie, le corps noir ⚫ part SANS eau,
-// et ce sont ses météorites (☄️, 2 dans sa séquence) qui l'apportent — la même masse que 🔥 a au départ, une seule
+// et ce sont ses météorites qui l'apportent — un ☄️ à CHAQUE tic de ⚫, la même masse totale que 🔥 a au départ, une seule
 // référence. Dans la réalité, l'essentiel de cette eau venait avec les briques de la Terre (chondrites à enstatite,
 // Piani et al. 2020, Science 369:1110) : les ☄️ de ⚫ la figurent, elles ne prétendent pas à une chronologie.
-const EAU_ACCRETEE_KG = 6.0e20;   // [kg] = 🔥 ⚖️💧
+// Valeur publiée : ~10²¹ kg d'H₂O dans l'atmosphère d'impact de la Terre en accrétion, « proche de la masse des océans
+// actuels » (Matsui & Abe 1986, Nature 319:303) ; la Terre sort de l'impact géant avec ~ un océan, 270 bar de vapeur
+// (Zahnle et al. 2010, Cold Spring Harb. Perspect. Biol. 2:a004895, fig. 3). → EAU_ACCRETEE_KG = UN OCÉAN.
+// (v1.5.3 ; avant : 6e20 kg, calé sur une vapeur à 15 % mol dans 🔥 — ⚠️ sans source.)
+// OCEAN_KG : masse d'un océan actuel = 270 bar × 4πR² / g = 2,7e7 Pa × 5,101e14 m² / 9,81 m s⁻² = 1,40e21 kg (pression
+// équivalente de Zahnle et al. 2010) ; volume 1,335e9 km³ × ~1 030 kg m⁻³ = 1,37e21 kg (Charette & Smith 2010,
+// Oceanography 23:112). Une seule référence : CONFIG_COMPUTE.earthTotalWaterMassKg la lit.
+const OCEAN_KG = 1.4e21;
+const EAU_ACCRETEE_KG = OCEAN_KG;   // [kg] = 🔥 ⚖️💧
+// Eau CUMULÉE après le k-ième ☄️ de ⚫ (k = 1…N) : progression GÉOMÉTRIQUE de EAU_PREMIER_KG à EAU_ACCRETEE_KG — très peu
+// au début, l'essentiel à la fin : la Terre accrète son eau tout du long, mais la plus grande part avec les derniers
+// embryons venus de la ceinture externe (Morbidelli et al. 2000, Meteorit. Planet. Sci. 35:1309 ; ≤ 10 % avant que la
+// Terre ait la moitié de sa masse). Forme 🧭 ❔ (pédagogique, aucune courbe cumulée publiée), usage 📌.
+// EAU_PREMIER_KG = 1e17 kg ≈ 0,3 m d'eau globale sur ⚫ : l'albédo de l'eau sature à une couche de 10 m (🍰🪩💧, ~3e18 kg
+// sur ⚫) ; une première météorite plus lourde gèlerait tout d'un coup et l'apport progressif ne se verrait pas.
+const EAU_PREMIER_KG = 1.0e17;
+const EAU_CUMUL_KG = (k, N) => EAU_ACCRETEE_KG * Math.pow(EAU_PREMIER_KG / EAU_ACCRETEE_KG, (N - k) / (N - 1));
+const EAU_DU_CLIC_KG = (k, N) => EAU_CUMUL_KG(k, N) - (k > 1 ? EAU_CUMUL_KG(k - 1, N) : 0);
 // ═══════════════════════════════════════════════════════════════════════════
 // CALOTTES AU CLIC FRISE (EPOCH['🗻']['🍰🗻🧊']) : part de chaque bande de latitude, par hémisphère, sous calotte
 // permanente à ▶ de l'époque. Le clic time les fait ensuite évoluer par leur bilan de masse (physics/calottes.js).
@@ -204,13 +223,11 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
         // Événements interactifs : 🕰.order = la séquence des clics (CLICS, convergence/clics.js), pour toute interface.
         '🕰': {
-            'order': [{ '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 100 }, { '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 100 }, { '🕰': '🎇', '🔺⏳': 100 }],
-            '☄️': {
-                '🔺⚖️💧☄️': EAU_ACCRETEE_KG / 2, // [kg] chaque ☄️ de ⚫ apporte la moitié de l'eau de 🔥 (2 ☄️ dans la séquence)
-            },
-            '💫': {
-                '🔺🌡️💫': 0,
-            },
+            // Un ☄️ à chaque tic de 100 Ma, chacun portant SA masse d'eau (🔺⚖️💧☄️, croissante : EAU_DU_CLIC_KG), puis 🎇.
+            // Cumul : 1e17 → 2,4e18 → 5,8e19 → 1,4e21 kg (≈ 0,3 m → 7,4 m → 178 m → 4,3 km d'eau globale sur ⚫).
+            'order': [1, 2, 3, 4].map(k => ({ '🕰': '☄️', '🔺⏳': 100, '🔺⚖️💧☄️': EAU_DU_CLIC_KG(k, 4) }))
+                .concat([{ '🕰': '🎇', '🔺⏳': 100 }]),
+            '☄️': {},
             '🎇': {
                 '⏩': '🔥', // Transition vers Hadéen
             },
@@ -259,8 +276,8 @@ const timeline = [
         //   Sleep, Zahnle & Neuhoff 2001 PNAS 98:3666 : 40–210 bar CO₂ après l'impact lunaire ; Zahnle et al. 2010 CSH Persp. Biol. 2:a004895.
         '⚖️🏭': 3.5e20, // co2_kg
         '⚖️🐄': 2.369e16, // v-2026-09-23 (était 5.0e15) : CH₄ ≈ 55 ppm air sec = milieu de [10,100] ‖ avant : ch4_kg (~1000 ppm)
-        '⚖️💧': EAU_ACCRETEE_KG, // h2o_kg = l'eau apportée par les ☄️ de ⚫ — [v1.4.82] 2.1e20 → 6e20 : vapeur 15 % mol (milieu grille [10,20]) ; avec 70 bar de CO₂ la vapeur
-        //   tombait à 7 % (dilution). Atmosphère de vapeur post-impact ≈ un océan entier (Zahnle et al. 2010) ; ☄️ ajoute ensuite.
+        '⚖️💧': EAU_ACCRETEE_KG, // h2o_kg = l'eau apportée par les ☄️ de ⚫ = un océan (Matsui & Abe 1986 ; Zahnle et al. 2010) ;
+        //   v1.5.3 : 6e20 → 1,4e21 (6e20 visait 15 % mol de vapeur, grille [10,20], sans source) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
         // ⚖️✈ : 0 — le modèle sort cette époque à ~2650 °C. L'acide sulfurique ne condense pas :
         //   il n'y a ni gouttelette d'eau ni aérosol sulfaté à cette température. Le soufre est
@@ -274,7 +291,7 @@ const timeline = [
         // Événements interactifs
         // Hadéen (▶ 4,51 Ga → ◀ 4,031 Ga). Gaz fixes ; l'intérieur refroidit par bilan d'énergie (geology/interieur.js).
         '🕰': {
-            'order': [{ '🕰': '💫', '🔺⏳': 0.001 }, { '🕰': '☄️', '🔺⏳': 0.1 }, { '🕰': '☄️', '🔺⏳': 100 }, { '🕰': '💫', '🔺⏳': 378.899 }],
+            'order': [{ '🕰': '💫', '🔺⏳': 0.001 }, { '🕰': '☄️', '🔺⏳': 0.1, '🔺⚖️💧☄️': 1.0e20 }, { '🕰': '☄️', '🔺⏳': 100, '🔺⚖️💧☄️': 1.0e20 }, { '🕰': '💫', '🔺⏳': 378.899 }],
             // v-2026-10-12 : pas croissants (1 ka, 100 ka, 100 Ma, puis le complément jusqu'à ◀ = 4,031 Ga) — l'océan de
             //   magma et sa couverture de vapeur durent de 1 à quelques Ma (Lebrun et al. 2013, JGR Planets 118:1155 ;
             //   Hamano et al. 2013, Nature 497:607) : avec un pas de 100 Ma, tout tenait dans le premier clic.
@@ -282,9 +299,7 @@ const timeline = [
             '💫': {
                 '🔺🌡️💫': 0,  // v-2026-09-24 : était −300 K/tic, un refroidissement PRESCRIT ; le refroidissement sort du bilan d'énergie
             },
-            '☄️': {
-                '🔺⚖️💧☄️': 1.0e20, // water_added_kg (~10% de l'eau initiale)
-            }
+            '☄️': {}   // eau portée par chaque entrée de 🕰.order (🔺⚖️💧☄️ : 1e20 kg, ~7 % de l'eau initiale)
         },
         '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
@@ -1997,7 +2012,7 @@ window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB
 // de la grille verticale fine (ATM.calculateTropopauseHeight = RT/Mg) ; la tropopause sort du profil.
 window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
-window.CONFIG_COMPUTE.earthTotalWaterMassKg = 1.4e21;              // [OBS/CALIB]
+window.CONFIG_COMPUTE.earthTotalWaterMassKg = OCEAN_KG;            // [OBS] un océan actuel (en tête de fichier)
 // Sans atmosphère (⚫) : stock glace didactique 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) — pas 100 % d’un coup.
 window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01 = 0.1;         // plafond 10 % de l’inventaire « phase glace »
 window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL = 100;        // × fraction PAL eau (~1 clic ☄️ → ~2–3 %)

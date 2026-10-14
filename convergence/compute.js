@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.3.1
+// Version 1.3.2
 // Date: [October 14, 2026]
 // logs :
+// - v1.3.2: eau des météorites = cumul 📜🔺⚖️💧 tenu par CLICS.jouer (plus 📿☄️ × une masse unique par époque).
 // - v1.3.1: 🔀 interpolé par le temps écoulé (📜⏳) pour toutes les époques — plus de compte de tics (2ᵉ horloge) ;
 //   plus de copie 📜📅 (CLICS.date()).
 // - v1.3.0: getEpochDateConfig ne passe plus à l'époque suivante (ni ne remet ⏳ / 📿 à zéro) : c'était le 3e
@@ -47,8 +48,8 @@ function getMasses() {
     };
     // 🔀 '⚖️' : masses interpolées le long de l'époque (posées par getEpochDateConfig).
     Object.assign(base, H['🔀⚖️']);
-    // ⚖️💧 += 📿☄️ × 🔺⚖️💧☄️ (météorites)
-    base['⚖️💧'] += H['🔺⚖️💧☄️'] * H['📿☄️'];
+    // ⚖️💧 += 📜🔺⚖️💧 : eau cumulée des météorites de l'époque (CLICS.jouer, une masse par entrée de 🕰.order)
+    base['⚖️💧'] += H['🔺⚖️💧'];
     // 🔁 état de cycle courant (posé par getEpochDateConfig) : masses imposées pour ce tic.
     Object.assign(base, H['🔁⚖️']);
     // 📱 🕰 indexé par année : CO₂ = racine + cumul injecté par les clics ⛽/🛢 − absorbé océan − stocké forêts
@@ -72,8 +73,6 @@ function getEpochDateConfig() {
     // Temps écoulé dans l'époque : 📜⏳ (Ma), seule horloge, tenue par CLICS.jouer (somme des 🔺⏳ joués).
     const deltaYearsFromTics = H['⏳'] * 1e6;
 
-    // Masse d'eau par météorite (⚫, 🔥). ⚠️ Ne pas écraser 📿☄️ ni 📿💫 : compteurs des clics (CLICS.jouer).
-    if ('☄️' in W) H['🔺⚖️💧☄️'] = W['☄️']['🔺⚖️💧☄️'];
     // Delta de température par tictime (graine sans anim : calculateT0).
     H['🔺🌡️💫'] = ('💫' in W) ? W['💫']['🔺🌡️💫'] : 0;
     DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];

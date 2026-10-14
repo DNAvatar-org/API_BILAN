@@ -9,7 +9,8 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.3.2
+// Version 1.3.3
+// - v1.3.3: ☄️ cumule l'eau de SON entrée de séquence (🔺⚖️💧☄️) dans 📜🔺⚖️💧 — la masse peut changer d'un ☄️ à l'autre.
 // - v1.3.2: frise = calottes de la config de l'époque (CALOTTES.depuisConfig) ; CLICS.date() remplace la copie 📜📅.
 // - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
 // Date: 2026-10-14
@@ -20,7 +21,7 @@
 window.CLICS = (function () {
 
     /** État propre à une époque : remis à zéro à chaque changement d'époque (frise ou passage). */
-    const COMPTEURS_EPOQUE = ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭'];
+    const COMPTEURS_EPOQUE = ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭'];
 
     /** Tics de temps géologique : même effet (📿💫, voile de la racine 🍰⚽), boutons différents selon l'époque. */
     const TICS = ['💫', '🏔', '⛰'];
@@ -113,6 +114,11 @@ window.CLICS = (function () {
             return EP['▶'] < EP['◀'] ? EP['▶'] + dt : EP['▶'] - dt;
         },
 
+        /** Masse d'eau [kg] qu'apporterait le ☄️ au curseur de la séquence (portée par son entrée de 🕰.order). */
+        eauDuClic: function () {
+            return epoque()['🕰'].order[window.DATA['📜']['📿🕰']]['🔺⚖️💧☄️'];
+        },
+
         /** Durée de l'époque courante (Ma). */
         duree: function () {
             const EP = epoque();
@@ -128,7 +134,6 @@ window.CLICS = (function () {
             poserEpoque(H, epochId);
             H['🔺🌡️💫'] = 0;
             H['🔺🍰⚽'] = 0;
-            H['🔺⚖️💧'] = 0;
             H['_veilTimelinePulseActive'] = false;
             window.DATA['🌕']['🌡️🌕'] = 0;
             window.CALOTTES.depuisConfig(window.DATA);
@@ -163,7 +168,8 @@ window.CLICS = (function () {
                 window.CO2.advanceCarbonSinks(cfg['🔺⏳'] * 1e6, cfg['🔺⚖️🏭']);
                 H['📿💫'] += 1;
             } else if (key === '☄️') {
-                H['📿☄️'] += 1;   // eau des météorites : getMasses ajoute 📿☄️ × 🔺⚖️💧☄️
+                H['📿☄️'] += 1;
+                H['🔺⚖️💧'] += entree['🔺⚖️💧☄️'];   // eau des météorites, cumulée : getMasses l'ajoute à ⚖️💧
             } else if (key !== '🎇') {
                 H['📿💫'] += 1;
                 if (TICS.includes(key)) {

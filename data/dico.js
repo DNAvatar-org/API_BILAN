@@ -16,7 +16,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧☄️', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
+    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮', '🔺⏳'],
     // Masses
@@ -53,7 +53,7 @@ const DESC = {
     '📜': {
         '🌡️🧮': 't° attendu (t° config)',
         '📿☄️': 'Nombre de météore',
-        '🔺⚖️💧☄️': 'Masse H₂O / météore',
+        '🔺⚖️💧': 'Eau apportée par les météores de l’époque, cumulée [kg] (chaque entrée ☄️ de 🕰.order porte sa masse 🔺⚖️💧☄️)',
         '🔺🌡️💫': 'Delta t° / ticTime',
         '📿🕰': 'Clics joués dans l’époque courante (curseur de 🕰.order, dont chaque entrée porte sa durée 🔺⏳ ; compte aussi les clics de 📱)',
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
@@ -266,8 +266,9 @@ const FORM = {
         '🍰⚽': 'syncStratosphericVeil01 : clamp(0, 📜[🔺🍰⚽], 0.95) — obstruction',
         '🍰🪩⚽': '1 − 🍰⚽ (transmission SW après voile, écrit dans DATA[🪩] avec 🍰⚽)',
         '🍰🪩💧': 'min(1, volume d’eau / volume d’une couche globale de 10 m) — A_geo × ce facteur. '
-            + 'Sur ⚫ : 0 avant les météorites (corps noir, voulu) ; un ☄️ apporte 3e20 kg (moitié de EAU_ACCRETEE_KG) = ~590 m '
-            + 'd’eau globale → facteur 1, glace partout, albédo 0,775 (≈ −97 °C sans atmosphère).',
+            + 'Sur ⚫ : 0 avant les météorites (corps noir, voulu) ; un ☄️ à chaque tic, cumul géométrique 1e17 → 2,4e18 → 5,8e19 '
+            + '→ 1,4e21 kg (EAU_ACCRETEE_KG, un océan) ≈ 0,3 m → 7,4 m → 178 m → 4,3 km d’eau globale : facteur 0,03 → 0,74 → 1 → 1 (glace partout, '
+            + 'albédo 0,775, ≈ −97 °C sans atmosphère).',
         '_contribution_glace': 'contribution_glace = (🪩🍰🧊 - albedo_base) × 🍰💧🧊 × 0.5',
         '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅ ; α_nuageux = 🪩🍰⛅ + (1−🪩🍰⛅)²·albedo/(1 − 🪩🍰⛅·albedo) (🪩🍰⛅ calculée, DATA)'
     },
