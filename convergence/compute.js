@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.3.2
-// Date: [October 14, 2026]
+// Version 1.3.3
+// Date: [October 15, 2026]
 // logs :
+// - v1.3.3: DATA['📅'] = l'entrée du TIMELINE au début de getEpochDateConfig (n'écrit plus sa graine, devenue un accesseur).
 // - v1.3.2: eau des météorites = cumul 📜🔺⚖️💧 tenu par CLICS.jouer (plus 📿☄️ × une masse unique par époque).
 // - v1.3.1: 🔀 interpolé par le temps écoulé (📜⏳) pour toutes les époques — plus de compte de tics (2ᵉ horloge) ;
 //   plus de copie 📜📅 (CLICS.date()).
@@ -75,7 +76,9 @@ function getEpochDateConfig() {
 
     // Delta de température par tictime (graine sans anim : calculateT0).
     H['🔺🌡️💫'] = ('💫' in W) ? W['💫']['🔺🌡️💫'] : 0;
-    DATA['📅']['🌡️🧮'] = EPOCH['🌡️🧮'];
+    // DATA['📅'] repart de l'entrée du TIMELINE (sa graine 🌡️🧮 est la courbe cyan, un accesseur) ; 🔀 '📅' plus bas la
+    // remplace par une copie fusionnée.
+    DATA['📅'] = EPOCH;
     H['🧲🔬'] = EPOCH['🧲🔬'];
 
     // Voile SW 📜🔺🍰⚽. Trois sources possibles, par config :

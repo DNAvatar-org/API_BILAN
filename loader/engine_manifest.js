@@ -4,7 +4,8 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.3
+// Version 1.0.4
+// - v1.0.4 (2026-10-15): CO2/static/histoire/litterature.js après configTimeline (graine = courbe de la littérature).
 // - v1.0.3 (2026-10-13): physics/meridien.js (bilan d'énergie méridien de North et al. 1981).
 // Date: 2026-10-10
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -14,6 +15,7 @@
 window.ENGINE_SCRIPTS = [
     'config/model_tuning_biblio.js',
     'config/configTimeline.js',
+    '../CO2/static/histoire/litterature.js',   // la courbe cyan : graine 🌡️🧮 et fourchette tC (accesseurs de configTimeline)
     'data/alphabet.js',
     'data/episteme.js',     // liens épistémiques 🧭 / 🛠 (référence → valeur, avec statut) ; après l'alphabet
     'data/dico.js',
