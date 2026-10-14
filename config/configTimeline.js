@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.3
+// Version 1.5.4
+// - v1.5.4 (2026-10-14): 🦠 1ᵉʳ tictime à 3 250 Ma (dans la fenêtre Blake 2010 3,5 → 3,2 Ga), était 3 520,67 Ma.
 // - v1.5.3 (2026-10-14): EAU_ACCRETEE_KG = un océan (OCEAN_KG = 1,4e21, Matsui & Abe 1986 / Zahnle 2010), était 6e20.
 // - v1.5.2 (2026-10-14): eau des ☄️ portée par chaque entrée de 🕰.order ; ⚫ = un ☄️ à chaque tic, cumul géométrique.
 // - v1.5.1 (2026-10-14): calottes au clic frise (EPOCH['🗻']['🍰🗻🧊'], aires sourcées : CALOTTES_* en tête de fichier).
@@ -407,9 +408,12 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
-            'order': [{ '🕰': '💫', '🔺⏳': 510.3333333333333 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }],
-            // 🔺⏳ = 1531/3 (v-2026-09-24) : 2 clics calculés à 1/3 et 2/3 de la rampe, le 3ᵉ passe à 🪸. ⚠️ Avec 511, le
-            //   2ᵉ clic atteignait 100 % de la rampe (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga.
+            'order': [{ '🕰': '💫', '🔺⏳': 781 }, { '🕰': '💫', '🔺⏳': 239.6666666666667 }, { '🕰': '💫', '🔺⏳': 510.3333333333333 }],
+            // Clics à 3 250 Ma, 3 010,33 Ma, puis 2 500 Ma (passage à 🪸) — durée totale 1 531 Ma.
+            // v-2026-10-14 : le 1ᵉʳ clic passe de 3 520,67 à 3 250 Ma pour tomber DANS la fenêtre océan archéen 3,5 → 3,2 Ga
+            //   (Blake et al. 2010, courbe de la littérature) : à 3 520,67 il calculait juste avant, et son palier la traversait.
+            // v-2026-09-24 : 1531/3 → 2 clics à 1/3 et 2/3 de la rampe. ⚠️ Avec 511, le 2ᵉ clic atteignait 100 % de la rampe
+            //   (CO₂ de fin d'Archéen ≈ 5 800 ppm) et la Terre GELAIT à 3,0 Ga.
             '💫': {
                 '🔺🌡️💫': 0,     // pas de dérive T° par tic (équilibre ~288 K)
             },
