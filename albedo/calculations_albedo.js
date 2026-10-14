@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.5.0
+// Version 1.6.0
+// - v1.6.0 (2026-10-14): calottes continentales (physics/calottes.js) : graine depuis le continent englacé, surface en neige permanente.
 // - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
 // - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
 // - v1.4.4 (2026-10-13): ALBEDO.nombreGouttesActuelCm3 / nombreGouttesCm3 — une seule définition du nombre de gouttes (profil, affichage).
@@ -289,7 +290,22 @@ function calculateAlbedo() {
     const neigeTrop = albedo_coeff['🪩🍰❄️'] - (albedo_coeff['🪩🍰❄️'] - albedo_coeff['🪩🍰🧊']) * Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
     const albedoGlaceZone = (cle, T_zone_K) => brieglebIceAlbedoLocal(T_zone_K,
         cle === 'trop' ? neigeTrop : albedo_coeff['🪩🍰❄️'], albedo_coeff, DATA['🪩']['🍰🪩🧊']);
-    window._hystDiag.meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone);
+    // Calottes continentales (physics/calottes.js). GRAINE (Init) : équilibre cherché depuis l'état SANS glace — une calotte
+    // naît si la neige survit à l'été sur les hautes terres — et mémorisé. Pas suivants : relaxation depuis l'état de la graine,
+    // sur la durée de l'époque, au temps de réaction physique de chaque calotte.
+    const graineCalottes = DATA['🧮']['🧮⚧'] === 'Init';
+    const departCalottes = graineCalottes ? window.CALOTTES.sansGlace() : window.STATE.calottesGraine;
+    const dureeCalottes = graineCalottes ? Infinity : Math.abs(EPOCH['▶'] - EPOCH['◀']);
+    const meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone,
+        albedo_coeff['🪩🍰❄️'], departCalottes, dureeCalottes);
+    window._hystDiag.meridien = meridien;
+    if (graineCalottes) {
+        window.STATE.calottesGraine = {};
+        for (const b of window.CALOTTES.BANDES) window.STATE.calottesGraine[b.cle] = meridien.calottes[b.cle].aEq;
+    }
+    // Part du globe sous calotte permanente : Σ zones f_z × fraction moyenne des deux hémisphères.
+    const calotte_surface = EARTH.POLAR_ZONE_FRAC * meridien.calottes.parZone.pol + EARTH.MIDLAT_ZONE_FRAC * meridien.calottes.parZone.mid
+        + EARTH.TROPICAL_ZONE_FRAC * meridien.calottes.parZone.trop;
 
     // Héritage glaciaire vs réinitialisation géologique :
     // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
@@ -617,7 +633,18 @@ function calculateAlbedo() {
             window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
         }
     }
-    const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
+    // Calottes permanentes : la glace totale est au moins leur surface ; ce qui dépasse la glace déjà comptée est pris sur les
+    // terres libres, puis le désert, puis la forêt. ice_surface ne garde que la glace SAISONNIÈRE (pondérée par l'ensoleillement).
+    let calotte_manque = Math.max(0, calotte_surface - ice_surface);
+    for (const prendre of ['land', 'desert', 'forest']) {
+        const dispo = prendre === 'land' ? land_surface : (prendre === 'desert' ? desert_surface : forest_surface);
+        const pris = Math.min(dispo, calotte_manque);
+        if (prendre === 'land') land_surface -= pris; else if (prendre === 'desert') desert_surface -= pris; else forest_surface -= pris;
+        calotte_manque -= pris;
+    }
+    let calotte_effective = calotte_surface - calotte_manque;          // ce que les terres ont pu porter
+    ice_surface = Math.max(0, Math.max(ice_surface, calotte_effective) - calotte_effective);
+    const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + calotte_effective + land_surface + desert_surface;
     if (Math.abs(surface_sum - 1.0) > 0.03) {
         console.warn(`⚠️ [calculateAlbedo] Somme surfaces=${surface_sum.toFixed(4)} -> normalisation`);
         console.warn(`   RAW: volcan=${volcano_surface.toFixed(4)} ocean=${ocean_surface.toFixed(4)} foret=${forest_surface.toFixed(4)} glace=${ice_surface.toFixed(4)} terre=${land_surface.toFixed(4)} desert=${desert_surface.toFixed(4)}`);
@@ -627,6 +654,7 @@ function calculateAlbedo() {
         ocean_surface = ocean_surface * scale;
         forest_surface = forest_surface * scale;
         ice_surface = ice_surface * scale;
+        calotte_effective = calotte_effective * scale;
         land_surface = land_surface * scale;
         desert_surface = desert_surface * scale;
     }
@@ -635,7 +663,7 @@ function calculateAlbedo() {
     DATA['🪩']['🍰🪩🎾'] = volcano_surface;
     DATA['🪩']['🍰🪩🌊'] = ocean_surface;
     DATA['🪩']['🍰🪩🌳'] = forest_surface;
-    DATA['🪩']['🍰🪩🧊'] = ice_surface;
+    DATA['🪩']['🍰🪩🧊'] = ice_surface + calotte_effective;   // toute la glace : saisonnière + calottes permanentes
     DATA['🪩']['🍰🪩🌍'] = land_surface;
     DATA['🪩']['🍰🪩🏜️'] = desert_surface;
 
@@ -731,6 +759,8 @@ function calculateAlbedo() {
         // saisonnière), d'où l'albédo de l'océan (approximation déclarée : la neige sur continent découvre la terre, 0,18).
         const r_ens = _iceTF.rapport_ensoleillement;
         weighted_albedo += ice_surface * (r_ens * iceAlbedoEff + (1 - r_ens) * albedo_coeff['🪩🍰🌊']);
+        weighted_albedo += calotte_effective * albedo_coeff['🪩🍰❄️'];   // calottes permanentes : neige toute l'année
+        window._hystDiag.calotteSurface = calotte_effective;
         window._hystDiag.rapportEnsoleillementGlace = r_ens;
     }
 

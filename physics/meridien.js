@@ -18,7 +18,8 @@
 //       l'ensoleillement qu'elle reçoit, et sa surface libre). La glace dépend de T₂ et T₂ de la glace : point fixe.
 //       Approximations DÉCLARÉES : deux modes (le gradient tropical réel est plus plat, North §3) ; mêmes nuages dans les trois
 //       zones (fractions globales mesurées) ; surface libre = océan + terres de la géologie.
-// Version 1.0.0
+// Version 1.1.0
+// - v1.1.0 (2026-10-14): calottes continentales (physics/calottes.js) dans l'albédo de surface de chaque zone.
 // Date: [October 13, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -108,10 +109,12 @@
      *   T_K        : température moyenne globale (solveur) ;
      *   colonne    : colonne nuageuse du profil (RADIATIVE.colonneNuageuse) ;
      *   albedoLibre: albédo de la surface SANS glace (géologie) ;
-     *   albedoGlace: (cle, T_zone_K) → albédo de la glace de la zone (Briegleb, calculations_albedo.js).
-     * Renvoie { T2, dT, coAlbedo, Rg } pour le diagnostic.
+     *   albedoGlace: (cle, T_zone_K) → albédo de la glace saisonnière de la zone (Briegleb, calculations_albedo.js) ;
+     *   albedoNeige: albédo des calottes (neige permanente) ;
+     *   calottesDepart, dureeAns : état de départ des calottes et durée de relaxation (physics/calottes.js).
+     * Renvoie { T2, dT, coAlbedo, Rg, calottes } pour le diagnostic.
      */
-    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace) {
+    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace, albedoNeige, calottesDepart, dureeAns) {
         const DATA = window.DATA;
         const eps = window.EARTH.obliquiteCourante(EPOCH);
         const J = integralesJ(eps);
@@ -122,12 +125,18 @@
         let dT = Object.assign({}, window.STATE.dTzones);
         let T2 = 0;
         const coAlbedo = {}, Rg = {};
+        const ageMa = window.INTERIEUR.ageCourant(DATA) / 1e6;
+        let calottes = null;
         for (let k = 0; k < 30; k++) {
             const f = window.EARTH.facteurGlaceZones(T_K, EPOCH, dT);
+            // Calottes continentales aux températures de zone de cette itération (amplitude saisonnière des TERRES).
+            calottes = window.CALOTTES.calculer({ pol: T_K - dT.pol, mid: T_K - dT.mid, trop: T_K - dT.trop },
+                { pol: f.amp_pol, mid: f.amp_mid, trop: f.amp_trop }, T_K, ageMa, EPOCH, calottesDepart, dureeAns);
             let H = 0;
             for (const z of ZONES) {
-                const e = f['e_' + z.cle];                          // part de l'énergie de la zone qui tombe sur la glace
-                Rg[z.cle] = e * albedoGlace(z.cle, T_K - dT[z.cle]) + (1 - e) * albedoLibre;
+                const e = f['e_' + z.cle];                          // part de l'énergie de la zone qui tombe sur la glace saisonnière
+                const c = calottes.parZone[z.cle];                  // part de la zone sous calotte permanente
+                Rg[z.cle] = c * albedoNeige + (1 - c) * (e * albedoGlace(z.cle, T_K - dT[z.cle]) + (1 - e) * albedoLibre);
                 let A = 0;
                 for (const q of Q[z.cle]) A += q.poids * window.SOLAIRE.albedoMu(q.mu, Rg[z.cle], colonne, s, u).A;
                 coAlbedo[z.cle] = 1 - A;
@@ -144,7 +153,7 @@
             if (ecart < 0.01) break;
         }
         window.STATE.dTzones = dT;
-        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg };
+        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg, calottes: calottes };
     }
 
     window.MERIDIEN = { NORTH1981: NORTH1981, P2_MOYEN: P2_MOYEN, integralesJ: integralesJ, quadratureMu: quadratureMu, resoudre: resoudre };

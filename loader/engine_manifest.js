@@ -42,6 +42,8 @@ window.ENGINE_SCRIPTS = [
     'co2/calculations_co2.js',
     'radiative/calculations.js',
     'radiative/solaire.js',
+    'data/paleogeo_zones.js',   // paléogéographie zonale (PaleoDEM Scotese & Wright 2018), lue par physics/calottes.js
+    'physics/calottes.js',      // calottes continentales (profil plastique + bilan de masse)
     'physics/meridien.js',   // bilan méridien (North 1981) : utilise SOLAIRE.albedoMu, lu par calculations_albedo
     'convergence/calculations_flux.js',
     'api.js'

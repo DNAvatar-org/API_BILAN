@@ -1566,5 +1566,66 @@
     <div class="used-in">Solidus 1 085,7 °C et liquidus 1 780 °C de la péridotite à 0 GPa : intérieur (<code>geology/interieur.js</code>) et surface en fusion (<code>calculations_albedo.js</code>, à la place de la rampe 1 000–2 373 K sans source).</div>
 </article>
 
+<article class="ref" id="scoteseWright2018" data-tags="paleogeography dem">
+    <div class="cite-key">[scoteseWright2018]</div>
+    <div class="authors">Scotese, C. R. &amp; Wright, N.</div>
+    <div class="title">PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic</div>
+    <div class="venue">PALEOMAP Project, données 1° × 1° tous les 5 Ma, 0–540 Ma (2018), CC-BY 4.0</div>
+    <div class="doi"><a href="https://doi.org/10.5281/zenodo.5460860">10.5281/zenodo.5460860</a></div>
+    <div class="used-in">Paléogéographie zonale CALCULÉE (CO2/scripts/paleogeo/paleodem_zones.py → <code>data/paleogeo_zones.js</code>) : part de continent (socle &gt; −1 000 m), altitude moyenne du socle et des hautes terres, latitudes moyennes, par bande et par hémisphère. La carte actuelle donne le socle SOUS la glace. Lu par <code>physics/calottes.js</code>.</div>
+</article>
+<article class="ref" id="nye1952" data-tags="ice-sheet plasticity">
+    <div class="cite-key">[nye1952]</div>
+    <div class="authors">Nye, J. F.</div>
+    <div class="title">A method of calculating the thicknesses of the ice-sheets</div>
+    <div class="venue">Nature, 169:529–530 (1952)</div>
+    <div class="used-in">Calotte parfaitement plastique : h² = 2 τ₀ x / (ρ_i g), τ₀ mesuré 50–150 kPa (100 retenu). <code>physics/calottes.js</code> (geometrie).</div>
+</article>
+<article class="ref" id="braithwaite1995" data-tags="ice-sheet melt pdd">
+    <div class="cite-key">[braithwaite1995]</div>
+    <div class="authors">Braithwaite, R. J.</div>
+    <div class="title">Positive degree-day factors for ablation on the Greenland ice sheet studied by energy-balance modelling</div>
+    <div class="venue">J. Glaciol., 41(137):153–160 (1995)</div>
+    <div class="used-in">Facteurs de fonte ~3 (neige) et ~8 (glace) mm d’eau par °C·jour. <code>physics/calottes.js</code> (bilanMasse).</div>
+</article>
+<article class="ref" id="reeh1991" data-tags="ice-sheet melt pdd">
+    <div class="cite-key">[reeh1991]</div>
+    <div class="authors">Reeh, N.</div>
+    <div class="title">Parameterization of melt rate and surface temperature on the Greenland ice sheet</div>
+    <div class="venue">Polarforschung, 59(3):113–128 (1991)</div>
+    <div class="used-in">Méthode des degrés-jours : la neige de l’année fond d’abord, puis la glace. <code>physics/calottes.js</code>.</div>
+</article>
+<article class="ref" id="jouzelMerlivat1984" data-tags="ice-sheet accumulation inversion">
+    <div class="cite-key">[jouzelMerlivat1984]</div>
+    <div class="authors">Jouzel, J. &amp; Merlivat, L.</div>
+    <div class="title">Deuterium and oxygen 18 in precipitation: modeling of the isotopic effects during snow formation</div>
+    <div class="venue">J. Geophys. Res., 89(D7):11749–11757 (1984)</div>
+    <div class="used-in">Température de formation de la neige au sommet de l’inversion : T_inv = 0,67 T_s + 88,9 K (Antarctique). Accumulation des calottes à la saturation de l’inversion.</div>
+</article>
+<article class="ref" id="arthern2006" data-tags="ice-sheet accumulation antarctica">
+    <div class="cite-key">[arthern2006]</div>
+    <div class="authors">Arthern, R. J., Winebrenner, D. P. &amp; Vaughan, D. G.</div>
+    <div class="title">Antarctic snow accumulation mapped using polarization of 4.3-cm wavelength microwave emission</div>
+    <div class="venue">J. Geophys. Res., 111:D06107 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2004JD005667">10.1029/2004JD005667</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : accumulation moyenne de l’Antarctique posé 143 ± 4 kg m⁻² an⁻¹.</div>
+</article>
+<article class="ref" id="decontoPollard2003" data-tags="ice-sheet antarctica eot co2">
+    <div class="cite-key">[decontoPollard2003]</div>
+    <div class="authors">DeConto, R. M. &amp; Pollard, D.</div>
+    <div class="title">Rapid Cenozoic glaciation of Antarctica induced by declining atmospheric CO₂</div>
+    <div class="venue">Nature, 421:245–249 (2003)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature01290">10.1038/nature01290</a></div>
+    <div class="used-in">Naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel : CONTRÔLE de la naissance des calottes depuis un état sans glace.</div>
+</article>
+<article class="ref" id="muttoniKent2026" data-tags="paleogeography albedo">
+    <div class="cite-key">[muttoniKent2026]</div>
+    <div class="authors">Muttoni, G. &amp; Kent, D. V.</div>
+    <div class="title">Paleogeographic modulation of Phanerozoic climate by albedo compensation of interhemispheric land imbalances</div>
+    <div class="venue">Earth-Sci. Rev., 281:105632 (2026)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.earscirev.2026.105632">10.1016/j.earscirev.2026.105632</a></div>
+    <div class="used-in">Compilation de 53 reconstructions (530 Ma–actuel), terre et mer par ceinture et par hémisphère : contrôle de <a href="#scoteseWright2018">[scoteseWright2018]</a>.</div>
+</article>
+
 </body>
 </html>

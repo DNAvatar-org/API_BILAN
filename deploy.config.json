@@ -295,6 +295,14 @@
     {
       "src": "physics/meridien.js",
       "dest": "pages/bilan_radiatif/API_BILAN/physics/meridien.js"
+    },
+    {
+      "src": "data/paleogeo_zones.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/paleogeo_zones.js"
+    },
+    {
+      "src": "physics/calottes.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/physics/calottes.js"
     }
   ]
 }
