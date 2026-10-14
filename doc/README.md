@@ -14,6 +14,7 @@ Documentation technique du modèle et de l'API (algorithmes, convergence, formul
 | **[PRECISION_CALCULS_RADIATIF.md](PRECISION_CALCULS_RADIATIF.md)** | Paramètres de précision, résolution spectrale/verticale, pressure broadening, sections efficaces. |
 | **[PLAN_HITRAN_CROSS_SECTIONS.md](PLAN_HITRAN_CROSS_SECTIONS.md)** | Plan : remplacer formules empiriques par sections efficaces HITRAN (σ(λ,T,P)). |
 | **[REFS_LITTERATURE_ET_TUNING.md](REFS_LITTERATURE_ET_TUNING.md)** | Fichiers de référence : littérature vs config, bornes du tuning. |
+| **[HYSTERESIS_FRONTIERES.md](HYSTERESIS_FRONTIERES.md)** | Frontières d'hystérésis (☃ ⛄ 1b 🏂 1c) : le script de dichotomie `CO2/scripts/bench_headless/seuils_hysteresis.js`, ses critères (frise = clic), l'état des mesures. |
 
 ## Pages HTML
 
