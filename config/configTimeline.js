@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.6
+// Version 1.5.7
+// - v1.5.7 (2026-10-14): window.TIMELINE_FUTUR (🔮 2100 → 2200, affichage seulement).
 // - v1.5.6 (2026-10-14): tictimes nommés avant les bascules (🫠 660 Ma, ⛄→1b ; 🌨 639,1 Ma, 1b→🏂 ; 🫗 635,3 Ma, 🏂→1c) ; '📅' dans l'entrée.
 // - v1.5.5 (2026-10-14): 🦠 tictimes à 3 500 et 3 200 Ma (bords de la fenêtre Blake 2010).
 // - v1.5.4 (2026-10-14): 🦠 1ᵉʳ tictime à 3 250 Ma (dans la fenêtre Blake 2010 3,5 → 3,2 Ga), était 3 520,67 Ma.
@@ -1586,6 +1587,9 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
+// FUTUR (2100 → 2200) : affiché par la frise (logo non cliquable) et l'Histoire, HORS du TIMELINE — le modèle ne le
+// calcule pas (📱 finit en 2100), aucune projection.
+window.TIMELINE_FUTUR = { '📅': '🔮', '▶': 2100, '◀': 2200 };
 
 /**
  * Index des époques : TIMELINE, plus les alias que lisent la géologie et l'interface
