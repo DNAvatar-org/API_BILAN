@@ -1,7 +1,9 @@
 // File: API_BILAN/demo/epoch_bench_tuning.js
 // Desc: Panneau fine-tuning du banc : jauges séparées (FINE_TUNING_BOUNDS.jauges), détail par jauge avec la valeur
 //       LIVE des cibles, synchronisation avec la page parente.
-// Version 3.1.0
+// Version 3.3.0
+// - v3.3.0 (2026-10-15): boutons −1 / +1 de part et d'autre de chaque curseur.
+// - v3.2.0 (2026-10-15): libellé et jauges en classes (.bench-ft-label, .bench-ft-jauge) ; bouton détail sorti de la fenêtre.
 // - v3.1.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
 // Date: 2026-10-13
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -20,8 +22,8 @@ function benchFormatTuningValue(value) {
 function benchRenderTargets() {
     const T = window.DATA['🎚️'];
     const F = window.FINE_TUNING_BOUNDS;
-    return '<p class="bench-ft-note">Le barycentre unique a été éclaté le 2026-10-13 : avec la nouvelle physique des nuages, '
-        + 'ses paramètres n\'allaient plus dans le même sens. Classement mesuré : bilan net à la température graine de sept '
+    return '<p class="bench-ft-note">Une jauge par sens d\'effet : les paramètres n\'agissent pas tous dans le même sens. '
+        + 'Classement mesuré : bilan net à la température graine de sept '
         + 'époques, chaque paramètre de sa borne basse à sa borne haute, les autres à 50 %.</p>'
         + Object.keys(F.jauges).map(function (j) {
             const J = F.jauges[j];
@@ -51,16 +53,17 @@ function benchDetailTitle() {
 function benchDisplayFineTuning() {
     const F = window.FINE_TUNING_BOUNDS;
     const bg = window.DATA['🎚️'].baryByGroup;
-    document.getElementById('bench-ft-title-slot').innerHTML = '🧩 Fine-tuning '
+    document.getElementById('bench-ft-title-slot').innerHTML = '<span class="bench-ft-label">🧩 Fine-tuning</span>'
         + Object.keys(F.jauges).map(function (j) {
-            return '<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;margin-left:6px;">'
+            return '<span class="bench-ft-jauge">'
                 + F.jauges[j].logo
+                + '<button type="button" class="bench-ft-pas" onclick="window.__BENCH_FT__.pas(\'' + j + '\', -1)">−1</button>'
                 + '<input class="bench-ft-curseur" data-jauge="' + j + '" type="range" min="0" max="100" step="1" value="' + bg[j]
                 + '" oninput="window.__BENCH_FT__.onInput(this.dataset.jauge, this.value)">'
+                + '<button type="button" class="bench-ft-pas" onclick="window.__BENCH_FT__.pas(\'' + j + '\', 1)">+1</button>'
                 + '<span data-jauge-pct="' + j + '">' + bg[j] + '%</span>'
                 + '<span title="' + window.TUNING.sensJauge(j).titre + '">' + window.TUNING.sensJauge(j).logo + '</span></span>';
-        }).join('')
-        + '<button type="button" class="bench-ft-btn bench-ft-toggle" onclick="window.__BENCH_FT__.ouvrirDetail(); return false;" title="Détail des paramètres">détail…</button>';
+        }).join('');   // le bouton « détail… » est hors de la fenêtre des jauges (#bench-ft-detail, epoch_bench.html)
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();
     document.getElementById('bench-ft-content').innerHTML = benchRenderTargets();
 }
@@ -81,6 +84,11 @@ function benchEmitTuningToParent() {
         type: 'sync:tuning',
         payload: { baryByGroup: Object.assign({}, window.DATA['🎚️'].baryByGroup), run: false }
     }, '*');
+}
+
+/** Bouton −1 / +1 : un cran de la jauge, borné à [0, 100]. */
+function benchPasJauge(jauge, pas) {
+    benchOnFineTuningBaryInput(jauge, Math.max(0, Math.min(100, window.DATA['🎚️'].baryByGroup[jauge] + pas)));
 }
 
 /** Glissé d'une jauge. */

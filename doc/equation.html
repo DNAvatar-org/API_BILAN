@@ -34,7 +34,7 @@ Logs:
     selon la règle du projet : de la physique d'abord, des mesures quand la physique ne sait pas, une fourchette de la
     littérature quand il n'y a ni l'une ni l'autre. Ce qui reste en <span class="cl C">C</span> ou
     <span class="cl X">⚠️</span> est à remplacer — la liste d'action est dans
-    <code>doc/AUDIT_REGLAGES_HERITES.md</code>. Les cartes cerclées de vert ont été corrigées le 13 octobre 2026.
+    <code>doc/AUDIT_REGLAGES_HERITES.md</code>.
 </p>
 
 <div class="legende">
@@ -184,8 +184,6 @@ Logs:
         <div class="titre"><span class="cl F">F</span> Vapeur à la surface</div>
         <div class="f" data-tex="q_s = RH_s\,\frac{M_{\text{H}_2\text{O}}}{M_{\text{sec}}}\,\frac{p_{\text{sat}}(T_s)}{P_s},\qquad RH_s \in [0{,}70\ ;\ 0{,}77],\qquad M_{\text{sec}} = \frac{\sum m_i}{\sum m_i/M_i}"></div>
         <p>Humidité relative de surface : ERA5 (0,70–0,75), Manabe &amp; Wetherald (0,77). Jauge CHAUD.</p>
-        <p class="corr">✔ corrigé : \(M_{\text{sec}}\) était \(\sum m_i M_i/\sum m_i\) (moyenne pondérée par la masse, fausse : 29,08 au
-            lieu de 28,96 g/mol, davantage avec du CO₂).</p>
         <p class="code">h2o/calculations_h2o.js → H2O.calculateH2OParameters, dryMolarMass ; fine_tuning_bounds.js</p>
     </div>
     <div class="eq P" id="eq-ocean-possible-ou-non">
@@ -198,7 +196,6 @@ Logs:
         <div class="titre"><span class="cl N">N</span> Grille verticale</div>
         <div class="f" data-tex="\Delta z = 30\ \text{m}\ (z \lt H),\quad 150\ \text{m au-dessus},\quad H = \frac{R T_s}{\bar M g},\quad z_{\max} = H\ln\frac{P_s}{0{,}01\ \text{Pa}} \ge 120\ \text{km}"></div>
         <p>Ne fixe que la finesse de la grille ; la vraie tropopause sort du profil (température de peau).</p>
-        <p class="corr">✔ corrigé : la limite de la grille fine était \(1{,}0261\,H\), un facteur marqué [CALIB] (« 1,03 + (1,0 − 1,03) × 0,13 »).</p>
         <p class="code">calculations_atm.js → calculateTropopauseHeight, calculateAtmosphereProperties ; calculations.js → calculateFluxForT0</p>
     </div>
 </div>
@@ -312,8 +309,8 @@ Logs:
     <h3>⚠️ La fraction nuageuse n'a pas de solution en 1D</h3>
     <p>Combien du ciel est couvert dépend de la dynamique en trois dimensions : ascendances et subsidences, inversion qui
         coiffe les stratocumulus, détraînement des enclumes. Un modèle à une colonne n'a ni horizontale ni circulation :
-        il n'y a <b>pas d'équation 1D</b> qui donne la fraction (Windsor et al. 2022 §3.2). Deux tentatives l'ont confirmé
-        le 13 octobre 2026 : la colonne d'Ackerman &amp; Marley 2001 sature de la base à la tropopause (W ≈ 2 kg/m², vingt
+        il n'y a <b>pas d'équation 1D</b> qui donne la fraction (Windsor et al. 2022 §3.2). Deux essais le confirment :
+        la colonne d'Ackerman &amp; Marley 2001 sature de la base à la tropopause (W ≈ 2 kg/m², vingt
         fois la mesure) et le schéma statistique étale les nuages sur 5 km — aucun des deux n'a l'inversion qui donne un
         sommet. Les fractions sont donc des <b>mesures</b> de la Terre actuelle, parcourues par une jauge. Tout le reste
         du nuage (base, épaisseur, eau, gouttes, τ) est calculé.</p>
@@ -353,15 +350,12 @@ Logs:
         <p>Océan : MODIS (Bennartz 2007), jauge FROID. Continent : mesures avion (Gultepe &amp; Isaac 2004, M).</p>
         <p class="code">calculations.js → profilAtmosphere ; DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3</p>
     </div>
-    <div class="eq F corrige" id="eq-noyaux-condensation-epoque">
+    <div class="eq F" id="eq-noyaux-condensation-epoque">
         <div class="titre"><span class="cl F">F</span> Noyaux de condensation de l'époque (sulfate)</div>
         <div class="f" data-tex="r_{\text{CCN}} = \left(\frac{m_{\text{SO}_4}\,[0{,}29 + 0{,}71\,b]}{1{,}05\times10^{9}\ \text{kg}}\right)^{a},\qquad a \in [0{,}11\ ;\ 0{,}29]"></div>
         <p>Loi de puissance mesurée sur 19 régions (McCoy 2018) ; forme de Boucher &amp; Lohmann 1995. Partage volcanique / DMS
             0,29 / 0,71 mesuré (Carn 2017, Lana 2011) ; \(b\) = part de la biosphère marine de l'époque (🧫, ⚠️ posée par époque).
             Référence : charge moderne (Tsigaridis 2006). Jauge SUBTIL.</p>
-        <p class="corr">✔ corrigé : multipliait un « proxy » \((0{,}15 + 0{,}85\,w_{\text{O}_2}(1 + 4 f_{\text{forêt}})\,\text{anthro})\)
-            sans physique — l'O₂ n'est pas un noyau de condensation (κ-Köhler) — avec une rampe anthropique 1900–1980 comparée
-            à des âges géologiques. Six nombres sans source retirés.</p>
         <p class="code">albedo/calculations_albedo.js → rapportCCN ; aerosols/sulfate_ccn.js</p>
     </div>
     <div class="eq F" id="eq-sommet-nuage-seuil-pluie">
@@ -504,18 +498,16 @@ Logs:
         <div class="titre"><span class="cl P">P</span> Trois zones de latitude</div>
         <div class="f" data-tex="f_{\text{pol}} = 1-\sin 60^\circ,\quad f_{\text{mid}} = \sin 60^\circ - \sin 30^\circ,\quad f_{\text{trop}} = \sin 30^\circ,\qquad g = \sum_z f_z\,\text{clamp}\!\left(\frac{T_{\text{gel}} + \Delta T_z + a_z - T}{2a_z}\right)"></div>
         <p>Fraction englacée : rampe linéaire sur l'amplitude saisonnière \(a_z\) (approximation déclarée).</p>
-        <p class="corr">✔ corrigé : fractions 0,13 / 0,37 (arrondis de config) au lieu de la géométrie 0,134 / 0,366.</p>
         <p class="code">physics.js → EARTH.computeIceTempFactor, EARTH.*_ZONE_FRAC</p>
     </div>
-    <div class="eq P corrige" id="eq-bilan-energie-meridien">
+    <div class="eq P" id="eq-bilan-energie-meridien">
         <div class="titre"><span class="cl P">P</span> Bilan d'énergie méridien : écart de chaque zone</div>
         <div class="f" data-tex="T(x) = \bar T + T_2 P_2(x),\qquad T_2 = \frac{5\int_0^1 P_2(x)\,I(x)\,a(x)\,dx}{6D + B},\qquad B = 2{,}09,\ D = 0{,}649\ \text{W m}^{-2}\,^\circ\text{C}^{-1}"></div>
         <p>Modèle diffusif de North, Cahalan &amp; Coakley 1981 (éq. 22, solution à deux modes). \(I(x)\) : insolation annuelle exacte
             (obliquité comprise) ; \(a(x)\) : co-albédo de la zone, calculé par le transfert solaire avec les angles solaires de la zone
             et sa glace ; point fixe glace ↔ gradient. \(\bar T\) vient du transfert radiatif complet. B et D publiés (D calé par North
             sur le gradient observé, T₂ = −28 °C) ; ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078.</p>
-        <p class="corr">✔ remplace les écarts POSÉS par époque (🥶, moderne +20 / +5 / −5, pas même de moyenne nulle) et la correction
-            d'obliquité ΔS̄(1 − 0,30)/2,0. ⚠️ Moderne calculé T₂ = −20,7 : la zone polaire est trop sombre (co-albédo 0,674 contre
+        <p>⚠️ Moderne calculé T₂ = −20,7 : la zone polaire est trop sombre (co-albédo 0,674 contre
             0,518 observé) — les calottes permanentes (Antarctique, Groenland) manquent.</p>
         <p class="code">physics/meridien.js → MERIDIEN.resoudre ; physics.js → EARTH.facteurGlaceZones</p>
     </div>
@@ -545,12 +537,10 @@ Logs:
         <p>0,1 ; 0,9 ; 20 K ; 10 m : sans source.</p>
         <p class="code">calculations_albedo.js → calcGlaceEquilibre, calculateAlbedo</p>
     </div>
-    <div class="eq P corrige" id="eq-surface-fusion">
+    <div class="eq P" id="eq-surface-fusion">
         <div class="titre"><span class="cl P">P</span> Surface en fusion</div>
         <div class="f" data-tex="f_{\text{lave}} = \text{clamp}\!\left(\frac{T_s - T_{\text{solidus}}}{T_{\text{liquidus}} - T_{\text{solidus}}}\right),\quad T_{\text{sol}} = 1\,359\ \text{K},\ T_{\text{liq}} = 2\,053\ \text{K}"></div>
         <p>Fraction fondue de la péridotite à 0 GPa (Katz 2003, M) — la même loi que l'intérieur.</p>
-        <p class="corr">✔ corrigé : rampe entre 1 000 K et 2 373 K (sans source ; 2 100 °C n'est le liquidus de rien de terrestre),
-            évaluée sur la température de <b>graine</b> de l'époque au lieu de la température courante.</p>
         <p class="code">calculations_albedo.js → calculateAlbedo ; INTERIEUR.CONST.T_SOLIDUS / T_LIQUIDUS</p>
     </div>
     <div class="eq C" id="eq-forets-deserts">

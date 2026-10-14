@@ -1,6 +1,8 @@
 // File: API_BILAN/demo/epoch_bench_main.js
 // Desc: Pont vers la page parente, puis cablage de la page (initEpochBenchPage, appele par le loader).
-// Version 2.2.0
+// Version 2.3.1
+//   - v2.3.1: __BENCH_FT__.pas(jauge, ±1) — boutons −1 / +1.
+//   - v2.3.0: ▶ et ⏭ par BENCH_ACTIONS (page autonome : moteur local ; encart : vrais clics de l'index).
 // Date: 2026-10-13
 // logs :
 //   - v2.2.0: jauges séparées — __BENCH_FT__.onInput(jauge, valeur) ; garde du clic sur toutes les jauges.
@@ -10,6 +12,7 @@
 
 window.__BENCH_FT__ = {
     onInput: benchOnFineTuningBaryInput,
+    pas: benchPasJauge,
     ouvrirDetail: function () {
         document.getElementById('bench-ft-dialog').showModal();
     }
@@ -41,15 +44,16 @@ function initEpochBenchPage() {
         'Prêt — ' + window.TIMELINE.length + ' époques chargées' + dbgHint;
     document.getElementById('btn-run').disabled = false;
     document.getElementById('btn-run-tic').disabled = false;
-    // Une erreur du moteur arrête le run et s'affiche (benchCrash), puis repart vers la console.
-    document.getElementById('btn-run').addEventListener('click', function () { runAllEpochs().catch(benchCrash); });
-    document.getElementById('btn-run-tic').addEventListener('click', function () { runTictimes().catch(benchCrash); });
+    // Page autonome : le moteur de la page (une erreur arrête le run, benchCrash) ; encart : l'index fait de vrais clics
+    // (BENCH_ACTIONS, epoch_bench_encart.js).
+    document.getElementById('btn-run').addEventListener('click', BENCH_ACTIONS.epoque);
+    document.getElementById('btn-run-tic').addEventListener('click', BENCH_ACTIONS.tictime);
 
     document.getElementById('results-body').addEventListener('click', function (ev) {
         const skipEl = ev.target.closest('.btn-skip-epoch');
         if (skipEl !== null) {
-            window.ABORT_COMPUTE = true;
-            console.log('[bench] ABORT_COMPUTE demandé — fin de l’époque en cours, passage à la suivante au prochain tick du solveur');
+            BENCH_ACTIONS.passer();
+            console.log('[bench] ⏭ demandé — fin du calcul en cours, passage au suivant au prochain tick du solveur');
             return;
         }
         const btn = ev.target.closest('.btn-copy-row');

@@ -1,11 +1,12 @@
 /* File: API_BILAN/doc/css/equation.css
  * Desc: Mise en page de doc/equation.html — les équations du moteur, chacune classée P / M / F / C / N / ⚠️.
  *       Fond transparent : la page s'ouvre dans la modale de CO2/index.html (iframe), qui porte le fond.
- * Version 2.0.0
+ * Version 2.0.1
  * Date: [October 13, 2026]
  * Copyright 2026 DNAvatar.org - Arnaud Maignan
  * Licensed under Apache License 2.0 with Commons Clause.
  * Logs:
+ *   - v2.0.1 (2026-10-15): .corrige / .corr retirés (pas d'historique dans la page).
  *   - v2.0.0 (2026-10-13): réécrite avec la page (cartes par équation, pastilles de classe) ; déplacée de doc/ vers doc/css/.
  */
 
@@ -111,8 +112,6 @@ h2 {
 .eq p { margin: 4px 0; }
 .eq .src { color: var(--texte-doux); font-size: 12px; }
 .eq .code { color: var(--texte-doux); font-size: 11.5px; word-break: break-word; }
-.eq.corrige { box-shadow: inset 0 0 0 1px rgba(76, 175, 125, 0.45); }
-.eq .corr { color: var(--cl-P); font-size: 12px; }
 
 /* Encadré (ce qui n'a pas d'équation) */
 .encadre {

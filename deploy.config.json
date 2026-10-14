@@ -277,6 +277,10 @@
       "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_chain.js"
     },
     {
+      "src": "demo/js/epoch_bench_encart.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/epoch_bench_encart.js"
+    },
+    {
       "src": "convergence/clics.js",
       "dest": "pages/bilan_radiatif/API_BILAN/convergence/clics.js"
     },

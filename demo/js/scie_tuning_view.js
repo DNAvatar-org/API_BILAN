@@ -208,8 +208,8 @@ function displayFineTuning() {
             + ' <span title="' + sens.titre + '">' + sens.logo + '</span>';
     }).join(' · ')
         + '<button class="toggle-button" id="fine-tuning-toggle" onclick="toggleFineTuning()" style="margin-left:auto">' + (isOpen ? '−' : '+') + '</button>';
-    let html = '<div class="config-value"><em>Le barycentre unique a été éclaté le 2026-10-13 : avec la nouvelle physique des '
-        + 'nuages, ses paramètres n\'allaient plus dans le même sens. Classement mesuré : bilan net à la température graine de '
+    let html = '<div class="config-value"><em>Une jauge par sens d\'effet : les paramètres n\'agissent pas tous dans le même sens. '
+        + 'Classement mesuré : bilan net à la température graine de '
         + 'sept époques, chaque paramètre de sa borne basse à sa borne haute, les autres à 50 %.</em></div>';
     Object.keys(F.jauges).forEach(function (j) {
         const J = F.jauges[j];

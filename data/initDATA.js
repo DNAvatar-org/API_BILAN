@@ -161,6 +161,7 @@
         animEnabled: false,
         ticTime: 0,
         calculationInProgress: false,
+        hotePret: false,   // l'hôte (CO2/index) a fini son init (loader_panels.initAfterLoad) : il peut calculer
         lastRunRequestSource: 'unknown',
         runningCompute: null
     };

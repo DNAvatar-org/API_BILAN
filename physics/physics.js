@@ -450,7 +450,7 @@ EARTH.WATER_PARTITION_DELTA_P_ATM = 1;  // [atm]
 EARTH.PRECIP_CONVECTIVE_T_REF_K = 288;   // [K] T ref (réutilise EVAPORATION_T_REF)
 EARTH.PRECIP_CONVECTIVE_T_EXPONENT = 1.2; // [sans dimension (exposant)] adouci vs C-C (~7%/K) pour éviter sur-assèchement
 EARTH.PRECIP_CONVECTIVE_RH_REF = 0.7;    // [Pa/Pa (humidité relative)] seuil RH convective typique (~70 %)
-EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposant facteur humidité (calib v1.0.8)
+EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposant facteur humidité
 // EARTH.H2O_EDS_SCALE (multiplicateur de κ_H₂O, 0,60–1,00 au barycentre) retiré le 2026-10-13 : continuum, profil
 // d'humidité et diffusivité codés, le ciel clair moderne tombe juste sans lui (fine_tuning_bounds v1.5.1).
 

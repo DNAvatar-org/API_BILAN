@@ -1,6 +1,8 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.2.1 — 2026-10-15 : fond transparent (étoiles de l'index dans l'onglet Bench).
+   Version 1.4.0 — 2026-10-15 : boutons −1 / +1 (.bench-ft-pas) ; en encart, jauges jusqu'au milieu.
+   v1.3.0 — 2026-10-15 : mise en page « encart » (html.encart) ; .bench-ft-btn sorti de #bench-ft-title-slot.
+   v1.2.1 — 2026-10-15 : fond transparent (étoiles de l'index dans l'onglet Bench).
    v1.2.0 — 2026-10-12 : détail du fine-tuning en popup (.bench-ft-dialog, tableau).
    Date: 2026-10-12
    logs : v1.1.0 — deux gros boutons .btn-play (Époques vert, Tictimes bleu) ; .epoch-etape (clic joué).
@@ -234,7 +236,10 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
   font-size: 13px;
   color: #ccc;
 }
-#bench-ft-title-slot .bench-ft-btn {
+#bench-ft-title-slot .bench-ft-jauge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; margin-left: 6px; }
+/* Les deux ▶ : un conteneur qui ne change rien à la page autonome (ses enfants restent dans le flex du header). */
+.bench-boutons { display: contents; }
+.bench-ft-btn {
   background: #1e3a1e;
   color: #9fdf9f;
   border: 1px solid #2a8e3e;
@@ -244,9 +249,20 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
   cursor: pointer;
   font-family: inherit;
 }
-#bench-ft-title-slot .bench-ft-btn:hover { background: #255525; }
-#bench-ft-title-slot .bench-ft-toggle { margin-left: auto; }
+.bench-ft-btn:hover { background: #255525; }
 #bench-ft-title-slot input[type="range"] { width: 100px; vertical-align: middle; }
+.bench-ft-pas {
+  background: #1e1e1e;
+  color: #9fdf9f;
+  border: 1px solid #2a5e2e;
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.bench-ft-pas:hover { background: #255525; }
 /* Détail du fine-tuning : popup large, lignes qui se déroulent */
 .bench-ft-dialog {
   margin: auto;   /* centrage natif du <dialog>, annulé par le * { margin: 0 } global */
@@ -300,3 +316,31 @@ footer { padding: 10px 20px; color: #444; font-size: 11px; border-top: 1px solid
 .bench-ft-jauge { white-space: nowrap; color: #999; }
 .bench-ft-note { color: #aaa; min-width: 260px; }
 .bench-src { cursor: help; font-size: .85em; }   /* statut de la fourchette (src), référence en infobulle */
+
+/* ── Encart : la page est l'onglet Bench de l'index (html.encart, epoch_bench_loader.js) ──────────────────────────────
+   Jauges à gauche (une par ligne, sans libellé) ; à leur droite, en colonne : le titre en haut (aligné sur la 1ʳᵉ jauge),
+   les deux ▶, l'avancement, puis « détail… » en bas — tous hors de la fenêtre des jauges. Fond transparent. */
+html.encart header {
+  display: grid;
+  grid-template-columns: 50% 1fr;   /* jauges jusqu'au milieu */
+  grid-template-areas:
+    "jauges titre"
+    "jauges boutons"
+    "jauges progres"
+    "jauges detail";
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 6px;
+  padding: 10px 12px;
+}
+html.encart header h1 { grid-area: titre; font-size: 16px; }
+html.encart .titre-planete,
+html.encart .titre-suite,
+html.encart .bench-ft-label { display: none; }
+html.encart .bench-ft-wrap { grid-area: jauges; flex: none; min-width: 0; background: rgba(18, 18, 18, 0.55); }
+html.encart #bench-ft-title-slot { flex-direction: column; align-items: stretch; }
+html.encart #bench-ft-title-slot .bench-ft-jauge { display: flex; margin-left: 0; }
+html.encart #bench-ft-title-slot input[type="range"] { flex: 1 1 auto; width: auto; min-width: 60px; }
+html.encart .bench-boutons { grid-area: boutons; display: flex; gap: 10px; }
+html.encart #progress-label { grid-area: progres; }
+html.encart #bench-ft-detail { grid-area: detail; justify-self: start; align-self: end; }

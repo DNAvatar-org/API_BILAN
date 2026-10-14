@@ -47,8 +47,8 @@
     <a href="#sec-epochs">Compositions d'époques</a> ·
     <a href="#sec-bench">Fourchettes du banc</a> ·
     <a href="#sec-water-rt">Eau &amp; transfert radiatif</a> ·
-    <a href="#sec-composition-2026-10-13">Composition, nuages froids, bilan méridien</a> ·
-    <a href="#sec-calottes-cryogenien-2026-10-14">Calottes, Cryogénien</a> ·
+    <a href="#sec-composition">Composition, nuages froids, bilan méridien</a> ·
+    <a href="#sec-calottes-cryogenien">Calottes, Cryogénien</a> ·
     <a href="#sec-archive">Archive</a>
 </nav>
 
@@ -91,7 +91,7 @@
     <div class="title">The effect of solar radiation variations on the climate of the Earth</div>
     <div class="venue">Tellus, 21(5):611–619 (1969)</div>
     <div class="doi"><a href="https://doi.org/10.3402/tellusa.v21i5.10109">10.3402/tellusa.v21i5.10109</a></div>
-    <div class="used-in">EARTH.EBM_B_W_PER_M2_K = 2,0 W/m²/K (coefficient de refroidissement radiatif utilisé pour convertir ΔS̄ d'obliquité en ΔT de zone, <code>physics.js</code> v2.0.18). <code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
+    <div class="used-in">EARTH.EBM_B_W_PER_M2_K = 2,0 W/m²/K (coefficient de refroidissement radiatif utilisé pour convertir ΔS̄ d'obliquité en ΔT de zone, <code>physics.js</code>). <code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
 </article>
 
 <article class="ref" id="sellers1969" data-tags="ebm polar-amp">
@@ -215,7 +215,7 @@
     <div class="title">Precipitating condensation clouds in substellar atmospheres</div>
     <div class="venue">The Astrophysical Journal, 556:872–884 (2001)</div>
     <div class="doi"><a href="https://doi.org/10.1086/321540">10.1086/321540</a></div>
-    <div class="used-in">Équilibre mélange turbulent / sédimentation −K_zz ∂q_t/∂z − f_sed w* q_c = 0 (EddySed) : structure verticale et condensat des nuages — <em>prévu</em>, chantier nuages (2026-10-12).</div>
+    <div class="used-in">Équilibre mélange turbulent / sédimentation −K_zz ∂q_t/∂z − f_sed w* q_c = 0 (EddySed) : structure verticale et condensat des nuages — <em>non codé</em>.</div>
 </article>
 
 <article class="ref" id="hartmannLarson2002" data-tags="cloud anvil fat convection">
@@ -224,7 +224,7 @@
     <div class="title">An important constraint on tropical cloud–climate feedback</div>
     <div class="venue">Geophysical Research Letters, 29(20):1951 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GL015835">10.1029/2002GL015835</a></div>
-    <div class="used-in">Hypothèse de la température d'enclume fixe (FAT) — discutée pour le sommet des nuages convectifs (2026-10-12).</div>
+    <div class="used-in">Hypothèse de la température d'enclume fixe (FAT) — pour le sommet des nuages convectifs ; non codée.</div>
 </article>
 
 <article class="ref" id="marley2010" data-tags="cloud patchy fractional-cloudiness">
@@ -233,7 +233,7 @@
     <div class="title">A patchy cloud model for the L to T dwarf transition</div>
     <div class="venue">The Astrophysical Journal Letters, 723:L117–L121 (2010)</div>
     <div class="doi"><a href="https://doi.org/10.1088/2041-8205/723/1/L117">10.1088/2041-8205/723/1/L117</a></div>
-    <div class="used-in">Couverture partielle en deux colonnes F = f F_nuage + (1 − f) F_clair — discutée (2026-10-12).</div>
+    <div class="used-in">Couverture partielle en deux colonnes F = f F_nuage + (1 − f) F_clair.</div>
 </article>
 
 <article class="ref" id="stephens1978" data-tags="cloud longwave emissivity liquid-water-path">
@@ -317,7 +317,7 @@
     <div class="title">Roto-translational collision-induced absorption of CO₂ for the atmosphere of Venus at frequencies from 0 to 250 cm⁻¹, temperatures from 200 to 800 K</div>
     <div class="venue">Icarus, 129(1):172–177 (1997)</div>
     <div class="doi"><a href="https://doi.org/10.1006/icar.1997.5773">10.1006/icar.1997.5773</a></div>
-    <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹), le continuum de collision qui manque à haut CO₂. ⚠️ Retirée du code le 2026-10-13 : le profil codé n’était pas celui de cet article (gaussiennes inventées, ×100). Ordre de grandeur de référence ~1e-4 m⁻¹/amagat² au pic.</div>
+    <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹), le continuum de collision qui manque à haut CO₂. ⚠️ Non codée : aucun profil conforme à cet article dans le moteur. Ordre de grandeur de référence ~1e-4 m⁻¹/amagat² au pic.</div>
 </article>
 
 <article class="ref" id="wordsworth2010" data-tags="CIA co2 far-line dense-atmosphere radiative">
@@ -344,7 +344,7 @@
     <div class="title">Basal temperature evolution of North American ice sheets and implications for the 100-kyr cycle</div>
     <div class="venue">Geophysical Research Letters, 29(24):2214 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GL015192">10.1029/2002GL015192</a></div>
-    <div class="used-in">τ continental ice ~10⁴–10⁵ ans (chaleur latente fusion + diffusion thermique base). Calibre <code>tauGlaceAns=50000</code> et justifie blend dt sur 🍰💧🧊 invariant aux itérations Search/Dicho. Cf. <code>calculations_albedo.js</code> v1.2.59.</div>
+    <div class="used-in">τ continental ice ~10⁴–10⁵ ans (chaleur latente fusion + diffusion thermique base). Calibre <code>tauGlaceAns=50000</code> et justifie blend dt sur 🍰💧🧊 invariant aux itérations Search/Dicho. Cf. <code>calculations_albedo.js</code>.</div>
 </article>
 
 <article class="ref" id="hansen2013" data-tags="climate-sensitivity feedback-timescales fast-slow">
@@ -353,7 +353,7 @@
     <div class="title">Climate sensitivity, sea level and atmospheric carbon dioxide</div>
     <div class="venue">Philosophical Transactions of the Royal Society A, 371:20120294 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.1098/rsta.2012.0294">10.1098/rsta.2012.0294</a></div>
-    <div class="used-in">Séparation feedbacks rapides (vapeur, nuages : heures-jours) vs lents (calottes glaciaires, végétation : 10³–10⁵ ans). Justifie le couplage masse↔surface optique de glace : 🍰🪩🧊 ne peut reculer plus vite que 🍰💧🧊 ne fond. Cf. <code>calculations_albedo.js</code> v1.2.59.</div>
+    <div class="used-in">Séparation feedbacks rapides (vapeur, nuages : heures-jours) vs lents (calottes glaciaires, végétation : 10³–10⁵ ans). Justifie le couplage masse↔surface optique de glace : 🍰🪩🧊 ne peut reculer plus vite que 🍰💧🧊 ne fond. Cf. <code>calculations_albedo.js</code>.</div>
 </article>
 
 <article class="ref" id="voigtMarotzke2010" data-tags="snowball gcm co2-threshold sturtian">
@@ -637,7 +637,7 @@
     <div class="title">Predicting decadal trends in cloud droplet number concentration using reanalysis and satellite data</div>
     <div class="venue">Atmospheric Chemistry and Physics, 18:2035–2047 (2018)</div>
     <div class="doi"><a href="https://doi.org/10.5194/acp-18-2035-2018">10.5194/acp-18-2035-2018</a></div>
-    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). <b>BRANCHÉE le 2026-09-22</b> : cette plage EST désormais la jauge <code>SULFATE_CCN_EXPONENT</code> du barycentre (<code>fine_tuning_bounds.js</code>, quartiles [0,11 ; 0,29]) — le seul paramètre du barycentre dont les bornes viennent d'un tableau de mesures. Elle remplace <code>SULFATE_BOOST_SCALE</code> [300 , 700] et <code>SULFATE_BOOST_MAX</code> [0,20 ; 0,45], tous deux inventés et mesurés sans effet au banc. Loi appliquée dans <code>calculations_albedo.js</code> v1.2.65 via <code>AEROSOL.sulfateCcnRatio()</code>. Forçage attendu : <b>−0,97 W/m²</b> (McCoy et al. 2017a) ; <b>vérifié au banc : le modèle sort −0,908 W/m²</b> (SW absorbé à T figée sur 📱, sulfate 4,0e8 → 1,05e9 kg), contre −0,037 avant. Aucun calage : les masses viennent de [tsigaridis2006], l'exposant d'ici, la sensibilité de [twomey1977].</div>
+    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). Cette plage est la jauge <code>SULFATE_CCN_EXPONENT</code> du barycentre (<code>fine_tuning_bounds.js</code>, quartiles [0,11 ; 0,29]) — le seul paramètre du barycentre dont les bornes viennent d'un tableau de mesures. Loi appliquée dans <code>calculations_albedo.js</code> via <code>AEROSOL.sulfateCcnRatio()</code>. Forçage attendu : <b>−0,97 W/m²</b> (McCoy et al. 2017a) ; <b>vérifié au banc : le modèle sort −0,908 W/m²</b> (SW absorbé à T figée sur 📱, sulfate 4,0e8 → 1,05e9 kg). Aucun calage : les masses viennent de [tsigaridis2006], l'exposant d'ici, la sensibilité de [twomey1977].</div>
 </article>
 
 <article class="ref" id="ar6ch7Erfaci" data-tags="aerosol erfaci forcing ipcc assessment">
@@ -646,7 +646,7 @@
     <div class="title">The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity</div>
     <div class="venue">Climate Change 2021: The Physical Science Basis, Cambridge University Press (2021)</div>
     <div class="doi"><a href="https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/">ipcc.ch — AR6 WGI Ch. 7</a></div>
-    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Mesure au banc 2026-09-22, AVANT : le modèle produisait <b>−0,037 W/m²</b>, soit 8× sous la borne basse — il n'avait pratiquement pas d'effet indirect des aérosols. APRÈS branchement de la loi de [mccoy2018] sur les masses de [tsigaridis2006] : <b>−0,908 W/m²</b>, dans la fourchette et à 6 % du meilleur estimé. <b>ÉCART REFERMÉ</b>, voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
+    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Au banc, la loi de [mccoy2018] sur les masses de [tsigaridis2006] donne <b>−0,908 W/m²</b>, dans la fourchette et à 6 % du meilleur estimé. Voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
 </article>
 
 <article class="ref" id="tsigaridis2006" data-tags="aerosol sulfate burden preindustrial nss-sulfate epochs">
@@ -727,7 +727,7 @@
     <div class="title">Aftermath of a snowball Earth</div>
     <div class="venue">Geochemistry, Geophysics, Geosystems, 4(3):1028 (2003)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GC000403">10.1029/2002GC000403</a></div>
-    <div class="used-in"><code>configTimeline.js</code> EPOCH['🌊🏭'] : ⛈ hysteresis 1b = 2.0 (déglaciation Marinoenne catastrophique, altération accélérée des carbonates de couverture) ; ⛄ = 0 (banquise globale coupe Henry). Cf. <code>calculations_co2.js</code> log v1.2.0.</div>
+    <div class="used-in"><code>configTimeline.js</code> EPOCH['🌊🏭'] : ⛈ hysteresis 1b = 2.0 (déglaciation Marinoenne catastrophique, altération accélérée des carbonates de couverture) ; ⛄ = 0 (banquise globale coupe Henry). Cf. <code>calculations_co2.js</code>.</div>
 </article>
 
 <article class="ref" id="norby2005" data-tags="co2-fertilization face forest npp experiment">
@@ -736,7 +736,7 @@
     <div class="title">Forest response to elevated CO₂ is conserved across a broad range of productivity</div>
     <div class="venue">PNAS, 102(50):18052–18056 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1073/pnas.0509478102">10.1073/pnas.0509478102</a></div>
-    <div class="used-in">Expériences FACE : +23 % de NPP à 550 ppm pour un ambiant de ~376 ppm → β = 0,23/ln(550/376) = <b>0,605</b> (fertilisation ΔNPP = NPP0·β·ln(C/C0)) → landBeta. Le 0,5 utilisé jusqu'à la v1.4.91 supposait un ambiant de 350 ppm. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
+    <div class="used-in">Expériences FACE : +23 % de NPP à 550 ppm pour un ambiant de ~376 ppm → β = 0,23/ln(550/376) = <b>0,605</b> (fertilisation ΔNPP = NPP0·β·ln(C/C0)) → landBeta. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
 </article>
 
 <article class="ref" id="sabine2004" data-tags="co2 ocean revelle anthropogenic-uptake observation">
@@ -745,7 +745,7 @@
     <div class="title">The oceanic sink for anthropogenic CO₂</div>
     <div class="venue">Science, 305:367–371 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.1097403">10.1126/science.1097403</a></div>
-    <div class="used-in">Facteur de Revelle moyen ~10 (8–15) → oceanRevelleRef. Et surtout : les traceurs CFC et le radiocarbone des bombes datent la ventilation de la THERMOCLINE (~50 ans) et y localisent l'essentiel du carbone anthropique mesuré → oceanBoxes[1] (ratio 10, τ 50 ans). La v1.4.83 appliquait par erreur ces 50 ans à l'océan entier. <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
+    <div class="used-in">Facteur de Revelle moyen ~10 (8–15) → oceanRevelleRef. Et surtout : les traceurs CFC et le radiocarbone des bombes datent la ventilation de la THERMOCLINE (~50 ans) et y localisent l'essentiel du carbone anthropique mesuré → oceanBoxes[1] (ratio 10, τ 50 ans). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS · <code>calculations_co2.js</code> advanceCarbonSinks.</div>
 </article>
 
 <article class="ref" id="sarmientoGruber2006" data-tags="co2 ocean textbook henry">
@@ -842,7 +842,7 @@
     <div class="title">New estimates of radiative forcing due to well mixed greenhouse gases</div>
     <div class="venue">Geophysical Research Letters, 25(14):2715–2718 (1998)</div>
     <div class="doi"><a href="https://doi.org/10.1029/98GL01908">10.1029/98GL01908</a></div>
-    <div class="used-in">ΔF = 5,35·ln(C/C₀), soit 3,7 W/m² pour un doublement du CO₂ (ajusté stratosphère). Déclaré dans <code>climate.js</code> comme « affichage uniquement, pas de calcul » : le modèle ne s'est donc jamais comparé à cette valeur. Mesure au banc 2026-09-20 : 2,04 W/m² au sommet de l'atmosphère (instantané, sans ajustement stratosphérique). ⚠️ ÉCART OUVERT.</div>
+    <div class="used-in">ΔF = 5,35·ln(C/C₀), soit 3,7 W/m² pour un doublement du CO₂ (ajusté stratosphère). Déclaré dans <code>climate.js</code> comme « affichage uniquement, pas de calcul » : le modèle ne s'est donc jamais comparé à cette valeur. Au banc : 2,04 W/m² au sommet de l'atmosphère (instantané, sans ajustement stratosphérique). ⚠️ ÉCART OUVERT.</div>
 </article>
 
 <article class="ref" id="dessler2013" data-tags="water-vapor feedback satellite airs observation">
@@ -851,7 +851,7 @@
     <div class="title">Observations of climate feedbacks over 2000–2010 and comparisons to climate models</div>
     <div class="venue">Journal of Climate, 26(1):333–342 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00640.1">10.1175/JCLI-D-11-00640.1</a></div>
-    <div class="used-in">Rétroaction vapeur d'eau mesurée par satellite (AIRS) ≈ +1,8 W/m²/K. Mesure au banc 2026-09-20 sur 📱 : le modèle en délivre −0,28, soit six fois trop peu, alors que la masse de vapeur répond correctement (+6,5 %/K, Clausius-Clapeyron exact). ⚠️ ÉCART OUVERT, premier des TODO : l'écart est dans le transfert radiatif H₂O, pas dans le cycle de l'eau.</div>
+    <div class="used-in">Rétroaction vapeur d'eau mesurée par satellite (AIRS) ≈ +1,8 W/m²/K. Au banc sur 📱, le modèle en délivre −0,28, soit six fois trop peu, alors que la masse de vapeur répond correctement (+6,5 %/K, Clausius-Clapeyron exact). ⚠️ ÉCART OUVERT, premier des TODO : l'écart est dans le transfert radiatif H₂O, pas dans le cycle de l'eau.</div>
 </article>
 
 <article class="ref" id="loeb2021" data-tags="ceres toa-imbalance satellite observation ocean-heat">
@@ -882,7 +882,7 @@
     <div class="title">Long-term variations of daily insolation and Quaternary climatic changes</div>
     <div class="venue">Journal of the Atmospheric Sciences, 35(12):2362–2367 (1978)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2">10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2</a></div>
-    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> v2.0.18 : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
 </article>
 
 <article class="ref" id="laskar2004" data-tags="orbital obliquity solution long-term">
@@ -891,7 +891,7 @@
     <div class="title">A long-term numerical solution for the insolation quantities of the Earth</div>
     <div class="venue">Astronomy &amp; Astrophysics, 428:261–285 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1051/0004-6361:20041335">10.1051/0004-6361:20041335</a></div>
-    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka → états 🕰.🔁 du Quaternaire. <code>API_BILAN/physics/physics.js</code> v2.0.18 : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka → états 🕰.🔁 du Quaternaire. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
 </article>
 
 <article class="ref" id="laskar1993" data-tags="obliquity moon chaos">
@@ -1001,7 +1001,7 @@
     <div class="title">A 485-million-year history of Earth's surface temperature (PhanDA)</div>
     <div class="venue">Science, 385:eadk3705 (2024)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.adk3705">10.1126/science.adk3705</a></div>
-    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong> (depuis le 2026-09-23), étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu. Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
+    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong>, étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu. Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
 </article>
 
 <article class="ref" id="jones1999" data-tags="modern gmst absolute">
@@ -1083,7 +1083,7 @@
     <div class="title">Rapid Cenozoic glaciation of Antarctica induced by declining atmospheric CO₂</div>
     <div class="venue">Nature, 421:245–249 (2003)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature01290">10.1038/nature01290</a></div>
-    <div class="used-in">Naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel (bascule Oi-1, hysteresis 2 → 🏔) : CONTRÔLE des calottes de <code>API_BILAN/physics/calottes.js</code> (depuis 2026-10-14, état porté au clic time ; encadré « ÉPOQUES D'HYSTÉRÉSIS » de <code>configTimeline.js</code>).</div>
+    <div class="used-in">Naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel (bascule Oi-1, hysteresis 2 → 🏔) : CONTRÔLE des calottes de <code>API_BILAN/physics/calottes.js</code> (état porté au clic time ; encadré « ÉPOQUES D'HYSTÉRÉSIS » de <code>configTimeline.js</code>).</div>
 </article>
 <article class="ref" id="wilde2001" data-tags="hadean zircon liquid-water">
     <div class="cite-key">[wilde2001]</div>
@@ -1110,7 +1110,7 @@
     <div class="used-in">Borne ≤ 40 °C à 3,42 Ga (cherts de Buck Reef), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
 </article>
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
-<h2 id="sec-water-rt">12. Eau, transfert radiatif &amp; atmosphère de vapeur (2026-10-12)</h2>
+<h2 id="sec-water-rt">12. Eau, transfert radiatif &amp; atmosphère de vapeur</h2>
 
 <article class="ref" id="chase1998" data-tags="thermodynamics heat-capacity janaf">
     <div class="cite-key">[chase1998]</div>
@@ -1230,7 +1230,7 @@
     <div class="title">HITRAN Application Programming Interface (HAPI): A comprehensive approach to working with spectroscopic data</div>
     <div class="venue">J. Quant. Spectrosc. Radiat. Transfer, 177:15–30 (2016)</div>
     <div class="doi"><a href="https://doi.org/10.1016/j.jqsrt.2016.03.005">10.1016/j.jqsrt.2016.03.005</a></div>
-    <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹ ajoutés le 2026-10-13.</div>
+    <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹.</div>
 </article>
 <article class="ref" id="kollCronin2018" data-tags="olr water-vapor feedback">
     <div class="cite-key">[kollCronin2018]</div>
@@ -1342,7 +1342,7 @@
     <div class="used-in">Colonne d’ozone à 1 % du niveau actuel d’O₂ (124 DU) : loi de puissance de la colonne d’ozone. <code>API_BILAN/radiative/solaire.js</code>.</div>
 </article>
 
-<h2 id="sec-composition-2026-10-13">13. Composition de l’atmosphère, nuages froids &amp; bilan méridien (2026-10-13)</h2>
+<h2 id="sec-composition">13. Composition de l’atmosphère, nuages froids &amp; bilan méridien</h2>
 
 <article class="ref" id="trenberthSmith2005" data-tags="atmosphere mass n2">
     <div class="cite-key">[trenberthSmith2005]</div>
@@ -1499,7 +1499,7 @@
 </article>
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
-<h2 id="sec-calottes-cryogenien-2026-10-14">14. Calottes, Cryogénien &amp; frontières d’hystérésis (2026-10-14)</h2>
+<h2 id="sec-calottes-cryogenien">14. Calottes, Cryogénien &amp; frontières d’hystérésis</h2>
 <p class="sec-note">Usages et statuts (🧭 d’où vient la connaissance, 🛠 ce que le modèle en fait) : sous chaque entrée, lus dans
     <code>API_BILAN/data/episteme.js</code>.</p>
 <article class="ref" id="citterio2013" data-tags="ice-sheet greenland observation">
@@ -1564,10 +1564,9 @@
 </article>
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
-<h2 id="sec-archive">15. Archive : plus citées par le code (2026-10-14)</h2>
-<p class="sec-note">Vérifié le 2026-10-14 : ni le code ni la documentation ne les citent plus, ou le mécanisme qu’elles appuyaient a
-    été retiré (plage ΔT du pôle → bilan méridien ; HYST_CO2_OCEAN_EFF ; proxy CCN O₂). Gardées pour mémoire ; leur texte
-    d’usage décrit l’ancien emploi.</p>
+<h2 id="sec-archive">15. Archive : non citées par le code</h2>
+<p class="sec-note">Ni le code ni la documentation ne les citent ; le mécanisme qu’elles appuyaient n’est pas dans le
+    moteur (plage ΔT du pôle, remplacée par le bilan méridien ; HYST_CO2_OCEAN_EFF ; proxy CCN O₂).</p>
 <article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
     <div class="cite-key">[beerling2007]</div>
     <div class="authors">Beerling, D. J.</div>
@@ -1629,7 +1628,7 @@
     <div class="title">Revised formula for the density of moist air (CIPM-2007)</div>
     <div class="venue">Metrologia, 45(2):149–155 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1088/0026-1394/45/2/004">10.1088/0026-1394/45/2/004</a></div>
-    <div class="used-in">Servait à <code>CLOUD_SW.MODERN_REF_O2</code> (0,23132 kg/kg), retirée le 2026-10-13 avec le « proxy CCN » O₂ × biomasse (l'O₂ n'est pas un noyau de condensation). Plus lue par le moteur.</div>
+    <div class="used-in">Non lue par le moteur : l'O₂ n'est pas un noyau de condensation, le « proxy CCN » O₂ × biomasse n'est pas codé.</div>
 </article>
 <article class="ref" id="vallinaSimo2007" data-tags="dms ccn solar-radiation marine">
     <div class="cite-key">[vallinaSimo2007]</div>
