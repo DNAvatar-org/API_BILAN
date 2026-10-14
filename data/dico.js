@@ -39,7 +39,7 @@ const KEYS = {
     // 🔺📛🏭, 🔺📛🐄 et 🔺📿📛 retirées le 2026-09-23 : jamais écrites ni lues (page 🔎 Paramètres).
     '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧'],
     // Géologie (Surfaces géologiques - Couche A)
-    '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍'],
+    '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍', '🍰🗻🧊', '📅🗻🧊', '🧮🍰🗻🧊'],
     // Constantes physiques
     // Albédo matériau (EARTH['🪩🍰'], override EPOCH['🪩🍰'])
     '🪩🍰': ['🪩🍰❄️', '🪩🍰🧊', '🪩🍰🏊']
@@ -172,6 +172,9 @@ const DESC = {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',
         '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles, géologie)',
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents, géologie)',
+        '🍰🗻🧊': 'Calottes : part de chaque bande (S/N × pol/mid/trop) sous calotte permanente (état porté d\'un clic à l\'autre)',
+        '📅🗻🧊': 'Date de cet état des calottes (années avant 2025)',
+        '🧮🍰🗻🧊': 'Calottes du pas de calcul courant (relaxées depuis 🍰🗻🧊), engagées en fin de convergence',
     },
     '🪩🍰': {
         '🪩🍰❄️': 'Neige profonde propre',
@@ -276,6 +279,9 @@ const FORM = {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique) = f(époque) : Hadéen=1.0, Archéen=0.80, Moderne=0.71',
         '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles) = f(époque) : Hadéen=0.0, Archéen=0.05, Moderne=0.09',
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents) = f(époque) : Hadéen=0.0, Archéen=0.15, Moderne=0.20',
+        '🍰🗻🧊': 'Clic frise : EPOCH.🗻.🍰🗻🧊 (aires sourcées) ; clic time : a = a₀ + (a_éq − a₀)(1 − e^(−Δt/τ)), τ = ρ_i H̄ / max(accumulation, fonte) — physics/calottes.js',
+        '📅🗻🧊': 'Âge de l\'état 🍰🗻🧊 (années avant 2025) : ▶ de l\'époque au clic frise, date du calcul ensuite',
+        '🧮🍰🗻🧊': 'a = a₀ + (a_éq − a₀)(1 − e^(−Δt/τ)), Δt = 📅🗻🧊 − âge courant — posé par calculateAlbedo, lu par CALOTTES.engager',
         '_note': '🗻 = Géologie (Couche A) : surfaces fixes déterminées par la géologie/relief, indépendantes des stocks d\'eau'
     },
     '⚖️': {

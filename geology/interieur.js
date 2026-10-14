@@ -158,12 +158,14 @@
         return { T: K.T_RHEO, dureeAn: t, solide: true };
     }
 
-    /** Âge (années avant 2025) de la date courante 📜📅, selon le sens de l'époque (géologique ou calendaire). */
-    function ageCourant(DATA) {
-        const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-        const date = DATA['📜']['📅'];
-        if (!Number.isFinite(date)) throw new Error('[INTERIEUR] 📜📅 non fini — getEpochDateConfig non appelé ?');
+    /** Âge (années avant 2025) d'une date de l'époque, selon son sens (géologique : âge ; calendaire : année). */
+    function ageDe(EPOCH, date) {
         return EPOCH['▶'] > EPOCH['◀'] ? date : K.AN_PRESENT - date;
+    }
+
+    /** Âge (années avant 2025) de la date courante (CLICS.date, depuis 📜⏳). */
+    function ageCourant(DATA) {
+        return ageDe(window.TIMELINE[DATA['📜']['👉']], window.CLICS.date());
     }
 
     /** L'époque qui porte la condition initiale '🌡️🌕' : l'intérieur commence à son ▶. Exactement une. */
@@ -237,5 +239,5 @@
         publier(DATA);
     }
 
-    window.INTERIEUR = { CONST: K, rayonKm, puissanceRadiogenique, puissanceConvective, capacite, integrerSolide, refroidirMagma, avancer, publier, estFondu, ageCourant };
+    window.INTERIEUR = { CONST: K, rayonKm, puissanceRadiogenique, puissanceConvective, capacite, integrerSolide, refroidirMagma, avancer, publier, estFondu, ageDe, ageCourant };
 })();

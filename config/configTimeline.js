@@ -1,12 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.0
+// Version 1.5.1
+// - v1.5.1 (2026-10-14): calottes au clic frise (EPOCH['🗻']['🍰🗻🧊'], aires sourcées : CALOTTES_* en tête de fichier).
 // - v1.5.0 (2026-10-13): EPOCH['🥶'] retirés de toutes les époques — écarts de zone calculés (physics/meridien.js).
-// - v1.4.99 (2026-10-13): N₂ = 1 PAL (3,878e18 kg) pour toutes les époques sauf ⚫ et 🔥 — avant, des RESTES qui gardaient la masse
-//   totale à ~5,15e18 kg ; CO₂ et CH₄ recalculés pour garder leurs ppm (dans les fourchettes), O₂ en masse (PAL).
-//   O₂ de 🪼 🍄 💀 🦕 sourcé (Krause 2018, Glasspool & Scott 2010) : 9 / 22 / 24 / 24 % de l'air au lieu de 13 / 17 / 13 / 0 % PAL.
-// - v1.4.98 (2026-10-13): 🦠 : N₂ 1,0e19 → 4,0e18 kg (mesures Marty 2013 / Som 2016 ; 2,2 atm était posé contre le faint sun), CO₂ CH₄ O₂ ×0,4 (fractions molaires inchangées).
-// Date: [October 12, 2026]
+// - v1.4.99 (2026-10-13): N₂ = 1 PAL (3,878e18 kg) sauf ⚫ et 🔥 ; O₂ de 🪼 🍄 💀 🦕 sourcé (Krause 2018).
+// Date: [October 14, 2026]
 // © 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -133,6 +131,35 @@
 // référence. Dans la réalité, l'essentiel de cette eau venait avec les briques de la Terre (chondrites à enstatite,
 // Piani et al. 2020, Science 369:1110) : les ☄️ de ⚫ la figurent, elles ne prétendent pas à une chronologie.
 const EAU_ACCRETEE_KG = 6.0e20;   // [kg] = 🔥 ⚖️💧
+// ═══════════════════════════════════════════════════════════════════════════
+// CALOTTES AU CLIC FRISE (EPOCH['🗻']['🍰🗻🧊']) : part de chaque bande de latitude, par hémisphère, sous calotte
+// permanente à ▶ de l'époque. Le clic time les fait ensuite évoluer par leur bilan de masse (physics/calottes.js).
+// Aire d'une bande polaire (60–90°) d'un hémisphère : 2πR²(1 − sin 60°) = 34,168e6 km² (R = 6 371 km).
+// Une part de 1 = toute la bande : le continent de la bande (PaleoDEM) la plafonne.
+//   Antarctique : 12,295e6 km² de glace posée, plates-formes exclues (Bedmap2, Fretwell et al. 2013, The Cryosphere 7:375,
+//     tableau 7) → 0,35984 de la bande polaire sud (toute la calotte est au sud de 60° S).
+//   Groenland : 1 804 638 km² englacés dont 88 083 km² de glaciers et calottes locales (Citterio & Ahlstrøm 2013,
+//     The Cryosphere 7:445) → calotte 1 716 555 km² → 0,050239 de la bande polaire nord (au nord de 60° N).
+//   Glaciers et petites calottes hors inlandsis (Arctique canadien, Svalbard, montagnes…) : non comptés.
+// N₂ = 1 PAL : 5,1352e18 kg d'air sec (Trenberth & Smith 2005) × 0,7552 — une seule valeur pour toutes les époques sauf ⚫ 🔥.
+const N2_1PAL_KG = 3.878e18;
+// Sturtien : ☃ (hysteresis 1a, ◀ = 717 Ma) et ⛄ (▶ = 717 Ma) sont la MÊME planète au même instant — même CO₂, même CH₄,
+// deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14 sur la CHAÎNE DE CLICS (frise 🪸, 💫 ×3 → ☃), CO₂ et
+// CH₄ descendus ENSEMBLE dans leurs fourchettes (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas :
+//   s = 0,42041 → 1 130,6 ppm / 26,82 ppm : ☃ 6,61 °C (glace 0,14, vapeur 0,94 %) ; 🗻 → ⛄ −76,8 °C ; 💫 (voile retiré) ⛄ −77,0 °C
+//   s = 0,42017 → 1 130,2 ppm / 26,81 ppm : ☃ −77,5 °C (snowball)
+// Aux maxima (2 000 / 50 ppm), ☃ 10,5 °C ; aux minima (500 / 10 ppm), ☃ arrive gelé. Remesurer après tout changement de physique.
+const STURTIEN_CO2_KG = 6.920409e15;   // [kg] 1 130,6 ppm d'air sec
+const STURTIEN_CH4_KG = 5.982332e13;   // [kg] 26,82 ppm d'air sec
+const CALOTTES_SANS = { S_pol: 0, N_pol: 0, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
+const CALOTTES_ACTUELLES = { S_pol: 0.35984, N_pol: 0.050239, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
+// Snowball (Sturtien, Marinoen) : continents englacés jusqu'à l'équateur (Hoffman et al. 2017, Science Advances
+// 3:e1600983) — toute la bande, plafonnée par son continent. ⚠️ Les zones sèches sans glace d'un snowball sont ignorées.
+const CALOTTES_SNOWBALL = { S_pol: 1, N_pol: 1, S_mid: 1, N_mid: 1, S_trop: 1, N_trop: 1 };
+// Oligocène basal (33,9 Ma) : Antarctique de Wilson et al. 2013 (GRL 40:4305) — 33,4–35,9e6 km³ de glace, 1,3–1,4 × l'actuel
+// (26,54e6 km³ posés, Bedmap2 tableau 7). L'aire en sort par le profil plastique de physics/calottes.js : H̄ ∝ √L ∝ S^¼,
+// donc V ∝ S^(5/4) et S = 12,295e6 × (34,65 / 26,54)^(4/5) = 15,22e6 km² (fourchette 14,78–15,66e6) → 0,44540.
+const CALOTTES_OLIGOCENE = { S_pol: 0.44540, N_pol: 0, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
 const timeline = [
     {// Corps noir
         '📅': '⚫', // Corps noir
@@ -151,7 +178,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.0,  // Surface océanique potentielle (0% - pas d'eau)
             '🍰🗻🏔': 0.0,  // Hautes terres (0% - pas de relief)
-            '🍰🗻🌍': 1.0   // Terres basses (100% - surface rocheuse)
+            '🍰🗻🌍': 1.0, // Terres basses (100% - surface rocheuse)
+            '🍰🗻🧊': CALOTTES_SANS
         },
         // 🔒 Corps noir : pas de désert, albedo = 0 (corps noir absorbe tout)
         '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0 (pas de désert pour corps noir)
@@ -214,7 +242,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 1.0,  // Surface océanique potentielle (100% - océan de magma)
             '🍰🗻🏔': 0.0,  // Hautes terres (0% - pas de continents stables)
-            '🍰🗻🌍': 0.0   // Terres basses (0% - pas de continents)
+            '🍰🗻🌍': 0.0, // Terres basses (0% - pas de continents)
+            '🍰🗻🧊': CALOTTES_SANS
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Simulation parameters - Quantités en kg (pas de ppm/%)
@@ -291,7 +320,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.85, // Surface océanique potentielle (80% - moins de continents qu'aujourd'hui)
             '🍰🗻🏔': 0.00, // Hautes terres (5% - peu de relief élevé)
-            '🍰🗻🌍': 0.15  // Terres basses (15% - premiers continents)
+            '🍰🗻🌍': 0.15, // Terres basses (15% - premiers continents)
+            '🍰🗻🧊': CALOTTES_SANS
         },
         '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
@@ -331,7 +361,7 @@ const timeline = [
         // (Marty et al. 2013, Science 342:101, inclusions fluides) ; pression totale 0,23 ± 0,23 bar vers 2,7 Ga (Som et al.
         // 2016, Nature Geosci. 9:448, vésicules). Aucune ne soutient 2,2 atm. CO₂, CH₄, O₂ réduits dans le même rapport : leurs
         // fractions molaires (le milieu des fourchettes de la config) ne changent pas. Sonde : 🦠 46,0 → 10,2 °C ([5 ; 25]).
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.0e18
+        '⚖️💨': N2_1PAL_KG,
         // ⚖️✈ : 4,0e8 kg = FOND NATUREL PRÉINDUSTRIEL, faute de contrainte propre à l'Archéen.
         //   ⚠️ NON CONTRAINT, et il faut le dire : aucune charge de sulfate atmosphérique archéenne
         //   n'est publiée. Deux effets de signe opposé, tous deux non quantifiés, encadrent la vraie
@@ -402,7 +432,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.75, // Surface océanique potentielle (75% - continents en formation)
             '🍰🗻🏔': 0.08, // Hautes terres (8% - relief modéré)
-            '🍰🗻🌍': 0.17  // Terres basses (17% - continents émergents)
+            '🍰🗻🌍': 0.17, // Terres basses (17% - continents émergents)
+            '🍰🗻🧊': CALOTTES_SANS
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50, _flux v1.2.93, _h2o v1.0.23).
@@ -425,7 +456,7 @@ const timeline = [
         //   à l'Archéen. Aucune charge protérozoïque n'est publiée pour autant — faiblement contraint.
         //   L'ancienne valeur était 0, ce qui affirmait une absence de sulfate que rien ne soutient.
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 5.0847e18
+        '⚖️💨': N2_1PAL_KG,
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         '🕰': {
@@ -534,7 +565,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17 },
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_SANS },
         // CO₂ pré-snowball branche chaude. 1.0e16 kg = 1280 ppm (conv. via ⚖️💨=5.125e18 kg, M_air/M_CO2=0.659).
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
         // NB : le seuil de bifurcation snowball est bien plus bas (100-300 ppm GCM — Voigt 2010, Hörner 2022) ;
@@ -567,10 +598,11 @@ const timeline = [
         // SENSIBILITÉ du modèle qui place la bascule là (trop faible, cf. REPRISE.md), pas un choix.
         // Une 1re tentative (3 419 ppm) avait été mesurée sur un chemin RACCOURCI (graine de 🪸 → 1a sans les
         // clics 💫) : au vrai clic, ⛄ tombait à 0 °C au lieu de −60. Toujours mesurer sur la chaîne de clics.
-        '⚖️🏭': 4.4085e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 5.8304e14 // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 72,1 ppm air sec → 1a −0,01 °C (glace 9 %) ; 0,1 ppm de moins → −62,2 °C. FRONTIÈRE D'ENTRÉE du Sturtien. MÊME valeur que ⛄. (était 6,965e14 = 86,1 ppm, avant les vraies dates)
+        // v-2026-10-14 : STURTIEN_CO2_KG (en tête de fichier). Avant : 4,4085e14 = 72,1 ppm, frontière du 2026-09-24 hors fourchette.
+        '⚖️🏭': STURTIEN_CO2_KG,
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
-        '⚖️🐄': 6.4800e+13, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.57e13//30 ppm  (ancien 2.0e13 = 7 ppm)
+        '⚖️🐄': STURTIEN_CH4_KG, // v-2026-10-14 (avant 6,48e13 = 29,1 ppm)
         // H₂O : océan Protérozoïque ≈ 1.2-1.4e21 kg (Pope et al. 2012). Inchangé.
         '⚖️💧': 1.2e21,
         // O₂ : v-2026-07-14b 1.5e16 (aligné vecteur warm scan = serre/nuages suppl. ; 1.3 % PAL, borne haute Sturtien).
@@ -582,7 +614,7 @@ const timeline = [
         //   ⚠️ Le voile sulfaté de la LIP Franklin n'est PAS ici : il est porté séparément par
         //   ⛄.🔺🍰⚽ = 0,05 (Macdonald & Wordsworth 2017). Pas de double comptage.
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 5.133e18//N₂ (v-2026-07-14b aligné vecteur scan ; ancien 5.142979e18)
+        '⚖️💨': N2_1PAL_KG,
         // 1a = branche CHAUDE pré-Sturtienne (≈ 7 °C). Le bouton volcan 🗻 est un DÉCLENCHEUR ERGONOMIQUE : son tooltip (desc du logo,
         // "Volcan — voile atmosphérique") annonce à l'utilisateur que le voile arrive, et le clic fait avancer la
         // frise vers ⛄ (Plein Snowball) où le voile s'applique RÉELLEMENT (clé racine 🔺🍰⚽=0.05 de ⛄, v-2026-09-15).
@@ -644,7 +676,6 @@ const timeline = [
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
     "🌡️🧮": 218.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (273.14, T° d'arrivée au clic)
-    "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.592e26,
     "📐": 6371,
@@ -654,11 +685,12 @@ const timeline = [
     "🗻": {
         "🍰🗻🌊": 0.75,
         "🍰🗻🏔": 0.08,
-        "🍰🗻🌍": 0.17
+        "🍰🗻🌍": 0.17,
+        "🍰🗻🧊": CALOTTES_SNOWBALL
     },
-    // MÊME CO₂ que hysteresis 1a (frontière de 1a, 86,1 ppm, mesurée sur la chaîne de clics — voir 1a).
-    "⚖️🏭": 5.8304e14, // v-2026-09-24 : = hysteresis 1a (72,1 ppm, frontière d'entrée du Sturtien) — même planète, deux états
-    "⚖️🐄": 1.489e13, // v-2026-09-23 (était 2.86e13) : CH₄ ≈ 5 ppm air sec = milieu de [0,1 ; 10] ‖ avant : 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
+    // MÊMES CO₂ et CH₄ que hysteresis 1a : STURTIEN_* en tête de fichier (avant : copies, restées à l'ancien N₂).
+    "⚖️🏭": STURTIEN_CO2_KG,
+    "⚖️🐄": STURTIEN_CH4_KG,
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5),
@@ -670,7 +702,7 @@ const timeline = [
     //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
     //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
     "⚖️✈": 400000000,
-    "⚖️💨": 5132968982000000000,
+    "⚖️💨": N2_1PAL_KG, // v-2026-10-14 : 1 PAL (était 5,133e18, oublié le 2026-10-13 dans les blocs JSON)
     "🔒": {
         "⚖️🏭": {
             "min": 792300000000000,
@@ -734,7 +766,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_SANS },
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
         // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
@@ -770,7 +802,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 5.107454e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }, { '🕰': '💫', '🔺⏳': 7 }],
             // v-2026-09-24 : 🔀 fait glisser les masses de 1b vers celles de 🏂 pendant les 💫 (comme 🪸 → 1a) :
@@ -802,7 +834,6 @@ const timeline = [
     // v-2026-09-15 : graine = état snowball (−55 °C, bench [−60,−50]). Clic direct ⛄ → part de la bonne T° et vérifie
     // la stabilité ; en animation (après 🗻) la T° présente est gardée. (ex-270.0 = −3 °C)
     "🌡️🧮": 218.15, // v-2026-10-10 : milieu de la fourchette du banc (mode Époques). Mesuré : la chaîne de clics est identique au centième avec l'ancienne graine (296.66, T° d'arrivée au clic)
-    "🥶": { "dT_pol": 20, "dT_mid": 5, "dT_trop": -5 },
     "🧲🔬": 0.01,
     "🔋☀️": 3.613e26, // Gough @ 0,639 Ga (indicatif : getSoleil recalcule depuis la date)
     "📐": 6371,
@@ -812,12 +843,13 @@ const timeline = [
     "🗻": {
         "🍰🗻🌊": 0.75,
         "🍰🗻🏔": 0.08,
-        "🍰🗻🌍": 0.17
+        "🍰🗻🌍": 0.17,
+        "🍰🗻🧊": CALOTTES_SNOWBALL
     },
     // CO₂ = FRONTIÈRE D'ENTRÉE du Marinoen (1b fait glisser ses masses vers celles-ci pendant ses 💫) —
     //   à MESURER sur la chaîne de clics (encadré « ÉPOQUES D'HYSTÉRÉSIS »). Valeur provisoire = ⛄.
-    "⚖️🏭": 2.0725589e16, // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 2 556,7 ppm → 🏂 −61,9 °C (le voile fait basculer) ; 2 557,3 ppm → −0,01 °C. DERNIER CO₂ où le voile fait encore entrer dans le Marinoen. Cible de la rampe de 1b.
-    "⚖️🐄": 1.489e13, // v-2026-09-23 (était 2.86e13) : CH₄ ≈ 5 ppm air sec = milieu de [0,1 ; 10] ‖ avant : 10 ppm — v-2026-09-15 : lit. snowball CH₄ [0.1,10] ppm (grille CSV). Ancien 8.57e13 (30 ppm, hors fourchette)
+    "⚖️🏭": 1.56713e+16, // v-2026-10-14 : N₂ 1 PAL, ppm inchangés (2 556,7 ppm, frontière mesurée le 2026-09-24) ; avant 2.0725589e16
+    "⚖️🐄": 1.1259e+13, // v-2026-10-14 : N₂ 1 PAL, CH₄ ≈ 5 ppm inchangé ; avant 1.489e13
     "⚖️💧": 1.2e21,
     "⚖️🫁": 15000000000000000,
     // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5),
@@ -829,7 +861,7 @@ const timeline = [
     //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
     //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
     "⚖️✈": 400000000,
-    "⚖️💨": 5132968982000000000,
+    "⚖️💨": N2_1PAL_KG, // v-2026-10-14 : 1 PAL (était 5,133e18, oublié le 2026-10-13 dans les blocs JSON)
     "🔒": {
         "⚖️🏭": {
             "min": 792300000000000,
@@ -889,7 +921,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15 },
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_SANS },
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
         // (Pierrehumbert 2004, Hoffman 2017). Était 2.75e16 (3500 ppm) : incohérent avec ce commentaire + trop
@@ -925,7 +957,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 5.107454e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 96.4 }],
             '💫': { '🔺🌡️💫': 0 }, // durée 635,2 → 538,8
@@ -957,7 +989,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16 },
+        '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 1.1494e+16, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.38e16 // co2_kg — léger − (bench 🪼)
         '⚖️🐄': 2.4987e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3e13
         '⚖️💧': 1.3e21,
@@ -965,7 +997,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.986169e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 119.6 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
@@ -992,7 +1024,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.6,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18 },
+        '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 7.1911e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 0.74e16 // co2_kg — léger − (bench 🍄)
         '⚖️🐄': 2.9152e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3e13
         '⚖️💧': 1.3e21,
@@ -1000,7 +1032,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.942569e18
+        '⚖️💨': N2_1PAL_KG,
         // 4 clics de 35 Ma : 420 → 385 → 350 → 315 → 280 Ma. Le pas de 140 Ma (un seul clic) sautait
         // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
         // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
@@ -1047,7 +1079,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20 },
+        '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 6.6930e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 6.709e15 // v-2026-09-23 (était 1.5e16) : CO₂ ≈ 833 ppm air sec = milieu de PhanDA Kungurien [420,1246] (1 862 était HORS) ‖ avant : co2_kg (~2900 ppm, pic PT)
         '⚖️🐄': 7.9810e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8e13   // CH4 élevé (anoxie, clathrates)
         '⚖️💧': 1.35e21,
@@ -1058,7 +1090,7 @@ const timeline = [
         //   Le refroidissement volcanique, s'il doit apparaître, est un ÉVÉNEMENT (comme ⛄.🔺🍰⚽),
         //   pas une charge de fond. Voir l'encadré « MASSES DE SULFATE » en tête de fichier.
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.984919e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 0.3 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
@@ -1093,7 +1125,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
-            '🍰🗻🌍': 0.20
+            '🍰🗻🌍': 0.20,
+            '🍰🗻🧊': CALOTTES_SANS
         },
         '⚖️🏭': 8.5114e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.566e15 // v-2026-09-23 (était 1.2875e16) : CO₂ ≈ 1 060 ppm air sec = milieu de PhanDA Induen [434,1685] ‖ avant : co2_kg (~2500 ppm)
         '⚖️🐄': 4.0938e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.12e13
@@ -1102,7 +1135,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 5.1370828e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 100 }, { '🕰': '🎇', '🔺⏳': 0 }], // v-2026-10-12 : 🎇 K-Pg ferme l'époque (⏩ 🦤) ; il n'était jamais proposé (ACTION_BY_DATE 66 → 💫)
             '💫': {
@@ -1134,7 +1167,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
-            '🍰🗻🌍': 0.20
+            '🍰🗻🌍': 0.20,
+            '🍰🗻🧊': CALOTTES_SANS
         },
         '⚖️🏭': 6.2083e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 6.447e15 // v-2026-09-23 (était 5.0e15) : CO₂ ≈ 819 ppm air sec = milieu de PhanDA Danien [559,1078] ‖ avant : co2_kg (~650 ppm)
         '⚖️🐄': 8.2941e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.613e12 // v-2026-09-23 (était 3.605e12) : CH₄ ≈ 3 ppm air sec = milieu de [1,5]
@@ -1143,7 +1177,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.063495395e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 10 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
@@ -1171,7 +1205,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
-            '🍰🗻🌍': 0.20
+            '🍰🗻🌍': 0.20,
+            '🍰🗻🧊': CALOTTES_SANS
         },
         // [v1.4.81] vers 24 °C (milieu T [20,28], bench 20,9 °C) sans sortir de la grille : CH₄ 1,24 → ~3,8 ppm ([1,5]),
         //   CO₂ 1182 → ~1380 ppm ([800,1500]) ; sonde : 22 °C environ au mieux sans sortir de la grille. Anagnostou et al. 2016 Nature 533:380 (CO₂ Éocène précoce ~1000–1600 ppm) ;
@@ -1183,7 +1218,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.059095395e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 21.6 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
@@ -1215,7 +1250,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
-            '🍰🗻🌍': 0.20
+            '🍰🗻🌍': 0.20,
+            '🍰🗻🧊': CALOTTES_SANS
         },
         '⚖️🏭': 4.9595e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 5.15e15 // co2_kg (~1000 ppm, avant chute Oi-1)
         '⚖️🐄': 3.4716e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3.605e12
@@ -1224,7 +1260,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 4.063345395e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '⛰', '🔺⏳': 0.5 }],
             '⛰': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
@@ -1245,7 +1281,7 @@ const timeline = [
         '▶': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '◀': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
         '🌡️🧮': 296.15, // milieu grille Oligocène/Grande_Coupure [12,18]°C (🏔 ≈ refroidissement Cénozoïque)
-        // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; baryFromDate → ~17 Ma ≈ mi-parcours 33→2 Ma.
+        // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; 🔀 par le temps écoulé → ~17 Ma ≈ mi-parcours 33→2 Ma.
         '🔺🍰⚽': 0.00196,
         // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
         '🧲🔬': 0.05,
@@ -1254,7 +1290,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
+        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_OLIGOCENE },
         '⚖️🏭': 4.7317e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.822e15 // v-2026-09-23 (était 4.513e15) : CO₂ ≈ 624 ppm air sec = milieu de PhanDA Rupélien [552,696]
         '⚖️🐄': 4.2195e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.3e12 // [v1.4.81] 0,92 ppm → ~1,5 ppm (milieu grille [1,2])
         '⚖️💧': 1.4e21,
@@ -1262,12 +1298,10 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 3.97e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 16 }, { '🕰': '💫', '🔺⏳': 16 }],
             '💫': { '🔺🌡️💫': 0 },
-            // Interpolation 🔀 en fonction de la date courante 📜📅 (pas du seul compte de tics) — 33 Ma → 2 Ma.
-            'baryFromDate': true,
             '🔀': ['📅', '📜'],
             '◀': {
                 '📅': { '🌡️🧮': 286.15 },
@@ -1294,7 +1328,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19 },
+        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ état actuel posé : pas de reconstruction d'aire à 2,58 Ma trouvée (Antarctique depuis 34 Ma, Groenland depuis ≥ 2,7 Ma)
         //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
         // [v1.4.81] CO₂/CH₄ glaciaires-interglaciaires (étaient des valeurs modernes 410 ppm / 1,27 ppm, hors grille).
         //   Grille : CO₂ [180,300] ppm, CH₄ [0,4 ; 0,8] ppm — Lüthi et al. 2008 Nature 453:379 (EPICA Dome C 800 ka),
@@ -1312,7 +1346,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 3.97e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }],
             // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
@@ -1364,7 +1398,7 @@ const timeline = [
         '🐚': 1.0,
         //'🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
         //'🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
-        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.14, '🍰🗻🌍': 0.17 },
+        '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.14, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ PROVISOIRE : à 11,7 ka les calottes nord-américaines + Groenland couvraient ~9,9e6 km² (Dalton et al. 2020, QSR 234:106223, tableau 1) — partage par bande à calculer des isochrones
         '⚖️🏭': 2.1507e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.191e15 // ~280 ppm CO2 pré-industriel (Marcott 2013)
         '⚖️🐄': 1.9691e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.006e12 // v-2026-09-23 (était 2.28e12) : CH₄ ≈ 0,70 ppm air sec = milieu de [0,6 ; 0,8] ‖ avant : ~800 ppb CH4 pré-industriel
         '⚖️💧': 1.4e21,
@@ -1372,7 +1406,7 @@ const timeline = [
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 3.97e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }],
             '💫': { '🔺🌡️💫': 0 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
@@ -1396,7 +1430,7 @@ const timeline = [
         '🍎': 9.81,
         '📏🌊': 3.7,
         '🐚': 1.0,
-        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
+        '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_ACTUELLES },
         //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
         '⚖️🏭': 2.0990e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.139e15 // v-2026-09-24 : ≈ 276,8 ppm air sec = Law Dome 1750 (MacFarling Meure 2006) ‖ avant : 2.191e15
         '⚖️🐄': 1.9341e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.971e12 // v-2026-09-24 : ≈ 0,697 ppm air sec = Law Dome 1750 ‖ avant : 2.056e12
@@ -1408,7 +1442,7 @@ const timeline = [
         //   fiche est datée 1800, où l'anthropique était encore plus faible — l'écart est très
         //   inférieur à la dispersion inter-modèles. Le sulfate industriel n'arrive qu'après 1850.
         '⚖️✈': 4.0e8,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 3.97e18
+        '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 0.000125 }, { '🕰': '💫', '🔺⏳': 0.000125 }],
             '💫': { '🔺🌡️💫': 0 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
@@ -1436,7 +1470,8 @@ const timeline = [
         '🗻': {
             '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
             '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
-            '🍰🗻🌍': 0.20  // Terres basses (20% - continents modernes)
+            '🍰🗻🌍': 0.20, // Terres basses (20% - continents modernes)
+            '🍰🗻🧊': CALOTTES_ACTUELLES
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
@@ -1459,7 +1494,7 @@ const timeline = [
         //   ⚠️ L'ancienne valeur, 8,0e13 kg, était un « proxy CCN » sans dimension physique : 76 000 ×
         //   la charge réelle, et surtout un rapport 📱/🚂 de 53 quand la mesure donne 2,6.
         '⚖️✈': 1.05e9,
-        '⚖️💨': 3.8780e+18, // N₂ = 1 PAL (2026-10-13 : 5,1352e18 kg d'air sec, Trenberth & Smith 2005, × 0,7552) ; avant 3.97e18 // n2_kg (~78% de l'atmosphère moderne, calculé comme reste pour atteindre 5.15e18)
+        '⚖️💨': N2_1PAL_KG,
         // 🔒 Bornes hystérésis Aujourd'hui — pré-industriel → RCP8.5 extreme.
         //    Refs : NOAA/GISS (CO₂ 2000 ≈369 ppm, 280 ppm pré-industriel), IPCC AR6 WG1 SSP5-8.5 (~1135 ppm @2100), CH₄ pré-ind ≈700 ppb → ~3500 ppb RCP8.5, Crutzen 2006 (SRM sulfates stratosphériques 1–5 Tg S/an → ~5e14 kg équivalent).
         //    Conversion mass/ppm @ M_atm=5.15e18 : 1 ppm CO₂ ≈ 7.83e12 kg ; 1 ppm CH₄ ≈ 2.84e12 kg.

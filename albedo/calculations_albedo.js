@@ -1,11 +1,10 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.6.0
-// - v1.6.0 (2026-10-14): calottes continentales (physics/calottes.js) : graine depuis le continent englacé, surface en neige permanente.
+// Version 1.6.1
+// - v1.6.1 (2026-10-14): calottes = état porté d'un clic à l'autre (config au clic frise), plus de graine sans glace.
 // - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
 // - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
-// - v1.4.4 (2026-10-13): ALBEDO.nombreGouttesActuelCm3 / nombreGouttesCm3 — une seule définition du nombre de gouttes (profil, affichage).
-// Date: [September 16, 2026]
+// Date: [October 14, 2026]
 //   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
@@ -290,19 +289,16 @@ function calculateAlbedo() {
     const neigeTrop = albedo_coeff['🪩🍰❄️'] - (albedo_coeff['🪩🍰❄️'] - albedo_coeff['🪩🍰🧊']) * Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
     const albedoGlaceZone = (cle, T_zone_K) => brieglebIceAlbedoLocal(T_zone_K,
         cle === 'trop' ? neigeTrop : albedo_coeff['🪩🍰❄️'], albedo_coeff, DATA['🪩']['🍰🪩🧊']);
-    // Calottes continentales (physics/calottes.js). GRAINE (Init) : équilibre cherché depuis l'état SANS glace — une calotte
-    // naît si la neige survit à l'été sur les hautes terres — et mémorisé. Pas suivants : relaxation depuis l'état de la graine,
-    // sur la durée de l'époque, au temps de réaction physique de chaque calotte.
-    const graineCalottes = DATA['🧮']['🧮⚧'] === 'Init';
-    const departCalottes = graineCalottes ? window.CALOTTES.sansGlace() : window.STATE.calottesGraine;
-    const dureeCalottes = graineCalottes ? Infinity : Math.abs(EPOCH['▶'] - EPOCH['◀']);
+    // Calottes continentales (physics/calottes.js) : état porté DATA['🗻']['🍰🗻🧊'] (config de l'époque au clic frise, état du
+    // clic précédent au clic time), relaxé vers l'équilibre sur le temps écoulé depuis sa date. Résultat du pas : DATA['🗻']['🧮🍰🗻🧊'],
+    // engagé en fin de convergence (calculations_flux.js → CALOTTES.engager).
+    const dureeCalottes = DATA['🗻']['📅🗻🧊'] - window.INTERIEUR.ageCourant(DATA);
     const meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone,
-        albedo_coeff['🪩🍰❄️'], departCalottes, dureeCalottes);
+        albedo_coeff['🪩🍰❄️'], DATA['🗻']['🍰🗻🧊'], dureeCalottes);
     window._hystDiag.meridien = meridien;
-    if (graineCalottes) {
-        window.STATE.calottesGraine = {};
-        for (const b of window.CALOTTES.BANDES) window.STATE.calottesGraine[b.cle] = meridien.calottes[b.cle].aEq;
-    }
+    const calottesPas = {};
+    for (const b of window.CALOTTES.BANDES) calottesPas[b.cle] = meridien.calottes[b.cle].a;
+    DATA['🗻']['🧮🍰🗻🧊'] = calottesPas;
     // Part du globe sous calotte permanente : Σ zones f_z × fraction moyenne des deux hémisphères.
     const calotte_surface = EARTH.POLAR_ZONE_FRAC * meridien.calottes.parZone.pol + EARTH.MIDLAT_ZONE_FRAC * meridien.calottes.parZone.mid
         + EARTH.TROPICAL_ZONE_FRAC * meridien.calottes.parZone.trop;

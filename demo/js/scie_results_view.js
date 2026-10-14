@@ -25,10 +25,10 @@ function displayResults(result) {
     const epochId = DATA['📜']['🗿'];
     const epochName = window.CHARS_DESC[epochId] || epochId;
     
-    // Calculer la date actuelle depuis DATA['📜']['📅'] (source unique — getEpochDateConfig)
+    // Date actuelle : CLICS.date() (depuis 📜⏳, la seule horloge)
     const epochEndD = typeof EPOCH['◀'] === 'number' ? EPOCH['◀'] : null;
     const isForwardD = EPOCH['▶'] != null && epochEndD != null && EPOCH['▶'] < epochEndD;
-    const dateYearsD = (DATA['📜'] && DATA['📜']['📅'] != null) ? DATA['📜']['📅'] : null;
+    const dateYearsD = window.CLICS.date();
     let currentDateStr;
     if (dateYearsD != null) {
         if (isForwardD) {

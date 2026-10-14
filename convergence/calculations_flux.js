@@ -1055,6 +1055,8 @@ async function computeRadiativeTransfer(callback) {
         }
     }
     if (apiDbg) console.log('[API_BILAN] compute fin', '🧮🛑=', DATA['🧮']['🧮🛑'], '🧮🔄☀️=', DATA['🧮']['🧮🔄☀️']);
+    // Calottes (physics/calottes.js) : l'état du dernier pas devient celui de la date courante — le clic suivant part de là.
+    window.CALOTTES.engager(DATA);
     return true;
     } finally {
         if (apiDbg) console.groupEnd();

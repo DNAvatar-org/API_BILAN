@@ -11,12 +11,14 @@
 //           (J. Glaciol. 41:153) : neige ~3, glace ~8 mm d'eau par °C·jour ; neige formée à l'inversion (Jouzel & Merlivat 1984) ;
 //         · NAISSANCE sur les hautes terres (quart le plus haut du continent de la bande), puis ÉQUILIBRE : l'aire où le bilan de
 //           masse s'annule, plafonnée par le continent de la bande (data/paleogeo_zones.js, PaleoDEM Scotese & Wright 2018) ;
-//         · TEMPS : relaxation vers l'équilibre sur la durée de l'époque, au temps de renouvellement physique ρ_i H̄ / accumulation.
+//         · ÉTAT PORTÉ (DATA['🗻']['🍰🗻🧊'], daté 📅🗻🧊) : au clic sur la frise, l'état vient de la CONFIG de l'époque
+//           (EPOCH['🗻']['🍰🗻🧊'], aires sourcées) ; au clic time, il part de l'état du clic précédent et relaxe vers l'équilibre
+//           sur le temps écoulé, au temps de renouvellement physique ρ_i H̄ / accumulation — comme l'intérieur (INTERIEUR.avancer).
 //       Contrôle (pas une entrée) : accumulation moyenne de l'Antarctique posé, 143 ± 4 kg m⁻² an⁻¹ (Arthern et al. 2006, JGR 111:D06107).
 //       Approximations DÉCLARÉES : une calotte par bande et par hémisphère, bilan évalué à l'altitude moyenne ; même température de
 //       zone dans les deux hémisphères (bilan méridien symétrique) ; avant 540 Ma, pas de carte : continent réparti uniformément.
-// Version 1.1.0
-// - v1.1.0 (2026-10-14): naissance sur les hautes terres (départ sans glace) ; neige formée à l'inversion (Jouzel & Merlivat 1984).
+// Version 1.2.0
+// - v1.2.0 (2026-10-14): état porté d'un clic à l'autre, posé depuis la config au clic frise (plus de graine sans glace).
 // Date: [October 14, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -125,13 +127,14 @@
 
     /**
      * Calottes de l'état courant. T_zones = { pol, mid, trop } [K], amp = { pol, mid, trop } [K] (amplitudes saisonnières des terres).
-     * depart : { cle: a } — état d'où l'on part (graine : continent entièrement englacé, voir calculations_albedo) ;
-     * dureeAns : durée de relaxation vers l'équilibre (Infinity : l'équilibre lui-même).
+     * depart : { cle: a } — état d'où l'on part (DATA['🗻']['🍰🗻🧊'], porté d'un clic à l'autre) ;
+     * dureeAns : temps écoulé depuis cet état [an] (0 : l'état lui-même).
      * Temps de réaction PHYSIQUE : calotte présente → sa masse / max(accumulation, fonte) à l'état de départ ; calotte absente →
      * la masse de l'équilibre / son accumulation (le temps de la construire) ; ni glace ni bilan → rien ne bouge.
      * Renvoie { cle: { a, aEq, H, z, accumulation, fonte, Ts, tau } } et parZone { pol, mid, trop } (fraction moyenne des deux hémisphères).
      */
     function calculer(T_zones, amp, T_glob, ageMa, EPOCH, depart, dureeAns) {
+        if (!(dureeAns >= 0)) throw new Error('[CALOTTES] durée ' + dureeAns + ' an : l\'état des calottes est daté APRÈS la date courante (clic frise oublié ?)');
         const geo = geographie(ageMa, EPOCH);
         const P_ref = window.RADIATIVE.computePWV() / window.CONV.TAU_VAPOR_GLOBAL_S * 3.15576e7;   // [kg m⁻² an⁻¹]
         const rhoI = window.EARTH.NUAGES.RHO_GLACE;
@@ -151,7 +154,7 @@
             } else {
                 tau = Infinity;                                  // pas de glace, pas d'équilibre englacé : rien ne bouge
             }
-            const f = dureeAns === Infinity ? 1 : 1 - Math.exp(-dureeAns / tau);
+            const f = 1 - Math.exp(-dureeAns / tau);
             const a = a0 + (aEq - a0) * f;
             res[b.cle] = { a: a, aEq: aEq, H: gEq.H, z: gEq.z, accumulation: mbEq.accumulation, fonte: mbEq.fonte, Ts: mbEq.Ts, tau: tau };
             parZone[b.zone] += a / 2;                            // deux hémisphères de même aire
@@ -160,13 +163,25 @@
         return res;
     }
 
-    /** État sans glace : départ de la graine. Une calotte n'y naît que si la neige survit à l'été sur les hautes terres. */
-    function sansGlace() {
-        const out = {};
-        for (const b of BANDES) out[b.cle] = 0;
-        return out;
+    /** Clic sur la frise : l'état des calottes est celui de la CONFIG de l'époque (part de chaque bande sous calotte à ▶),
+     *  daté de ▶. Une part de 1 = toute la bande : le continent de la bande la plafonne (calculer). */
+    function depuisConfig(DATA) {
+        const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+        const C = EPOCH['🗻']['🍰🗻🧊'], etat = {};
+        for (const b of BANDES) {
+            if (!(C[b.cle] >= 0 && C[b.cle] <= 1)) throw new Error('[CALOTTES] ' + EPOCH['📅'] + " : 🗻.🍰🗻🧊." + b.cle + ' = ' + C[b.cle] + ' (part de bande attendue dans [0, 1])');
+            etat[b.cle] = C[b.cle];
+        }
+        DATA['🗻']['🍰🗻🧊'] = etat;
+        DATA['🗻']['📅🗻🧊'] = window.INTERIEUR.ageDe(EPOCH, EPOCH['▶']);
+    }
+
+    /** Fin de convergence : le résultat du dernier pas (🧮🍰🗻🧊) devient l'état porté, daté de maintenant (le clic suivant part de là). */
+    function engager(DATA) {
+        for (const b of BANDES) DATA['🗻']['🍰🗻🧊'][b.cle] = DATA['🗻']['🧮🍰🗻🧊'][b.cle];
+        DATA['🗻']['📅🗻🧊'] = window.INTERIEUR.ageCourant(DATA);
     }
 
     window.CALOTTES = { K: K, BANDES: BANDES, geographie: geographie, geometrie: geometrie, bilanMasse: bilanMasse, calculer: calculer,
-        sansGlace: sansGlace };
+        depuisConfig: depuisConfig, engager: engager };
 })();

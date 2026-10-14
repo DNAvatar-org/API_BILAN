@@ -1,21 +1,15 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.3.0
-// Date: [October 12, 2026]
+// Version 1.3.1
+// Date: [October 14, 2026]
 // logs :
+// - v1.3.1: 🔀 interpolé par le temps écoulé (📜⏳) pour toutes les époques — plus de compte de tics (2ᵉ horloge) ;
+//   plus de copie 📜📅 (CLICS.date()).
 // - v1.3.0: getEpochDateConfig ne passe plus à l'époque suivante (ni ne remet ⏳ / 📿 à zéro) : c'était le 3e
 //   mécanisme de passage, avec CLICS.jouer et la frise de l'UI. L'époque est DATA['📜']['👉'], posée par CLICS.
 // - v1.2.0: date = ▶ ∓ 📜⏳ (temps écoulé tenu par CLICS.jouer, convergence/clics.js) au lieu de Σ 📿 × 🔺⏳ des
 //   seules actions comptées (🗻 / ⛰ / 🌋 n'avançaient pas la date du calcul) et du pas unique exigé sur 📱.
-// - v1.1.0: PAS DE GARDES. Les compteurs de tics sont explicites (TIC_COUNTERS = 💫, ☄️ : les seuls 📿 qui
-//   existent) au lieu d'un balayage de 🕰 filtré par typeof. Masses interpolées par 🔀 → 📜🔀⚖️ (comme 📜🔁⚖️) :
-//   getMasses repart toujours de la racine de l'époque, il ne relit plus DATA['⚖️'] (l'eau des météorites s'y
-//   ajoutait à chaque rappel). 🔀 '📜' fusionne EN PLACE dans DATA['📜'] (la copie cassait toute référence tenue
-//   sur DATA['📜'], dont la chaîne du banc). Supprimés : 📜🌡️🧮 (doublon de 📅🌡️🧮, aucun lecteur), code 🏭📊
-//   (aucune époque n'a ce profil) et window._co2ProfileLog, getEnabledStates (rendait true), alias getDateConfig,
-//   reprise 🍎/📐 (DATA['📅'] est fusionné, jamais partiel).
-// - v1.0.9: expositions fonctions regroupées sous window.COMPUTE (doublons window.foo retirés). Appelants migrés window.foo() → COMPUTE.foo() dans api.js, scie_hysteresis_search.js, sync_panels.js, ui/main.js, events.js, CO2/html/*.html.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -77,9 +71,6 @@ function getEpochDateConfig() {
 
     // Temps écoulé dans l'époque : 📜⏳ (Ma), seule horloge, tenue par CLICS.jouer (somme des 🔺⏳ joués).
     const deltaYearsFromTics = H['⏳'] * 1e6;
-    // Sens du temps : géologique ▶ > ◀ (années avant le présent), moderne ▶ < ◀ (calendrier).
-    const isForwardTime = EPOCH['▶'] < EPOCH['◀'];
-    const dateYears = isForwardTime ? EPOCH['▶'] + deltaYearsFromTics : EPOCH['▶'] - deltaYearsFromTics;
 
     // Masse d'eau par météorite (⚫, 🔥). ⚠️ Ne pas écraser 📿☄️ ni 📿💫 : compteurs des clics (CLICS.jouer).
     if ('☄️' in W) H['🔺⚖️💧☄️'] = W['☄️']['🔺⚖️💧☄️'];
@@ -130,9 +121,6 @@ function getEpochDateConfig() {
     // 🌙 carte de nuit superposée (toute l'époque) : lumières des villes côté ombre.
     if ('🌙' in W) H['🌙'] = W['🌙'];
 
-    // Date courante (années avant le présent, ou calendrier si ▶ < ◀) — lue par getSoleil (Gough).
-    H['📅'] = dateYears;
-
     // 🔀 INTERPOLATION entre la racine (▶) et 🕰['◀'] des groupes listés : '⚖️' (masses → 📜🔀⚖️), '📅' (graine
     // 🌡️🧮), '📜' (voile 🔺🍰⚽). Sans ◀, la cible est la racine de l'époque suivante (masses seulement).
     H['🔀⚖️'] = {};
@@ -147,17 +135,10 @@ function getEpochDateConfig() {
             }
             interpolEnd = { '⚖️': endMasses };
         }
-        // bary ∈ [0,1] : par la date (🏔, baryFromDate) ou par les tics (📿💫 + 📿☄️) / nombre de tics de l'époque.
-        const span = Math.abs(EPOCH['▶'] - EPOCH['◀']);
-        let bary;
-        if (W.baryFromDate === true) {
-            bary = (isForwardTime ? dateYears - EPOCH['▶'] : EPOCH['▶'] - dateYears) / span;
-        } else {
-            const ticsOverSpan = (span / 1e6) / W.order[0]['🔺⏳'];   // pas du 1er clic de la séquence
-            const maxTics = ticsOverSpan > 1 ? Math.max(2, Math.floor(ticsOverSpan)) : 1;
-            bary = (H['📿💫'] + H['📿☄️']) / maxTics;
-        }
-        bary = Math.max(0, Math.min(1, bary));
+        // bary ∈ [0,1] = temps écoulé / durée de l'époque, depuis 📜⏳ (la seule horloge). Avant 2026-10-14, hors 🏔, un
+        // compte de tics / floor(durée / 1er pas) : 🪸 (3 × 600 Ma pour 1 780) atteignait les masses de ☃ au 2ᵉ clic, 580 Ma
+        // trop tôt, sous un Soleil plus faible ; 🦣 et 1b de même.
+        const bary = Math.min(1, deltaYearsFromTics / Math.abs(EPOCH['▶'] - EPOCH['◀']));
         H['bary'] = bary;
         for (const groupKey of interpolKeys) {
             const endObj = interpolEnd[groupKey];
@@ -194,8 +175,8 @@ function goughLuminosity(t_ago_years) {
 //Calcule les valeurs du soleil depuis la date courante via Gough (1981)
 function getSoleil() {
     const DATA = window.DATA;
-    // Date courante (posée par getEpochDateConfig dans 📜). 🔒 Luminosité exacte via Gough.
-    const P_watts = goughLuminosity(DATA['📜']['📅']);
+    // Date courante (CLICS.date, depuis 📜⏳). 🔒 Luminosité exacte via Gough.
+    const P_watts = goughLuminosity(window.CLICS.date());
     DATA['☀️']['🔋☀️'] = P_watts;
     DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;

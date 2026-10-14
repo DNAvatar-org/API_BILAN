@@ -117,6 +117,11 @@
         }
     }
 
+    // Calottes : posées par CLICS.frise depuis la config de l'époque (physics/calottes.js). null d'ici là : un calcul lancé
+    // sans clic frise crashe à la lecture au lieu de partir d'un état inventé.
+    DATA['🗻']['🍰🗻🧊'] = null;
+    DATA['🗻']['🧮🍰🗻🧊'] = null;   // posé par calculateAlbedo à chaque pas
+
     // DATA['🎚️'] = deep clone de DEFAULT.TUNING (source live de la physique).
     // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).
     DATA['🎚️'] = JSON.parse(JSON.stringify(window.DEFAULT.TUNING));

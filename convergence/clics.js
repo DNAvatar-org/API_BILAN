@@ -9,9 +9,10 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.3.1
+// Version 1.3.2
+// - v1.3.2: frise = calottes de la config de l'époque (CALOTTES.depuisConfig) ; CLICS.date() remplace la copie 📜📅.
 // - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
-// Date: 2026-10-12
+// Date: 2026-10-14
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -105,6 +106,13 @@ window.CLICS = (function () {
             return W.order[window.DATA['📜']['📿🕰']]['🔺⏳'];
         },
 
+        /** Date courante [an] de l'époque, tirée de la seule horloge 📜⏳ : ▶ − ⏳ (géologique, âge) ou ▶ + ⏳ (calendaire).
+         *  Plus de copie 📜📅 : posée par getEpochDateConfig, elle restait périmée entre un clic frise et le calcul. */
+        date: function () {
+            const EP = epoque(), dt = window.DATA['📜']['⏳'] * 1e6;
+            return EP['▶'] < EP['◀'] ? EP['▶'] + dt : EP['▶'] - dt;
+        },
+
         /** Durée de l'époque courante (Ma). */
         duree: function () {
             const EP = epoque();
@@ -113,7 +121,8 @@ window.CLICS = (function () {
 
         /** Clic sur la frise : on (re)part de l'époque, sa graine, sans rien hériter (voile, eau des météorites,
          *  ni l'état de l'intérieur : 🌡️🌕 = 0 → INTERIEUR.avancer repart de la condition initiale de la config et
-         *  intègre jusqu'à la date de l'époque, au lieu de prolonger l'histoire des clics précédents). */
+         *  intègre jusqu'à la date de l'époque, au lieu de prolonger l'histoire des clics précédents ; ni les calottes :
+         *  celles de la config de l'époque, datées de ▶). */
         frise: function (epochId) {
             const H = window.DATA['📜'];
             poserEpoque(H, epochId);
@@ -122,6 +131,7 @@ window.CLICS = (function () {
             H['🔺⚖️💧'] = 0;
             H['_veilTimelinePulseActive'] = false;
             window.DATA['🌕']['🌡️🌕'] = 0;
+            window.CALOTTES.depuisConfig(window.DATA);
         },
 
         /** Passage à l'époque suivante au fil des clics : l'état (T°, glace, voile) est conservé. */

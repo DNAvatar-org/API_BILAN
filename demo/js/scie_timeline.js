@@ -166,11 +166,8 @@ function updateTimelineDisplay() {
         epochNameEl.textContent = EPOCH_NAME_MAP[eId] || eId || '';
     }
 
-    // Date courante — source unique : DATA['📜']['📅'] (mis à jour par getEpochDateConfig)
-    // Fallback sur EPOCH['▶'] si 📅 pas encore calculé (avant premier getEpochDateConfig)
-    const dateYears = (DATA['📜'] && DATA['📜']['📅'] != null)
-        ? DATA['📜']['📅']
-        : (EPOCH['▶'] != null ? EPOCH['▶'] : null);
+    // Date courante : CLICS.date() (depuis 📜⏳, la seule horloge)
+    const dateYears = window.CLICS.date();
     if (infoTimeDisplay) {
         if (dateYears != null) {
             if (isForward) {
