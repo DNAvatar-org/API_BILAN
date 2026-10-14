@@ -50,7 +50,7 @@
         // v-2026-10-13 (soir) : jauges séparées (fine_tuning_bounds v1.6.x). Avec la spectroscopie complétée (raies de la
         // fenêtre, CO₂ 850–2500 cm⁻¹, CIA mesurée) : FROID 45 → 📱 15,8 / 🚂 14,7 ; FROID 55 → 📱 14,2 / 🚂 12,8.
         // FROID 50 entre les deux (attendu ≈ 📱 15,0 / 🚂 13,7).
-        baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70, HYSTERESIS: 100 },
+        baryByGroup: { FROID: 45, CHAUD: 45, SUBTIL: 70, HYSTERESIS: 70 },   // 2026-10-14 : 📱 2000 à 14,5 °C (essai utilisateur)
 
         // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
