@@ -4,7 +4,7 @@ Les époques `hysteresis …` (☃ 1a, 🌦 1b, ⛈ 1c, 🐧 2) et les snowballs
 CO₂ (et CH₄) est posé là où le climat bascule. Ce n'est pas une valeur à reproduire, c'est un seuil mesuré —
 à remesurer après **tout** changement de physique.
 
-## Le script : `CO2/scripts/bench_headless/seuils_hysteresis.js` (v2.0.0, 2026-10-14)
+## Le script : `CO2/scripts/bench_headless/seuils_hysteresis.js` (v2.1.0, 2026-10-14)
 
 Pas une page visible : un script du banc headless (Chrome sans interface), lancé depuis la racine du dépôt CO2 :
 
@@ -17,7 +17,7 @@ Pour n'en mesurer que certaines, préfixer le script de `window.__FRONTIERES__=[
 - **CO₂ et CH₄ ensemble** dans leurs fourchettes de la littérature (`window.BENCH_LIT_BY_EPOCH_ID`, en tête de
   `configTimeline.js`) : x = min + s (max − min), s ∈ [0, 1], ppm d'air sec, masses calculées avec le N₂ et l'O₂ de l'époque.
 - **Frise = clic** : l'état attendu doit tenir au CLIC FRISE sur l'époque ET à l'arrivée par la CHAÎNE DE CLICS
-  (frise 🪸 puis tous les clics, T° et glace conservées). La frise (un calcul) est testée d'abord.
+  (frise ⚫ puis tous les clics, T° et glace conservées — la chaîne du bench tictime). La frise (un calcul) est testée d'abord.
 - **Borné** : s reste dans [0, 1], on n'extrapole pas hors des fourchettes. Les deux bouts sont mesurés d'abord ; même
   verdict aux deux → « pas de frontière dans les fourchettes », config non touchée. Sinon 12 bisections (1/4096 de la
   fourchette) et une revérification.
@@ -44,16 +44,22 @@ dichotomie » ; encadré « ÉPOQUES D'HYSTÉRÉSIS » de `configTimeline.js`.
 - **Durée.** Chaque essai = 1 calcul (frise) + la chaîne depuis 🪸 (jusqu'à ~13 calculs pour F4) : compter ~15 essais par
   frontière. Un seul banc à la fois (ports fixes).
 
-## État au 2026-10-14
+## État au 2026-10-14 (soir) — script v2.1, chaîne depuis ⚫, pas de recherche ≤ 20 K
 
 | frontière | résultat | détail |
 |---|---|---|
-| F1 ☃ = ⛄ | **1 267,9 ppm CO₂ / 30,48 ppm CH₄** | frise ☃ 7,16 °C, chaîne 7,09 °C ; 🗻 → ⛄ −76,4 °C ; après 💫 −76,8 °C |
-| F2 1b | **pas de frontière dans [2 000 ; 10 000] / [10 ; 100]** | chaîne depuis ⛄ : 1b reste englacé (−21,6 °C à s = 0 ; −18,0 °C, glace 0,72 à s = 1). La frise, elle, est chaude (11,4 / 20,4 °C) : frise ≠ clic |
-| F3 🏂 | **gelé partout dans [300 ; 1 500] / [0,1 ; 10]** | −81,2 / −79,6 °C, frise et chaîne — mais la chaîne passe par un 1b resté gelé : F3 n'a de sens qu'une fois F2 franchie |
-| F4 1c | **pas de frontière dans [2 000 ; 10 000] / [10 ; 100]** | chaîne depuis 🏂 : 1c reste englacé (−21,4 °C ; −17,8 °C, glace 0,71) ; frise chaude (11,5 / 20,5 °C) |
+| F1 ☃ = ⛄ | **1 267,9 ppm CO₂ / 30,48 ppm CH₄** | frise ☃ 7,16 °C, chaîne 7,09 °C ; 🗻 → ⛄ −76,4 °C ; après 💫 −76,8 °C (mesurée depuis 🪸 ; la chaîne depuis ⚫ arrive à 7,54 °C) |
+| F2 1b | **97 583 ppm CO₂ / 97,58 ppm CH₄** | 1b sort (frise 36,7 °C, chaîne 36,8 °C) ; 97 561 ppm → reste englacé (−7,4 °C, glace 0,26) |
+| F3 🏂 | **gelé dans toute [300 ; 1 500] / [0,1 ; 10]** | pas de frontière dans la fourchette (non sourcée) ; config 2 556,7 ppm hors fourchette, gèle aussi |
+| F4 1c | **95 649 ppm CO₂ / 95,65 ppm CH₄** | 1c sort (frise 37,1 °C, chaîne 36,7 °C), 🪼 chaud ; 95 627 ppm → reste englacé (−7,1 °C) |
 
-Conclusion : avec la physique actuelle, aucune sortie de snowball n'a lieu sous 10 000 ppm (1 % d'air sec) et 100 ppm de
-CH₄. Les fourchettes de 1b / 1c (🔀 « repère, pas une cible », non sourcées) sont à confronter à la littérature de la
-déglaciation (seuil de sortie de l'ordre de 0,1 bar chez Pierrehumbert 2005, abaissé par la poussière sur la glace) avant
-de chercher F2 et F4 plus haut.
+Fourchette de CO₂ de 1b / 1c : **[10 000 ; 100 000] ppm**, sourcée (Hoffman et al. 2017 : 0,01–0,1 en fraction de volume à la
+sortie, selon l'albédo de la glace tropicale ; ~10² PAL à la sortie Marinoenne, Bao et al. 2008). L'ancienne [2 000 ; 10 000] n'était
+pas sourcée, et aucune sortie n'y existait.
+
+Deux changements ont rendu ces mesures possibles :
+- **pas de recherche ≤ 20 K** (`CONFIG_COMPUTE.maxSearchStepK`, était 140–200 K) : une planète qui refroidit s'arrête au PREMIER
+  équilibre rencontré ; avec 140 K, l'arrivée de 🔥 (175 °C) dans 🦠 sautait la branche chaude et gelait toute la chaîne ;
+- **chaîne depuis ⚫** (et non 🪸) : à 0,02 % près, l'état transporté compte ; depuis 🪸, F2 tenait à 97 539 ppm et pas dans le bench.
+
+⚠️ Les frontières sont à 0,02 % de la bascule : toute modification de physique ou de config en amont (jusqu'à ⚫) peut les déplacer.

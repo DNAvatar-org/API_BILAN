@@ -328,7 +328,7 @@ let dernierPointRecherche = null;
  * 4σT_s³ était celle d'une surface nue. Sous une atmosphère épaisse la vraie pente
  * d'OLR est bien plus faible que 4σT³ (sous une atmosphère de vapeur, ~80 W/m²/K contre 3 500 à 2 500 K) : le pas
  * corps noir y fait des pas de 4 à 20 K et n'atteint pas l'équilibre en 101 itérations.
- * Cap max : CONFIG_COMPUTE.maxSearchStepK. Si |Δ| > largeDeltaFactor×tol : maxSearchStepLargeK.
+ * Cap max : CONFIG_COMPUTE.maxSearchStepK (20 K : ne pas sauter la fenêtre d'une branche chaude, voir la config).
  */
 function computeSearchIncrement() {
     const DATA = window.DATA;
@@ -350,10 +350,7 @@ function computeSearchIncrement() {
     if (Number.isNaN(res)) {
         throw new Error('[computeSearchIncrement] ΔT=Δ/(4σT³) indéterminé (T=' + T + ' Δ=' + dFlux + ' 4σT³=' + sigmaT3 + ')');
     }
-    const cap = Math.min(CONFIG_COMPUTE.maxSearchStepLargeK,
-        (Math.abs(dFlux) > CONFIG_COMPUTE.largeDeltaFactor * DATA['🧮']['🧲🔬'])
-            ? CONFIG_COMPUTE.maxSearchStepLargeK
-            : CONFIG_COMPUTE.maxSearchStepK);
+    const cap = CONFIG_COMPUTE.maxSearchStepK;
     if (Math.abs(res) > cap) res = Math.sign(res) * cap;
     return res;
 }

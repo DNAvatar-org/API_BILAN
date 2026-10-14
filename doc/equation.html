@@ -61,7 +61,7 @@ Logs:
     <div class="eq N" id="eq-tolerance-recherche-racine">
         <div class="titre"><span class="cl N">N</span> Tolérance et recherche de la racine</div>
         <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ 0{,}1\ \text{W/m}^2\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>
-        <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 140–200 K, ≤ 101 itérations.</p>
+        <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 20 K (ne pas sauter la fenêtre d’une branche chaude : la planète s’arrête au premier équilibre rencontré), ≤ 101 itérations.</p>
         <p class="code">calculations_flux.js → computeToleranceWm2, computeSearchIncrement ; configTimeline.js → CONFIG_COMPUTE [SOLVER]</p>
     </div>
 </div>

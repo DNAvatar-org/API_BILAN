@@ -48,7 +48,8 @@
     <a href="#sec-bench">Fourchettes du banc</a> ·
     <a href="#sec-water-rt">Eau &amp; transfert radiatif</a> ·
     <a href="#sec-composition-2026-10-13">Composition, nuages froids, bilan méridien</a> ·
-    <a href="#sec-calottes-cryogenien-2026-10-14">Calottes, Cryogénien</a>
+    <a href="#sec-calottes-cryogenien-2026-10-14">Calottes, Cryogénien</a> ·
+    <a href="#sec-archive">Archive</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -102,14 +103,6 @@
     <div class="used-in">Pair avec <a href="#budyko1969">[budyko1969]</a> — socle EBM 0D.</div>
 </article>
 
-<article class="ref" id="hollandBitz2003" data-tags="polar-amp gcm">
-    <div class="cite-key">[hollandBitz2003]</div>
-    <div class="authors">Holland, M. M. &amp; Bitz, C. M.</div>
-    <div class="title">Polar amplification of climate change in coupled models</div>
-    <div class="venue">Climate Dynamics, 21:221–232 (2003)</div>
-    <div class="doi"><a href="https://doi.org/10.1007/s00382-003-0332-6">10.1007/s00382-003-0332-6</a></div>
-    <div class="used-in">Justification plage ΔT_pôle 1.4–4.5 K/K dans <code>calculations_albedo.js</code></div>
-</article>
 
 <article class="ref" id="ipccAR6WG1" data-tags="polar-amp arctic-amp review">
     <div class="cite-key">[ipccAR6WG1]</div>
@@ -195,7 +188,7 @@
     <div class="title">An accurate parameterization of the radiative properties of water clouds suitable for use in climate models</div>
     <div class="venue">Journal of Climate, 6(4):728–742 (1993)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0442(1993)006%3C0728:AAPOTR%3E2.0.CO;2">10.1175/1520-0442(1993)006&lt;0728:AAPOTR&gt;2.0.CO;2</a></div>
-    <div class="used-in"><code>calculations_albedo.js</code> — f_liq sur [−40, 0] °C (remplace temp_factor arbitraire).</div>
+    <div class="used-in">Partition liquide / glace linéaire entre −40 °C et 0 °C : <code>API_BILAN/physics/physics.js</code> (T_TOUT_GLACE, T_TOUT_LIQUIDE), lue par <code>calculations_albedo.js</code> (f_liq).</div>
 </article>
 
 <article class="ref" id="twomey1977" data-tags="ccn indirect-aerosol twomey">
@@ -290,14 +283,6 @@
     <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Fonde la modulation de l'albédo glace par la <strong>fraction couverte</strong> dans <code>calculations_albedo.js</code> : neige polaire propre (~0.85) tant que f ≤ 0.5, puis rampe vers 0.60 quand f→1 (glace nue tropicale, ligne de glace < 30° ⇔ f > 0.5) [<code>seuil F_BARE_ONSET</code>]. Bifurcation continue. Aussi : eau précipitable subtropicale ~0,7 kg/m² en Snowball dur (GCM) — cité dans la fourchette h2oVap de ⛄ (<code>BENCH_LIT_BY_EPOCH_ID</code>) comme limite de la vapeur calculée à T moyenne.</div>
 </article>
 
-<article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
-    <div class="cite-key">[voigtAbbot2012]</div>
-    <div class="authors">Voigt, A. &amp; Abbot, D. S.</div>
-    <div class="title">Sea-ice dynamics strongly promote Snowball Earth initiation and destabilize tropical sea-ice margins</div>
-    <div class="venue">Climate of the Past, 8:2079–2092 (2012)</div>
-    <div class="doi"><a href="https://doi.org/10.5194/cp-8-2079-2012">10.5194/cp-8-2079-2012</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/config/configTimeline.js</code> — la dynamique de la banquise déstabilise la marge tropicale, argument derrière le calage de la bascule ⛄.</div>
-</article>
 
 <article class="ref" id="li2008" data-tags="paleogeography rodinia">
     <div class="cite-key">[li2008]</div>
@@ -314,7 +299,7 @@
     <div class="title">High levels of atmospheric carbon dioxide necessary for the termination of global glaciation</div>
     <div class="venue">Nature, 429:646–649 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature02640">10.1038/nature02640</a></div>
-    <div class="used-in">Seuil déglaciation ×100-1000 vs baseline (hard snowball problem). Commentaire tête <code>scie_hysteresis_search.js</code>.</div>
+    <div class="used-in">Seuil déglaciation ×100-1000 vs baseline (hard snowball problem). Contrôle des sorties de snowball F2 / F4 (<code>CO2/scripts/bench_headless/seuils_hysteresis.js</code>, <code>doc/HYSTERESIS_FRONTIERES.md</code>) : le modèle ne sort pas sous 10 000 ppm.</div>
 </article>
 
 <article class="ref" id="huYangDingPeltier2011" data-tags="snowball deglaciation co2-threshold CIA pressure-broadening radiative">
@@ -380,14 +365,6 @@
     <div class="used-in">Seuil snowball GCM ECHAM5 ~100-120 ppm (S/S₀ moderne). Fourchette réf. pour hystérésis 1a.</div>
 </article>
 
-<article class="ref" id="yangPeltierHu2012" data-tags="snowball gcm co2-threshold sturtian">
-    <div class="cite-key">[yangPeltierHu2012]</div>
-    <div class="authors">Yang, J., Peltier, W. R. &amp; Hu, Y.</div>
-    <div class="title">The Initiation of Modern "Soft Snowball" and "Hard Snowball" Climates in CCSM3. Part I &amp; II</div>
-    <div class="venue">Journal of Climate, 25:2711–2736 et 2737–2754 (2012)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00189.1">10.1175/JCLI-D-11-00189.1</a></div>
-    <div class="used-in">Seuil snowball GCM CCSM3 ~70-100 ppm (paléogéo Néoprotérozoïque).</div>
-</article>
 
 <article class="ref" id="hornerSnowball2022" data-tags="snowball gcm paleogeography">
     <div class="cite-key">[hornerSnowball2022]</div>
@@ -434,22 +411,7 @@
     <div class="used-in">Franklin LIP 717 Ma + altération basalte tropical → pompe CO₂ Sturtien.</div>
 </article>
 
-<article class="ref" id="leHir2010" data-tags="snowball recovery weathering">
-    <div class="cite-key">[leHir2010]</div>
-    <div class="authors">Le Hir, G., Donnadieu, Y., Goddéris, Y., Pierrehumbert, R. T., Halverson, G. P., <em>et al.</em></div>
-    <div class="title">The snowball Earth aftermath: Exploring the limits of continental weathering processes</div>
-    <div class="venue">Earth and Planetary Science Letters, 277:453–463 (2010)</div>
-    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
-    <div class="used-in">Récupération post-snowball : altération fournit CO₂ sink, durée transition.</div>
-</article>
 
-<article class="ref" id="catlingKasting2017" data-tags="textbook atmospheric-evolution">
-    <div class="cite-key">[catlingKasting2017]</div>
-    <div class="authors">Catling, D. C. &amp; Kasting, J. F.</div>
-    <div class="title">Atmospheric Evolution on Inhabited and Lifeless Worlds</div>
-    <div class="venue">Cambridge University Press (2017), ISBN 978-0521844123</div>
-    <div class="used-in">Outgassing volcanique Protérozoïque ~6e12 mol CO₂/an (ref. moderne). CH₄ post-GOE.</div>
-</article>
 
 <article class="ref" id="lyons2014" data-tags="oxygen history goe neoproterozoic">
     <div class="cite-key">[lyons2014]</div>
@@ -535,14 +497,6 @@
     <div class="used-in">Voir <a href="#bernerKothavala2001">entrée complète §7</a> : altération silicatée accélérée par la végétation terrestre (forêts Dévonien/Carbonifère) → couplage <code>EPOCH['🌱']</code> ↔ <code>EPOCH['🌊🏭']</code> entre <code>calculations_albedo.js</code> et <code>calculations_co2.js</code>.</div>
 </article>
 
-<article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
-    <div class="cite-key">[beerling2007]</div>
-    <div class="authors">Beerling, D. J.</div>
-    <div class="title">The Emerald Planet: How plants changed Earth's history</div>
-    <div class="venue">Oxford University Press (2007)</div>
-    <div class="doi">ISBN 978-0-19-280602-4</div>
-    <div class="used-in"><code>configTimeline.js</code> (<code>'🌱'</code> par époque).</div>
-</article>
 
 <article class="ref" id="charlson1987" data-tags="claw dms ccn marine biosphere aerosol">
     <div class="cite-key">[charlson1987]</div>
@@ -571,14 +525,6 @@
     <div class="used-in">Critique d'amplitude de CLAW (justifie <em>gate</em> et non multiplicateur dominant). <code>calculations_albedo.js</code>.</div>
 </article>
 
-<article class="ref" id="kloster2006" data-tags="dms model ccn earth-system-model">
-    <div class="cite-key">[kloster2006]</div>
-    <div class="authors">Kloster, S., Feichter, J., Maier-Reimer, E., Six, K. D., Stier, P. &amp; Wetzel, P.</div>
-    <div class="title">DMS cycle in the marine ocean-atmosphere system — a global model study</div>
-    <div class="venue">Biogeosciences, 3(1):29–51 (2006)</div>
-    <div class="doi"><a href="https://doi.org/10.5194/bg-3-29-2006">10.5194/bg-3-29-2006</a></div>
-    <div class="used-in">Modèle couplé DMS océan-atmo ; justification flux ppt paléo (ordre grandeur <code>'🧫'</code>).</div>
-</article>
 
 <article class="ref" id="woodhouse2010" data-tags="dms sensitivity ccn model">
     <div class="cite-key">[woodhouse2010]</div>
@@ -607,23 +553,7 @@
     <div class="used-in">Justification <code>'🧫' ≈ 0.05</code> pour 🦠 Archéen et ⛄ Snowball (procaryotes dominants, eucaryotes marginaux).</div>
 </article>
 
-<article class="ref" id="knollFollows2016" data-tags="plankton paleo marine biogeochemistry">
-    <div class="cite-key">[knollFollows2016]</div>
-    <div class="authors">Knoll, A. H. &amp; Follows, M. J.</div>
-    <div class="title">A bottom-up perspective on ecosystem change in Mesozoic oceans</div>
-    <div class="venue">Proc. R. Soc. B, 283:20161755 (2016)</div>
-    <div class="doi"><a href="https://doi.org/10.1098/rspb.2016.1755">10.1098/rspb.2016.1755</a></div>
-    <div class="used-in">Transition Méso→Cénozoïque du phytoplancton → plateau <code>'🧫' = 1.0</code> après 🦕.</div>
-</article>
 
-<article class="ref" id="vallinaSimo2007" data-tags="dms ccn solar-radiation marine">
-    <div class="cite-key">[vallinaSimo2007]</div>
-    <div class="authors">Vallina, S. M. &amp; Simó, R.</div>
-    <div class="title">Strong relationship between DMS and the solar radiation dose over the global surface ocean</div>
-    <div class="venue">Science, 315(5811):506–508 (2007)</div>
-    <div class="doi"><a href="https://doi.org/10.1126/science.1133680">10.1126/science.1133680</a></div>
-    <div class="used-in">Corrélation DMS ↔ dose UV (argument pour couplage climatique CLAW actif à latitudes tropicales).</div>
-</article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-co2">7. Cycle CO₂ &amp; partition océan/atmosphère</h2>
@@ -637,14 +567,6 @@
     <div class="used-in"><code>configTimeline.js</code> EPOCH['🌊🏭'] : 🍄 Carbonifère = 1.3 (forêts Dévonien/Carbonifère → altération silicate accélérée). Voir aussi 💀 P/T. Cf. <code>calculations_co2.js</code> (facteur pompe Urey par époque).</div>
 </article>
 
-<article class="ref" id="bernerLasagaGarrels1983" data-tags="co2 carbon-cycle weathering blag long-term">
-    <div class="cite-key">[bernerLasagaGarrels1983]</div>
-    <div class="authors">Berner, R. A., Lasaga, A. C. &amp; Garrels, R. M.</div>
-    <div class="title">The carbonate-silicate geochemical cycle and its effect on atmospheric carbon dioxide over the past 100 million years</div>
-    <div class="venue">American Journal of Science, 283(7):641–683 (1983)</div>
-    <div class="doi"><a href="https://doi.org/10.2475/ajs.283.7.641">10.2475/ajs.283.7.641</a></div>
-    <div class="used-in">Modèle BLAG fondateur du couplage silicate-carbonate long terme. Cadre théorique de <code>calculations_co2.js</code> (partition Henry + pompe Urey) et du facteur EPOCH['🌊🏭'] modulé par époque tectonique.</div>
-</article>
 
 <article class="ref" id="carvalhais2014" data-tags="carbon-cycle land residence-time observation">
     <div class="cite-key">[carvalhais2014]</div>
@@ -950,14 +872,6 @@
     <div class="used-in"><code>configTimeline.js</code> EPOCH['🌊🏭'] : 🪼 🦕 🦤 🦣 🛖 🚂 📱 = 1.0 (cycle d'Urey stable Phanérozoïque-moderne, référence Henry). Cf. <code>calculations_co2.js</code> (rétroaction négative silicate-carbonate ↔ T_surface).</div>
 </article>
 
-<article class="ref" id="zeebeWolfGladrow2001" data-tags="co2 ocean henry carbonate">
-    <div class="cite-key">[zeebeWolfGladrow2001]</div>
-    <div class="authors">Zeebe, R. E. &amp; Wolf-Gladrow, D.</div>
-    <div class="title">CO₂ in Seawater: Equilibrium, Kinetics, Isotopes</div>
-    <div class="venue">Elsevier Oceanography Series, vol. 65 (2001)</div>
-    <div class="doi">ISBN 9780444509468</div>
-    <div class="used-in"><code>model_tuning_biblio.js</code> (HYST_CO2_OCEAN_EFF).</div>
-</article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-orbital">8. Paramètres orbitaux (obliquité, Milankovitch)</h2>
@@ -1153,31 +1067,23 @@
     <div class="used-in">Vapeur de colonne ≈ +7 %/K (Clausius-Clapeyron à RH constante, confirmé par satellite) : justifie de CALCULER les fourchettes h2oVap par C-C faute de mesure paléo <code>API_BILAN/config/configTimeline.js</code>.</div>
 </article>
 
-<article class="ref" id="murphyKoop2005" data-tags="saturation-vapor-pressure ice liquid">
+<article class="ref" id="murphyKoop2005" data-tags="saturation-vapor-pressure ice liquid supercooled">
     <div class="cite-key">[murphyKoop2005]</div>
     <div class="authors">Murphy, D. M. &amp; Koop, T.</div>
     <div class="title">Review of the vapour pressures of ice and supercooled water for atmospheric applications</div>
     <div class="venue">Quarterly Journal of the Royal Meteorological Society, 131:1539–1565 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1256/qj.04.94">10.1256/qj.04.94</a></div>
-    <div class="used-in">e_sat sur eau liquide (éq. 10) et sur glace (éq. 7) : fourchettes h2oVap <code>API_BILAN/config/configTimeline.js</code> ; ⛄ : ≤ 0,004 % même à saturation à −50 °C.</div>
+    <div class="used-in">e_sat sur eau liquide (éq. 10), surfondue comprise (<code>PHYS.pSatLiquide</code> : l’humidité relative des radiosondes de Manabe &amp; Wetherald est définie par rapport au liquide), et sur glace (éq. 7) ; fourchettes h2oVap de <code>API_BILAN/config/configTimeline.js</code> (⛄ : ≤ 0,004 % même à saturation à −50 °C).</div>
 </article>
 
-<article class="ref" id="picard2008" data-tags="air-composition molar-mass metrology">
-    <div class="cite-key">[picard2008]</div>
-    <div class="authors">Picard, A., Davis, R. S., Gläser, M. &amp; Fujii, K.</div>
-    <div class="title">Revised formula for the density of moist air (CIPM-2007)</div>
-    <div class="venue">Metrologia, 45(2):149–155 (2008)</div>
-    <div class="doi"><a href="https://doi.org/10.1088/0026-1394/45/2/004">10.1088/0026-1394/45/2/004</a></div>
-    <div class="used-in">Servait à <code>CLOUD_SW.MODERN_REF_O2</code> (0,23132 kg/kg), retirée le 2026-10-13 avec le « proxy CCN » O₂ × biomasse (l'O₂ n'est pas un noyau de condensation). Plus lue par le moteur.</div>
-</article>
 
-<article class="ref" id="decontoPollard2003" data-tags="eocene-oligocene antarctic-ice-sheet co2-threshold hysteresis">
+<article class="ref" id="decontoPollard2003" data-tags="eocene-oligocene antarctic-ice-sheet co2-threshold hysteresis ice-sheet">
     <div class="cite-key">[decontoPollard2003]</div>
     <div class="authors">DeConto, R. M. &amp; Pollard, D.</div>
     <div class="title">Rapid Cenozoic glaciation of Antarctica induced by declining atmospheric CO₂</div>
     <div class="venue">Nature, 421:245–249 (2003)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature01290">10.1038/nature01290</a></div>
-    <div class="used-in">Encadré « ÉPOQUES D'HYSTÉRÉSIS » (<code>API_BILAN/config/configTimeline.js</code>) : la bascule Oi-1 (hysteresis 2 → 🏔) est une bascule de CALOTTE continentale, seuil ~2,8 × CO₂ préindustriel — mécanisme absent du modèle, d'où l'absence de bascule mesurée.</div>
+    <div class="used-in">Naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel (bascule Oi-1, hysteresis 2 → 🏔) : CONTRÔLE des calottes de <code>API_BILAN/physics/calottes.js</code> (depuis 2026-10-14, état porté au clic time ; encadré « ÉPOQUES D'HYSTÉRÉSIS » de <code>configTimeline.js</code>).</div>
 </article>
 <article class="ref" id="wilde2001" data-tags="hadean zircon liquid-water">
     <div class="cite-key">[wilde2001]</div>
@@ -1326,13 +1232,6 @@
     <div class="doi"><a href="https://doi.org/10.1016/j.jqsrt.2016.03.005">10.1016/j.jqsrt.2016.03.005</a></div>
     <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹ ajoutés le 2026-10-13.</div>
 </article>
-<article class="ref" id="murphyKoop2005" data-tags="water saturation supercooled">
-    <div class="cite-key">[murphyKoop2005]</div>
-    <div class="authors">Murphy, D. M. &amp; Koop, T.</div>
-    <div class="title">Review of the vapour pressures of ice and supercooled water for atmospheric applications</div>
-    <div class="venue">Q. J. R. Meteorol. Soc., 131:1539–1565 (2005)</div>
-    <div class="used-in">Saturation sur eau liquide surfondue (<code>PHYS.pSatLiquide</code>) : l’humidité relative des radiosondes (Manabe &amp; Wetherald) est définie par rapport au liquide.</div>
-</article>
 <article class="ref" id="kollCronin2018" data-tags="olr water-vapor feedback">
     <div class="cite-key">[kollCronin2018]</div>
     <div class="authors">Koll, D. D. B. &amp; Cronin, T. W.</div>
@@ -1412,13 +1311,6 @@
     <div class="title">Weak average liquid-cloud water response to anthropogenic aerosols</div>
     <div class="venue">Nature, 572:51–55 (2019)</div>
     <div class="used-in">Susceptibilité de l’eau nuageuse au nombre de gouttes ≈ 0 : la profondeur des nuages bas utilise le N actuel, pas celui de l’époque. <code>API_BILAN/radiative/calculations.js</code>.</div>
-</article>
-<article class="ref" id="huStamnes1993" data-tags="clouds phase">
-    <div class="cite-key">[huStamnes1993]</div>
-    <div class="authors">Hu, Y. X. &amp; Stamnes, K.</div>
-    <div class="title">An accurate parameterization of the radiative properties of water clouds suitable for use in climate models</div>
-    <div class="venue">J. Climate, 6:728–742 (1993)</div>
-    <div class="used-in">Partition liquide / glace linéaire entre −40 °C et 0 °C. <code>API_BILAN/physics/physics.js</code> (T_TOUT_GLACE, T_TOUT_LIQUIDE).</div>
 </article>
 <article class="ref" id="manabeWetherald1967" data-tags="water-vapor relative-humidity radiative-convective">
     <div class="cite-key">[manabeWetherald1967]</div>
@@ -1597,14 +1489,6 @@
     <div class="doi"><a href="https://doi.org/10.1029/2004JD005667">10.1029/2004JD005667</a></div>
     <div class="used-in">CONTRÔLE (pas une entrée) : accumulation moyenne de l’Antarctique posé 143 ± 4 kg m⁻² an⁻¹.</div>
 </article>
-<article class="ref" id="decontoPollard2003" data-tags="ice-sheet antarctica eot co2">
-    <div class="cite-key">[decontoPollard2003]</div>
-    <div class="authors">DeConto, R. M. &amp; Pollard, D.</div>
-    <div class="title">Rapid Cenozoic glaciation of Antarctica induced by declining atmospheric CO₂</div>
-    <div class="venue">Nature, 421:245–249 (2003)</div>
-    <div class="doi"><a href="https://doi.org/10.1038/nature01290">10.1038/nature01290</a></div>
-    <div class="used-in">Naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel : CONTRÔLE de la naissance des calottes depuis un état sans glace.</div>
-</article>
 <article class="ref" id="muttoniKent2026" data-tags="paleogeography albedo">
     <div class="cite-key">[muttoniKent2026]</div>
     <div class="authors">Muttoni, G. &amp; Kent, D. V.</div>
@@ -1639,6 +1523,12 @@
     <div class="venue">The Cryosphere, 7:375–393 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.5194/tc-7-375-2013">10.5194/tc-7-375-2013</a></div>
 </article>
+<article class="ref" id="gumsley2017" data-tags="paleoproterozoic glaciation goe geochronology">
+    <div class="cite-key">[gumsley2017]</div>
+    <div class="authors">Gumsley, A. P., Chamberlain, K. R., Bleeker, W., Söderlund, U., de Kock, M. O., Larsson, E. R. &amp; Bekker, A.</div>
+    <div class="title">Timing and tempo of the Great Oxidation Event</div>
+    <div class="venue">PNAS, 114:1811–1816 (2017)</div>
+</article>
 <article class="ref" id="krissansenTotton2018" data-tags="precambrian carbon-cycle temperature">
     <div class="cite-key">[krissansenTotton2018]</div>
     <div class="authors">Krissansen-Totton, J., Arney, G. N. &amp; Catling, D. C.</div>
@@ -1671,6 +1561,107 @@
     <div class="authors">Yang, J., Jansen, M. F., Macdonald, F. A. &amp; Abbot, D. S.</div>
     <div class="title">Persistence of a surface freshwater ocean after a Snowball Earth</div>
     <div class="venue">Geology, 45:615–618 (2017)</div>
+</article>
+
+<!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-archive">15. Archive : plus citées par le code (2026-10-14)</h2>
+<p class="sec-note">Vérifié le 2026-10-14 : ni le code ni la documentation ne les citent plus, ou le mécanisme qu’elles appuyaient a
+    été retiré (plage ΔT du pôle → bilan méridien ; HYST_CO2_OCEAN_EFF ; proxy CCN O₂). Gardées pour mémoire ; leur texte
+    d’usage décrit l’ancien emploi.</p>
+<article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
+    <div class="cite-key">[beerling2007]</div>
+    <div class="authors">Beerling, D. J.</div>
+    <div class="title">The Emerald Planet: How plants changed Earth's history</div>
+    <div class="venue">Oxford University Press (2007)</div>
+    <div class="doi">ISBN 978-0-19-280602-4</div>
+    <div class="used-in"><code>configTimeline.js</code> (<code>'🌱'</code> par époque).</div>
+</article>
+<article class="ref" id="bernerLasagaGarrels1983" data-tags="co2 carbon-cycle weathering blag long-term">
+    <div class="cite-key">[bernerLasagaGarrels1983]</div>
+    <div class="authors">Berner, R. A., Lasaga, A. C. &amp; Garrels, R. M.</div>
+    <div class="title">The carbonate-silicate geochemical cycle and its effect on atmospheric carbon dioxide over the past 100 million years</div>
+    <div class="venue">American Journal of Science, 283(7):641–683 (1983)</div>
+    <div class="doi"><a href="https://doi.org/10.2475/ajs.283.7.641">10.2475/ajs.283.7.641</a></div>
+    <div class="used-in">Modèle BLAG fondateur du couplage silicate-carbonate long terme. Cadre théorique de <code>calculations_co2.js</code> (partition Henry + pompe Urey) et du facteur EPOCH['🌊🏭'] modulé par époque tectonique.</div>
+</article>
+<article class="ref" id="catlingKasting2017" data-tags="textbook atmospheric-evolution">
+    <div class="cite-key">[catlingKasting2017]</div>
+    <div class="authors">Catling, D. C. &amp; Kasting, J. F.</div>
+    <div class="title">Atmospheric Evolution on Inhabited and Lifeless Worlds</div>
+    <div class="venue">Cambridge University Press (2017), ISBN 978-0521844123</div>
+    <div class="used-in">Outgassing volcanique Protérozoïque ~6e12 mol CO₂/an (ref. moderne). CH₄ post-GOE.</div>
+</article>
+<article class="ref" id="hollandBitz2003" data-tags="polar-amp gcm">
+    <div class="cite-key">[hollandBitz2003]</div>
+    <div class="authors">Holland, M. M. &amp; Bitz, C. M.</div>
+    <div class="title">Polar amplification of climate change in coupled models</div>
+    <div class="venue">Climate Dynamics, 21:221–232 (2003)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s00382-003-0332-6">10.1007/s00382-003-0332-6</a></div>
+    <div class="used-in">Justification plage ΔT_pôle 1.4–4.5 K/K dans <code>calculations_albedo.js</code></div>
+</article>
+<article class="ref" id="kloster2006" data-tags="dms model ccn earth-system-model">
+    <div class="cite-key">[kloster2006]</div>
+    <div class="authors">Kloster, S., Feichter, J., Maier-Reimer, E., Six, K. D., Stier, P. &amp; Wetzel, P.</div>
+    <div class="title">DMS cycle in the marine ocean-atmosphere system — a global model study</div>
+    <div class="venue">Biogeosciences, 3(1):29–51 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/bg-3-29-2006">10.5194/bg-3-29-2006</a></div>
+    <div class="used-in">Modèle couplé DMS océan-atmo ; justification flux ppt paléo (ordre grandeur <code>'🧫'</code>).</div>
+</article>
+<article class="ref" id="knollFollows2016" data-tags="plankton paleo marine biogeochemistry">
+    <div class="cite-key">[knollFollows2016]</div>
+    <div class="authors">Knoll, A. H. &amp; Follows, M. J.</div>
+    <div class="title">A bottom-up perspective on ecosystem change in Mesozoic oceans</div>
+    <div class="venue">Proc. R. Soc. B, 283:20161755 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1098/rspb.2016.1755">10.1098/rspb.2016.1755</a></div>
+    <div class="used-in">Transition Méso→Cénozoïque du phytoplancton → plateau <code>'🧫' = 1.0</code> après 🦕.</div>
+</article>
+<article class="ref" id="leHir2010" data-tags="snowball recovery weathering">
+    <div class="cite-key">[leHir2010]</div>
+    <div class="authors">Le Hir, G., Donnadieu, Y., Goddéris, Y., Pierrehumbert, R. T., Halverson, G. P., <em>et al.</em></div>
+    <div class="title">The snowball Earth aftermath: Exploring the limits of continental weathering processes</div>
+    <div class="venue">Earth and Planetary Science Letters, 277:453–463 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
+    <div class="used-in">Récupération post-snowball : altération fournit CO₂ sink, durée transition.</div>
+</article>
+<article class="ref" id="picard2008" data-tags="air-composition molar-mass metrology">
+    <div class="cite-key">[picard2008]</div>
+    <div class="authors">Picard, A., Davis, R. S., Gläser, M. &amp; Fujii, K.</div>
+    <div class="title">Revised formula for the density of moist air (CIPM-2007)</div>
+    <div class="venue">Metrologia, 45(2):149–155 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1088/0026-1394/45/2/004">10.1088/0026-1394/45/2/004</a></div>
+    <div class="used-in">Servait à <code>CLOUD_SW.MODERN_REF_O2</code> (0,23132 kg/kg), retirée le 2026-10-13 avec le « proxy CCN » O₂ × biomasse (l'O₂ n'est pas un noyau de condensation). Plus lue par le moteur.</div>
+</article>
+<article class="ref" id="vallinaSimo2007" data-tags="dms ccn solar-radiation marine">
+    <div class="cite-key">[vallinaSimo2007]</div>
+    <div class="authors">Vallina, S. M. &amp; Simó, R.</div>
+    <div class="title">Strong relationship between DMS and the solar radiation dose over the global surface ocean</div>
+    <div class="venue">Science, 315(5811):506–508 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1133680">10.1126/science.1133680</a></div>
+    <div class="used-in">Corrélation DMS ↔ dose UV (argument pour couplage climatique CLAW actif à latitudes tropicales).</div>
+</article>
+<article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
+    <div class="cite-key">[voigtAbbot2012]</div>
+    <div class="authors">Voigt, A. &amp; Abbot, D. S.</div>
+    <div class="title">Sea-ice dynamics strongly promote Snowball Earth initiation and destabilize tropical sea-ice margins</div>
+    <div class="venue">Climate of the Past, 8:2079–2092 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-8-2079-2012">10.5194/cp-8-2079-2012</a></div>
+    <div class="used-in">Utilisée dans : <code>API_BILAN/config/configTimeline.js</code> — la dynamique de la banquise déstabilise la marge tropicale, argument derrière le calage de la bascule ⛄.</div>
+</article>
+<article class="ref" id="yangPeltierHu2012" data-tags="snowball gcm co2-threshold sturtian">
+    <div class="cite-key">[yangPeltierHu2012]</div>
+    <div class="authors">Yang, J., Peltier, W. R. &amp; Hu, Y.</div>
+    <div class="title">The Initiation of Modern "Soft Snowball" and "Hard Snowball" Climates in CCSM3. Part I &amp; II</div>
+    <div class="venue">Journal of Climate, 25:2711–2736 et 2737–2754 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00189.1">10.1175/JCLI-D-11-00189.1</a></div>
+    <div class="used-in">Seuil snowball GCM CCSM3 ~70-100 ppm (paléogéo Néoprotérozoïque).</div>
+</article>
+<article class="ref" id="zeebeWolfGladrow2001" data-tags="co2 ocean henry carbonate">
+    <div class="cite-key">[zeebeWolfGladrow2001]</div>
+    <div class="authors">Zeebe, R. E. &amp; Wolf-Gladrow, D.</div>
+    <div class="title">CO₂ in Seawater: Equilibrium, Kinetics, Isotopes</div>
+    <div class="venue">Elsevier Oceanography Series, vol. 65 (2001)</div>
+    <div class="doi">ISBN 9780444509468</div>
+    <div class="used-in"><code>model_tuning_biblio.js</code> (HYST_CO2_OCEAN_EFF).</div>
 </article>
 
 <script src="js/bibliographie.js"></script>

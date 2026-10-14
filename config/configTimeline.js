@@ -786,7 +786,7 @@ const timeline = [
         //                                   10 867,7 ppm air sec → −8,0 °C (glace 27 %, coincé)
         //                                   10 870,5 ppm air sec → +29,5 °C (glace 0)
         // 3 ppm, 37 °C : on se pose sur le PREMIER CO₂ qui sort. À REMESURER si la physique change.
-        '⚖️🏭': 6.3398e+16, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.3429e16 // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 10 262,5 ppm → +29,5 °C (glace 0) ; 10 259,9 ppm → −8,0 °C (glace 27 %). PREMIER CO₂ qui sort du Sturtien. (était 8,8425e16)
+        '⚖️🏭': 6.611924e+17, // v-2026-10-14 : FRONTIÈRE F2 (seuils_hysteresis.js v2.1, chaîne depuis ⚫, frise = clic, CO₂ et CH₄ ensemble dans [10 000 ; 100 000] / [10 ; 100] ppm) : 97 583 ppm → 1b sort (frise 36,7 °C, chaîne 36,8 °C) ; 97 561 ppm → reste englacé (−7,4 °C). Avant 6,3398e16 (10 263 ppm, ne sortait plus)
         //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
         '🌫️❄️': 0.48,
         // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
@@ -799,7 +799,7 @@ const timeline = [
         // physique). On plafonne au MINIMUM d'OLR ; le levier CO₂ y est de toute façon épuisé, la fin de la
         // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
         '⚖️🏭🔝': 1.31e18,
-        '⚖️🐄': 1.2379e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.629e14 // v-2026-09-23 (était 4.5e13) : CH₄ ≈ 55 ppm air sec = milieu de [10,100]
+        '⚖️🐄': 2.409799e+14, // v-2026-10-14 : 97,58 ppm, avec la frontière F2 (CO₂ ci-dessus). Avant 1,2379e14
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -941,7 +941,7 @@ const timeline = [
         //                                   10 867,7 ppm air sec → −8,0 °C (glace 27 %, coincé)
         //                                   10 870,5 ppm air sec → +29,5 °C (glace 0)
         // 3 ppm, 37 °C : on se pose sur le PREMIER CO₂ qui sort. À REMESURER si la physique change.
-        '⚖️🏭': 6.0494e+16, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 7.960736e16 // v-2026-09-24, mesuré sur la CHAÎNE DE CLICS (bary 62 %, dichotomie 0,05 %) : 9 797,1 ppm → +29,6 °C (glace 0) ; 9 794,6 ppm → −8,0 °C (glace 27 %). PREMIER CO₂ qui sort du Marinoen.
+        '⚖️🏭': 6.467038e+17, // v-2026-10-14 : FRONTIÈRE F4 (seuils_hysteresis.js v2, frise = clic, CO₂ et CH₄ ensemble dans [10 000 ; 100 000] / [10 ; 100] ppm) : 95 649 ppm → 1c sort (frise 37,1 °C, chaîne 36,7 °C), 🪼 chaud ; 95 627 ppm → reste englacé (−7,1 °C). Avant 6,0494e16 (9 797 ppm)
         //   (v1.2.64) pour 🪩🍰❄️ et 🪩🍰🧊 ; époques sans clé = glace propre. Plage mudball ~0.4–0.5.
         '🌫️❄️': 0.48,
         // ⚖️🏭🔺 = facteur de départ du scan hystérésis (<1 en scan positif) : 0.25 → ~2 500 ppm, sur la branche froide
@@ -954,7 +954,7 @@ const timeline = [
         // physique). On plafonne au MINIMUM d'OLR ; le levier CO₂ y est de toute façon épuisé, la fin de la
         // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
         '⚖️🏭🔝': 1.31e18,
-        '⚖️🐄': 1.2379e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.629e14 // v-2026-09-23 (était 4.5e13) : CH₄ ≈ 55 ppm air sec = milieu de [10,100]
+        '⚖️🐄': 2.356994e+14, // v-2026-10-14 : 95,65 ppm, avec la frontière F4 (CO₂ ci-dessus). Avant 1,2379e14
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1725,9 +1725,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "⚠️ non sourcée — ⚠️ = CO₂ de 1a par construction",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C sur GLACE (Murphy & Koop 2005) × RH [0,70 ; 0,80] à tC — ⚠️ T moyenne 0D : Pierrehumbert 2005 (GCM) donne ~0,7 kg/m² d'eau précipitable subtropicale, bien plus" } },
-    'hysteresis 1b': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [1.61, 9.73],
+    'hysteresis 1b': { tC: [20, 50], co2: [10000, 100000], ch4: [10, 100], h2oVap: [1.61, 9.73],
         src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière)",
-               co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — CO₂ posé au SEUIL DE SORTIE mesuré (~11 200 ppm)",
+               co2: "💻 sortie de snowball : 0,01–0,1 en fraction de volume, selon l'albédo de la glace tropicale (Hoffman et al. 2017, Sci. Adv. 3:e1600983, d'après les modèles) ; ~10² PAL à la sortie Marinoenne (Δ¹⁷O, Bao et al. 2008) — v-2026-10-14, était [2 000 ; 10 000] non sourcé",
                ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
                h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
     // v-2026-09-24 : 2ᵉ glaciation cryogénienne (Marinoen) — mêmes repères que ⛄ / 1b, non sourcés.
@@ -1736,9 +1736,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "⚠️ non sourcée — ⚠️ = frontière d\'entrée du Marinoen (1b y glisse)",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C sur GLACE (Murphy & Koop 2005) × RH [0,70 ; 0,80] à tC — ⚠️ T moyenne 0D : Pierrehumbert 2005 (GCM) donne ~0,7 kg/m² d'eau précipitable subtropicale, bien plus" } },
-    'hysteresis 1c': { tC: [20, 50], co2: [2000, 10000], ch4: [10, 100], h2oVap: [1.61, 9.73],
+    'hysteresis 1c': { tC: [20, 50], co2: [10000, 100000], ch4: [10, 100], h2oVap: [1.61, 9.73],
         src: { tC: "🔀 hystérésis : repère, PAS une cible (config frontière)",
-               co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — CO₂ posé au SEUIL DE SORTIE mesuré (~11 200 ppm)",
+               co2: "💻 sortie de snowball : 0,01–0,1 en fraction de volume, selon l'albédo de la glace tropicale (Hoffman et al. 2017, Sci. Adv. 3:e1600983, d'après les modèles) ; ~10² PAL à la sortie Marinoenne (Δ¹⁷O, Bao et al. 2008) — v-2026-10-14, était [2 000 ; 10 000] non sourcé",
                ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
                h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
     'hysteresis 2': { tC: [25, 28], co2: [711, 907], ch4: [1, 5], h2oVap: [2.22, 3.03],
@@ -2025,9 +2025,12 @@ window.CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit = 1;              // [EQ/NUM]
 // Lus par calculations_flux.js (computeToleranceWm2, computeSearchIncrement, cap 1er pas Search),
 // physicsAll.js / calculations_h2o.js (🔺⏳ = accélération pas temps).
 window.CONFIG_COMPUTE.tolMinWm2 = 0.10;                  // [EQ/NUM] tolérance plancher flux (W/m²)
-window.CONFIG_COMPUTE.maxSearchStepK = 140;              // [EQ/NUM] cap pas Search nominal (K)
-window.CONFIG_COMPUTE.maxSearchStepLargeK = 200;         // [EQ/NUM] cap pas Search "grand delta" (K)
-window.CONFIG_COMPUTE.largeDeltaFactor = 16;             // [EQ/NUM] seuil |Δ| > factor × tol → grand pas
+// Pas maximal de la recherche de racine (phase Search). Une planète qui refroidit (ou se réchauffe) traverse toutes les
+// températures intermédiaires et s'arrête au PREMIER équilibre stable rencontré : le pas doit être plus fin que la fenêtre
+// d'une branche chaude. v-2026-10-14 : 140 K (200 K si grand déséquilibre) → 20 K, un seul plafond. À 140 K, l'arrivée de 🔥
+// (175 °C) dans 🦠 sautait la branche chaude (frise 15,05 °C) et tombait à −85 °C, gelant toute la chaîne de clics ; à 20 K,
+// 🦠 arrive à 15,07 °C (frise = clic).
+window.CONFIG_COMPUTE.maxSearchStepK = 20;               // [K] [EQ/NUM]
 window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
 // v1.4.17 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).
 // Le 1er pas Search est désormais pris tel quel depuis computeSearchIncrement().
