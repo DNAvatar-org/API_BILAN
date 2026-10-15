@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.6.0
+// Version 1.6.1
+// - v1.6.1 (2026-10-15): 📱 ⛽ ×0,5 / 🛢 constant / 🪾 ×1,5 par tranche de 25 ans, tranches explicites jusqu'en 2275.
 // - v1.6.0 (2026-10-15): 📱 cliquable jusqu'en 2300 (TIMELINE_FUTUR ◀) ; tranche 2100 : 🌈 (0 CO₂) en plus de ⛽ 🛢 🪾.
 // - v1.5.9 (2026-10-15): BENCH_LIT tCRepere = fourchette des sources par époque, affichée à côté de la bande cyan.
 // - v1.5.8 (2026-10-15): graine 🌡️🧮 et fourchette tC du banc = la courbe cyan d'Histoire (litterature.js, L.a) à ▶.
@@ -1513,24 +1514,32 @@ const timeline = [
         //   (≈ +55 ppm, 369,5 → 424,6 ppm NOAA, en air SEC — cf. bloc « AIR SEC vs AIR HUMIDE »).
         //   ⚠️ Les 850e12 d'avant (bas d'une fourchette « 850–1000 » notée au jugé) compensaient par en dessous
         //   des puits alors trop faibles : 2025 tombait juste pour deux erreurs qui s'annulaient.
-        //   ⛽ ≈ émissions stabilisées/décroissantes (SSP2-4.5 : ~36 → 14 GtCO₂/an) ; 🛢 ≈ doublement (SSP5-8.5 : ~70 GtCO₂/an).
         '🕰': {
             // 🌙 CARTE DE NUIT superposée à la texture de jour : les lumières des villes n'apparaissent que sur
             // la face à l'ombre, EN MÊME TEMPS que le jour (pas d'alternance). Vaut pour toute l'époque (≥ 2000).
             // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
             '🌙': 'fonds/_002000n.png',
             2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 973e12 } }, // +973 GtCO₂ MESURÉS (2000–2024, GCB cumulé)
-            // 🪾 : le double du bidon, tranche par tranche. ⛽ et 🛢 décroissent toutes deux après 2050 ;
-            // celle-ci vaut exactement 2 × 🛢 à chaque clic — 36, 24 puis 14 centaines de GtCO₂, soit
-            // 144, 96 puis 56 GtCO₂/an contre ~41 aujourd'hui. Cumul 2025→2100 = 7400 GtCO₂.
-            // Ce n'est pas une prévision : c'est la borne haute mécanique « on double le bidon ».
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 36e14 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 24e14 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 14e14 } },
-            // Après 2100 (jusqu'à la borne de la frise, window.TIMELINE_FUTUR ◀) : 🌈 en plus = zéro émission (rien d'injecté,
-            // les puits océan et forêts continuent seuls) ; ⛽ 🛢 🪾 PROLONGENT leur tranche 2075 — ⚠️ aucune source après
-            // 2100, c'est la poursuite du geste, pas un scénario.
-            2100: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 14e14 } },
+            // Quatre scénarios qui DIVERGENT, chacun réglé sur le rythme actuel (~41,6 GtCO₂/an en 2024, fossile + usage
+            // des sols, Global Carbon Budget 2024 → 1040 GtCO₂ par tranche de 25 ans) et une règle par tranche :
+            //   ⛽ optimiste : ×0,5 tous les 25 ans, tend vers 0 (≈ 21 GtCO₂/an en 2025–2050, < 0,1 après 2250) ;
+            //   🛢 comme maintenant : 1040 GtCO₂ par tranche, constant ;
+            //   🪾 le pire : ×1,5 tous les 25 ans, sans fin (1560 en 2025–2050, ~90 000 en 2275–2300) ;
+            //   🌈 (à partir de 2100) : zéro émission, les puits océan et forêts continuent seuls.
+            // Ce sont des règles mécaniques, pas des prévisions : ⚠️ 🪾 cumule ~270 000 GtCO₂ d'ici 2300, plus que tout le
+            // carbone fossile connu — c'est la borne « on ne s'arrête jamais ».
+            // Tranches explicites jusqu'à la borne de la frise (window.TIMELINE_FUTUR ◀ = 2300).
+            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 520e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1560e12 } },
+            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 260e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2340e12 } },
+            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 130e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 3510e12 } },
+            2100: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 65e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 5265e12 } },
+            2125: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 32.5e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7897.5e12 } },
+            2150: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 16.25e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 11846.2e12 } },
+            2175: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 8.125e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 17769.4e12 } },
+            2200: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 4.062e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 26654.1e12 } },
+            2225: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2.031e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 39981.1e12 } },
+            2250: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1.016e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 59971.6e12 } },
+            2275: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0.5078e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 89957.5e12 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
