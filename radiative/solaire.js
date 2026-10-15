@@ -5,7 +5,8 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.3.0
+// Version 1.3.1
+// - v1.3.1 (2026-10-15): 5 échantillons par population de nuages bas, 3 pour les moyens (25 → 10 s par époque, |ΔT| ≤ 0,1 °C).
 // - v1.3.0 (2026-10-15): nuages MOYENS (colonne.fMoyen, populations des nuages bas) dans l'empilement et le recouvrement
 //   aléatoire : 8 sous-colonnes (clair, bas, moyen, haut et leurs combinaisons).
 // - v1.2.0 (2026-10-15): nuages bas = plusieurs populations pondérées (océan, continent : colonne.populations), moyennePopulation les moyenne.
@@ -55,11 +56,12 @@
     // Gauss-Legendre 4 points sur [0,1].
     const GL_X = [0.0694318442, 0.3300094782, 0.6699905218, 0.9305681558];
     const GL_W = [0.1739274226, 0.3260725774, 0.3260725774, 0.1739274226];
-    // Population de nuages : profondeurs relatives u au milieu de N intervalles égaux de [0,1].
-    const N_POPULATION = 10;
+    // Population de nuages : profondeurs relatives u au milieu de N intervalles égaux de [0,1] (par population : océan,
+    // continent). 5 suffisent : banc 21 époques à 0,1 °C près de 10 (2026-10-15), 2,5 fois plus vite.
+    const N_POPULATION = 5;
     // Nuages moyens : mêmes populations, échantillonnées plus grossièrement (résolution du calcul, pas un réglage) — ils
     // entrent dans 4 des 8 sous-colonnes, dont l'empilement bas + moyen + haut.
-    const N_POPULATION_MOYENS = 5;
+    const N_POPULATION_MOYENS = 3;
 
     /** Fraction du flux solaire total absorbée par une colonne d'ozone x [cm STP] (8, 9). */
     function aOz(x) {

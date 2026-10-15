@@ -7,8 +7,11 @@
 //       somme des τ visibles présents, chacun tiré de sa population (radiative/solaire.js). Classes ISCCP : τ ≤ 3,55 ; ≤ 22,63 ;
 //       > 22,63. τ moyen RADIATIF : réflectance moyennée (deux-flux conservatif de solaire.js) puis inversée, comme la référence.
 //       Diagnostic seul : rien de ce qui est calculé ici ne rentre dans le bilan.
-//       Approximation DÉCLARÉE : ISCCP abaisse le sommet des nuages optiquement minces (« location adjusted ») ; pas ici.
-// Version 1.1.0
+//       DÉTECTION : un satellite passif ne voit pas une couche de τ < 0,3 (seuil du simulateur ISCCP de COSP ; Klein & Jakob
+//       1999, Pincus et al. 2012) — elle n'est pas un sommet, la colonne est rangée à la couche visible suivante (ou claire).
+//       Approximation DÉCLARÉE : ISCCP abaisse aussi le sommet des nuages minces visibles (« location adjusted ») ; pas ici.
+// Version 1.2.0
+// - v1.2.0 (2026-10-15): seuil de détection τ ≥ 0,3 (une couche plus mince est invisible : le sommet vu est la couche visible suivante).
 // - v1.1.0 (2026-10-15): échantillons pondérés (populations de nuages bas océan / continent, colonne.populations).
 // Date: [October 15, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -18,6 +21,7 @@
     'use strict';
 
     const CLASSES_TAU = [3.55, 22.63];   // bornes ISCCP (cloud_type_label des fichiers ISCCP-H)
+    const TAU_DETECTION = 0.3;           // [-] couche invisible en dessous (COSP)
     const N_MOYENS = 5;                  // échantillons de la population des nuages moyens (comme solaire.js)
 
     const classe = (tau) => (tau <= CLASSES_TAU[0] ? 0 : tau <= CLASSES_TAU[1] ? 1 : 2);
@@ -52,19 +56,18 @@
         const E = echantillons(colonne);
         const R = (tau) => window.SOLAIRE.nuageVisible(tau).R;
         const acc = { L: [[0, 0], [0, 0], [0, 0]], M: [[0, 0], [0, 0], [0, 0]], H: [[0, 0], [0, 0], [0, 0]] };
-        const ajouter = (niv, tau, w) => { const c = acc[niv][classe(tau)]; c[0] += w; c[1] += w * R(tau); };
-        // Couches sous le sommet : présentes avec leur fraction, chaque échantillon de même poids.
-        const dessous = (avecMoyen) => {
-            const L = [{ tau: 0, w: 1 - fB }].concat(E.bas.map((e) => ({ tau: e.tau, w: fB * e.w })));
-            if (!avecMoyen) return L;
-            const M = [{ tau: 0, w: 1 - fM }].concat(E.moyens.map((e) => ({ tau: e.tau, w: fM * e.w })));
-            const out = [];
-            for (const m of M) for (const l of L) out.push({ tau: m.tau + l.tau, w: m.w * l.w });
-            return out;
-        };
-        for (const h of E.hauts) for (const d of dessous(true)) ajouter('H', h.tau + d.tau, fH * h.w * d.w);
-        for (const m of E.moyens) for (const d of dessous(false)) ajouter('M', m.tau + d.tau, (1 - fH) * fM * m.w * d.w);
-        for (const l of E.bas) ajouter('L', l.tau, (1 - fH) * (1 - fM) * fB * l.w);
+        // Chaque couche : absente (1 − f) ou un échantillon de sa population ; toutes les combinaisons (recouvrement aléatoire).
+        const etats = (f, ech) => [{ tau: 0, w: 1 - f }].concat(ech.map((e) => ({ tau: e.tau, w: f * e.w })));
+        const H = etats(fH, E.hauts), M = etats(fM, E.moyens), L = etats(fB, E.bas);
+        for (const h of H) for (const m of M) for (const l of L) {
+            const w = h.w * m.w * l.w;
+            if (w === 0) continue;
+            const niv = h.tau >= TAU_DETECTION ? 'H' : m.tau >= TAU_DETECTION ? 'M' : l.tau >= TAU_DETECTION ? 'L' : null;
+            if (niv === null) continue;                                        // rien de visible : ciel clair pour le satellite
+            const tau = h.tau + m.tau + l.tau;
+            const c = acc[niv][classe(tau)];
+            c[0] += w; c[1] += w * R(tau);
+        }
         const out = { niveaux: {}, total: null };
         let aT = 0, rT = 0;
         for (const niv of ['L', 'M', 'H']) {
