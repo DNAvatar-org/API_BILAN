@@ -1,6 +1,8 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.8.4
+// Version 1.9.0
+// - v1.9.0 (2026-10-15): DEUX nuages bas, masse d'air maritime et continentale, chacun avec SES gouttes (Martin k, N mesurés) :
+//   colonne.populations remplace colonne.tranches. Avant : un seul nuage aux gouttes moyennées (ni cumulus assez, ni stratus).
 // - v1.8.4 (2026-10-15): nuage.fMoyen = 0 (nuages moyens non représentés), lu par le simulateur ISCCP.
 // - v1.8.3 (2026-10-13): k de Martin pondéré par ALBEDO.fractionMaritime (banquise = air maritime).
 // - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
@@ -217,7 +219,8 @@ function profilAtmosphere(z_range) {
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
         return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
-                tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, wTotal: 0, wSousBase: 0,
+                populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, tauSW: 0, W: 0, sommet: 0 }],
+                wTotal: 0, wSousBase: 0,
                 fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
     const M_a = wA / nA;                                   // [kg/mol] masse molaire des non condensables
@@ -261,33 +264,41 @@ function profilAtmosphere(z_range) {
     const avecEau = w_c > 0;
     const fBas = avecEau ? DATA['🎚️'].CLOUD_SW.F_BAS : 0, fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
     const oc = window.ALBEDO.fractionMaritime();                   // masse d'air maritime (bassins, banquise comprise) / continentale
-    const kMartin = N.K_MARTIN_OCEAN * oc + N.K_MARTIN_CONTINENT * (1 - oc);
-    const nGouttesActuel = window.ALBEDO.nombreGouttesActuelCm3() * 1e6;   // [m⁻³] Terre actuelle (calculations_albedo.js)
-    const nGouttes = window.ALBEDO.nombreGouttesCm3() * 1e6;                // [m⁻³] gouttes de l'époque (Twomey : r_eff ∝ N^(−1/3))
-    // Profondeur du nuage : seuil de pluie atteint avec le nombre de gouttes ACTUEL (mesuré), pas celui de l'époque.
-    // Raison mesurée : l'eau nuageuse ne répond presque pas au nombre de gouttes (susceptibilité d ln LWP / d ln N ≈ 0,
-    // Toll et al. 2019, Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous
-    // 🚂). L'effet Twomey (même eau, gouttes plus petites, τ plus grand) reste entier.
-    const LWC_pluie = 4 / 3 * Math.PI * N.RHO_LIQUIDE * kMartin * nGouttesActuel * Math.pow(DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE, 3);   // [kg/m³]
-    let dansNuage = false, sommet = false, zBase = 0, zSommet = 0, z = 0;
+    // DEUX NUAGES BAS, un par masse d'air, chacun avec SES gouttes : maritime (k de Martin 0,80, N jauge Bennartz 2007) et
+    // continentale (k 0,67, N 200 cm⁻³, Gultepe & Isaac 2004). Le seuil de pluie LWC_pluie ∝ k N fixe la profondeur, donc
+    // τ_max ∝ (k N)² : nuages marins minces, continentaux épais. Moyenner les gouttes en un seul nuage (avant le 2026-10-15)
+    // ne donnait ni assez de cumulus ni aucun stratus ; séparés, la population retrouve les classes ISCCP (simulateur
+    // radiative/nuages_isccp.js). Poids = part de l'aire (⚠️ déclaré : même fraction de nuages bas sur océan et continent).
+    // Profondeur : seuil de pluie atteint avec le nombre de gouttes ACTUEL (mesuré), pas celui de l'époque. Raison mesurée :
+    // l'eau nuageuse ne répond presque pas au nombre de gouttes (susceptibilité d ln LWP / d ln N ≈ 0, Toll et al. 2019,
+    // Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous 🚂). L'effet Twomey
+    // (même eau, gouttes plus petites, τ plus grand) reste entier : r_eff prend N de l'époque (× rapport de CCN).
+    const rCCN = window.ALBEDO.rapportCCN();
+    const nuagesBas = [
+        { nom: 'océan', poids: oc, k: N.K_MARTIN_OCEAN, nActuel: DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * 1e6 },
+        { nom: 'continent', poids: 1 - oc, k: N.K_MARTIN_CONTINENT, nActuel: N.CDNC_CONTINENT_CM3 * 1e6 }
+    ].map((m) => ({
+        nom: m.nom, poids: m.poids, k: m.k, n: m.nActuel * rCCN,                // [m⁻³] gouttes de l'époque (Twomey)
+        lwcPluie: 4 / 3 * Math.PI * N.RHO_LIQUIDE * m.k * m.nActuel * Math.pow(DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE, 3),   // [kg/m³]
+        sommet: false, zSommet: 0, tauSW: 0, tauIR: 0, W: 0, tauIRCouche: z_range.map(() => 0),
+        // Le nuage tranche par tranche, en CUMULS depuis la base : profondeur [m], τ_SW, τ_IR, eau précipitable moyenne et
+        // saturée [cm]. Un nuage plus jeune (moins profond) est le même nuage tronqué : solaire.js en tire la population.
+        tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }
+    }));
+    let dansNuage = false, zBase = 0, z = 0;
     let iEnclume = -1, tEnclume = 0;                     // couche où la parcelle passe T_ENCLUME (nuages hauts)
-    let tauSW = 0, tauIR = 0, W = 0;
-    const tauIRCouche = z_range.map(() => 0);
     // Eau précipitable EFFECTIVE pour le rayonnement solaire (Lacis & Hansen 1974 éq. 24, mise à l'échelle linéaire en
     // pression, n = 1, et √(T₀/T), T₀ = 273 K) [cm] : colonne entière, sous la base, et tranche par tranche dans le nuage
     // (vapeur moyenne ET vapeur saturée — dans le nuage l'air est saturé). radiative/solaire.js les lit.
     const P0_LH = 101325, T0_LH = 273;
     let wTotal = 0, wSousBase = 0;
-    // Le nuage tranche par tranche, en CUMULS depuis la base : profondeur [m], τ_SW, τ_IR, eau précipitable moyenne et
-    // saturée [cm]. Un nuage plus jeune (moins profond) est le même nuage tronqué : solaire.js en tire la population.
-    const tranches = { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] };
     /** Eau précipitable effective d'une tranche dz de fraction molaire de vapeur x [cm]. */
     const wEff = (x, dz) => {
         const p = p_a + p_c;
         return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * (p / P0_LH) * Math.sqrt(T0_LH / T);
     };
-    /** Tranche dz du nuage adiabatique : ses épaisseurs optiques DANS le nuage, à la couche ic. */
-    const nuage = (dz, ic) => {
+    /** Tranche dz du nuage adiabatique c (océan ou continent) : ses épaisseurs optiques DANS le nuage, à la couche ic. */
+    const nuage = (c, dz, ic) => {
         const p = p_a + p_c;
         const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
         const M = rho * CONST.R_GAS * T / p;
@@ -301,16 +312,16 @@ function profilAtmosphere(z_range) {
         // qu'elle se forme, seule la part liquide (Hu & Stamnes) peut s'accumuler jusqu'au seuil de pluie. Sans elle, un
         // nuage froid ne précipitait jamais : 1 à 8 kg/m² d'eau, τ jusqu'à 500 sous −10 °C (🪸), quand les observations
         // donnent l'eau nuageuse DÉCROISSANTE vers le froid (Somerville & Remer 1984). Aucun effet sur les nuages liquides.
-        if (cwc >= f_liq * LWC_pluie) { sommet = true; zSommet = z; return; }
+        if (cwc >= f_liq * c.lwcPluie) { c.sommet = true; c.zSommet = z; return; }
         // Liquide : W/(ρ_w r_eff) = dz·(LWC/ρ_w)^⅔·(4π k N/3)^⅓ (Martin 1994). Glace : rayon déclaré.
-        const s = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * kMartin * nGouttes / 3)
+        const s = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * c.k * c.n / 3)
             + (1 - f_liq) * cwc * dz / (N.RHO_GLACE * N.R_EFF_GLACE);
-        tauIRCouche[ic] += 0.75 * s;                                             // absorption (Q_abs ≈ 1)
-        tauIR += 0.75 * s;
-        tauSW += 1.5 * s;                                                        // extinction (Q_ext ≈ 2)
-        W += cwc * dz;
-        zSommet = z;
-        const k = tranches.profondeur.length - 1;
+        c.tauIRCouche[ic] += 0.75 * s;                                           // absorption (Q_abs ≈ 1)
+        c.tauIR += 0.75 * s;
+        c.tauSW += 1.5 * s;                                                      // extinction (Q_ext ≈ 2)
+        c.W += cwc * dz;
+        c.zSommet = z;
+        const tranches = c.tranches, k = tranches.profondeur.length - 1;
         tranches.profondeur.push(tranches.profondeur[k] + dz);
         tranches.tauSW.push(tranches.tauSW[k] + 1.5 * s);
         tranches.tauIR.push(tranches.tauIR[k] + 0.75 * s);
@@ -330,7 +341,7 @@ function profilAtmosphere(z_range) {
         let reste = z_range[i] - z_range[i - 1];
         while (reste > 0) {
             // Pas de 10 m dans le nuage (quelques centaines de mètres d'épaisseur), 100 m ailleurs.
-            const dz = Math.min((dansNuage && !sommet) ? 10 : 100, reste);
+            const dz = Math.min((dansNuage && nuagesBas.some((c) => !c.sommet)) ? 10 : 100, reste);
             reste -= dz;
             z += dz;
             const p = p_a + p_c;
@@ -391,19 +402,24 @@ function profilAtmosphere(z_range) {
             const dw = wEff(vapeurMoyenne(), pas);
             wTotal += dw;
             if (!dansNuage) wSousBase += dw;
-            if (dansNuage && !sommet && z > zBase) nuage(pas, i - 1);
+            if (dansNuage && z > zBase) for (const c of nuagesBas) if (!c.sommet) nuage(c, pas, i - 1);
         }
         if (strato && iTrop === z_range.length) iTrop = i;
         pousser(i);
     }
-    // POPULATION de nuages BAS : chacun naît à la base et s'épaissit jusqu'à la pluie (sommet) ; en régime établi toutes
-    // les profondeurs sont également représentées (hypothèse de cycle de vie, ⚠️ déclarée — contrôle : τ moyen MODIS ≈ 12).
+    // POPULATIONS de nuages BAS (océan, continent) : chacun naît à la base et s'épaissit jusqu'à la pluie (sommet) ; en régime
+    // établi toutes les profondeurs sont également représentées (hypothèse de cycle de vie, ⚠️ déclarée — contrôle : classes
+    // ISCCP des nuages bas vus d'en haut, radiative/nuages_isccp.js et data/isccp_h_2010.js).
     // Émissivité de flux (diffusivité D, comme le worker) moyennée sur la population : ε̄ = ⟨1 − e^{−D·τ_IR(u)}⟩.
     // Couverture f, recouvrement maximal dans la couche : transmission 1 − f·ε̄, que le worker obtient avec
     // exp(−D·τ_eff), τ_eff = −ln(1 − f·ε̄)/D, réparti au prorata des τ des couches.
     const D = window.EARTH.DIFFUSIVITE;
-    const epsBas = window.SOLAIRE.moyennePopulation(tranches, (c) => 1 - Math.exp(-D * c.tauIR));
+    // Deux populations (océan, continent) pondérées : émissivité moyenne, τ_IR réparti au prorata de leur profil pondéré.
+    const populations = nuagesBas.map((c) => ({ nom: c.nom, poids: c.poids, tranches: c.tranches, tauSW: c.tauSW, W: c.W, sommet: c.zSommet }));
+    const epsBas = window.SOLAIRE.moyennePopulation(populations, (c) => 1 - Math.exp(-D * c.tauIR));
     const tauEffBas = -Math.log(1 - fBas * epsBas) / D;
+    const tauIRCouche = z_range.map((_, i) => nuagesBas.reduce((a, c) => a + c.poids * c.tauIRCouche[i], 0));
+    const tauIR = tauIRCouche.reduce((a, t) => a + t, 0);
     for (let i = 0; i < couches.length; i++) couches[i].tauNuage = tauIR > 0 ? tauIRCouche[i] * tauEffBas / tauIR : 0;
     // NUAGES HAUTS (enclumes, cirrus) au niveau T_ENCLUME, ou au sommet de la troposphère s'il est plus chaud ; seulement
     // s'il y fait assez froid pour la glace.
@@ -414,10 +430,12 @@ function profilAtmosphere(z_range) {
     const hautPossible = (iEnclume >= 0 || strato) && iHaut >= 0 && tHaut < N.T_TOUT_GLACE;
     const epsHaut = window.SOLAIRE.moyenneHauts((tau) => 1 - Math.exp(-D * tau / 2));
     if (hautPossible) couches[iHaut].tauNuage += -Math.log(1 - fHaut * epsHaut) / D;
-    // nuage : colonne DANS le nuage (avant la fraction f).
+    // nuage : colonne DANS le nuage (avant la fraction f) ; W, τ, sommet, seuil de pluie : moyennes pondérées des deux
+    // nuages bas (diagnostic), le détail est dans populations.
+    const moy = (cle) => nuagesBas.reduce((a, c) => a + c.poids * c[cle], 0);
     return { couches: couches, iTrop: iTrop,
-        nuage: { W: W, tauSW: tauSW, tauIR: tauIR, base: zBase, sommet: zSommet, lwcPluie: LWC_pluie,
-            tranches: tranches, wTotal: wTotal, wSousBase: wSousBase,
+        nuage: { W: moy('W'), tauSW: moy('tauSW'), tauIR: tauIR, base: zBase, sommet: moy('zSommet'), lwcPluie: moy('lwcPluie'),
+            populations: populations, wTotal: wTotal, wSousBase: wSousBase,
             fBas: fBas, fMoyen: 0, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };   // fMoyen : non représentés (physics.js)
 }
 

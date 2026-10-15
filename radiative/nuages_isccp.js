@@ -8,7 +8,8 @@
 //       > 22,63. τ moyen RADIATIF : réflectance moyennée (deux-flux conservatif de solaire.js) puis inversée, comme la référence.
 //       Diagnostic seul : rien de ce qui est calculé ici ne rentre dans le bilan.
 //       Approximation DÉCLARÉE : ISCCP abaisse le sommet des nuages optiquement minces (« location adjusted ») ; pas ici.
-// Version 1.0.0
+// Version 1.1.0
+// - v1.1.0 (2026-10-15): échantillons pondérés (populations de nuages bas océan / continent, colonne.populations).
 // Date: [October 15, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -26,14 +27,20 @@
         return b / (Math.sqrt(3) * (1 - window.EARTH.NUAGES.G_ASYMETRIE));
     }
 
-    /** Échantillons d'une population : [{ tau, poids }] (poids de somme 1). */
+    /** Échantillons des populations : [{ tau, w }] (poids de somme 1) — mêmes tirages que radiative/solaire.js. */
     function echantillons(colonne) {
-        const S = window.SOLAIRE, T = colonne.tranches;
-        const bas = [], moyens = [], hauts = [];
-        S.moyennePopulation(T, (c) => { bas.push(c.tauSW); return 0; });
-        S.moyennePopulation(T, (c) => { moyens.push(c.tauSW); return 0; }, N_MOYENS);
-        S.moyenneHauts((t) => { hauts.push(t); return 0; });
-        return { bas: bas, moyens: moyens, hauts: hauts };
+        const S = window.SOLAIRE;
+        const tirer = (n) => {
+            const out = [];
+            for (const pop of colonne.populations) {
+                for (let j = 0; j < n; j++) out.push({ tau: S.etatNuage(pop.tranches, (j + 0.5) / n).tauSW, w: pop.poids / n });
+            }
+            return out;
+        };
+        const hauts = [];
+        S.moyenneHauts((t) => { hauts.push({ tau: t, w: 0 }); return 0; });
+        hauts.forEach((h) => { h.w = 1 / hauts.length; });
+        return { bas: tirer(10), moyens: tirer(N_MOYENS), hauts: hauts };
     }
 
     /**
@@ -48,16 +55,16 @@
         const ajouter = (niv, tau, w) => { const c = acc[niv][classe(tau)]; c[0] += w; c[1] += w * R(tau); };
         // Couches sous le sommet : présentes avec leur fraction, chaque échantillon de même poids.
         const dessous = (avecMoyen) => {
-            const L = [{ tau: 0, w: 1 - fB }].concat(E.bas.map((t) => ({ tau: t, w: fB / E.bas.length })));
+            const L = [{ tau: 0, w: 1 - fB }].concat(E.bas.map((e) => ({ tau: e.tau, w: fB * e.w })));
             if (!avecMoyen) return L;
-            const M = [{ tau: 0, w: 1 - fM }].concat(E.moyens.map((t) => ({ tau: t, w: fM / E.moyens.length })));
+            const M = [{ tau: 0, w: 1 - fM }].concat(E.moyens.map((e) => ({ tau: e.tau, w: fM * e.w })));
             const out = [];
             for (const m of M) for (const l of L) out.push({ tau: m.tau + l.tau, w: m.w * l.w });
             return out;
         };
-        for (const h of E.hauts) for (const d of dessous(true)) ajouter('H', h + d.tau, fH / E.hauts.length * d.w);
-        for (const m of E.moyens) for (const d of dessous(false)) ajouter('M', m + d.tau, (1 - fH) * fM / E.moyens.length * d.w);
-        for (const l of E.bas) ajouter('L', l, (1 - fH) * (1 - fM) * fB / E.bas.length);
+        for (const h of E.hauts) for (const d of dessous(true)) ajouter('H', h.tau + d.tau, fH * h.w * d.w);
+        for (const m of E.moyens) for (const d of dessous(false)) ajouter('M', m.tau + d.tau, (1 - fH) * fM * m.w * d.w);
+        for (const l of E.bas) ajouter('L', l.tau, (1 - fH) * (1 - fM) * fB * l.w);
         const out = { niveaux: {}, total: null };
         let aT = 0, rT = 0;
         for (const niv of ['L', 'M', 'H']) {

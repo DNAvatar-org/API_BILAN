@@ -5,7 +5,8 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.1.1
+// Version 1.2.0
+// - v1.2.0 (2026-10-15): nuages bas = plusieurs populations pondérées (océan, continent : colonne.populations), moyennePopulation les moyenne.
 // - v1.1.1 (2026-10-15): nuageVisible exposé (simulateur ISCCP, radiative/nuages_isccp.js).
 // - v1.1.0 (2026-10-13): albedoMu (albédo à un μ₀ donné) exposé pour le bilan méridien ; albedo() = sa moyenne Gauss-Legendre.
 // Date: [October 13, 2026]
@@ -89,11 +90,16 @@
         return { tauSW: v('tauSW'), tauIR: v('tauIR'), wMoyen: v('wMoyen'), wSature: v('wSature') };
     }
 
-    /** Moyenne d'une grandeur sur la population de nuages (toutes profondeurs de 0 au sommet également représentées). */
-    function moyennePopulation(tranches, fn, n = N_POPULATION) {
+    /** Moyenne d'une grandeur sur les populations de nuages bas (RADIATIVE : océan et continent, chacune de poids p) ; dans
+     *  chacune, toutes les profondeurs de 0 au sommet également représentées (n échantillons). */
+    function moyennePopulation(populations, fn, n = N_POPULATION) {
         let s = 0;
-        for (let j = 0; j < n; j++) s += fn(etatNuage(tranches, (j + 0.5) / n));
-        return s / n;
+        for (const pop of populations) {
+            let m = 0;
+            for (let j = 0; j < n; j++) m += fn(etatNuage(pop.tranches, (j + 0.5) / n));
+            s += pop.poids * m / n;
+        }
+        return s;
     }
 
     /** Facteur de colonne de Rayleigh : nombre de molécules par m² rapporté à la Terre actuelle (τ_R ∝ P/(g·M)). */
@@ -207,9 +213,9 @@
         for (let n = 1; n < LH.K.length; n++) nirClair += LH.P[n] * Rg * Math.exp(-(M + LH.M_DIFFUS) * LH.K[n] * W);
         const aClair = visClair + nirClair;
         // ── Ciels nuageux : populations (bas : profondeur ; hauts : ln τ).
-        const aBas = moyennePopulation(colonne.tranches, (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, 0, c));
+        const aBas = moyennePopulation(colonne.populations, (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, 0, c));
         const aHaut = moyenneHauts((t) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, null));
-        const aDeux = moyenneHauts((t) => moyennePopulation(colonne.tranches,
+        const aDeux = moyenneHauts((t) => moyennePopulation(colonne.populations,
             (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c)));
         return { A: (1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux,
             Aclair: aClair, Abas: aBas, Ahaut: aHaut };
