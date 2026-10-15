@@ -3,9 +3,10 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.5
-// Date: [October 10, 2026]
+// Version 2.0.6
+// Date: [October 15, 2026]
 // logs :
+// - v2.0.6: 📜🔺⏳ = durée du dernier clic joué (Ma), posée par CLICS.jouer.
 //   - v2.0.5 (2026-10-12): 🪩🍰⛅ dans DATA['🪩'] (réflectance du nuage calculée) ; FORM de 🍰🪩⛅ = fraction mesurée.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -16,7 +17,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🧲🔬'],
+    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🔺⏳', '🧲🔬'],
     // Date Époque
     '📅': ['🌡️🧮', '🔺⏳'],
     // Masses
@@ -57,6 +58,7 @@ const DESC = {
         '🔺🌡️💫': 'Delta t° / ticTime',
         '📿🕰': 'Clics joués dans l’époque courante (curseur de 🕰.order, dont chaque entrée porte sa durée 🔺⏳ ; compte aussi les clics de 📱)',
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
+        '🔺⏳': 'Durée du dernier clic joué dans l’époque (Ma) — le 🔺⏳ de son entrée de 🕰.order, ou de l’action de la tranche sur 📱 ; 0 avant le premier',
         '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction, 🌋)',
         '🔺⚖️🏭': 'Cumul CO₂ injecté par événements 📱 ⛽/🛢 (kg)',
         '🔺⚖️🌊🏭': 'CO₂ injecté absorbé par l’océan (kg, Henry/Revelle)',

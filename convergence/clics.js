@@ -9,7 +9,9 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.3.3
+// Version 1.3.5
+// - v1.3.5: tranches de 📱 jusqu'à la borne de la frise (TIMELINE_FUTUR ◀ = 2300), plus jusqu'à ◀ de 📱 (2100).
+// - v1.3.4: 📜🔺⏳ = durée du clic joué (Ma), remise à 0 au changement d'époque.
 // - v1.3.3: ☄️ cumule l'eau de SON entrée de séquence (🔺⚖️💧☄️) dans 📜🔺⚖️💧 — la masse peut changer d'un ☄️ à l'autre.
 // - v1.3.2: frise = calottes de la config de l'époque (CALOTTES.depuisConfig) ; CLICS.date() remplace la copie 📜📅.
 // - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
@@ -36,6 +38,7 @@ window.CLICS = (function () {
         window.DATA['📅'] = window.TIMELINE[H['👉']];
         COMPTEURS_EPOQUE.forEach(function (k) { H[k] = 0; });
         H['🔘🕰'] = '';
+        H['🔺⏳'] = 0;
     }
 
     /** 🕰 indexé par année (📱) : le choix est offert par tranche, il n'y a pas de séquence imposée. */
@@ -43,12 +46,13 @@ window.CLICS = (function () {
         return Object.keys(W).some(function (k) { return !isNaN(Number(k)); });
     }
 
-    /** 📱 : 🕰 indexé par année. Tranche active = la dernière dont l'année est atteinte ; null passé ◀ (fin). */
+    /** 📱 : 🕰 indexé par année. Tranche active = la dernière dont l'année est atteinte ; null à la borne de la frise
+     *  (window.TIMELINE_FUTUR ◀, 2300) : les clics continuent après ◀ de 📱 (2100), ses masses 🔀 restant à leur cible. */
     function trancheActive(EP) {
         const W = EP['🕰'];
         const annees = Object.keys(W).filter(function (k) { return !isNaN(Number(k)); }).map(Number).sort(function (a, b) { return a - b; });
         const date = EP['▶'] + window.DATA['📜']['⏳'] * 1e6;
-        if (date >= EP['◀']) return null;
+        if (date >= window.TIMELINE_FUTUR['◀']) return null;
         let active = annees[0];
         annees.forEach(function (a) { if (date >= a) active = a; });
         return W[active];
@@ -185,6 +189,7 @@ window.CLICS = (function () {
                 }
             }
             H['🔘🕰'] = key;
+            H['🔺⏳'] = entree['🔺⏳'];   // durée de ce clic (Ma), lue par l'interface (« ⛽ +25 a »)
             H['📿🕰'] += 1;               // clics joués dans l'époque (curseur de la séquence ; compte aussi ceux de 📱)
             H['⏳'] += entree['🔺⏳'];
 

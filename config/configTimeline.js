@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.5.9
+// Version 1.6.0
+// - v1.6.0 (2026-10-15): 📱 cliquable jusqu'en 2300 (TIMELINE_FUTUR ◀) ; tranche 2100 : 🌈 (0 CO₂) en plus de ⛽ 🛢 🪾.
 // - v1.5.9 (2026-10-15): BENCH_LIT tCRepere = fourchette des sources par époque, affichée à côté de la bande cyan.
 // - v1.5.8 (2026-10-15): graine 🌡️🧮 et fourchette tC du banc = la courbe cyan d'Histoire (litterature.js, L.a) à ▶.
 // - v1.5.7 (2026-10-14): window.TIMELINE_FUTUR (🔮 2100 → 2200, affichage seulement).
@@ -1526,6 +1527,10 @@ const timeline = [
             2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 900e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 18e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 36e14 } },
             2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 600e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 12e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 24e14 } },
             2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 14e14 } },
+            // Après 2100 (jusqu'à la borne de la frise, window.TIMELINE_FUTUR ◀) : 🌈 en plus = zéro émission (rien d'injecté,
+            // les puits océan et forêts continuent seuls) ; ⛽ 🛢 🪾 PROLONGENT leur tranche 2075 — ⚠️ aucune source après
+            // 2100, c'est la poursuite du geste, pas un scénario.
+            2100: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 350e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 7e14 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 14e14 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
@@ -1546,9 +1551,9 @@ const timeline = [
 ];
 
 window.TIMELINE = timeline;
-// FUTUR (2100 → 2200) : affiché par la frise (logo non cliquable) et l'Histoire, HORS du TIMELINE — le modèle ne le
-// calcule pas (📱 finit en 2100), aucune projection.
-window.TIMELINE_FUTUR = { '📅': '🔮', '▶': 2100, '◀': 2200 };
+// FUTUR (2100 → 2300) : un repère de la frise (logo non cliquable) et de l'Histoire, HORS du TIMELINE. Les clics de 📱
+// continuent jusqu'à sa borne ◀ (tranche 2100 : 🌈 ⛽ 🛢 🪾, CLICS.trancheActive) ; ses masses 🔀 restent celles de 2100.
+window.TIMELINE_FUTUR = { '📅': '🔮', '▶': 2100, '◀': 2300 };
 
 /**
  * Index des époques : TIMELINE, plus les alias que lisent la géologie et l'interface

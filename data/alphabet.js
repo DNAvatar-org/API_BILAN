@@ -108,7 +108,7 @@ const CHARS = {
     HOLOCENE: '🛖', // Holocène (10 ka–1800) : agriculture, villages
     TODAY: '🚂',    // Industriel (1800–2000) : train
     MODERN: '📱',   // Aujourd'hui (2000–2100) : smartphone
-    FUTURE: '🔮',   // Futur (2100–2200) : affiché seulement (frise, Histoire), hors modèle — window.TIMELINE_FUTUR
+    FUTURE: '🔮',   // Futur (2100–2300) : repère de la frise et d'Histoire, hors TIMELINE — window.TIMELINE_FUTUR
     EVENTS: '🕰',   // Événements : horloge
     CYCLE: '🔁',    // Cycles : états successifs appliqués par tic (🕰.🔁, ex. glaciaire/interglaciaire)
     TEXTURE: '🖼',  // Texture de la planète imposée (suite 🕰.🖼, parcourue par les tics)
