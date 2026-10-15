@@ -1,8 +1,9 @@
 // File: API_BILAN/demo/epoch_bench_table.js
 // Desc: Table de resultats : creation et mise a jour des lignes, copie d une ligne au presse-papier.
-// Version 1.1.1
+// Version 1.1.2
 // Date: 2026-10-15
 // logs :
+//   - v1.1.2: date de la ligne = celle de l'état calculé (opts.date), plus ▶ de l'époque ; année du calendrier pour 🛖 🚂 📱.
 //   - v1.1.1: tr.dataset.rowKey (clic sur la ligne → état de ce calcul dans l'index).
 //   - v1.1.0: une ligne = une cle (opts.rowKey), plus forcement une epoque : le mode tictimes ecrit
 //     plusieurs lignes par epoque (un clic chacune), avec l'etape du clic sous le nom et la T° d'arrivee
@@ -54,6 +55,10 @@ function fmtAge(years) {
     if (Math.abs(ka) >= 0.999) return ka.toFixed(1) + ' ka';
     return Math.round(years) + ' a';
 }
+/** Date d'une ligne : âge (géologique, ▶ > ◀ : années avant le présent) ou année du calendrier (🛖 🚂 📱). */
+function fmtDateEpoque(epoch, date) {
+    return epoch['\u25b6'] > epoch['\u25c0'] ? fmtAge(date) : String(Math.round(date));
+}
 function statusHtml(s) {
     if (!s) return '<span class="status-run">\u23f3 calcul\u2026</span>';
     if (s === 'converged') return '<span class="status-ok">\u2705 converged</span>';
@@ -70,13 +75,14 @@ function statusHtml(s) {
  * opts.rowKey : identifiant de la ligne (l'époque en mode graines, le n° de clic en mode tictimes)
  * opts.etape  : (tictimes) clic joué, affiché sous le nom de l'époque
  * opts.tInitC : (tictimes) T° initiale du calcul, °C — sinon la graine 🌡️🧮
+ * opts.date   : date de l'état calculé (CLICS.date() : années avant le présent, ou année du calendrier) — avance à chaque tictime
  */
 function createRow(epoch, opts) {
     var id = epoch['\u{1F4C5}'];
     var name = window.epochName(id);
     var HYST_LOGOS = { 'hysteresis 1a': '\u2603', 'hysteresis 1b': '\u{1F326}', 'hysteresis 1c': '\u26c8', 'hysteresis 2': '\u{1F427}' };
     var displayLogo = HYST_LOGOS[id] || ((id.length <= 3) ? id : '\u2699');
-    var ageStart = fmtAge(epoch['\u25b6']);
+    var ageStart = fmtDateEpoque(epoch, opts.date);
 
     var safeId = safeIdOf(opts.rowKey);
     var etapeHtml = opts.etape ? '<div class="epoch-etape">' + opts.etape + '</div>' : '';

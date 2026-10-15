@@ -4,7 +4,8 @@
 //         · encart (onglet Bench de l'index) : le banc n'est qu'un flag — ▶ demande à l'index de lancer
 //           (CO2/static/ui/bench_pilote.js, window.BENCH.suite = 'epoque' | 'tictime'), l'index fait de VRAIS clics
 //           (organigramme, frise) et renvoie une ligne par calcul, que la table affiche (createRow / updateRow).
-// Version 1.1.0
+// Version 1.1.1
+// - v1.1.1: la date de la ligne vient de l'index (ligne.date).
 // - v1.1.0: BENCH_ACTIONS.voir — clic sur l'époque d'une ligne → l'index recharge l'état de ce calcul.
 // Date: 2026-10-15
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -43,7 +44,7 @@ window.addEventListener('message', function (e) {
     const L = e.data.ligne;
     const ep = window.TIMELINE.find(function (x) { return x['📅'] === L.epochId; });
     if (T === 'bench:debut') {
-        createRow(ep, { rowKey: L.rowKey, etape: L.etape, tInitC: L.tInitC });
+        createRow(ep, { rowKey: L.rowKey, etape: L.etape, tInitC: L.tInitC, date: L.date });
         document.getElementById('progress-label').textContent = L.rowKey + ' — ' + window.epochName(L.epochId) + ' · ' + L.etape;
         document.getElementById('progress-fill').style.width = (e.data.avance * 100) + '%';
         return;

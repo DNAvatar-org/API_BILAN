@@ -7,7 +7,8 @@
 //       'clics'), elle-même calquée sur l'interface (events.js) : ordre 🕰.order sinon 💫, compteurs
 //       📿💫 / 📿☄️, voile 🔺🍰⚽ de 🗻 / 🌋 / 💫 / ⛰, passage à l'époque suivante quand la durée est écoulée
 //       (ou ⏩ de 🎇), puis 📱 : un clic ⛽ de la tranche 2000 → 2025.
-// Version 2.0.0
+// Version 2.0.1
+// - v2.0.1 (2026-10-15): createRow reçoit la date de l'état (CLICS.date()).
 // Date: 2026-10-12
 // logs :
 //   - v2.0.0: la mécanique des clics vient de CLICS (API_BILAN/convergence/clics.js) — plus de copie ici.
@@ -32,7 +33,7 @@ async function runTictimes() {
         const ep = timeline[H['👉']];
         const rowKey = 'clic' + nClics;
         const tInitC = animEnabled ? tPrecC : ep['🌡️🧮'] - 273.15;
-        createRow(ep, { rowKey: rowKey, etape: etape, tInitC: tInitC });
+        createRow(ep, { rowKey: rowKey, etape: etape, tInitC: tInitC, date: window.CLICS.date() });
         progressLabel.textContent = 'clic ' + nClics + ' — ' + window.epochName(ep['📅']) + ' · ' + etape;
         progressFill.style.width = ((H['👉'] / timeline.length) * 100) + '%';
         console.log('[bench] —— clic ' + nClics + ' : ' + ep['📅'] + ' ' + etape + ' ——');

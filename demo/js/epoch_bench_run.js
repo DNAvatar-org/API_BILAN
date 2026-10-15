@@ -3,7 +3,8 @@
 //       graine 🌡️🧮 (comme un clic sur la frise), remplit la table. Porte aussi ce que les deux modes
 //       partagent : ecoute du solveur, mesure d'une convergence (benchMesurer), debut / fin de run.
 //       Le mode TICTIMES (chaine de clics, T° conservee) est dans epoch_bench_chain.js.
-// Version 2.0.0
+// Version 2.0.1
+//   - v2.0.1: createRow reçoit la date de l'état (▶ pour une frise).
 // Date: 2026-10-10
 // logs :
 //   - v2.0.0: PAS DE GARDES. Une erreur du moteur n'est plus attrapée pour devenir un statut « crash: » de
@@ -131,7 +132,7 @@ async function runAllEpochs() {
         var epochId = epoch['\u{1F4C5}'];
         var tSeedC = epoch['\u{1F321}️\u{1F9EE}'] - 273.15;
 
-        createRow(epoch, { rowKey: epochId });
+        createRow(epoch, { rowKey: epochId, date: epoch['\u25b6'] });   // frise : l'état est daté de ▶
         progressLabel.textContent = (i + 1) + ' / ' + timeline.length + ' — ' + window.epochName(epochId);
         progressFill.style.width = ((i / timeline.length) * 100) + '%';
         console.log('[bench] —— Époque ' + (i + 1) + '/' + timeline.length + ' : ' + epochId + ' ——');
