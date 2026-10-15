@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.4.0
+// Version 2.5.0
+// - v2.5.0 (2026-10-15): nuages MOYENS — EARTH.NUAGES.F_MOYEN 0,23 (Stubenrauch 2024, CAMcol) et SIGMA_MOYEN (440–680 hPa).
 // - v2.4.0 (2026-10-13): écarts de zone CALCULÉS (bilan méridien de North 1981, physics/meridien.js) : facteurGlaceZones(T, EPOCH, dT),
 //   STATE.dTzones, part d'énergie englacée par zone ; EPOCH['🥶'], obliquityZoneWarmingK, EBM_B / EBM_ALBEDO_REF retirés.
 // - v2.3.1 (2026-10-13): fractions de zones calculées (1 − sin 60°…) et seules utilisées ; CH4_EDS_SCALE et T_LAVA_* retirés.
@@ -533,7 +534,13 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     //     R = √3(1−g)τ / (2 + √3(1−g)τ) = 0,13 τ / (1 + 0,13 τ) pour g = 0,85.
     G_ASYMETRIE: 0.85,         // [-]
     // ─── FRACTIONS — MESURÉES, pas prévisibles en 1D (Windsor et al. 2022 §3.2) : jauges FROID (F_BAS) et CHAUD (F_HAUT)
-    //     dans DATA['🎚️'].CLOUD_SW (fine_tuning_bounds.js, GEWEX 2024). Nuages MOYENS (0,23) non représentés (⚠️ déclaré).
+    //     dans DATA['🎚️'].CLOUD_SW (fine_tuning_bounds.js, GEWEX 2024).
+    // ─── Nuages MOYENS (altocumulus, altostratus, nimbostratus : sommet entre 440 et 680 hPa, ISCCP). Fraction en colonne,
+    //     nuages masqués compris, MESURÉE comme F_BAS et F_HAUT : CAMcol = 0,23 ± 0,03 (Stubenrauch et al. 2024, Surv. Geophys.
+    //     45:1999, ISCCP-CVL ; CloudSat-CALIPSO 0,26–0,31). Niveau : milieu de 440–680 hPa rapporté à la surface actuelle,
+    //     σ = p/p_s = 560/1013,25 (autre pression de surface : même σ). Recouvrement aléatoire avec les nuages bas et hauts.
+    //     ⚠️ Épaisseurs optiques : la POPULATION des nuages bas (même parcelle, mêmes τ ; τ moyen ≈ 10, dans la classe
+    //     altostratus ISCCP 3,6–23) — pas de microphysique propre aux nuages moyens (phase mixte plus froide), déclaré.
     // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
     //     s'amincit à mesure que la glace tombe ; à amincissement exponentiel, une population en régime établi a ln τ
     //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3 et
@@ -544,7 +551,9 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // chaude, l'enclume est à la tropopause.
     T_ENCLUME: 220,            // [K]
     TAU_HAUT_MIN: 0.03,        // [-]
-    TAU_HAUT_MAX: 30           // [-]
+    TAU_HAUT_MAX: 30,          // [-]
+    F_MOYEN: 0.23,             // [m²/m²] Stubenrauch et al. 2024 (CAMcol, ISCCP-CVL)
+    SIGMA_MOYEN: 560 / 1013.25 // [-] p/p_s du niveau des nuages moyens (milieu de 440–680 hPa)
     // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².
 };
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().

@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.9.0
+// Version 1.10.0
+// - v1.10.0 (2026-10-15): nuages MOYENS au niveau σ = SIGMA_MOYEN (fraction F_MOYEN, populations des nuages bas) : IR ici, SW dans solaire.js.
 // - v1.9.0 (2026-10-15): DEUX nuages bas, masse d'air maritime et continentale, chacun avec SES gouttes (Martin k, N mesurés) :
 //   colonne.populations remplace colonne.tranches. Avant : un seul nuage aux gouttes moyennées (ni cumulus assez, ni stratus).
 // - v1.8.4 (2026-10-15): nuage.fMoyen = 0 (nuages moyens non représentés), lu par le simulateur ISCCP.
@@ -220,7 +221,7 @@ function profilAtmosphere(z_range) {
         return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
                 populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, tauSW: 0, W: 0, sommet: 0 }],
-                wTotal: 0, wSousBase: 0,
+                wTotal: 0, wSousBase: 0, wSousMoyen: 0,
                 fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
     const M_a = wA / nA;                                   // [kg/mol] masse molaire des non condensables
@@ -287,6 +288,7 @@ function profilAtmosphere(z_range) {
     }));
     let dansNuage = false, zBase = 0, z = 0;
     let iEnclume = -1, tEnclume = 0;                     // couche où la parcelle passe T_ENCLUME (nuages hauts)
+    let iMoyen = -1, wSousMoyen = 0;                     // couche où p/p_s passe SIGMA_MOYEN (nuages moyens), vapeur effective dessous
     // Eau précipitable EFFECTIVE pour le rayonnement solaire (Lacis & Hansen 1974 éq. 24, mise à l'échelle linéaire en
     // pression, n = 1, et √(T₀/T), T₀ = 273 K) [cm] : colonne entière, sous la base, et tranche par tranche dans le nuage
     // (vapeur moyenne ET vapeur saturée — dans le nuage l'air est saturé). radiative/solaire.js les lit.
@@ -399,6 +401,7 @@ function profilAtmosphere(z_range) {
                 continue;
             }
             if (iEnclume < 0 && T <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = T; }
+            if (iMoyen < 0 && (p_a + p_c) / P_s <= N.SIGMA_MOYEN) { iMoyen = i - 1; wSousMoyen = wTotal; }
             const dw = wEff(vapeurMoyenne(), pas);
             wTotal += dw;
             if (!dansNuage) wSousBase += dw;
@@ -430,13 +433,17 @@ function profilAtmosphere(z_range) {
     const hautPossible = (iEnclume >= 0 || strato) && iHaut >= 0 && tHaut < N.T_TOUT_GLACE;
     const epsHaut = window.SOLAIRE.moyenneHauts((tau) => 1 - Math.exp(-D * tau / 2));
     if (hautPossible) couches[iHaut].tauNuage += -Math.log(1 - fHaut * epsHaut) / D;
+    // NUAGES MOYENS (physics.js EARTH.NUAGES) au niveau σ = SIGMA_MOYEN, s'il est sous la tropopause : populations des nuages
+    // bas (même émissivité ε̄), recouvrement aléatoire (le worker multiplie les transmissions des couches).
+    const fMoyen = avecEau && iMoyen >= 0 ? N.F_MOYEN : 0;
+    if (fMoyen > 0) couches[iMoyen].tauNuage += -Math.log(1 - fMoyen * epsBas) / D;
     // nuage : colonne DANS le nuage (avant la fraction f) ; W, τ, sommet, seuil de pluie : moyennes pondérées des deux
     // nuages bas (diagnostic), le détail est dans populations.
     const moy = (cle) => nuagesBas.reduce((a, c) => a + c.poids * c[cle], 0);
     return { couches: couches, iTrop: iTrop,
         nuage: { W: moy('W'), tauSW: moy('tauSW'), tauIR: tauIR, base: zBase, sommet: moy('zSommet'), lwcPluie: moy('lwcPluie'),
-            populations: populations, wTotal: wTotal, wSousBase: wSousBase,
-            fBas: fBas, fMoyen: 0, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };   // fMoyen : non représentés (physics.js)
+            populations: populations, wTotal: wTotal, wSousBase: wSousBase, wSousMoyen: wSousMoyen,
+            fBas: fBas, fMoyen: fMoyen, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };
 }
 
 /** Colonne nuageuse à l'état courant (T, composition) : le profil intégré jusqu'au sommet de l'atmosphère. */

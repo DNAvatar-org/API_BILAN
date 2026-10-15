@@ -5,7 +5,9 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.2.0
+// Version 1.3.0
+// - v1.3.0 (2026-10-15): nuages MOYENS (colonne.fMoyen, populations des nuages bas) dans l'empilement et le recouvrement
+//   aléatoire : 8 sous-colonnes (clair, bas, moyen, haut et leurs combinaisons).
 // - v1.2.0 (2026-10-15): nuages bas = plusieurs populations pondérées (océan, continent : colonne.populations), moyennePopulation les moyenne.
 // - v1.1.1 (2026-10-15): nuageVisible exposé (simulateur ISCCP, radiative/nuages_isccp.js).
 // - v1.1.0 (2026-10-13): albedoMu (albédo à un μ₀ donné) exposé pour le bilan méridien ; albedo() = sa moyenne Gauss-Legendre.
@@ -55,6 +57,9 @@
     const GL_W = [0.1739274226, 0.3260725774, 0.3260725774, 0.1739274226];
     // Population de nuages : profondeurs relatives u au milieu de N intervalles égaux de [0,1].
     const N_POPULATION = 10;
+    // Nuages moyens : mêmes populations, échantillonnées plus grossièrement (résolution du calcul, pas un réglage) — ils
+    // entrent dans 4 des 8 sous-colonnes, dont l'empilement bas + moyen + haut.
+    const N_POPULATION_MOYENS = 5;
 
     /** Fraction du flux solaire total absorbée par une colonne d'ozone x [cm STP] (8, 9). */
     function aOz(x) {
@@ -146,24 +151,29 @@
     function poser(c, Rb) { return c.R + c.T * c.T * Rb / (1 - c.R * Rb); }
 
     /**
-     * Albédo d'une colonne nuageuse pour μ₀ : nuage haut (τ_H, 0 = absent) au-dessus, nuage bas (état c, null =
-     * absent), vapeur entre eux et dessous, sol Rg. Visible : (42) généralisé à l'empilement des nuages ; bandes de la
-     * vapeur : addition (30–33) bande par bande.
+     * Albédo d'une colonne nuageuse pour μ₀ : nuage haut (τ_H, 0 = absent) au-dessus, nuage moyen (état cM, null = absent),
+     * nuage bas (état c, null = absent), vapeur entre eux et dessous, sol Rg. Visible : (42) généralisé à l'empilement des
+     * nuages ; bandes de la vapeur : addition (30–33) bande par bande, de bas en haut.
      */
-    function colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, tauH, c) {
+    function colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, tauH, c, cM) {
         const W = colonne.wTotal;
         // ── Visible : nuages conservatifs empilés (sans sol), puis sol.
         const haut = nuageVisible(tauH);
+        const moyen = nuageVisible(cM ? cM.tauSW : 0);
         const bas = nuageVisible(c ? c.tauSW : 0);
-        const Rstack = poser(haut, bas.R);
+        const Rstack = poser(haut, poser(moyen, bas.R));
         const Tstack = 1 - Rstack;
         const Rbar = Rstack + Tstack * Tstack * Rg / (1 - Rstack * Rg);
         const vis = LH.PART_VISIBLE - (ozDescente + Rbar * ozRemontee)
             - (LH.PART_VISIBLE - ozDescente) * Tstack * (1 - Rg) / (1 - Rstack * Rg);
-        // ── Bandes de la vapeur : de bas en haut — sol, vapeur sous le nuage bas, nuage bas, vapeur au-dessus, nuage haut.
-        const wSous = c ? colonne.wSousBase : W;
+        // ── Bandes de la vapeur : sol, vapeur sous le premier nuage, nuage bas, vapeur jusqu'au nuage moyen, nuage moyen,
+        //    vapeur au-dessus, nuage haut. Vapeur effective : sous la base du nuage bas (wSousBase), dans le nuage bas
+        //    (c.wMoyen), sous le niveau des nuages moyens (wSousMoyen), colonne entière (W).
+        const wSous = c ? colonne.wSousBase : (cM ? colonne.wSousMoyen : W);
         const wNuageBas = c ? c.wSature + LH.W_GOUTTES_PAR_TAU * c.tauSW : 0;
-        const wEntre = c ? Math.max(0, W - colonne.wSousBase - c.wMoyen) : 0;
+        const wNuageMoyen = cM ? cM.wSature + LH.W_GOUTTES_PAR_TAU * cM.tauSW : 0;   // mêmes populations (⚠️ physics.js)
+        const wBasMoyen = c && cM ? Math.max(0, colonne.wSousMoyen - colonne.wSousBase - c.wMoyen) : 0;
+        const wDessus = cM ? Math.max(0, W - colonne.wSousMoyen) : (c ? Math.max(0, W - colonne.wSousBase - c.wMoyen) : 0);
         const wGlace = LH.W_GOUTTES_PAR_TAU * tauH;                   // absorption des cristaux (même estimation, §4)
         let nir = 0;
         for (let n = 1; n < LH.K.length; n++) {
@@ -173,15 +183,20 @@
                 const tau = c.tauSW + k * wNuageBas;
                 R = poser(couche(tau, tau > 0 ? c.tauSW / tau : 0, LH.G), R);
             }
+            if (cM) {
+                R *= Math.exp(-2 * LH.M_DIFFUS * k * wBasMoyen);
+                const tau = cM.tauSW + k * wNuageMoyen;
+                R = poser(couche(tau, tau > 0 ? cM.tauSW / tau : 0, LH.G), R);
+            }
             if (tauH > 0) {
-                // Vapeur entre les deux nuages (diffus), puis la glace ; quasi pas de vapeur au-dessus de l'enclume.
-                R *= Math.exp(-2 * LH.M_DIFFUS * k * wEntre);
+                // Vapeur jusqu'au nuage haut (diffus), puis la glace ; quasi pas de vapeur au-dessus de l'enclume.
+                R *= Math.exp(-2 * LH.M_DIFFUS * k * wDessus);
                 const tau = tauH + k * wGlace;
                 R = poser(couche(tau, tauH / tau, LH.G), R);
                 nir += LH.P[n] * R;
             } else {
-                // Nuage bas seul : la vapeur au-dessus est traversée par le faisceau direct (M) puis en diffus (5/3).
-                nir += LH.P[n] * Math.exp(-M * k * wEntre) * R * Math.exp(-LH.M_DIFFUS * k * wEntre);
+                // Sans nuage haut : la vapeur au-dessus est traversée par le faisceau direct (M) puis en diffus (5/3).
+                nir += LH.P[n] * Math.exp(-M * k * wDessus) * R * Math.exp(-LH.M_DIFFUS * k * wDessus);
             }
         }
         return vis + nir;
@@ -189,8 +204,8 @@
 
     /**
      * Albédo planétaire (sommet de l'atmosphère, avant voile) : surface d'albédo Rg, colonne du profil
-     * (RADIATIVE.colonneNuageuse : vapeur, population de nuages bas, fractions fBas / fHaut). Sous-colonnes en
-     * recouvrement aléatoire : clair, bas seul, haut seul, bas + haut. Renvoie aussi les ciels pour le diagnostic.
+     * (RADIATIVE.colonneNuageuse : vapeur, populations de nuages bas, fractions fBas / fMoyen / fHaut). Sous-colonnes en
+     * recouvrement aléatoire : clair, bas, moyen, haut et leurs combinaisons. Renvoie aussi les ciels pour le diagnostic.
      */
     /**
      * Albédo au sommet pour UN cosinus d'angle solaire μ₀ : ciels clair, bas, haut, bas + haut (populations), et leur
@@ -198,7 +213,7 @@
      */
     function albedoMu(mu, Rg, colonne, s, u) {
         const W = colonne.wTotal;
-        const fB = colonne.fBas, fH = colonne.fHaut;
+        const fB = colonne.fBas, fM = colonne.fMoyen, fH = colonne.fHaut;
         const Rr_s = rayleigh(0.0685, s), Ra_s = rayleigh(0.144, s);
         const M = 35 / Math.sqrt(1224 * mu * mu + 1);
         const ozDescente = aOz(M * u);
@@ -212,19 +227,25 @@
         let nirClair = 0;
         for (let n = 1; n < LH.K.length; n++) nirClair += LH.P[n] * Rg * Math.exp(-(M + LH.M_DIFFUS) * LH.K[n] * W);
         const aClair = visClair + nirClair;
-        // ── Ciels nuageux : populations (bas : profondeur ; hauts : ln τ).
-        const aBas = moyennePopulation(colonne.populations, (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, 0, c));
-        const aHaut = moyenneHauts((t) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, null));
-        const aDeux = moyenneHauts((t) => moyennePopulation(colonne.populations,
-            (c) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c)));
-        return { A: (1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux,
-            Aclair: aClair, Abas: aBas, Ahaut: aHaut };
+        // ── Ciels nuageux : populations (bas et moyens : profondeur ; hauts : ln τ), 8 sous-colonnes en recouvrement aléatoire.
+        const P = colonne.populations, NM = N_POPULATION_MOYENS;
+        const col = (t, c, cM) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c, cM);
+        const aBas = moyennePopulation(P, (c) => col(0, c, null));
+        const aHaut = moyenneHauts((t) => col(t, null, null));
+        const aDeux = moyenneHauts((t) => moyennePopulation(P, (c) => col(t, c, null)));
+        const aMoyen = fM > 0 ? moyennePopulation(P, (cM) => col(0, null, cM), NM) : 0;
+        const aBasMoyen = fM > 0 ? moyennePopulation(P, (cM) => moyennePopulation(P, (c) => col(0, c, cM)), NM) : 0;
+        const aMoyenHaut = fM > 0 ? moyenneHauts((t) => moyennePopulation(P, (cM) => col(t, null, cM), NM)) : 0;
+        const aTrois = fM > 0 ? moyenneHauts((t) => moyennePopulation(P, (cM) => moyennePopulation(P, (c) => col(t, c, cM)), NM)) : 0;
+        const A = (1 - fM) * ((1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux)
+            + fM * ((1 - fB) * (1 - fH) * aMoyen + fB * (1 - fH) * aBasMoyen + (1 - fB) * fH * aMoyenHaut + fB * fH * aTrois);
+        return { A: A, Aclair: aClair, Abas: aBas, Ahaut: aHaut, Amoyen: aMoyen };
     }
 
     /**
      * Albédo planétaire (sommet de l'atmosphère, avant voile) : surface d'albédo Rg, colonne du profil
-     * (RADIATIVE.colonneNuageuse : vapeur, population de nuages bas, fractions fBas / fHaut). Sous-colonnes en
-     * recouvrement aléatoire : clair, bas seul, haut seul, bas + haut. Moyenne GLOBALE : ∫ A(μ₀)·2μ₀ dμ₀ (Gauss-Legendre).
+     * (RADIATIVE.colonneNuageuse : vapeur, populations de nuages bas, fractions fBas / fMoyen / fHaut). Sous-colonnes en
+     * recouvrement aléatoire : clair, bas, moyen, haut et leurs combinaisons. Moyenne GLOBALE : ∫ A(μ₀)·2μ₀ dμ₀ (Gauss-Legendre).
      * Renvoie aussi les ciels pour le diagnostic.
      */
     function albedo(Rg, colonne) {
@@ -239,7 +260,7 @@
             Abas += poids * r.Abas;
             Ahaut += poids * r.Ahaut;
         }
-        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
+        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
     }
 
     window.SOLAIRE = {
