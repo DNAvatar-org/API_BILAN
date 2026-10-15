@@ -1,6 +1,7 @@
 // File: API_BILAN/demo/epoch_bench_main.js
 // Desc: Pont vers la page parente, puis cablage de la page (initEpochBenchPage, appele par le loader).
-// Version 2.3.3
+// Version 2.3.4
+//   - v2.3.4: bouton clear → BENCH_ACTIONS.vider.
 //   - v2.3.3: clic sur l'époque d'une ligne → BENCH_ACTIONS.voir (l'index recharge l'état de ce calcul).
 //   - v2.3.2: nombre de CPU en parallèle (#bench-cpu, workers du pool) à droite de « détail… ».
 //   - v2.3.1: __BENCH_FT__.pas(jauge, ±1) — boutons −1 / +1.
@@ -56,6 +57,7 @@ function initEpochBenchPage() {
     // (BENCH_ACTIONS, epoch_bench_encart.js).
     document.getElementById('btn-run').addEventListener('click', BENCH_ACTIONS.epoque);
     document.getElementById('btn-run-tic').addEventListener('click', BENCH_ACTIONS.tictime);
+    document.getElementById('btn-clear').addEventListener('click', BENCH_ACTIONS.vider);
 
     document.getElementById('results-body').addEventListener('click', function (ev) {
         const skipEl = ev.target.closest('.btn-skip-epoch');

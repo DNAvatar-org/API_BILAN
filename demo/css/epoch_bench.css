@@ -1,6 +1,7 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.4.3 — 2026-10-15 : td.col-epoch cliquable en encart, tr.vue = ligne montrée dans l'index.
+   Version 1.4.4 — 2026-10-15 : #btn-clear (place des CPU) ; #bench-cpu dans l'en-tête du tableau, à droite.
+   v1.4.3 — 2026-10-15 : td.col-epoch cliquable en encart, tr.vue = ligne montrée dans l'index.
    v1.4.2 — 2026-10-15 : #bench-cpu (CPU en parallèle, à droite de « détail… »).
    v1.4.1 — 2026-10-15 : .bench-repere (fourchette des sources, en blanc).
    v1.4.0 — 2026-10-15 : boutons −1 / +1 (.bench-ft-pas) ; en encart, jauges jusqu'au milieu.
@@ -351,5 +352,5 @@ html.encart #progress-label { grid-area: progres; }
 html.encart #bench-ft-detail { grid-area: detail; justify-self: start; align-self: end; }
 html.encart td.col-epoch { cursor: pointer; }   /* clic : l'index montre l'état de fin de la ligne */
 html.encart tr.vue td.col-epoch { box-shadow: inset 3px 0 0 #66fcf1; }   /* ligne montrée dans l'index */
-html.encart #bench-cpu { grid-area: detail; justify-self: end; align-self: end; }   /* même ligne que « détail… », à droite */
-#bench-cpu { color: #fff; font-size: 11px; cursor: help; }
+html.encart #btn-clear { grid-area: detail; justify-self: end; align-self: end; }   /* même ligne que « détail… », à droite */
+#bench-cpu { float: right; margin-left: 12px; color: #fff; font-size: 11px; font-weight: normal; cursor: help; }   /* dans le th CONV ATM */

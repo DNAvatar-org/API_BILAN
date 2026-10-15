@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/demo/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.4.2 — 2026-10-15 : bouton clear (#btn-clear) à la place des CPU, passés dans l'en-tête du tableau.
   Version 1.4.1 — 2026-10-15 : nombre de CPU en parallèle (#bench-cpu) à droite de « détail… ».
   Version 1.4.0 — 2026-10-15 : mise en page « encart » (dans l'index) : titre court, jauges à gauche, titre / ▶ / détail
   à leur droite ; bouton détail hors de la fenêtre des jauges.
@@ -52,7 +53,7 @@
     <div id="bench-ft-title-slot"></div>
   </div>
   <button id="bench-ft-detail" type="button" class="bench-ft-btn bench-ft-toggle" onclick="window.__BENCH_FT__.ouvrirDetail(); return false;" title="Détail des paramètres">détail…</button>
-  <span id="bench-cpu"></span>
+  <button id="btn-clear" type="button" class="bench-ft-btn" title="Vider le tableau (la ligne en cours de calcul reste)">clear</button>
   <span id="progress-label">—</span>
   <div class="bench-boutons">
     <button id="btn-run" class="btn-play" type="button" disabled
@@ -82,7 +83,7 @@
       <th class="num fit">T FIN</th>
       <th class="num fit" title="T_fin \u2212 T_graine (\u00b0C) ; T_graine = \u{1F321}\u{FE0F}\u{1F9EE} TIMELINE. Ce n\u2019est pas l\u2019\u00e9cart au milieu de la plage litt\u00e9rature CSV.">Δ T°</th>
       <th title="Ligne 1 : \u0394 = flux entrant \u2212 OLR effective au 1er pas Init (W/m\u00b2), m\u00eame convention que DATA \u{1F53A}\u{1F9F2} (entrant \u2212 sortant). \u0394&lt;0 fr\u00e9quent si la graine T est au-dessus de l\u2019\u00e9quilibre radiatif (OLR &gt; apports). Lignes suivantes : T (\u00b0C) le long de la convergence.">RADIATIF (\u0394 + T\u00b0)</th>
-      <th title="Post-convergence + plages Lit. CO\u2082 / CH\u2084 / H\u2082O vap. (% mol) CSV">CONV ATM</th>
+      <th title="Post-convergence + plages Lit. CO\u2082 / CH\u2084 / H\u2082O vap. (% mol) CSV">CONV ATM<span id="bench-cpu"></span></th>
     </tr>
   </thead>
   <tbody id="results-body"></tbody>
