@@ -5,7 +5,9 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.3.1
+// Version 1.4.0
+// - v1.4.0 (2026-10-15): flux absorbé par le SOL (S), à côté de l'albédo : absorption de l'atmosphère = 1 − A − S
+//   (décomposition de Donohoe & Battisti 2011). Visible : terme (40)/(42) ; vapeur : addition bande par bande.
 // - v1.3.1 (2026-10-15): 5 échantillons par population de nuages bas, 3 pour les moyens (25 → 10 s par époque, |ΔT| ≤ 0,1 °C).
 // - v1.3.0 (2026-10-15): nuages MOYENS (colonne.fMoyen, populations des nuages bas) dans l'empilement et le recouvrement
 //   aléatoire : 8 sous-colonnes (clair, bas, moyen, haut et leurs combinaisons).
@@ -135,12 +137,16 @@
     // Nuages hauts : N_HAUTS valeurs de τ visible, ln τ uniforme sur [TAU_HAUT_MIN, TAU_HAUT_MAX] (physics.js).
     const N_HAUTS = 8;
     /** Moyenne d'une grandeur sur la population de nuages hauts. */
-    function moyenneHauts(fn) {
+    function tausHauts() {
         const N = window.EARTH.NUAGES;
         const a = Math.log(N.TAU_HAUT_MIN), b = Math.log(N.TAU_HAUT_MAX);
-        let s = 0;
-        for (let j = 0; j < N_HAUTS; j++) s += fn(Math.exp(a + (b - a) * (j + 0.5) / N_HAUTS));
-        return s / N_HAUTS;
+        const t = [];
+        for (let j = 0; j < N_HAUTS; j++) t.push(Math.exp(a + (b - a) * (j + 0.5) / N_HAUTS));
+        return t;
+    }
+    function moyenneHauts(fn) {
+        const T = tausHauts();
+        return T.reduce((s, t) => s + fn(t), 0) / T.length;
     }
 
     /** Couche nuageuse conservative dans le visible (19) : { R, T = 1 − R }. */
@@ -166,8 +172,8 @@
         const Rstack = poser(haut, poser(moyen, bas.R));
         const Tstack = 1 - Rstack;
         const Rbar = Rstack + Tstack * Tstack * Rg / (1 - Rstack * Rg);
-        const vis = LH.PART_VISIBLE - (ozDescente + Rbar * ozRemontee)
-            - (LH.PART_VISIBLE - ozDescente) * Tstack * (1 - Rg) / (1 - Rstack * Rg);
+        const solVis = (LH.PART_VISIBLE - ozDescente) * Tstack * (1 - Rg) / (1 - Rstack * Rg);   // absorbé au sol (42)
+        const vis = LH.PART_VISIBLE - (ozDescente + Rbar * ozRemontee) - solVis;
         // ── Bandes de la vapeur : sol, vapeur sous le premier nuage, nuage bas, vapeur jusqu'au nuage moyen, nuage moyen,
         //    vapeur au-dessus, nuage haut. Vapeur effective : sous la base du nuage bas (wSousBase), dans le nuage bas
         //    (c.wMoyen), sous le niveau des nuages moyens (wSousMoyen), colonne entière (W).
@@ -177,31 +183,39 @@
         const wBasMoyen = c && cM ? Math.max(0, colonne.wSousMoyen - colonne.wSousBase - c.wMoyen) : 0;
         const wDessus = cM ? Math.max(0, W - colonne.wSousMoyen) : (c ? Math.max(0, W - colonne.wSousBase - c.wMoyen) : 0);
         const wGlace = LH.W_GOUTTES_PAR_TAU * tauH;                   // absorption des cristaux (même estimation, §4)
-        let nir = 0;
+        // Pour chaque bande, de bas en haut : réflexion R du système sous le niveau courant, et part Sb de ce qui y entre qui
+        // est absorbée par le sol. Couche (R₁, T₁) posée dessus : R = R₁ + T₁² R_b / (1 − R₁ R_b), Sb = T₁ Sb_b / (1 − R₁ R_b) ;
+        // vapeur pure de transmission t (aller) : R = t² R_b, Sb = t Sb_b.
+        let nir = 0, solNir = 0;
+        const sous = (c1, st) => { const d = 1 - c1.R * st.R; return { R: c1.R + c1.T * c1.T * st.R / d, Sb: c1.T * st.Sb / d }; };
+        const vapeur = (t, st) => ({ R: t * t * st.R, Sb: t * st.Sb });
         for (let n = 1; n < LH.K.length; n++) {
             const k = LH.K[n];
-            let R = Rg * Math.exp(-2 * LH.M_DIFFUS * k * wSous);
+            let st = vapeur(Math.exp(-LH.M_DIFFUS * k * wSous), { R: Rg, Sb: 1 - Rg });
             if (c) {
                 const tau = c.tauSW + k * wNuageBas;
-                R = poser(couche(tau, tau > 0 ? c.tauSW / tau : 0, LH.G), R);
+                st = sous(couche(tau, tau > 0 ? c.tauSW / tau : 0, LH.G), st);
             }
             if (cM) {
-                R *= Math.exp(-2 * LH.M_DIFFUS * k * wBasMoyen);
+                st = vapeur(Math.exp(-LH.M_DIFFUS * k * wBasMoyen), st);
                 const tau = cM.tauSW + k * wNuageMoyen;
-                R = poser(couche(tau, tau > 0 ? cM.tauSW / tau : 0, LH.G), R);
+                st = sous(couche(tau, tau > 0 ? cM.tauSW / tau : 0, LH.G), st);
             }
             if (tauH > 0) {
                 // Vapeur jusqu'au nuage haut (diffus), puis la glace ; quasi pas de vapeur au-dessus de l'enclume.
-                R *= Math.exp(-2 * LH.M_DIFFUS * k * wDessus);
+                st = vapeur(Math.exp(-LH.M_DIFFUS * k * wDessus), st);
                 const tau = tauH + k * wGlace;
-                R = poser(couche(tau, tauH / tau, LH.G), R);
-                nir += LH.P[n] * R;
+                st = sous(couche(tau, tauH / tau, LH.G), st);
+                nir += LH.P[n] * st.R;
+                solNir += LH.P[n] * st.Sb;
             } else {
                 // Sans nuage haut : la vapeur au-dessus est traversée par le faisceau direct (M) puis en diffus (5/3).
-                nir += LH.P[n] * Math.exp(-M * k * wDessus) * R * Math.exp(-LH.M_DIFFUS * k * wDessus);
+                const tDirect = Math.exp(-M * k * wDessus);
+                nir += LH.P[n] * tDirect * st.R * Math.exp(-LH.M_DIFFUS * k * wDessus);
+                solNir += LH.P[n] * tDirect * st.Sb;
             }
         }
-        return vis + nir;
+        return [vis + nir, solVis + solNir];
     }
 
     /**
@@ -224,24 +238,37 @@
         const Rr = rayleigh(0.28 / (1 + 6.43 * mu), s);
         const Ra = rayleigh(0.219 / (1 + 0.816 * mu), s);
         const RbarOz = Ra + (1 - Ra) * (1 - Ra_s) * Rg / (1 - Ra_s * Rg);
-        const visClair = LH.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee)
-            - (LH.PART_VISIBLE - Rr - ozDescente) * (1 - Rg) / (1 - Rr_s * Rg);
-        let nirClair = 0;
-        for (let n = 1; n < LH.K.length; n++) nirClair += LH.P[n] * Rg * Math.exp(-(M + LH.M_DIFFUS) * LH.K[n] * W);
-        const aClair = visClair + nirClair;
+        const solVisClair = (LH.PART_VISIBLE - Rr - ozDescente) * (1 - Rg) / (1 - Rr_s * Rg);   // absorbé au sol (40)
+        const visClair = LH.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee) - solVisClair;
+        let nirClair = 0, solNirClair = 0;
+        for (let n = 1; n < LH.K.length; n++) {
+            const tDirect = Math.exp(-M * LH.K[n] * W);                 // faisceau direct jusqu'au sol
+            nirClair += LH.P[n] * Rg * tDirect * Math.exp(-LH.M_DIFFUS * LH.K[n] * W);
+            solNirClair += LH.P[n] * tDirect * (1 - Rg);
+        }
+        const clair = [visClair + nirClair, solVisClair + solNirClair];
         // ── Ciels nuageux : populations (bas et moyens : profondeur ; hauts : ln τ), 8 sous-colonnes en recouvrement aléatoire.
-        const P = colonne.populations, NM = N_POPULATION_MOYENS;
+        //    Chaque colonne rend [albédo, absorbé au sol] ; moyennes vectorielles sur les populations.
+        const P = colonne.populations, NM = N_POPULATION_MOYENS, TH = tausHauts();
         const col = (t, c, cM) => colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, t, c, cM);
-        const aBas = moyennePopulation(P, (c) => col(0, c, null));
-        const aHaut = moyenneHauts((t) => col(t, null, null));
-        const aDeux = moyenneHauts((t) => moyennePopulation(P, (c) => col(t, c, null)));
-        const aMoyen = fM > 0 ? moyennePopulation(P, (cM) => col(0, null, cM), NM) : 0;
-        const aBasMoyen = fM > 0 ? moyennePopulation(P, (cM) => moyennePopulation(P, (c) => col(0, c, cM)), NM) : 0;
-        const aMoyenHaut = fM > 0 ? moyenneHauts((t) => moyennePopulation(P, (cM) => col(t, null, cM), NM)) : 0;
-        const aTrois = fM > 0 ? moyenneHauts((t) => moyennePopulation(P, (cM) => moyennePopulation(P, (c) => col(t, c, cM)), NM)) : 0;
-        const A = (1 - fM) * ((1 - fB) * (1 - fH) * aClair + fB * (1 - fH) * aBas + (1 - fB) * fH * aHaut + fB * fH * aDeux)
-            + fM * ((1 - fB) * (1 - fH) * aMoyen + fB * (1 - fH) * aBasMoyen + (1 - fB) * fH * aMoyenHaut + fB * fH * aTrois);
-        return { A: A, Aclair: aClair, Abas: aBas, Ahaut: aHaut, Amoyen: aMoyen };
+        const ajoute = (r, v, w) => { r[0] += w * v[0]; r[1] += w * v[1]; return r; };
+        const surBas = (fn, n = N_POPULATION) => {
+            const r = [0, 0];
+            for (const pop of P) for (let j = 0; j < n; j++) ajoute(r, fn(etatNuage(pop.tranches, (j + 0.5) / n)), pop.poids / n);
+            return r;
+        };
+        const surHauts = (fn) => TH.reduce((r, t) => ajoute(r, fn(t), 1 / TH.length), [0, 0]);
+        const aBas = surBas((c) => col(0, c, null));
+        const aHaut = surHauts((t) => col(t, null, null));
+        const aDeux = surHauts((t) => surBas((c) => col(t, c, null)));
+        const zero = [0, 0];
+        const aMoyen = fM > 0 ? surBas((cM) => col(0, null, cM), NM) : zero;
+        const aBasMoyen = fM > 0 ? surBas((cM) => surBas((c) => col(0, c, cM)), NM) : zero;
+        const aMoyenHaut = fM > 0 ? surHauts((t) => surBas((cM) => col(t, null, cM), NM)) : zero;
+        const aTrois = fM > 0 ? surHauts((t) => surBas((cM) => surBas((c) => col(t, c, cM)), NM)) : zero;
+        const melange = (i) => (1 - fM) * ((1 - fB) * (1 - fH) * clair[i] + fB * (1 - fH) * aBas[i] + (1 - fB) * fH * aHaut[i] + fB * fH * aDeux[i])
+            + fM * ((1 - fB) * (1 - fH) * aMoyen[i] + fB * (1 - fH) * aBasMoyen[i] + (1 - fB) * fH * aMoyenHaut[i] + fB * fH * aTrois[i]);
+        return { A: melange(0), S: melange(1), Aclair: clair[0], Sclair: clair[1], Abas: aBas[0], Ahaut: aHaut[0], Amoyen: aMoyen[0] };
     }
 
     /**
@@ -253,7 +280,7 @@
     function albedo(Rg, colonne) {
         const s = facteurRayleigh();
         const u = colonneOzone();
-        let A = 0, Aclair = 0, Abas = 0, Ahaut = 0;
+        let A = 0, Aclair = 0, Abas = 0, Ahaut = 0, S = 0, Sclair = 0;
         for (let q = 0; q < GL_X.length; q++) {
             const r = albedoMu(GL_X[q], Rg, colonne, s, u);
             const poids = GL_W[q] * 2 * GL_X[q];
@@ -261,8 +288,11 @@
             Aclair += poids * r.Aclair;
             Abas += poids * r.Abas;
             Ahaut += poids * r.Ahaut;
+            S += poids * r.S;
+            Sclair += poids * r.Sclair;
         }
-        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
+        // S : part du flux solaire au sommet absorbée par le SOL ; l'atmosphère absorbe 1 − A − S.
+        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, S: S, Sclair: Sclair, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
     }
 
     window.SOLAIRE = {
