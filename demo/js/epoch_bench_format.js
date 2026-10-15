@@ -1,8 +1,9 @@
 // File: API_BILAN/demo/epoch_bench_format.js
 // Desc: Formatage des cellules : temperatures, ages, plages litterature, snapshot ATM, chemin radiatif.
-// Version 1.4.0
-// Date: 2026-10-10
+// Version 1.4.1
+// Date: 2026-10-15
 // Logs:
+// - v1.4.1: T init : bande cyan (tC) puis fourchette des sources de l'époque (tCRepere, en blanc), une ligne chacune.
 // - v1.4.0: benchLogFile (journal de CO2, jamais chargé ici) et stubs displayConvergence / epochName retirés
 //   (demo_host.js et le moteur les fournissent) ; plus de contrôle de présence de BENCH_LIT_BY_EPOCH_ID.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -96,7 +97,9 @@ function fmtTinitCell(epoch, tInitC) {
     if (!('tC' in L)) {
         return tNum + '<br><span class="bench-sub">' + L.note + '</span>';
     }
-    var out = tNum + '<br><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>' + benchSrcMark(L, 'tC');
+    // Deux lignes insécables : la bande cyan (tC), puis la fourchette des sources de l'époque (tCRepere, en blanc).
+    var out = tNum + '<br><span class="bench-ligne"><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>' + benchSrcMark(L, 'tC') + '</span>'
+        + '<br><span class="bench-ligne"><span class="bench-repere">' + benchLitRangeBracket(L.tCRepere[0], L.tCRepere[1]) + '</span>' + benchSrcMark(L, 'tCRepere') + '</span>';
     if (L.note) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
     }

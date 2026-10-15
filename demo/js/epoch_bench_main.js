@@ -1,9 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_main.js
 // Desc: Pont vers la page parente, puis cablage de la page (initEpochBenchPage, appele par le loader).
-// Version 2.3.1
+// Version 2.3.3
+//   - v2.3.3: clic sur l'époque d'une ligne → BENCH_ACTIONS.voir (l'index recharge l'état de ce calcul).
+//   - v2.3.2: nombre de CPU en parallèle (#bench-cpu, workers du pool) à droite de « détail… ».
 //   - v2.3.1: __BENCH_FT__.pas(jauge, ±1) — boutons −1 / +1.
 //   - v2.3.0: ▶ et ⏭ par BENCH_ACTIONS (page autonome : moteur local ; encart : vrais clics de l'index).
-// Date: 2026-10-13
+// Date: 2026-10-15
 // logs :
 //   - v2.2.0: jauges séparées — __BENCH_FT__.onInput(jauge, valeur) ; garde du clic sur toutes les jauges.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -42,6 +44,12 @@ function initEpochBenchPage() {
         : ' — ?debugAPI=true pour logs calcul groupés';
     document.getElementById('footer-info').textContent =
         'Prêt — ' + window.TIMELINE.length + ' époques chargées' + dbgHint;
+    // Calcul spectral en parallèle : workers du pool (workers/worker_pool.js), un cœur laissé au rendu.
+    const pool = window.__API_BILAN_WORKER_POOL__;
+    const cpu = document.getElementById('bench-cpu');
+    cpu.textContent = pool.nWorkers + ' CPU en //';
+    cpu.title = pool.nWorkers + ' workers spectraux en parallèle sur ' + navigator.hardwareConcurrency
+        + ' threads annoncés par le navigateur (un réservé au rendu)';
     document.getElementById('btn-run').disabled = false;
     document.getElementById('btn-run-tic').disabled = false;
     // Page autonome : le moteur de la page (une erreur arrête le run, benchCrash) ; encart : l'index fait de vrais clics
@@ -54,6 +62,15 @@ function initEpochBenchPage() {
         if (skipEl !== null) {
             BENCH_ACTIONS.passer();
             console.log('[bench] ⏭ demandé — fin du calcul en cours, passage au suivant au prochain tick du solveur');
+            return;
+        }
+        // Clic sur l'époque d'une ligne, run terminé : l'index montre l'état de fin de ce calcul (encart).
+        const epCell = ev.target.closest('td.col-epoch');
+        if (epCell !== null && !document.getElementById('btn-run').disabled) {
+            document.querySelectorAll('#results-body tr.vue').forEach(function (r) { r.classList.remove('vue'); });
+            const tr = epCell.closest('tr');
+            tr.classList.add('vue');
+            BENCH_ACTIONS.voir(tr.dataset.rowKey);
             return;
         }
         const btn = ev.target.closest('.btn-copy-row');

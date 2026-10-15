@@ -1,6 +1,9 @@
 /* File: API_BILAN/demo/epoch_bench.css
    Desc: Mise en forme du banc : loader, en-tete, table de resultats, jauges fine-tuning.
-   Version 1.4.0 — 2026-10-15 : boutons −1 / +1 (.bench-ft-pas) ; en encart, jauges jusqu'au milieu.
+   Version 1.4.3 — 2026-10-15 : td.col-epoch cliquable en encart, tr.vue = ligne montrée dans l'index.
+   v1.4.2 — 2026-10-15 : #bench-cpu (CPU en parallèle, à droite de « détail… »).
+   v1.4.1 — 2026-10-15 : .bench-repere (fourchette des sources, en blanc).
+   v1.4.0 — 2026-10-15 : boutons −1 / +1 (.bench-ft-pas) ; en encart, jauges jusqu'au milieu.
    v1.3.0 — 2026-10-15 : mise en page « encart » (html.encart) ; .bench-ft-btn sorti de #bench-ft-title-slot.
    v1.2.1 — 2026-10-15 : fond transparent (étoiles de l'index dans l'onglet Bench).
    v1.2.0 — 2026-10-12 : détail du fine-tuning en popup (.bench-ft-dialog, tableau).
@@ -167,6 +170,8 @@ td.json-rad-path .bench-sub { color: #7a8599; font-size: 10px; font-weight: norm
 td.json-conv-atm .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
 td.num.tinit-cell { white-space: normal; text-align: right; vertical-align: top; line-height: 1.35; }
 td.num.tinit-cell .bench-sub { color: #7a8599; font-size: 10px; font-weight: normal; }
+td.num.tinit-cell .bench-repere { color: #fff; font-size: 10px; font-weight: normal; }   /* fourchette des sources de l'époque (tCRepere) */
+td.num.tinit-cell .bench-ligne { white-space: nowrap; }   /* fourchette + son statut : jamais coupés */
 td.json-conv-atm .bench-ircap { color: #c2b07a; }
 
 td.cell-icon {
@@ -344,3 +349,7 @@ html.encart #bench-ft-title-slot input[type="range"] { flex: 1 1 auto; width: au
 html.encart .bench-boutons { grid-area: boutons; display: flex; gap: 10px; }
 html.encart #progress-label { grid-area: progres; }
 html.encart #bench-ft-detail { grid-area: detail; justify-self: start; align-self: end; }
+html.encart td.col-epoch { cursor: pointer; }   /* clic : l'index montre l'état de fin de la ligne */
+html.encart tr.vue td.col-epoch { box-shadow: inset 3px 0 0 #66fcf1; }   /* ligne montrée dans l'index */
+html.encart #bench-cpu { grid-area: detail; justify-self: end; align-self: end; }   /* même ligne que « détail… », à droite */
+#bench-cpu { color: #fff; font-size: 11px; cursor: help; }

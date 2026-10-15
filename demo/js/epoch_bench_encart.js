@@ -4,7 +4,8 @@
 //         · encart (onglet Bench de l'index) : le banc n'est qu'un flag — ▶ demande à l'index de lancer
 //           (CO2/static/ui/bench_pilote.js, window.BENCH.suite = 'epoque' | 'tictime'), l'index fait de VRAIS clics
 //           (organigramme, frise) et renvoie une ligne par calcul, que la table affiche (createRow / updateRow).
-// Version 1.0.0
+// Version 1.1.0
+// - v1.1.0: BENCH_ACTIONS.voir — clic sur l'époque d'une ligne → l'index recharge l'état de ce calcul.
 // Date: 2026-10-15
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -23,12 +24,15 @@ const BENCH_ACTIONS = window.parent === window
     ? {
         epoque: function () { runAllEpochs().catch(benchCrash); },
         tictime: function () { runTictimes().catch(benchCrash); },
-        passer: function () { window.ABORT_COMPUTE = true; }
+        passer: function () { window.ABORT_COMPUTE = true; },
+        voir: function () {}   // page autonome : pas d'organigramme à remplir
     }
     : {
         epoque: function () { benchDebutEncart('epoque'); },
         tictime: function () { benchDebutEncart('tictime'); },
-        passer: function () { window.parent.postMessage({ type: 'bench:passer' }, '*'); }
+        passer: function () { window.parent.postMessage({ type: 'bench:passer' }, '*'); },
+        // Clic sur l'époque d'une ligne : l'index reprend l'état de fin de ce calcul (BENCH.voir, bench_pilote.js).
+        voir: function (rowKey) { window.parent.postMessage({ type: 'bench:voir', rowKey: rowKey }, '*'); }
     };
 
 // Lignes envoyées par l'index (encart seulement : la page autonome ne reçoit pas ces messages).

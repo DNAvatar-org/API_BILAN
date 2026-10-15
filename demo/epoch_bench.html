@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!--
   File: API_BILAN/demo/epoch_bench.html — Bench multi-époques (TIMELINE)
+  Version 1.4.1 — 2026-10-15 : nombre de CPU en parallèle (#bench-cpu) à droite de « détail… ».
   Version 1.4.0 — 2026-10-15 : mise en page « encart » (dans l'index) : titre court, jauges à gauche, titre / ▶ / détail
   à leur droite ; bouton détail hors de la fenêtre des jauges.
   Version 1.3.0 — 2026-10-10 : chargé par le loader commun (API_BILAN/loader/) ; epoch_bench_boot.js supprimé.
@@ -51,6 +52,7 @@
     <div id="bench-ft-title-slot"></div>
   </div>
   <button id="bench-ft-detail" type="button" class="bench-ft-btn bench-ft-toggle" onclick="window.__BENCH_FT__.ouvrirDetail(); return false;" title="Détail des paramètres">détail…</button>
+  <span id="bench-cpu"></span>
   <span id="progress-label">—</span>
   <div class="bench-boutons">
     <button id="btn-run" class="btn-play" type="button" disabled

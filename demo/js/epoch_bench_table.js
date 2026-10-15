@@ -1,8 +1,9 @@
 // File: API_BILAN/demo/epoch_bench_table.js
 // Desc: Table de resultats : creation et mise a jour des lignes, copie d une ligne au presse-papier.
-// Version 1.1.0
-// Date: 2026-10-06
+// Version 1.1.1
+// Date: 2026-10-15
 // logs :
+//   - v1.1.1: tr.dataset.rowKey (clic sur la ligne → état de ce calcul dans l'index).
 //   - v1.1.0: une ligne = une cle (opts.rowKey), plus forcement une epoque : le mode tictimes ecrit
 //     plusieurs lignes par epoque (un clic chacune), avec l'etape du clic sous le nom et la T° d'arrivee
 //     en T init (opts.tInitC). Logos d'hysteresis alignes sur configTimeline (🌦 1b, ⛈ 1c).
@@ -99,6 +100,7 @@ function createRow(epoch, opts) {
       '<td class="json-rad-path mono" id="radpath-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-conv-atm mono" id="convatm-' + safeId + '"><span class="status-run">\u2026</span></td>';
     tr.dataset.safeId = safeId;
+    tr.dataset.rowKey = opts.rowKey;
 
     document.getElementById('results-body').appendChild(tr);
     return tr;
