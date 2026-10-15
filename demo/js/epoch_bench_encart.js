@@ -4,7 +4,8 @@
 //         · encart (onglet Bench de l'index) : le banc n'est qu'un flag — ▶ demande à l'index de lancer
 //           (CO2/static/ui/bench_pilote.js, window.BENCH.suite = 'epoque' | 'tictime'), l'index fait de VRAIS clics
 //           (organigramme, frise) et renvoie une ligne par calcul, que la table affiche (createRow / updateRow).
-// Version 1.1.2
+// Version 1.1.3
+// - v1.1.3: nuages vus d'en haut (🪩👁) lus dans l'état gardé par l'index pour la ligne (BENCH.etats, même origine).
 // - v1.1.2: BENCH_ACTIONS.vider — bouton clear : lignes terminées retirées (la ligne en calcul reste) ; l'index oublie leurs états.
 // - v1.1.1: la date de la ligne vient de l'index (ligne.date).
 // - v1.1.0: BENCH_ACTIONS.voir — clic sur l'époque d'une ligne → l'index recharge l'état de ce calcul.
@@ -58,5 +59,8 @@ window.addEventListener('message', function (e) {
         document.getElementById('progress-fill').style.width = (e.data.avance * 100) + '%';
         return;
     }
+    // Nuages vus d'en haut : l'index garde l'état de fin de chaque ligne (BENCH.etats, posé juste après l'envoi de la ligne,
+    // avant le clic suivant) — lu ici plutôt que dans la ligne, que l'index (CO2) construit sans le connaître.
+    L.convAtmSnap.isccp = window.parent.BENCH.etats[L.rowKey].DATA['🪩']['🪩👁'];
     updateRow(L.rowKey, L.epochId, L.initStep, L.lastStep, L.status, L.tInitC, ep, L.path, L.convAtmSnap);
 });

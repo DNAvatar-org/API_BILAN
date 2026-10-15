@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.8.3
+// Version 1.8.4
+// - v1.8.4 (2026-10-15): nuage.fMoyen = 0 (nuages moyens non représentés), lu par le simulateur ISCCP.
 // - v1.8.3 (2026-10-13): k de Martin pondéré par ALBEDO.fractionMaritime (banquise = air maritime).
 // - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
 // - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
@@ -217,7 +218,7 @@ function profilAtmosphere(z_range) {
         return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
                 tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, wTotal: 0, wSousBase: 0,
-                fBas: 0, fHaut: 0, tHaut: 0 } };
+                fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
     const M_a = wA / nA;                                   // [kg/mol] masse molaire des non condensables
     const M_c = CONST.M_H2O;
@@ -417,7 +418,7 @@ function profilAtmosphere(z_range) {
     return { couches: couches, iTrop: iTrop,
         nuage: { W: W, tauSW: tauSW, tauIR: tauIR, base: zBase, sommet: zSommet, lwcPluie: LWC_pluie,
             tranches: tranches, wTotal: wTotal, wSousBase: wSousBase,
-            fBas: fBas, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };
+            fBas: fBas, fMoyen: 0, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };   // fMoyen : non représentés (physics.js)
 }
 
 /** Colonne nuageuse à l'état courant (T, composition) : le profil intégré jusqu'au sommet de l'atmosphère. */

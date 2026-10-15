@@ -3,9 +3,10 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.6
+// Version 2.0.7
 // Date: [October 15, 2026]
 // logs :
+// - v2.0.7: 🪩👁 = nuages vus d'en haut (simulateur ISCCP), posé en fin de calcul, diagnostic seul.
 // - v2.0.6: 📜🔺⏳ = durée du dernier clic joué (Ma), posée par CLICS.jouer.
 //   - v2.0.5 (2026-10-12): 🪩🍰⛅ dans DATA['🪩'] (réflectance du nuage calculée) ; FORM de 🍰🪩⛅ = fraction mesurée.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -27,7 +28,7 @@ const KEYS = {
     // Cycle de l'eau
     '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🌧💧', '🧲⚖️💦', '💭☔'],
     // Albédo
-    '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '🪩🍰⛅', '☁️'],
+    '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰🧊', '🪩🍰⛅', '☁️', '🪩👁'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
     '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
     // Convergence
@@ -130,6 +131,7 @@ const DESC = {
         '🍰🫧💧': 'Fraction MASSIQUE de vapeur, à la SURFACE (kg/kg) — ⚠️ pas une moyenne de colonne',
         '🍰🌧💧': 'Humidité relative de surface (sans dimension) = 🍰🫧💧 / q_sat',
         '☁️': 'Index de formation nuageuse [0,1]',
+        '🪩👁': 'Nuages VUS D\'EN HAUT (simulateur ISCCP) : par niveau de sommet L / M / H et classe de τ, quantité et τ moyen radiatif de la colonne — à comparer à ISCCP-H (data/isccp_h_2010.js)',
         '💭☔': 'Seuil critique précipitations [0.7,0.9]',
         '🧲⚖️💦': 'Flux de masse d\'eau précipitée (kg/m²/s), P = W/τ',
     },
@@ -249,6 +251,7 @@ const FORM = {
         '🍰🫧💧': 'max(0, min(🍰🧪🌧 × (CONST.M_H2O / 🧪), ⚖️💧 / ⚖️🫧) - (🧲⚖️💦 × (4 × π × (📐 × 1000)²) × 🔺⏳) / ⚖️🫧) - Fraction massique de vapeur',
         '🍰🌧💧': 'clamp(🍰🫧💧 / ((CONST.M_H2O / 🧪) × 🍰🧪🌧), 0, 1) [Clausius-Clapeyron] - Humidité relative globale (q / q_sat en fraction massique)',
         '☁️': '1 - (1 - min(🍰🌧💧, 1))^0.6 — Sundqvist (1989) : couverture nuageuse à partir de la SEULE humidité relative [sans dimension, 0-1]',
+        '🪩👁': 'NUAGES_ISCCP.vusDenHaut(RADIATIVE.colonneNuageuse()) en fin de calcul : sous-colonnes en recouvrement aléatoire, sommet = couche la plus haute, τ de colonne = Σ τ présents, τ radiatif = R⁻¹(⟨R(τ)⟩), R deux-flux de solaire.js',
         '💭☔': 'clamp(0.75 + 0.05 × (🧮🌡️ - EARTH.EVAPORATION_T_REF) / EARTH.EVAPORATION_T_SCALE, 0.7, 0.95) - Seuil critique précipitations [0.7,0.9]',
         '🧲⚖️💦': 'W/τ_global × ramp(RH−💭☔, 0.2) quand RH > 💭☔ ; W = masse_vapeur_par_m² (kg/m²) ; P = W/τ (litt. ~2,7 mm/j GPCP) - Taux précipitation (kg/m²/s)'
     },

@@ -3,7 +3,8 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.3.1
+// Version 2.3.2
+// - v2.3.2 (2026-10-15): 👁 = vu d'en haut par un satellite passif (simulateur ISCCP).
 // Date: [October 14, 2026]
 // logs :
 //   - v2.3.1: ☃ = Pré-sturtienne ; tictimes nommés 🫠 🌨 🫗 (pré-sortie sturtienne, pré-snowball et pré-sortie marinoens).
@@ -53,6 +54,7 @@ const CHARS = {
     EMISSIONS: '🛢',     // Scénario émissions CO₂ (époque moderne, remplace 💫 pour 📱)
     EMISSIONS_HIGH: '🪾', // Scénario émissions le plus fort (📱) : 2 × 🛢 par tranche de 25 ans
     SATELLITE: '🛰', // Satellite : satellite (événement)
+    VU_DEN_HAUT: '👁', // Vu d'en haut par un satellite passif (simulateur ISCCP, radiative/nuages_isccp.js)
     FLUX_CN: '🌑', // Flux sortant : lune noire (rayonnement corps noir sortant)
     TOLERANCE: '🔬', // Tolérance : précision pour le test d'arrêt
     DESERT: '🏜️',   // Désert : plage (utilisé dans albedo breakdown)
@@ -215,6 +217,7 @@ const CHARS_DESC = {
     '📛': 'EDS (effet de serre)',
     '🌑': 'Flux sortant (σT⁴)',
     '☁️': 'Index formation nuageuse [0,1]',
+    '👁': 'Vu d\'en haut (satellite passif, simulateur ISCCP)',
     // Événements
     '⚗': 'Affiche les concentrations (action d\'interface — ce n\'est PAS une unité)',
     '💫': 'TicTime',

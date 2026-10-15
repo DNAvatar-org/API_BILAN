@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.4.0
+// Version 1.4.1
+// - v1.4.1 (2026-10-15): 🪩👁 (nuages vus d'en haut, simulateur ISCCP) posé en fin de calcul.
 // - v1.4.0 (2026-10-12): pas de recherche = pente MESURÉE (sécante) ; à défaut, et pour la tolérance, rétroaction de
 //   Planck au niveau d'émission 4σT_e³ (T_e = (OLR/σ)^¼) au lieu de 4σT_s³ (surface nue) — sous une atmosphère
 //   épaisse, la tolérance valait ~6 000 W/m² et la recherche avançait de 4 K par pas.
@@ -1054,6 +1055,8 @@ async function computeRadiativeTransfer(callback) {
     if (apiDbg) console.log('[API_BILAN] compute fin', '🧮🛑=', DATA['🧮']['🧮🛑'], '🧮🔄☀️=', DATA['🧮']['🧮🔄☀️']);
     // Calottes (physics/calottes.js) : l'état du dernier pas devient celui de la date courante — le clic suivant part de là.
     window.CALOTTES.engager(DATA);
+    // Nuages vus d'en haut (simulateur ISCCP, radiative/nuages_isccp.js) : diagnostic de l'état convergé, hors bilan.
+    DATA['🪩']['🪩👁'] = window.NUAGES_ISCCP.vusDenHaut(window.RADIATIVE.colonneNuageuse());
     return true;
     } finally {
         if (apiDbg) console.groupEnd();

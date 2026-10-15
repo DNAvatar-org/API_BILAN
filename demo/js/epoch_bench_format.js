@@ -1,6 +1,7 @@
 // File: API_BILAN/demo/epoch_bench_format.js
 // Desc: Formatage des cellules : temperatures, ages, plages litterature, snapshot ATM, chemin radiatif.
-// Version 1.4.1
+// Version 1.4.2
+// - v1.4.2: ligne ☁👁 — nuages vus d'en haut (simulateur ISCCP, 🪩👁) ; sur 📱, la mesure ISCCP-H 2010 entre crochets.
 // Date: 2026-10-15
 // Logs:
 // - v1.4.1: T init : bande cyan (tC) puis fourchette des sources de l'époque (tCRepere, en blanc), une ligne chacune.
@@ -177,6 +178,7 @@ function fmtConvAtmSnapshot(snap, epochId) {
     }
     if (lineCake) chunks.push(lineCake);
     if (lineAlb) chunks.push(lineAlb);
+    if (snap.isccp) chunks.push(fmtNuagesVusDenHaut(snap.isccp, epochId));
     var out = chunks.join('<br>');
     if (L && !('tC' in L) && L.note) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
@@ -184,6 +186,21 @@ function fmtConvAtmSnapshot(snap, epochId) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
     }
     return out;
+}
+
+/** Nuages vus d'en haut (simulateur ISCCP, 🪩👁) : quantité et τ radiatif par niveau de sommet L / M / H et au total. Sur 📱
+ *  (Terre actuelle), la mesure ISCCP-H 2010 (data/isccp_h_2010.js) entre crochets — un contrôle, pas une cible. */
+function fmtNuagesVusDenHaut(v, epochId) {
+    var ref = epochId === '📱' ? window.ISCCP_H_2010 : null;
+    var seg = function (m, r, nom) {
+        var s = nom + ' ' + (m.a * 100).toFixed(0) + '% τ' + m.tau.toFixed(1);
+        if (r) s += ' <span class="bench-sub">[' + (r.a * 100).toFixed(0) + '% τ' + r.tau.toFixed(1) + ']</span>';
+        return s;
+    };
+    var segs = ['L', 'M', 'H'].map(function (k) { return seg(v.niveaux[k], ref && ref.niveaux[k], k); });
+    segs.push(seg(v.total, ref && ref.total, 'Σ'));
+    return '<span class="bench-key" title="Nuages vus d\'en haut (simulateur ISCCP) : quantité vue d\'en haut et τ moyen radiatif de la colonne, par niveau de sommet (L bas, M moyen, H haut)'
+        + (ref ? ' ; entre crochets : ISCCP-H 2010' : '') + '">☁👁</span> ' + segs.join(' · ');
 }
 
 /** RADIATIF : une ligne \u{1F53A}\u{1F9F2} init = \u0394 1er pas ; puis cha\u00eene T (\u00b0C). lastStepForDelta : r\u00e9serv\u00e9 appelant (non affich\u00e9). */

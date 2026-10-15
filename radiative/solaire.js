@@ -5,7 +5,8 @@
 //       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
 //       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
 //       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.1.0
+// Version 1.1.1
+// - v1.1.1 (2026-10-15): nuageVisible exposé (simulateur ISCCP, radiative/nuages_isccp.js).
 // - v1.1.0 (2026-10-13): albedoMu (albédo à un μ₀ donné) exposé pour le bilan méridien ; albedo() = sa moyenne Gauss-Legendre.
 // Date: [October 13, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -89,10 +90,10 @@
     }
 
     /** Moyenne d'une grandeur sur la population de nuages (toutes profondeurs de 0 au sommet également représentées). */
-    function moyennePopulation(tranches, fn) {
+    function moyennePopulation(tranches, fn, n = N_POPULATION) {
         let s = 0;
-        for (let j = 0; j < N_POPULATION; j++) s += fn(etatNuage(tranches, (j + 0.5) / N_POPULATION));
-        return s / N_POPULATION;
+        for (let j = 0; j < n; j++) s += fn(etatNuage(tranches, (j + 0.5) / n));
+        return s / n;
     }
 
     /** Facteur de colonne de Rayleigh : nombre de molécules par m² rapporté à la Terre actuelle (τ_R ∝ P/(g·M)). */
@@ -242,6 +243,7 @@
         colonneOzone: colonneOzone,
         moyennePopulation: moyennePopulation,
         moyenneHauts: moyenneHauts,
+        nuageVisible: nuageVisible,
         etatNuage: etatNuage
     };
 })();

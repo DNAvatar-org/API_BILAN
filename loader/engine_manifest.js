@@ -4,7 +4,8 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.5
+// Version 1.0.6
+// - v1.0.6 (2026-10-15): radiative/nuages_isccp.js + data/isccp_h_2010.js (simulateur ISCCP et sa référence).
 // - v1.0.5 (2026-10-15): CO2/static/histoire/point_modele.js (point des courbes du modèle, une seule fabrique).
 // - v1.0.4 (2026-10-15): CO2/static/histoire/litterature.js après configTimeline (graine = courbe de la littérature).
 // - v1.0.3 (2026-10-13): physics/meridien.js (bilan d'énergie méridien de North et al. 1981).
@@ -47,6 +48,8 @@ window.ENGINE_SCRIPTS = [
     'co2/calculations_co2.js',
     'radiative/calculations.js',
     'radiative/solaire.js',
+    'radiative/nuages_isccp.js',   // simulateur ISCCP (nuages vus d'en haut) : diagnostic seul
+    'data/isccp_h_2010.js',        // sa référence mesurée (ISCCP-H 2010)
     'data/paleogeo_zones.js',   // paléogéographie zonale (PaleoDEM Scotese & Wright 2018), lue par physics/calottes.js
     'physics/calottes.js',      // calottes continentales (profil plastique + bilan de masse)
     'physics/meridien.js',   // bilan méridien (North 1981) : utilise SOLAIRE.albedoMu, lu par calculations_albedo

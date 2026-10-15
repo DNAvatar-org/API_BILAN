@@ -3,7 +3,8 @@
 //       graine 🌡️🧮 (comme un clic sur la frise), remplit la table. Porte aussi ce que les deux modes
 //       partagent : ecoute du solveur, mesure d'une convergence (benchMesurer), debut / fin de run.
 //       Le mode TICTIMES (chaine de clics, T° conservee) est dans epoch_bench_chain.js.
-// Version 2.0.1
+// Version 2.0.2
+// - v2.0.2: convAtmSnap.isccp = 🪩👁 (nuages vus d'en haut).
 //   - v2.0.1: createRow reçoit la date de l'état (▶ pour une frise).
 // Date: 2026-10-10
 // logs :
@@ -112,7 +113,8 @@ async function benchMesurer(api, runCfg, rowKey, epoch, tRefC) {
         Mair:     D_ATM['🧪'],
         capCO2IR: D_ATM['🍰🫧🏭🌈'],
         capH2OIR: D_ATM['🍰🫧💧🌈'],
-        capSumIR: D_ATM['🍰🫧📿🌈']
+        capSumIR: D_ATM['🍰🫧📿🌈'],
+        isccp:    D_ALB['🪩👁']           // nuages vus d'en haut (simulateur ISCCP, fin de calcul)
     };
     updateRow(rowKey, epochId, R.initStep, R.lastStep, R.finalStatus, tRefC, epoch, radPathCopy, convAtmSnap);
 

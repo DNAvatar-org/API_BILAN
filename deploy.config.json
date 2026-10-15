@@ -297,6 +297,14 @@
       "dest": "pages/bilan_radiatif/API_BILAN/radiative/solaire.js"
     },
     {
+      "src": "radiative/nuages_isccp.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/radiative/nuages_isccp.js"
+    },
+    {
+      "src": "data/isccp_h_2010.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/isccp_h_2010.js"
+    },
+    {
       "src": "physics/meridien.js",
       "dest": "pages/bilan_radiatif/API_BILAN/physics/meridien.js"
     },
