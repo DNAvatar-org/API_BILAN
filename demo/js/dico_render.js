@@ -2,9 +2,10 @@
 // Desc: En français, dans l'architecture, je suis la VUE du dictionnaire : la grille du lexique, avec la
 //       valeur courante de chaque clé lue dans DATA. Les définitions (KEYS, DESC, FORM, KEYS_ALT0SEC) ne
 //       sont plus ici : elles vivent dans API_BILAN/data/dico.js, que je lis par window. Chargé après lui.
-// Version 1.2.0
-// Date: [October 14, 2026]
+// Version 1.2.1
+// Date: [October 18, 2026]
 // logs :
+//   - v1.2.1: 🌕 Noyau au-dessus de 🧲 Flux (5ᵉ colonne).
 //   - v1.2.0: provenance épistémique de chaque clé (data/episteme.js, doc/js/episteme_rendu.js).
 //   - v1.1.0: déplacé de CO2/static/compute/ vers API_BILAN/demo/ (rendu des définitions de l'API).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -56,10 +57,6 @@ function createDicoHtml() {
             name: 'Date Époque'
         },
         {
-            logo: '🌕',
-            name: 'Noyau'
-        },
-        {
             logo: '☀️',
             name: 'Soleil'
         },
@@ -82,6 +79,10 @@ function createDicoHtml() {
         {
             logo: '🧮',
             name: 'Convergence'
+        },
+        {
+            logo: '🌕',
+            name: 'Noyau'
         },
         {
             logo: '🧲',
@@ -118,12 +119,12 @@ function createDicoHtml() {
         `;
     });
     
-    // Organiser en colonnes (11 catégories → 5 colonnes : 3, 2, 2, 2, 2)
-    const col1 = categoryHTMLs.slice(0, 3).join('');
-    const col2 = categoryHTMLs.slice(3, 5).join('');
-    const col3 = categoryHTMLs.slice(5, 7).join('');
-    const col4 = categoryHTMLs.slice(7, 9).join('');
-    const col5 = categoryHTMLs.slice(9, 11).join('');
+    // Organiser en colonnes (11 catégories → 5 colonnes : 2, 2, 2, 2, 3 ; Noyau au-dessus de Flux)
+    const col1 = categoryHTMLs.slice(0, 2).join('');
+    const col2 = categoryHTMLs.slice(2, 4).join('');
+    const col3 = categoryHTMLs.slice(4, 6).join('');
+    const col4 = categoryHTMLs.slice(6, 8).join('');
+    const col5 = categoryHTMLs.slice(8, 11).join('');
     
     return `
         <div class="legend-grid">
