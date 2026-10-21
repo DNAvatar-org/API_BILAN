@@ -9,7 +9,9 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.3.5
+// Version 1.3.6
+// - v1.3.6: emettre(kg, ans) — émission libre sur 📱 (une page hôte : les déplacements du joueur de DNA Tamagoshi),
+//   comme une action de tranche mais de masse et de durée données, puits compris.
 // - v1.3.5: tranches de 📱 jusqu'à la borne de la frise (TIMELINE_FUTUR ◀ = 2300), plus jusqu'à ◀ de 📱 (2100).
 // - v1.3.4: 📜🔺⏳ = durée du clic joué (Ma), remise à 0 au changement d'époque.
 // - v1.3.3: ☄️ cumule l'eau de SON entrée de séquence (🔺⚖️💧☄️) dans 📜🔺⚖️💧 — la masse peut changer d'un ☄️ à l'autre.
@@ -141,6 +143,24 @@ window.CLICS = (function () {
             H['_veilTimelinePulseActive'] = false;
             window.DATA['🌕']['🌡️🌕'] = 0;
             window.CALOTTES.depuisConfig(window.DATA);
+        },
+
+        /**
+         * Émission libre sur 📱 : kg de CO₂ émis, sur `ans` années — même effet qu'une action de tranche (⛽ 🛢 🪾) :
+         * masse injectée, puits (océan, forêts) sur la durée, horloge avancée ; sans tranche ni séquence. Une page
+         * hôte y met ce qu'elle mesure (CO2 embarqué : les déplacements du joueur). Ne lance aucun calcul.
+         */
+        emettre: function (kg, ans) {
+            const H = window.DATA['📜'];
+            if (!this.parTranche()) throw new Error('[CLICS] emettre sur ' + epoque()['📅'] + ' : réservé à 📱 (🕰 par année)');
+            H['🔺⚖️🏭'] += kg;
+            window.CO2.advanceCarbonSinks(ans, kg);
+            H['📿💫'] += 1;
+            H['🔘🕰'] = '⛽';             // une émission fossile : le libellé de ⛽
+            H['🔺⏳'] = ans / 1e6;
+            H['📿🕰'] += 1;
+            H['⏳'] += ans / 1e6;
+            return { passage: null };
         },
 
         /** Passage à l'époque suivante au fil des clics : l'état (T°, glace, voile) est conservé. */
