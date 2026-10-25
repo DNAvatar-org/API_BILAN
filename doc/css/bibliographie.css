@@ -1,7 +1,6 @@
 /* File: API_BILAN/doc/css/bibliographie.css
    Desc: Style de la bibliographie (doc/BIBLIOGRAPHIE.html), sorti du <style> de la page ; statuts épistémiques 🧭 / usages 🛠.
-   Version 1.0.0
-   Date: 2026-10-14
+   Version 1.1.0 — 2026-10-25 : parties Physique / Observations (doc/js/bibliographie.js).
    Copyright 2026 DNAvatar.org - Arnaud Maignan */
 /* v2026-09-17 : thème sombre (affichée dans la popup noire d'index — textes #222 illisibles avant) */
 body { font-family: "Palatino Linotype", Georgia, serif; max-width: 880px; margin: 2em auto; padding: 0 1em; color: #e0e0e0; background: #1a1a1a; }
@@ -21,3 +20,12 @@ article.ref:target { background: #4a4020; border-left-color: #fc3; }
 nav.toc { background: #262a2e; padding: 0.6em 1em; border-radius: 4px; }
 nav.toc a { text-decoration: none; color: #7fc4ff; }
 .sec-note { font-size: 0.85em; color: #aaa; }
+
+/* Parties Physique / Observations (doc/js/bibliographie.js) : titre de partie, thèmes en h3 */
+section.partie > h2 { margin-top: 2.5em; font-size: 1.5em; color: #f0f0f0; border-bottom: 2px solid #9ecbff; }
+#partie-observations > h2 { border-bottom-color: #66fcf1; }
+section.partie h3 { margin-top: 1.6em; color: #9ecbff; border-bottom: 1px solid #444; }
+#partie-observations h3 { color: #66fcf1; }
+#partie-observations article.ref { border-left-color: #66fcf1; }
+.ref .aussi-obs { color: #66fcf1; font-family: Georgia, serif; font-style: italic; }
+nav.toc .toc-partie { margin-top: 0.4em; }

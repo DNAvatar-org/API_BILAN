@@ -167,3 +167,34 @@ posé à côté, lui, raconte la version des manuels. **Chantier ouvert, non tra
 3. **Les 3 étiquettes de bandes fausses**, ou une attribution par espèce résolue en λ qui ne soit
    pas biaisée (pondération par τ colonne, à écrire).
 4. **La porte anthropique** sur `anthro_factor`, toujours cassée.
+
+---
+
+## 5. Retrait dans le transfert seul, à état figé (relevé du 2026-10-24)
+
+Deux défauts dans les passes de `computeEdsRemovalShares`, qui modifiaient DATA :
+- **nuages** : la passe posait ☁️ (`🍰🪩⛅`) à 0, mais l'IR lit les fractions des trois étages
+  (`DATA['🎚️'].CLOUD_SW.F_BAS`, `CLOUD_SW.F_HAUT`, `EARTH.NUAGES.F_MOYEN`) ; ☁️ est la couverture géométrique de l'albédo
+  et de l'affichage. L'OLR « sans nuages » valait l'OLR de référence : part des nuages 0 %, depuis le commit 4ad1306 (jauges
+  séparées FROID / CHAUD / SUBTIL / HYSTERESIS) ;
+- **vapeur** : la passe posait `🍰🫧💧` à 0. Sans eau, `profilAtmosphere` ne forme plus de nuages (`avecEau`) et intègre
+  l'adiabatique sèche au lieu de l'humide : l'effet « H₂O » comptait la vapeur, les nuages et le changement de gradient.
+
+Désormais chaque absorbeur est retiré du **transfert seulement** : `calculateFluxForT0(retrait)` annule, couche par couche,
+`n_CO2` (raies et CIA), `n_H2O` et le continuum, `n_CH4`, ou `tauNuage` (`RETRAIT_COUCHE`) ; T, profil, vapeur et nuages
+restent ceux de l'état convergé, comme chez Schmidt et al. (2010). DATA n'est plus modifié.
+
+Mesuré sur 📱 convergé (13,33 °C, OLR 228,41, EDS 151,47 W/m², même arbre de travail, seule `calculations.js` diffère) :
+
+| on retire | effet avant (W/m²) | effet après | part avant | part après |
+|---|---|---|---|---|
+| nuages | 0 | **37,56** | 0 % | **34,7 %** |
+| H₂O (raies + continuum) | 104,82 | **44,75** | 80,2 % | **41,4 %** |
+| CO₂ | 23,62 | 23,64 | 18,1 % | 21,9 % |
+| CH₄ | 2,19 | 2,19 | 1,7 % | 2,0 % |
+| somme des retraits | 130,6 | 108,1 | | |
+
+La somme des retraits (108,1) reste sous l'EDS (151,5) : recouvrement de 43,4 W/m² (29 %), comme au §3. À 288 K figés :
+nuages 37,7, H₂O 47,2, CO₂ 23,9, CH₄ 2,2 W/m². L'effet des nuages est leur effet radiatif LW (OLR ciel clair − OLR) :
+37,6 W/m², contre ~26–28 pour le CRE_LW de CERES (🎯). Littérature (🎯) : vapeur ~50 %, nuages ~25 %, CO₂ ~20 %. Aucune
+température ne change : l'attribution est un diagnostic, pas un terme du bilan.

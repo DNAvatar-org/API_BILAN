@@ -18,7 +18,8 @@
 //       l'ensoleillement qu'elle reçoit, et sa surface libre). La glace dépend de T₂ et T₂ de la glace : point fixe.
 //       Approximations DÉCLARÉES : deux modes (le gradient tropical réel est plus plat, North §3) ; mêmes nuages dans les trois
 //       zones (fractions globales mesurées) ; surface libre = océan + terres de la géologie.
-// Version 1.1.0
+// Version 1.2.0
+// - v1.2.0 (2026-10-22): calottes au profil T(x) = T̄ + T₂ P₂(x) et à l'insolation absorbée par une surface qui fond.
 // - v1.1.0 (2026-10-14): calottes continentales (physics/calottes.js) dans l'albédo de surface de chaque zone.
 // Date: [October 13, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
@@ -111,10 +112,11 @@
      *   albedoLibre: albédo de la surface SANS glace (géologie) ;
      *   albedoGlace: (cle, T_zone_K) → albédo de la glace saisonnière de la zone (Briegleb, calculations_albedo.js) ;
      *   albedoNeige: albédo des calottes (neige permanente) ;
+     *   albedoFonte: { neige, glace } albédos d'une calotte qui fond (neige mouillée, glace nue) ;
      *   calottesDepart, dureeAns : état de départ des calottes et durée de relaxation (physics/calottes.js).
-     * Renvoie { T2, dT, coAlbedo, Rg, calottes } pour le diagnostic.
+     * Renvoie { T2, dT, coAlbedo, Rg, calottes, absorbe } pour le diagnostic.
      */
-    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace, albedoNeige, calottesDepart, dureeAns) {
+    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace, albedoNeige, albedoFonte, calottesDepart, dureeAns) {
         const DATA = window.DATA;
         const eps = window.EARTH.obliquiteCourante(EPOCH);
         const J = integralesJ(eps);
@@ -126,12 +128,24 @@
         let T2 = 0;
         const coAlbedo = {}, Rg = {};
         const ageMa = window.INTERIEUR.ageCourant(DATA) / 1e6;
+        // Part de l'insolation absorbée au sol par une calotte qui fond (neige mouillée, glace nue), aux angles solaires de chaque
+        // zone : le τ_a (1 − α_s) de Robinson & Goelzer 2014, ici par le transfert solaire du modèle (nuages et vapeur compris).
+        const absorbe = {};
+        for (const z of ZONES) {
+            let neige = 0, glace = 0;
+            for (const q of Q[z.cle]) {
+                neige += q.poids * window.SOLAIRE.albedoMu(q.mu, albedoFonte.neige, colonne, s, u).S;
+                glace += q.poids * window.SOLAIRE.albedoMu(q.mu, albedoFonte.glace, colonne, s, u).S;
+            }
+            absorbe[z.cle] = { neige: neige, glace: glace };
+        }
         let calottes = null;
         for (let k = 0; k < 30; k++) {
             const f = window.EARTH.facteurGlaceZones(T_K, EPOCH, dT);
-            // Calottes continentales aux températures de zone de cette itération (amplitude saisonnière des TERRES).
-            calottes = window.CALOTTES.calculer({ pol: T_K - dT.pol, mid: T_K - dT.mid, trop: T_K - dT.trop },
-                { pol: f.amp_pol, mid: f.amp_mid, trop: f.amp_trop }, T_K, ageMa, EPOCH, calottesDepart, dureeAns);
+            // Calottes continentales au profil méridien de cette itération : T(x) = T̄ + T₂ P₂(x), T₂ tiré des écarts de zone
+            // (dT_z = −T₂ ⟨P₂⟩_z), amplitude saisonnière des TERRES.
+            calottes = window.CALOTTES.calculer(T_K, -dT.pol / P2_MOYEN.pol, { pol: f.amp_pol, mid: f.amp_mid, trop: f.amp_trop },
+                absorbe, ageMa, EPOCH, calottesDepart, dureeAns);
             let H = 0;
             for (const z of ZONES) {
                 const e = f['e_' + z.cle];                          // part de l'énergie de la zone qui tombe sur la glace saisonnière
@@ -153,7 +167,7 @@
             if (ecart < 0.01) break;
         }
         window.STATE.dTzones = dT;
-        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg, calottes: calottes };
+        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg, calottes: calottes, absorbe: absorbe };
     }
 
     window.MERIDIEN = { NORTH1981: NORTH1981, P2_MOYEN: P2_MOYEN, integralesJ: integralesJ, quadratureMu: quadratureMu, resoudre: resoudre };

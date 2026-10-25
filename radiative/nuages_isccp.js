@@ -10,7 +10,8 @@
 //       DÉTECTION : un satellite passif ne voit pas une couche de τ < 0,3 (seuil du simulateur ISCCP de COSP ; Klein & Jakob
 //       1999, Pincus et al. 2012) — elle n'est pas un sommet, la colonne est rangée à la couche visible suivante (ou claire).
 //       Approximation DÉCLARÉE : ISCCP abaisse aussi le sommet des nuages minces visibles (« location adjusted ») ; pas ici.
-// Version 1.2.0
+// Version 1.2.1
+// - v1.2.1 (2026-10-25): réflectance d'inversion à l'asymétrie G_ASYMETRIE (solaire.js prend celle de chaque nuage).
 // - v1.2.0 (2026-10-15): seuil de détection τ ≥ 0,3 (une couche plus mince est invisible : le sommet vu est la couche visible suivante).
 // - v1.1.0 (2026-10-15): échantillons pondérés (populations de nuages bas océan / continent, colonne.populations).
 // Date: [October 15, 2026]
@@ -54,7 +55,7 @@
     function vusDenHaut(colonne) {
         const fB = colonne.fBas, fM = colonne.fMoyen, fH = colonne.fHaut;
         const E = echantillons(colonne);
-        const R = (tau) => window.SOLAIRE.nuageVisible(tau).R;
+        const R = (tau) => window.SOLAIRE.nuageVisible(tau, window.EARTH.NUAGES.G_ASYMETRIE).R;
         const acc = { L: [[0, 0], [0, 0], [0, 0]], M: [[0, 0], [0, 0], [0, 0]], H: [[0, 0], [0, 0], [0, 0]] };
         // Chaque couche : absente (1 − f) ou un échantillon de sa population ; toutes les combinaisons (recouvrement aléatoire).
         const etats = (f, ech) => [{ tau: 0, w: 1 - f }].concat(ech.map((e) => ({ tau: e.tau, w: f * e.w })));

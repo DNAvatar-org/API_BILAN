@@ -1,35 +1,36 @@
-// File: API_BILAN/radiative/solaire.js - Rayonnement solaire dans l'atmosphère (Lacis & Hansen 1974)
-// Desc: Je calcule l'albédo au SOMMET de l'atmosphère (🍰🪩📿 avant voile) à partir de l'albédo de la surface, de la
-//       vapeur, de l'ozone, de la diffusion de Rayleigh et des nuages — le schéma de Lacis & Hansen (1974, J. Atmos.
-//       Sci. 31:118), ajusté sur des calculs de diffusion multiple (doubling-adding) et standard du modèle GISS.
-//       Avant (≤ 2026-10-12) : albédo = surface + nuage par addition à 2 couches, SANS atmosphère — tout le soleil
-//       arrivait au sol ou repartait ; or la vapeur absorbe une grande part du proche infrarouge (éq. 21) AU-DESSUS des
-//       nuages, et le nuage réfléchit moins qu'un nuage sans absorption.
-// Version 1.4.0
-// - v1.4.0 (2026-10-15): flux absorbé par le SOL (S), à côté de l'albédo : absorption de l'atmosphère = 1 − A − S
-//   (décomposition de Donohoe & Battisti 2011). Visible : terme (40)/(42) ; vapeur : addition bande par bande.
-// - v1.3.1 (2026-10-15): 5 échantillons par population de nuages bas, 3 pour les moyens (25 → 10 s par époque, |ΔT| ≤ 0,1 °C).
-// - v1.3.0 (2026-10-15): nuages MOYENS (colonne.fMoyen, populations des nuages bas) dans l'empilement et le recouvrement
-//   aléatoire : 8 sous-colonnes (clair, bas, moyen, haut et leurs combinaisons).
-// - v1.2.0 (2026-10-15): nuages bas = plusieurs populations pondérées (océan, continent : colonne.populations), moyennePopulation les moyenne.
-// - v1.1.1 (2026-10-15): nuageVisible exposé (simulateur ISCCP, radiative/nuages_isccp.js).
-// - v1.1.0 (2026-10-13): albedoMu (albédo à un μ₀ donné) exposé pour le bilan méridien ; albedo() = sa moyenne Gauss-Legendre.
+// File: API_BILAN/radiative/solaire.js - Rayonnement solaire dans l'atmosphère (Lacis & Hansen 1974 ; vapeur : Chou & Suarez 1999)
+// Desc: Je calcule l'albédo au SOMMET de l'atmosphère (🍰🪩📿 avant voile) et le flux absorbé au sol à partir de l'albédo de la
+//       surface, de la vapeur, de l'ozone, de la diffusion de Rayleigh et des nuages. Ozone, Rayleigh et nuages : le schéma de
+//       Lacis & Hansen (1974, J. Atmos. Sci. 31:118), ajusté sur des calculs de diffusion multiple (doubling-adding). Vapeur :
+//       la k-distribution de Chou & Suarez (1999, NASA TM-104606 vol. 15, CLIRAD-SW), calée raie par raie (HITRAN 1996) et
+//       validée à moins de 1 % sur les flux (leur table 8) ; O₂ du même document. Aérosol de fond : climatologie MACv2.
+// Version 1.7.0
+// - v1.7.0 (2026-10-25): gouttes et cristaux de Chou & Suarez 1999 (co-albédo et asymétrie par bande, selon le rayon effectif).
+// - v1.6.0 (2026-10-24): aérosol de fond MACv2 (Kinne 2019) dans le visible sous les nuages ; absorption de l'O₂ (Chou & Suarez 1999).
+// - v1.5.0 (2026-10-22): vapeur de Chou & Suarez 1999 (proche IR, 10 coefficients ; visible, bande 8) au lieu de Lacis & Hansen.
 // Date: [October 13, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 //
-// Tout ce qui suit est tiré de l'article (numéros d'équations entre parenthèses) :
-//   · 64,7 % du flux solaire hors des bandes de la vapeur (λ < 0,9 µm), 35,3 % dedans (§5) ;
+// Partage du spectre (Chou & Suarez 1999, table 3) : ultraviolet et visible (0,175–0,70 µm, bandes 1–8) 47,074 % du flux,
+// proche infrarouge (0,70–10 µm, bandes 9–11) 52,926 %.
+// Vapeur (Chou & Suarez 1999) :
+//   · proche IR : transmission T(w) = Σ h_i e^(−k_i w), 10 coefficients k_i (table 2) ; sous nuage, les bandes 9, 10 et 11
+//     séparément (les gouttes et les cristaux n'y absorbent pas pareil) ; en ciel clair, leurs poids h_i additionnés ;
+//   · visible (bande 8, 0,40–0,70 µm, 39,081 % du flux) : faible, T = e^(−k̄w), k̄ = 0,00075 g⁻¹ cm² (éq. 3.12–3.13), ajoutée
+//     en perturbation du transfert visible (écart au même trajet sans vapeur ; l'interaction avec la diffusion de Rayleigh,
+//     d'ordre deux, est négligée) ;
+//   · w = eau à l'échelle (p/300 hPa)^0,8 [1 + 0,00135 (T − 240 K)] (éq. 3.3, 3.5), calculée par le profil
+//     (RADIATIVE.profilAtmosphere) ; trajet direct M, remontée diffuse 5/3 (Lacis & Hansen 25–27).
+//   ⚠️ Absents, déclarés : Rayleigh du proche IR (−3,1 W/m² au sol à 60°, leur table 7), CO₂ (−3,3), continuum de la vapeur.
+// Ozone, Rayleigh et nuages (Lacis & Hansen 1974, numéros d'équations entre parenthèses) :
 //   · ozone : A_oz(x) = A_vis(x) + A_uv(x) (8, 9), chemin direct x = u·M, M = 35/√(1224 μ₀² + 1) (11, 12),
 //     remontée diffuse M̄ = 1,9 (13) ; absorption totale A_oz(uM) + R̄·[A_oz(uM + M̄u) − A_oz(uM)] (14, 15) ;
 //   · Rayleigh : albédo du ciel clair R̄_r(μ₀) = 0,28/(1 + 6,43 μ₀), sphérique R̄*_r = 0,0685 (41) ; albédo effectif
 //     pour l'ozone R̄_a = 0,219/(1 + 0,816 μ₀), R̄*_a = 0,144 (18) ;
-//   · vapeur : distribution des coefficients d'absorption k_n, poids p(k_n), 8 termes (table 1, ajustée sur
-//     l'absorptivité de Yamamoto (21) à 0,1 % près) ; eau précipitable effective y·(P/P₀)·√(T₀/T) (24), calculée
-//     par le profil (RADIATIVE.profilAtmosphere) ; trajet direct M, diffus 5/3 (25–27) ;
-//   · nuage : deux-flux de Sagan & Pollack (31), g = 0,85, couches additionnées (33) ; la vapeur du nuage et
-//     l'absorption des gouttes (≈ 0,08 cm d'eau équivalente pour τ = 8, §4) entrent dans ω ;
+//   · nuage : deux-flux de Sagan & Pollack (31), couches additionnées (33) ; gouttes et cristaux : co-albédo et facteur
+//     d'asymétrie de Chou & Suarez (§4.2, tables 5 et 6) par bande et selon le rayon effectif ; la vapeur du nuage entre dans ω ;
 //   · surface : partie visible (40) en ciel clair, (42) sous nuage.
 // Moyenne GLOBALE : l'hémisphère éclairé d'une sphère est uniformément réparti en μ₀ ∈ [0,1] ; le flux absorbé moyen
 // est donc ∫ A(μ₀)·2μ₀ dμ₀ — de la géométrie, pas un angle « effectif » choisi (quadrature de Gauss-Legendre).
@@ -38,14 +39,61 @@
     'use strict';
 
     const LH = {
-        K: [4e-5, 0.002, 0.035, 0.377, 1.95, 9.40, 44.6, 190.0],                       // [cm⁻¹] table 1
-        P: [0.6470, 0.0698, 0.1443, 0.0584, 0.0335, 0.0225, 0.0158, 0.0087],           // [-]    table 1
-        PART_VISIBLE: 0.647,        // [-] hors bandes de la vapeur (§5)
         M_DIFFUS_OZONE: 1.9,        // [-] (13)
-        M_DIFFUS: 5 / 3,            // [-] (25–27)
-        G: 0.85,                    // [-] facteur d'asymétrie des gouttes (Hansen & Pollack 1970)
-        W_GOUTTES_PAR_TAU: 0.08 / 8 // [cm] absorption des gouttes ≈ vapeur équivalente (§4, τ = 8 → 0,08 cm)
+        M_DIFFUS: 5 / 3             // [-] (25–27)
     };
+    // Vapeur : Chou & Suarez 1999, table 2 (coefficients k à p_r = 300 hPa et θ_r = 240 K ; poids h de chaque bande du proche IR,
+    // en fraction du flux solaire total — leurs sommes sont les S/S₀ des bandes 9, 10 et 11 de la table 3) et table 3.
+    const CS99 = {
+        K: [0.0010, 0.0133, 0.0422, 0.1334, 0.4217, 1.3340, 5.6230, 31.620, 177.80, 1000.0],                // [g⁻¹cm²]
+        H_BANDE_9: [0.20673, 0.03497, 0.03011, 0.02260, 0.01336, 0.00696, 0.00441, 0.00115, 0.00026, 0.00000],   // [-] 0,70–1,22 µm
+        H_BANDE_10: [0.08236, 0.01157, 0.01133, 0.01143, 0.01240, 0.01258, 0.01381, 0.00650, 0.00244, 0.00094],  // [-] 1,22–2,27 µm
+        H_BANDE_11: [0.01074, 0.00360, 0.00411, 0.00421, 0.00389, 0.00326, 0.00499, 0.00465, 0.00245, 0.00145],  // [-] 2,27–10 µm
+        PART_VISIBLE: 0.47074,      // [-] bandes 1–8, 0,175–0,70 µm (table 3)
+        PART_PAR: 0.39081,          // [-] bande 8, 0,40–0,70 µm (table 3)
+        K_PAR: 0.00075              // [g⁻¹cm²] vapeur dans la bande 8 (éq. 3.12–3.13)
+    };
+    /** Poids h de chaque coefficient k sur tout le proche IR (bandes 9 + 10 + 11 ; Σ = 0,52926). */
+    const H_PROCHE_IR = CS99.K.map((_, i) => CS99.H_BANDE_9[i] + CS99.H_BANDE_10[i] + CS99.H_BANDE_11[i]);
+    const H_BANDES = [CS99.H_BANDE_9, CS99.H_BANDE_10, CS99.H_BANDE_11];
+    // Gouttes et cristaux (Chou & Suarez 1999 §4.2 ; spectres de Tsay et al. 1989 pour l'eau, de Fu 1996 pour la glace, moyennés
+    // sur chaque bande) : co-albédo de diffusion simple 1 − ω = b₀ + b₁r + b₂r² (table 5) et facteur d'asymétrie
+    // g = c₀ + c₁r + c₂r² (table 6), r = taille effective [µm], pour les bandes 1–8 (co-albédo < 10⁻⁵, nul), 9, 10 et 11.
+    // Ajustés sur des gouttes de 4 à 20 µm et des cristaux de 20 à 130 µm.
+    const OPTIQUE = {
+        EAU: { B: [[0, 0, 0], [7.15e-8, 8.45e-6, -4.15e-8], [-1.99e-4, 8.88e-4, -6.50e-6], [1.21e-2, 1.79e-2, -3.69e-4]],
+               C: [[0.826, 5.29e-3, -1.49e-4], [0.794, 8.32e-3, -2.33e-4], [0.745, 1.37e-2, -3.82e-4], [0.835, 2.57e-3, 5.52e-5]] },
+        GLACE: { B: [[0, 0, 0], [-2.60e-6, 7.46e-6, 0], [2.15e-3, 7.37e-4, -1.34e-6], [8.94e-2, 2.99e-3, -1.04e-5]],
+                 C: [[0.746, 1.05e-3, -2.64e-6], [0.749, 1.20e-3, -3.67e-6], [0.761, 1.42e-3, -3.96e-6], [0.841, 1.26e-3, -3.85e-6]] }
+    };
+    const poly = (a, r) => a[0] + a[1] * r + a[2] * r * r;
+    /** Taille effective des cristaux au sens de Fu 1996 [µm] : même extinction que le profil (Q_ext = 2), 3/(2ρr_e) = 4√3/(3ρr_i),
+     *  donc r_i = (8√3/9)·r_e (r_e : EARTH.NUAGES.R_EFF_GLACE). */
+    const rayonGlace = () => 8 * Math.sqrt(3) / 9 * window.EARTH.NUAGES.R_EFF_GLACE * 1e6;
+    /** Optique d'un nuage d'épaisseur τ, dont τ_l en gouttes de rayon effectif moyen r_l [µm] et le reste en cristaux : pour les
+     *  bandes 1–8, 9, 10, 11, { a : co-albédo, g } du mélange (Chou & Suarez éq. 6.3–6.4). */
+    function optiqueNuage(tau, tauLiq, rLiq) {
+        const rG = rayonGlace(), tauGlace = tau - tauLiq;
+        return [0, 1, 2, 3].map((b) => {
+            const aL = poly(OPTIQUE.EAU.B[b], rLiq), aG = poly(OPTIQUE.GLACE.B[b], rG);
+            const dL = tauLiq * (1 - aL), dG = tauGlace * (1 - aG);   // diffusion
+            return { a: tau > 0 ? (tauLiq * aL + tauGlace * aG) / tau : 0,
+                g: dL + dG > 0 ? (dL * poly(OPTIQUE.EAU.C[b], rLiq) + dG * poly(OPTIQUE.GLACE.C[b], rG)) / (dL + dG) : 0 };
+        });
+    }
+    /** Optique d'un état de nuage (etatNuage) : rayon effectif des gouttes moyenné sur leur épaisseur optique. */
+    const optiqueEtat = (c) => optiqueNuage(c.tauSW, c.tauLiq, c.tauLiq > 0 ? c.tauRLiq / c.tauLiq : 0);
+    // AÉROSOL DE FOND troposphérique, Terre actuelle : climatologie MACv2 (Kinne 2019, ACP 19:10919), moyennes globales au
+    // milieu du visible : épaisseur optique 0,12, albédo de diffusion simple 0,94, facteur d'asymétrie 0,70 (✅ mesure, AERONET
+    // + modèles). ⚠️ DÉCLARÉ : appliqué à l'ultraviolet et au visible seuls (bandes 1–8, 47,074 % du flux ; plus mince dans le
+    // proche IR), en couche sous les nuages (couche limite), même valeur pour toutes les époques qui ont une atmosphère (pas de
+    // chimie des aérosols).
+    const AEROSOL = { TAU: 0.12, OMEGA: 0.94, G: 0.70 };   // [-], [-], [-]
+    // O₂ : bandes A, B et faibles (7600–8050, 12850–13190, 14310–14590, 15730–15930 cm⁻¹), 6,33 % du flux solaire ; transmission
+    // moyenne e^(−k√w), k = 0,000145 (cm-atm STP)^(−1/2), w = quantité d'O₂ ramenée à p_r = 300 hPa par (p/p_r)^0,8, ajustée
+    // sur des calculs raie par raie (Chou & Suarez 1999, éq. 3.5, 3.16–3.18). Sous nuages : réduction du flux au sol
+    // × F_net nuageux / F_net clair (leur éq. 6.18).
+    const O2 = { PART_SPECTRE: 0.0633, K: 0.000145, P_REF_PA: 30000, M: 0.8 };   // [-], [(cm-atm)^(−1/2)], [Pa], [-]
     // Ozone : colonne actuelle et dépendance à l'O₂. ⚠️ MESURE + LOI DÉCLARÉE : colonne moyenne actuelle ~300 DU
     // (0,30 cm STP) ; modèles photochimiques 1D, 124 DU à 1 % du niveau actuel d'O₂ (Segura et al. 2003) — loi de
     // puissance par ces deux points, exposant ln(300/124)/ln(100) = 0,19. Un modèle 3D (Cooke et al. 2022, WACCM6)
@@ -90,13 +138,13 @@
     /** État cumulé du nuage à la profondeur relative u (interpolation dans les tranches du profil). */
     function etatNuage(tranches, u) {
         const P = tranches.profondeur;
-        if (P.length === 1) return { tauSW: 0, tauIR: 0, wMoyen: 0, wSature: 0 };   // pas de nuage : épaisseur nulle
+        if (P.length === 1) return { tauSW: 0, tauIR: 0, wMoyen: 0, wSature: 0, tauLiq: 0, tauRLiq: 0 };   // pas de nuage : épaisseur nulle
         const d = u * P[P.length - 1];
         let i = 1;
         while (i < P.length - 1 && P[i] < d) i++;
         const a = (P[i] - P[i - 1]) > 0 ? (d - P[i - 1]) / (P[i] - P[i - 1]) : 0;
         const v = (cle) => tranches[cle][i - 1] + a * (tranches[cle][i] - tranches[cle][i - 1]);
-        return { tauSW: v('tauSW'), tauIR: v('tauIR'), wMoyen: v('wMoyen'), wSature: v('wSature') };
+        return { tauSW: v('tauSW'), tauIR: v('tauIR'), wMoyen: v('wMoyen'), wSature: v('wSature'), tauLiq: v('tauLiq'), tauRLiq: v('tauRLiq') };
     }
 
     /** Moyenne d'une grandeur sur les populations de nuages bas (RADIATIVE : océan et continent, chacune de poids p) ; dans
@@ -121,6 +169,27 @@
     function rayleigh(R1, s) {
         const t1 = R1 / (1 - R1);
         return s * t1 / (1 + s * t1);
+    }
+
+    /** Quantité d'O₂ de la colonne verticale [cm-atm STP], ramenée à p_r (Chou & Suarez 1999 éq. 3.5) : (x_O₂ · colonne d'air
+     *  STP) · (p_s/p_r)^m / (1 + m), intégrale de (p/p_r)^m sur la colonne. Sans atmosphère : 0. */
+    function colonneO2() {
+        const DATA = window.DATA, CONST = window.CONST, f = DATA['🫧'];
+        if (DATA['🫧']['🎈'] === 0) return 0;                       // sans atmosphère (⚫) : pas d'O₂
+        const Ps = DATA['🫧']['🎈'] * window.CONV.STANDARD_ATMOSPHERE_PA;
+        const nAir = f['🍰🫧🏭'] / CONST.M_CO2 + f['🍰🫧🐄'] / CONST.M_CH4 + f['🍰🫧🫁'] / CONST.M_O2 + f['🍰🫧💨'] / CONST.M_N2;   // [mol/kg]
+        const xO2 = (f['🍰🫧🫁'] / CONST.M_O2) / nAir;
+        const colonneSTP = Ps / DATA['📅']['🍎'] * nAir * 0.0224140 * 100;   // [cm] mol/m² × volume molaire STP
+        return xO2 * colonneSTP * Math.pow(Ps / O2.P_REF_PA, O2.M) / (1 + O2.M);
+    }
+
+    /** Sol d'albédo Rg sous la couche d'aérosol de fond (visible) : réflexion R du système et part Sb de ce qui y entre absorbée
+     *  par le sol — le reste (1 − R − Sb) est absorbé par l'aérosol. Sans atmosphère : le sol nu. */
+    function solAerosol(Rg) {
+        const tau = window.DATA['🫧']['🎈'] === 0 ? 0 : AEROSOL.TAU;
+        const a = couche(tau, AEROSOL.OMEGA, AEROSOL.G);
+        const d = 1 - a.R * Rg;
+        return { R: a.R + a.T * a.T * Rg / d, Sb: a.T * (1 - Rg) / d };
     }
 
     /** Colonne d'ozone [cm STP] (OZONE ci-dessus). */
@@ -149,9 +218,9 @@
         return T.reduce((s, t) => s + fn(t), 0) / T.length;
     }
 
-    /** Couche nuageuse conservative dans le visible (19) : { R, T = 1 − R }. */
-    function nuageVisible(tau) {
-        const b = Math.sqrt(3) * (1 - LH.G) * tau;
+    /** Couche nuageuse conservative dans le visible (19), facteur d'asymétrie g : { R, T = 1 − R }. */
+    function nuageVisible(tau, g) {
+        const b = Math.sqrt(3) * (1 - g) * tau;
         const R = b / (2 + b);
         return { R: R, T: 1 - R };
     }
@@ -165,57 +234,71 @@
      */
     function colonneNuageuse(mu, M, ozDescente, ozRemontee, Rg, colonne, tauH, c, cM) {
         const W = colonne.wTotal;
+        // Optique par bande (1–8, 9, 10, 11) : nuage haut (cristaux), moyen et bas (gouttes et cristaux de leur tranche).
+        const oH = optiqueNuage(tauH, 0, 0);
+        const oM = cM ? optiqueEtat(cM) : null, oB = c ? optiqueEtat(c) : null;
         // ── Visible : nuages conservatifs empilés (sans sol), puis sol.
-        const haut = nuageVisible(tauH);
-        const moyen = nuageVisible(cM ? cM.tauSW : 0);
-        const bas = nuageVisible(c ? c.tauSW : 0);
+        const haut = nuageVisible(tauH, oH[0].g);
+        const moyen = cM ? nuageVisible(cM.tauSW, oM[0].g) : { R: 0, T: 1 };
+        const bas = c ? nuageVisible(c.tauSW, oB[0].g) : { R: 0, T: 1 };
         const Rstack = poser(haut, poser(moyen, bas.R));
         const Tstack = 1 - Rstack;
+        const SA = solAerosol(Rg);                                                 // sol vu à travers l'aérosol de fond
+        const RbarA = Rstack + Tstack * Tstack * SA.R / (1 - Rstack * SA.R);
+        const entre = (CS99.PART_VISIBLE - ozDescente) * Tstack / (1 - Rstack * SA.R);   // entre sous les nuages (42)
+        const solVis = entre * SA.Sb;                                              // absorbé au sol
+        const vis = CS99.PART_VISIBLE - (ozDescente + RbarA * ozRemontee) - entre * (1 - SA.R);
+        // Même empilement sans vapeur ni aérosol (k = 0 de la boucle de vapeur ci-dessous) : référence de la vapeur du visible.
         const Rbar = Rstack + Tstack * Tstack * Rg / (1 - Rstack * Rg);
-        const solVis = (LH.PART_VISIBLE - ozDescente) * Tstack * (1 - Rg) / (1 - Rstack * Rg);   // absorbé au sol (42)
-        const vis = LH.PART_VISIBLE - (ozDescente + Rbar * ozRemontee) - solVis;
+        const solConservatif = Tstack * (1 - Rg) / (1 - Rstack * Rg);
         // ── Bandes de la vapeur : sol, vapeur sous le premier nuage, nuage bas, vapeur jusqu'au nuage moyen, nuage moyen,
         //    vapeur au-dessus, nuage haut. Vapeur effective : sous la base du nuage bas (wSousBase), dans le nuage bas
         //    (c.wMoyen), sous le niveau des nuages moyens (wSousMoyen), colonne entière (W).
         const wSous = c ? colonne.wSousBase : (cM ? colonne.wSousMoyen : W);
-        const wNuageBas = c ? c.wSature + LH.W_GOUTTES_PAR_TAU * c.tauSW : 0;
-        const wNuageMoyen = cM ? cM.wSature + LH.W_GOUTTES_PAR_TAU * cM.tauSW : 0;   // mêmes populations (⚠️ physics.js)
+        // Vapeur dans les nuages (air saturé) ; l'absorption des gouttes et des cristaux est dans leur co-albédo.
+        const wNuageBas = c ? c.wSature : 0;
+        const wNuageMoyen = cM ? cM.wSature : 0;   // mêmes populations (⚠️ physics.js)
         const wBasMoyen = c && cM ? Math.max(0, colonne.wSousMoyen - colonne.wSousBase - c.wMoyen) : 0;
         const wDessus = cM ? Math.max(0, W - colonne.wSousMoyen) : (c ? Math.max(0, W - colonne.wSousBase - c.wMoyen) : 0);
-        const wGlace = LH.W_GOUTTES_PAR_TAU * tauH;                   // absorption des cristaux (même estimation, §4)
-        // Pour chaque bande, de bas en haut : réflexion R du système sous le niveau courant, et part Sb de ce qui y entre qui
+        // Pour un coefficient k, de bas en haut : réflexion R du système sous le niveau courant, et part Sb de ce qui y entre qui
         // est absorbée par le sol. Couche (R₁, T₁) posée dessus : R = R₁ + T₁² R_b / (1 − R₁ R_b), Sb = T₁ Sb_b / (1 − R₁ R_b) ;
-        // vapeur pure de transmission t (aller) : R = t² R_b, Sb = t Sb_b.
-        let nir = 0, solNir = 0;
+        // vapeur pure de transmission t (aller) : R = t² R_b, Sb = t Sb_b. Renvoie [réfléchi au sommet, absorbé au sol].
         const sous = (c1, st) => { const d = 1 - c1.R * st.R; return { R: c1.R + c1.T * c1.T * st.R / d, Sb: c1.T * st.Sb / d }; };
         const vapeur = (t, st) => ({ R: t * t * st.R, Sb: t * st.Sb });
-        for (let n = 1; n < LH.K.length; n++) {
-            const k = LH.K[n];
+        // Bande b (0 : 1–8, 1–3 : 9–11) : extinction du nuage τ_c + vapeur k·w, diffusion τ_c(1 − a_b), asymétrie g_b.
+        const transfert = (k, b) => {
             let st = vapeur(Math.exp(-LH.M_DIFFUS * k * wSous), { R: Rg, Sb: 1 - Rg });
             if (c) {
                 const tau = c.tauSW + k * wNuageBas;
-                st = sous(couche(tau, tau > 0 ? c.tauSW / tau : 0, LH.G), st);
+                st = sous(couche(tau, tau > 0 ? c.tauSW * (1 - oB[b].a) / tau : 0, oB[b].g), st);
             }
             if (cM) {
                 st = vapeur(Math.exp(-LH.M_DIFFUS * k * wBasMoyen), st);
                 const tau = cM.tauSW + k * wNuageMoyen;
-                st = sous(couche(tau, tau > 0 ? cM.tauSW / tau : 0, LH.G), st);
+                st = sous(couche(tau, tau > 0 ? cM.tauSW * (1 - oM[b].a) / tau : 0, oM[b].g), st);
             }
             if (tauH > 0) {
                 // Vapeur jusqu'au nuage haut (diffus), puis la glace ; quasi pas de vapeur au-dessus de l'enclume.
                 st = vapeur(Math.exp(-LH.M_DIFFUS * k * wDessus), st);
-                const tau = tauH + k * wGlace;
-                st = sous(couche(tau, tauH / tau, LH.G), st);
-                nir += LH.P[n] * st.R;
-                solNir += LH.P[n] * st.Sb;
-            } else {
-                // Sans nuage haut : la vapeur au-dessus est traversée par le faisceau direct (M) puis en diffus (5/3).
-                const tDirect = Math.exp(-M * k * wDessus);
-                nir += LH.P[n] * tDirect * st.R * Math.exp(-LH.M_DIFFUS * k * wDessus);
-                solNir += LH.P[n] * tDirect * st.Sb;
+                st = sous(couche(tauH, 1 - oH[b].a, oH[b].g), st);
+                return [st.R, st.Sb];
+            }
+            // Sans nuage haut : la vapeur au-dessus est traversée par le faisceau direct (M) puis en diffus (5/3).
+            const tDirect = Math.exp(-M * k * wDessus);
+            return [tDirect * st.R * Math.exp(-LH.M_DIFFUS * k * wDessus), tDirect * st.Sb];
+        };
+        let nir = 0, solNir = 0;
+        for (let b = 0; b < 3; b++) {
+            for (let n = 0; n < CS99.K.length; n++) {
+                const t = transfert(CS99.K[n], b + 1);
+                nir += H_BANDES[b][n] * t[0];
+                solNir += H_BANDES[b][n] * t[1];
             }
         }
-        return [vis + nir, solVis + solNir];
+        // Vapeur du visible (bande 8) : écart au même empilement sans vapeur (k = 0 : nuages conservatifs, soit Rbar et
+        // solConservatif du visible ci-dessus).
+        const par = transfert(CS99.K_PAR, 0);
+        return [vis + nir + CS99.PART_PAR * (par[0] - Rbar), solVis + solNir + CS99.PART_PAR * (par[1] - solConservatif)];
     }
 
     /**
@@ -237,16 +320,25 @@
         // ── Ciel clair : visible (Rayleigh + ozone + sol, 14, 15, 40) ; bandes de la vapeur (sol vu à travers W).
         const Rr = rayleigh(0.28 / (1 + 6.43 * mu), s);
         const Ra = rayleigh(0.219 / (1 + 0.816 * mu), s);
-        const RbarOz = Ra + (1 - Ra) * (1 - Ra_s) * Rg / (1 - Ra_s * Rg);
-        const solVisClair = (LH.PART_VISIBLE - Rr - ozDescente) * (1 - Rg) / (1 - Rr_s * Rg);   // absorbé au sol (40)
-        const visClair = LH.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee) - solVisClair;
+        const SA = solAerosol(Rg);                                                 // sol vu à travers l'aérosol de fond
+        const RbarOz = Ra + (1 - Ra) * (1 - Ra_s) * SA.R / (1 - Ra_s * SA.R);
+        const entreClair = (CS99.PART_VISIBLE - Rr - ozDescente) / (1 - Rr_s * SA.R);   // entre sous la diffusion de Rayleigh (40)
+        const solVisClair = entreClair * SA.Sb;                                    // absorbé au sol
+        const visClair = CS99.PART_VISIBLE - (ozDescente + RbarOz * ozRemontee) - entreClair * (1 - SA.R);
+        // Vapeur pour un coefficient k : faisceau direct jusqu'au sol, remontée diffuse — [réfléchi au sommet, absorbé au sol].
+        const vapeurClair = (k) => {
+            const tDirect = Math.exp(-M * k * W);
+            return [Rg * tDirect * Math.exp(-LH.M_DIFFUS * k * W), tDirect * (1 - Rg)];
+        };
         let nirClair = 0, solNirClair = 0;
-        for (let n = 1; n < LH.K.length; n++) {
-            const tDirect = Math.exp(-M * LH.K[n] * W);                 // faisceau direct jusqu'au sol
-            nirClair += LH.P[n] * Rg * tDirect * Math.exp(-LH.M_DIFFUS * LH.K[n] * W);
-            solNirClair += LH.P[n] * tDirect * (1 - Rg);
+        for (let n = 0; n < CS99.K.length; n++) {
+            const v = vapeurClair(CS99.K[n]);
+            nirClair += H_PROCHE_IR[n] * v[0];
+            solNirClair += H_PROCHE_IR[n] * v[1];
         }
-        const clair = [visClair + nirClair, solVisClair + solNirClair];
+        // Vapeur du visible (bande 8) : écart au même trajet sans vapeur (k = 0 : Rg, 1 − Rg).
+        const par = vapeurClair(CS99.K_PAR);
+        const clair = [visClair + nirClair + CS99.PART_PAR * (par[0] - Rg), solVisClair + solNirClair + CS99.PART_PAR * (par[1] - (1 - Rg))];
         // ── Ciels nuageux : populations (bas et moyens : profondeur ; hauts : ln τ), 8 sous-colonnes en recouvrement aléatoire.
         //    Chaque colonne rend [albédo, absorbé au sol] ; moyennes vectorielles sur les populations.
         const P = colonne.populations, NM = N_POPULATION_MOYENS, TH = tausHauts();
@@ -266,6 +358,12 @@
         const aBasMoyen = fM > 0 ? surBas((cM) => surBas((c) => col(0, c, cM)), NM) : zero;
         const aMoyenHaut = fM > 0 ? surHauts((t) => surBas((cM) => col(t, null, cM), NM)) : zero;
         const aTrois = fM > 0 ? surHauts((t) => surBas((cM) => surBas((c) => col(t, c, cM)), NM)) : zero;
+        // O₂ (Chou & Suarez 1999) : réduction du flux descendant en ciel clair, ΔF = 6,33 % · (1 − e^(−k√(w/μ₀))) ; elle aurait
+        // été absorbée par le sol (1 − Rg) ou renvoyée (Rg). Sous nuages, × absorbé au sol nuageux / clair (leur éq. 6.18).
+        const dO2 = O2.PART_SPECTRE * (1 - Math.exp(-O2.K * Math.sqrt(colonneO2() / mu)));
+        const o2 = (v) => { const f = v[1] / clair[1]; return [v[0] - dO2 * Rg * f, v[1] - dO2 * (1 - Rg) * f]; };
+        [aBas, aHaut, aDeux, aMoyen, aBasMoyen, aMoyenHaut, aTrois].forEach((v) => { const r = o2(v); v[0] = r[0]; v[1] = r[1]; });
+        clair[0] -= dO2 * Rg; clair[1] -= dO2 * (1 - Rg);
         const melange = (i) => (1 - fM) * ((1 - fB) * (1 - fH) * clair[i] + fB * (1 - fH) * aBas[i] + (1 - fB) * fH * aHaut[i] + fB * fH * aDeux[i])
             + fM * ((1 - fB) * (1 - fH) * aMoyen[i] + fB * (1 - fH) * aBasMoyen[i] + (1 - fB) * fH * aMoyenHaut[i] + fB * fH * aTrois[i]);
         return { A: melange(0), S: melange(1), Aclair: clair[0], Sclair: clair[1], Abas: aBas[0], Ahaut: aHaut[0], Amoyen: aMoyen[0] };

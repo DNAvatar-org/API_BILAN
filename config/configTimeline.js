@@ -1324,15 +1324,8 @@ const timeline = [
         '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ état actuel posé : pas de reconstruction d'aire à 2,58 Ma trouvée (Antarctique depuis 34 Ma, Groenland depuis ≥ 2,7 Ma)
         //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
-        // [v1.4.81] CO₂/CH₄ glaciaires-interglaciaires (étaient des valeurs modernes 410 ppm / 1,27 ppm, hors grille).
-        //   Grille : CO₂ [180,300] ppm, CH₄ [0,4 ; 0,8] ppm — Lüthi et al. 2008 Nature 453:379 (EPICA Dome C 800 ka),
-        //   Loulergue et al. 2008 Nature 453:383 (CH₄ 350–800 ppb).
-        //   Sonde : au milieu de grille (240 ppm / 0,6 ppm) T = 8,4 °C < 10 → valeurs HAUTES de grille, seules dans [10,16] °C.
-        //   ⚠️ INSTABILITÉ (hystérésis glace-albédo) : CH₄ 0,78 ppm (2.20e12) → 9,5 °C ; 0,80 ppm (2.25e12) → 12,1 °C.
-        //   Deux états possibles pour la même composition : le modèle est ici sur un seuil. En animation (T héritée de 🏔),
-        //   convergence lente vers 12,2 °C (branche chaude) — la bascule n'a pas lieu mais reste possible.
-        //   Cohérent avec le Pléistocène : cycles glaciaires 41 ka puis 100 ka (Lisiecki & Raymo 2005 Paleoceanography 20:PA1003),
-        //   CO₂ oscillant 180–280 ppm (Lüthi et al. 2008). À signaler en présentation : le seuil glaciaire est « visible » dans le modèle.
+        // Racine (2,58 Ma, avant la première carotte) : valeurs HAUTES de la grille CO₂ [180,300] ppm, CH₄ [0,4 ; 0,8] ppm
+        //   (Lüthi et al. 2008 Nature 453:379 ; Loulergue et al. 2008 Nature 453:383) — un monde encore pliocène.
         '⚖️🏭': 2.2668e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.31e15 // ~298 ppm
         '⚖️🐄': 2.2079e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.25e12 // ~0,80 ppm
         '⚖️💧': 1.4e21,
@@ -1342,26 +1335,45 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': N2_1PAL_KG,
         '🕰': {
-            'order': [{ '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }, { '🕰': '💫', '🔺⏳': 0.6421 }],
-            // 4 clics de 0,5 Ma : −2 Ma (racine, interglaciaire) → glaciaire → interglaciaire → glaciaire → 🛖 Holocène.
-            // Un clic = un DEMI-cycle représentatif, pas un cycle réel de 41 ka (2 Ma en tics de 41 ka = 49 clics).
-            '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 0.5 → 0.6421 (3 états 🔁 + transition — 2,5683 Ma)
-            // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu).
-            // Mécanisme générique (compute.js getEpochDateConfig) : '⚾' = obliquité ε courante (→ 📜⚾),
-            // clés '⚖️*' = masses imposées pour l'état (→ 📜🔁⚖️, lues par getMasses). AUCUN texte ici :
-            // le récit de chaque état vit dans CO2/static/texts/epochs_alt2sec.js (EVENT_STORY['🦣']['💫'], par index).
-            // Valeurs : carottes EPICA (Lüthi 2008 : CO₂ 180–300 ppm ; Loulergue 2008 : CH₄ 350–800 ppb) ;
-            // obliquité 22,1°–24,5° sur 41 ka (Laskar et al. 2004) — ε pilote, CO₂ et CH₄ amplifient.
+            // DEUX CYCLES GLACIAIRES ENTIERS, les deux derniers : un grand pas de 2,58 Ma à 240 ka (MIS 7e), puis des pas de 8 à 30 ka
+            // posés sur les stades isotopiques (Lisiecki & Raymo 2005, Paleoceanography 20:PA1003) — MIS 7e 240, 7c 220, entrée du
+            // MIS 6 190, 160, maximum du MIS 6 140, MIS 5e 128, entrée glaciaire 116 (insolation d'été la plus basse), 5c 104, 5b 88,
+            // MIS 4 72 et 64, MIS 3 44, DMG 21, base de l'Holocène 11,7 ka (passage à 🛖). Les calottes portées n'ont, d'un pas à
+            // l'autre, que le temps du pas pour suivre (croissance lente, fonte rapide) : le retard est celui du calcul.
+            'order': [{ '🕰': '💫', '🔺⏳': 2.34 }, { '🕰': '💫', '🔺⏳': 0.02 }, { '🕰': '💫', '🔺⏳': 0.03 }, { '🕰': '💫', '🔺⏳': 0.03 },
+                { '🕰': '💫', '🔺⏳': 0.02 }, { '🕰': '💫', '🔺⏳': 0.012 }, { '🕰': '💫', '🔺⏳': 0.012 }, { '🕰': '💫', '🔺⏳': 0.012 },
+                { '🕰': '💫', '🔺⏳': 0.016 }, { '🕰': '💫', '🔺⏳': 0.016 }, { '🕰': '💫', '🔺⏳': 0.008 }, { '🕰': '💫', '🔺⏳': 0.02 },
+                { '🕰': '💫', '🔺⏳': 0.023 }, { '🕰': '💫', '🔺⏳': 0.0093 }],
+            '💫': { '🔺🌡️💫': 0 },
+            // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu) : les masses de
+            // CO₂ et de CH₄ MESURÉES à la date où le clic arrive (→ 📜🔁⚖️, lues par getMasses), moyenne des mesures à ± 1 ka.
+            // CO₂ : composite antarctique de Bereiter et al. 2015 (GRL 42:542, chronologie AICC2012) ; CH₄ : EPICA Dome C, Loulergue
+            // et al. 2008 (Nature 453:383, chronologie EDC3) — fichiers NOAA NCEI antarctica2015co2composite.txt et edc-ch4-2008.txt.
+            // Âges des fichiers « avant 1950 » + 75 = avant 2025. Masses : ppm d'air sec avec N₂ 1 PAL et O₂ de l'époque (les
+            // autres gaz ne comptent pas à cette précision). L'obliquité n'est PAS posée ici : elle vient de l'orbite à la date
+            // (physics/orbite.js). AUCUN texte ici : le récit de chaque clic vit dans CO2/static/texts/epochs_alt2sec.js.
             '🔁': [
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 },   // glaciaire  (~190 ppm / 0,43 ppm)
-                { '⚾': 24.5, '⚖️🏭': 2.17e15, '⚖️🐄': 1.97e12 },  // interglaciaire (~280 ppm / 0,70 ppm)
-                { '⚾': 22.1, '⚖️🏭': 1.47e15, '⚖️🐄': 1.2e12 }    // glaciaire (dernière avant l'Holocène)
+                { '⚖️🏭': 1.8797e15, '⚖️🐄': 1.6239e12 },   // 240 ka : 247,9 ppm / 588 ppb
+                { '⚖️🏭': 1.8236e15, '⚖️🐄': 1.3644e12 },   // 220 ka : 240,5 ppm / 494 ppb
+                { '⚖️🏭': 1.7538e15, '⚖️🐄': 1.2205e12 },   // 190 ka : 231,3 ppm / 442 ppb
+                { '⚖️🏭': 1.4140e15, '⚖️🐄': 1.1551e12 },   // 160 ka : 186,5 ppm / 418 ppb
+                { '⚖️🏭': 1.4614e15, '⚖️🐄': 1.0427e12 },   // 140 ka : 192,8 ppm / 377 ppb
+                { '⚖️🏭': 2.1028e15, '⚖️🐄': 1.8701e12 },   // 128 ka : 277,3 ppm / 677 ppb
+                { '⚖️🏭': 2.0821e15, '⚖️🐄': 1.3960e12 },   // 116 ka : 274,6 ppm / 505 ppb
+                { '⚖️🏭': 1.8383e15, '⚖️🐄': 1.5328e12 },   // 104 ka : 242,4 ppm / 555 ppb
+                { '⚖️🏭': 1.6804e15, '⚖️🐄': 1.3573e12 },   //  88 ka : 221,6 ppm / 491 ppb
+                { '⚖️🏭': 1.7722e15, '⚖️🐄': 1.2246e12 },   //  72 ka : 233,7 ppm / 443 ppb
+                { '⚖️🏭': 1.5163e15, '⚖️🐄': 1.2790e12 },   //  64 ka : 200,0 ppm / 463 ppb
+                { '⚖️🏭': 1.5532e15, '⚖️🐄': 1.2346e12 },   //  44 ka : 204,9 ppm / 447 ppb
+                { '⚖️🏭': 1.4400e15, '⚖️🐄': 1.0166e12 }    //  21 ka : 189,9 ppm / 368 ppb
             ],
-            // 🖼 SUITE D'IMAGES imposée (sinon : texture déduite de la date). Parcourue par le compteur de tics,
-            // en boucle (index = 📿💫 modulo longueur) : 2 images = alternance, 3 = cycle de 3, etc.
-            // Ici l'alternance interglaciaire ↔ glaciaire : deux dates identiques peuvent correspondre à deux états
-            // stables, la date seule ne peut donc pas choisir l'image.
-            '🖼': ['fonds/-00001Ma.png', 'fonds/-00002Ma.png'],
+            // 🖼 SUITE D'IMAGES imposée (sinon : texture déduite de la date), index = 📿💫 modulo longueur : une image par clic.
+            // Glaciaire (-00002Ma) quand la courbe cyan (Snyder 2016) est sous 11 °C à la date du clic — le milieu entre le DMG
+            // (7,9 °C) et l'Holocène (14,0 °C) —, interglaciaire (-00001Ma) sinon. La date seule ne choisit pas : deux états
+            // stables existent pour une même date.
+            '🖼': ['fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png',
+                'fonds/-00002Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png',
+                'fonds/-00002Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png'],
             // Interpolation linéaire 🌡️🧮 (graine solveur) de ▶ vers ◀ de 🦣, deux points de la courbe cyan.
             '🔀': ['📅'],
             '◀': {
@@ -2032,7 +2044,7 @@ window.CONFIG_COMPUTE.tolMinWm2 = 0.10;                  // [EQ/NUM] tolérance 
 // températures intermédiaires et s'arrête au PREMIER équilibre stable rencontré : le pas doit être plus fin que la fenêtre
 // d'une branche chaude. v-2026-10-14 : 140 K (200 K si grand déséquilibre) → 20 K, un seul plafond. À 140 K, l'arrivée de 🔥
 // (175 °C) dans 🦠 sautait la branche chaude (frise 15,05 °C) et tombait à −85 °C, gelant toute la chaîne de clics ; à 20 K,
-// 🦠 arrive à 15,07 °C (frise = clic).
+// 🦠 arrive à 15,07 °C (frise = clic). Et jamais plus du double du pas précédent (computeSearchIncrement, calculations_flux.js).
 window.CONFIG_COMPUTE.maxSearchStepK = 20;               // [K] [EQ/NUM]
 window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
 // v1.4.17 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).

@@ -1,10 +1,10 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.6.1
+// Version 1.6.2
+// - v1.6.2 (2026-10-22): albédos d'une calotte qui fond (neige mouillée, glace nue) passés au bilan méridien.
 // - v1.6.1 (2026-10-14): calottes = état porté d'un clic à l'autre (config au clic frise), plus de graine sans glace.
 // - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
-// - v1.4.5 (2026-10-13): masse d'air maritime = bassins océaniques gelés ou non (fractionMaritime), plus l'océan libre.
-// Date: [October 14, 2026]
+// Date: [October 22, 2026]
 //   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
@@ -293,8 +293,9 @@ function calculateAlbedo() {
     // clic précédent au clic time), relaxé vers l'équilibre sur le temps écoulé depuis sa date. Résultat du pas : DATA['🗻']['🧮🍰🗻🧊'],
     // engagé en fin de convergence (calculations_flux.js → CALOTTES.engager).
     const dureeCalottes = DATA['🗻']['📅🗻🧊'] - window.INTERIEUR.ageCourant(DATA);
+    // Calotte qui fond : neige mouillée (🪩🍰🧊, glace saisonnière) puis glace nue (🪩🍰🏊) — anomalie d'insolation de l'orbite.
     const meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone,
-        albedo_coeff['🪩🍰❄️'], DATA['🗻']['🍰🗻🧊'], dureeCalottes);
+        albedo_coeff['🪩🍰❄️'], { neige: albedo_coeff['🪩🍰🧊'], glace: albedo_coeff['🪩🍰🏊'] }, DATA['🗻']['🍰🗻🧊'], dureeCalottes);
     window._hystDiag.meridien = meridien;
     const calottesPas = {};
     for (const b of window.CALOTTES.BANDES) calottesPas[b.cle] = meridien.calottes[b.cle].a;
@@ -459,13 +460,13 @@ function calculateAlbedo() {
     // - hautes terres géologiques
     // - ou couche d'eau globale équivalente si l'astre a peu/pas de relief mais assez d'eau pour geler en surface
     //
-    // ─── Amplification polaire 3 zones (EBM 0D) — v1.2.48 ───────────────────────
+    // ─── Amplification polaire 3 zones (EBM 0D) ─────────────────────────────────
     // Appel à la FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob_K) — définie dans physics.js.
     // Même source dans calculations_flux.js et calculations_h2o.js. Pas de duplication.
-    // 🏷️ TUNING géophysique : dT_pol = 20 K, dT_mid = 5 K, RANGE = 20 K (Terre-moderne).
-    // 🏷️ FLOU SCIENTIFIQUE : couplage obliquité / P_atm non activé (cf. physics.js).
+    // Écarts de zone dT CALCULÉS par le bilan méridien (window.STATE.dTzones, physics/meridien.js) ; l'obliquité règle
+    // l'amplitude saisonnière (∝ sin ε, physics.js).
     // ─────────────────────────────────────────────────────────────────────────────
-    // EPOCH['🥶'] (dT_pol / dT_mid / dT_trop) et l'obliquité sont lus par computeIceTempFactor lui-même.
+    // Les écarts de zone et l'obliquité sont lus par computeIceTempFactor lui-même.
     const _iceTF = EARTH.computeIceTempFactor(DATA['🧮']['🧮🌡️'], EPOCH);
     const ice_temp_factor = _iceTF.ice_tf;
     const ice_tf_pol = _iceTF.tf_pol;
@@ -685,7 +686,7 @@ function calculateAlbedo() {
     }
 
     // [EQ] Albédo glace zonale — EBM 0D 3 zones × Briegleb (2004) NCAR/TN-463 §5.
-    // T_local_z = T_glob − dT_z (Budyko-Sellers ; EPOCH['🥶'] via computeIceTempFactor).
+    // T_local_z = T_glob − dT_z (Budyko-Sellers ; dT_z du bilan méridien, via computeIceTempFactor).
     // α_glace = Σ_z (f_z·tf_z·α_Briegleb(T_z, α_snow_deep_z)) / Σ_z (f_z·tf_z).
     // Pol + mi-lat : α_snow_deep = 🪩🍰❄️ (accumulation neige propre, Gardner & Sharp 2010).
     // Tropiques : α_snow_deep = 🪩🍰🧊 (sublimation → glace nue / saisonnière, pas de neige pristine ;
@@ -781,8 +782,8 @@ function calculateAlbedo() {
     //     MÊME eau, MÊMES rayons que l'opacité IR. Twomey et Albrecht sont dans τ (N des CCN) ; plus aucun facteur
     //     pression / oxydation / température. ☁️ (Sundqvist) ne pilote plus la couverture.
     // Colonne : vapeur, nuages bas (population de la base au rayon de pluie) et hauts (enclumes), fractions mesurées
-    // (physics.js EARTH.NUAGES), puis transfert SOLAIRE de Lacis & Hansen (radiative/solaire.js) : Rayleigh, ozone,
-    // vapeur, nuages et surface. L'albédo de surface `albedo` devient l'albédo au sommet de l'atmosphère.
+    // (physics.js EARTH.NUAGES), puis transfert SOLAIRE (radiative/solaire.js : Lacis & Hansen pour Rayleigh, ozone et nuages,
+    // Chou & Suarez 1999 pour la vapeur) et surface. L'albédo de surface `albedo` devient l'albédo au sommet de l'atmosphère.
     // Remplace l'addition à 2 couches sans atmosphère (v1.2.64).
     const sol = window.SOLAIRE.albedo(albedo, colonne);
     const cloud_fraction = sol.couverture;

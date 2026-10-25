@@ -1,17 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.3.3
-// Date: [October 15, 2026]
+// Version 1.4.0
+// Date: [October 22, 2026]
 // logs :
+// - v1.4.0: obliquité 📜⚾ et facteur de Kepler du Soleil depuis l'orbite à la date (physics/orbite.js) ; plus de ⚾ dans les 🔁.
 // - v1.3.3: DATA['📅'] = l'entrée du TIMELINE au début de getEpochDateConfig (n'écrit plus sa graine, devenue un accesseur).
 // - v1.3.2: eau des météorites = cumul 📜🔺⚖️💧 tenu par CLICS.jouer (plus 📿☄️ × une masse unique par époque).
-// - v1.3.1: 🔀 interpolé par le temps écoulé (📜⏳) pour toutes les époques — plus de compte de tics (2ᵉ horloge) ;
-//   plus de copie 📜📅 (CLICS.date()).
-// - v1.3.0: getEpochDateConfig ne passe plus à l'époque suivante (ni ne remet ⏳ / 📿 à zéro) : c'était le 3e
-//   mécanisme de passage, avec CLICS.jouer et la frise de l'UI. L'époque est DATA['📜']['👉'], posée par CLICS.
-// - v1.2.0: date = ▶ ∓ 📜⏳ (temps écoulé tenu par CLICS.jouer, convergence/clics.js) au lieu de Σ 📿 × 🔺⏳ des
-//   seules actions comptées (🗻 / ⛰ / 🌋 n'avançaient pas la date du calcul) et du pas unique exigé sur 📱.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -103,9 +98,11 @@ function getEpochDateConfig() {
     // Rayon : f(T de l'intérieur) — geology/interieur.js, la seule source (avancer le remet à jour).
     H['📐'] = window.INTERIEUR.rayonKm(DATA);
 
+    // ⚾ : obliquité de l'orbite à la date courante (physics/orbite.js, Berger & Loutre 1991) ; 0 hors de la solution
+    // (± 3 Ma), soit l'obliquité de l'époque (physics.js obliquiteCourante).
+    H['⚾'] = window.ORBITE.obliquiteDeg(window.INTERIEUR.ageCourant(DATA));
     // 🔁 ÉTATS PAR TIC (🍄, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
-    // maintenu. Un état porte '⚾' (obliquité → 📜⚾, physics.js), des masses '⚖️*' (→ 📜🔁⚖️, getMasses), '📝'.
-    H['⚾'] = 0;
+    // maintenu. Un état porte des masses '⚖️*' (→ 📜🔁⚖️, getMasses) et '📝' ; jamais d'obliquité : elle vient de l'orbite.
     H['🔁⚖️'] = {};
     H['🔁📝'] = '';
     H['🖼'] = '';
@@ -115,7 +112,7 @@ function getEpochDateConfig() {
         for (const k of Object.keys(state)) {
             if (k.indexOf('⚖️') === 0) H['🔁⚖️'][k] = state[k];
         }
-        if ('⚾' in state) H['⚾'] = state['⚾'];
+        if ('⚾' in state) throw new Error('[getEpochDateConfig] 🔁 de ' + EPOCH['📅'] + ' pose ⚾ : l\'obliquité vient de l\'orbite (physics/orbite.js)');
         if ('📝' in state) H['🔁📝'] = state['📝'];
     }
     // 🖼 suite d'images imposée par l'époque : index = 📿💫 modulo longueur (sinon texture déduite de la date).
@@ -180,7 +177,8 @@ function getSoleil() {
     // Date courante (CLICS.date, depuis 📜⏳). 🔒 Luminosité exacte via Gough.
     const P_watts = goughLuminosity(window.CLICS.date());
     DATA['☀️']['🔋☀️'] = P_watts;
-    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
+    // Moyenne annuelle sur l'orbite elliptique : × 1/√(1 − e²) (Kepler ; physics/orbite.js, 1 hors de la solution).
+    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M) * window.ORBITE.facteurSoleil(window.INTERIEUR.ageCourant(DATA));
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
     return true;
 }

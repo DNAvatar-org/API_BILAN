@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.4.1
+// Version 1.5.0
+// - v1.5.0 (2026-10-24): pas de recherche au plus double du précédent : la planète suit les températures intermédiaires.
 // - v1.4.1 (2026-10-15): 🪩👁 (nuages vus d'en haut, simulateur ISCCP) posé en fin de calcul.
 // - v1.4.0 (2026-10-12): pas de recherche = pente MESURÉE (sécante) ; à défaut, et pour la tolérance, rétroaction de
 //   Planck au niveau d'émission 4σT_e³ (T_e = (OLR/σ)^¼) au lieu de 4σT_s³ (surface nue) — sous une atmosphère
@@ -329,7 +330,12 @@ let dernierPointRecherche = null;
  * 4σT_s³ était celle d'une surface nue. Sous une atmosphère épaisse la vraie pente
  * d'OLR est bien plus faible que 4σT³ (sous une atmosphère de vapeur, ~80 W/m²/K contre 3 500 à 2 500 K) : le pas
  * corps noir y fait des pas de 4 à 20 K et n'atteint pas l'équilibre en 101 itérations.
- * Cap max : CONFIG_COMPUTE.maxSearchStepK (20 K : ne pas sauter la fenêtre d'une branche chaude, voir la config).
+ * Cap max : CONFIG_COMPUTE.maxSearchStepK (20 K : ne pas sauter la fenêtre d'une branche chaude, voir la config), et au plus
+ * le DOUBLE du pas précédent. La sécante est mesurée entre deux états dont l'eau, l'albédo et la glace ont changé entre-temps :
+ * près d'un seuil de glace, sa pente devient presque nulle (−0,28 W/m²/K sur la frise 🏔, de 21,5 à 19,7 °C) et annonce un
+ * équilibre lointain ; un pas de 20 K franchissait alors l'équilibre chaud (15 °C) jusque dans le bassin gelé. Borné par le pas
+ * d'avant, le pas peut croître de ×2 par itération mais la planète traverse les températures intermédiaires et s'arrête au
+ * premier équilibre rencontré (le principe de maxSearchStepK, configTimeline.js).
  */
 function computeSearchIncrement() {
     const DATA = window.DATA;
@@ -347,11 +353,13 @@ function computeSearchIncrement() {
     const pente = (dernierPointRecherche !== null && dernierPointRecherche.T !== T)
         ? (dFlux - dernierPointRecherche.d) / (T - dernierPointRecherche.T) : 0;
     let res = pente < 0 ? -dFlux / pente : dFlux / sigmaT3;
+    // Pas précédent : sans point d'avant (1er pas) ou à la même température, le plafond seul.
+    const pasPrecedent = (dernierPointRecherche !== null && dernierPointRecherche.T !== T) ? Math.abs(T - dernierPointRecherche.T) : Infinity;
     dernierPointRecherche = { T: T, d: dFlux };
     if (Number.isNaN(res)) {
         throw new Error('[computeSearchIncrement] ΔT=Δ/(4σT³) indéterminé (T=' + T + ' Δ=' + dFlux + ' 4σT³=' + sigmaT3 + ')');
     }
-    const cap = CONFIG_COMPUTE.maxSearchStepK;
+    const cap = Math.min(CONFIG_COMPUTE.maxSearchStepK, 2 * pasPrecedent);
     if (Math.abs(res) > cap) res = Math.sign(res) * cap;
     return res;
 }

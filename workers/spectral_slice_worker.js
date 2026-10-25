@@ -1,9 +1,9 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.13.1
+// Version 0.13.2
+// - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
 // - v0.13.1 (2026-10-13): ch4_eds_scale retiré (toujours 1).
 // - v0.13.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN 2024), tables k(λ, T) comme σ.
-// - v0.12.0 (2026-10-13): terme CIA CO₂ (profil inventé ×100) retiré.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: [September 18, 2026]
@@ -78,7 +78,7 @@ function spectralSliceWorkerMain() {
             var nCO2cm3 = n_CO2 * 1e-6;                  // [molécules/cm³]
             var cont_layer = L.continuum;
             var is_trop = (i < i_trop);
-            var tau_cloud_layer = L.tauNuage;   // nuages de la couche (profilAtmosphere, Ackerman & Marley 2001)
+            var tau_cloud_layer = L.tauNuage;   // nuages de la couche (profilAtmosphere : condensat adiabatique, Martin et al. 1994)
 
             for (var j = 0; j < nL; j++) {
                 var lambda = lambda_range[j];

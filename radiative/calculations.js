@@ -1,13 +1,9 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.10.0
-// - v1.10.0 (2026-10-15): nuages MOYENS au niveau σ = SIGMA_MOYEN (fraction F_MOYEN, populations des nuages bas) : IR ici, SW dans solaire.js.
-// - v1.9.0 (2026-10-15): DEUX nuages bas, masse d'air maritime et continentale, chacun avec SES gouttes (Martin k, N mesurés) :
-//   colonne.populations remplace colonne.tranches. Avant : un seul nuage aux gouttes moyennées (ni cumulus assez, ni stratus).
-// - v1.8.4 (2026-10-15): nuage.fMoyen = 0 (nuages moyens non représentés), lu par le simulateur ISCCP.
-// - v1.8.3 (2026-10-13): k de Martin pondéré par ALBEDO.fractionMaritime (banquise = air maritime).
-// - v1.8.2 (2026-10-13): sommet du nuage bas à f_liq · LWC_pluie (la glace précipite, hypothèse WBF déclarée).
-// - v1.8.1 (2026-10-13): CH4_EDS_SCALE retiré (retrait du CH₄ par sa fraction, comme le CO₂).
+// Version 1.12.0
+// - v1.12.0 (2026-10-25): tranches τ des gouttes et τ × rayon effectif (optique des gouttes de Chou & Suarez, solaire.js).
+// - v1.11.1 (2026-10-24): attribution par retrait dans le transfert seul (calculateFluxForT0(retrait)) : nuages retirés, profil figé.
+// - v1.11.0 (2026-10-22): vapeur effective du solaire à l'échelle de Chou & Suarez 1999 ((p/300 hPa)^0,8).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -220,7 +216,7 @@ function profilAtmosphere(z_range) {
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
         return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
-                populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }, tauSW: 0, W: 0, sommet: 0 }],
+                populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }, tauSW: 0, W: 0, sommet: 0 }],
                 wTotal: 0, wSousBase: 0, wSousMoyen: 0,
                 fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
@@ -282,22 +278,26 @@ function profilAtmosphere(z_range) {
         nom: m.nom, poids: m.poids, k: m.k, n: m.nActuel * rCCN,                // [m⁻³] gouttes de l'époque (Twomey)
         lwcPluie: 4 / 3 * Math.PI * N.RHO_LIQUIDE * m.k * m.nActuel * Math.pow(DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE, 3),   // [kg/m³]
         sommet: false, zSommet: 0, tauSW: 0, tauIR: 0, W: 0, tauIRCouche: z_range.map(() => 0),
-        // Le nuage tranche par tranche, en CUMULS depuis la base : profondeur [m], τ_SW, τ_IR, eau précipitable moyenne et
-        // saturée [cm]. Un nuage plus jeune (moins profond) est le même nuage tronqué : solaire.js en tire la population.
-        tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0] }
+        // Le nuage tranche par tranche, en CUMULS depuis la base : profondeur [m], τ_SW, τ_IR, eau précipitable effective moyenne et
+        // saturée [g/cm²], τ_SW des gouttes et τ_SW × rayon effectif des gouttes [µm] (optique des gouttes, solaire.js). Un nuage
+        // plus jeune (moins profond) est le même nuage tronqué : solaire.js en tire la population.
+        tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }
     }));
     let dansNuage = false, zBase = 0, z = 0;
     let iEnclume = -1, tEnclume = 0;                     // couche où la parcelle passe T_ENCLUME (nuages hauts)
     let iMoyen = -1, wSousMoyen = 0;                     // couche où p/p_s passe SIGMA_MOYEN (nuages moyens), vapeur effective dessous
-    // Eau précipitable EFFECTIVE pour le rayonnement solaire (Lacis & Hansen 1974 éq. 24, mise à l'échelle linéaire en
-    // pression, n = 1, et √(T₀/T), T₀ = 273 K) [cm] : colonne entière, sous la base, et tranche par tranche dans le nuage
-    // (vapeur moyenne ET vapeur saturée — dans le nuage l'air est saturé). radiative/solaire.js les lit.
-    const P0_LH = 101325, T0_LH = 273;
+    // Eau précipitable EFFECTIVE pour la vapeur du rayonnement solaire, à l'échelle des coefficients k de Chou & Suarez 1999
+    // (NASA TM-104606 vol. 15, éq. 3.3 et 3.5 ; leur table 2 est calculée raie par raie à p_r = 300 hPa et θ_r = 240 K) [g/cm²] :
+    //     w = ∫ q (p/p_r)^0,8 [1 + 0,00135 (T − θ_r)] dp/g
+    // Colonne entière, sous la base, et tranche par tranche dans le nuage (vapeur moyenne ET vapeur saturée — dans le nuage l'air
+    // est saturé). radiative/solaire.js les lit.
+    const CS99 = { P_REF: 30000, M: 0.8, THETA_REF: 240, A_T: 0.00135 };   // [Pa], [-], [K], [1/K]
+    const echelleCS = (p, T) => Math.pow(p / CS99.P_REF, CS99.M) * (1 + CS99.A_T * (T - CS99.THETA_REF));
     let wTotal = 0, wSousBase = 0;
-    /** Eau précipitable effective d'une tranche dz de fraction molaire de vapeur x [cm]. */
+    /** Eau précipitable effective d'une tranche dz de fraction molaire de vapeur x [g/cm²]. */
     const wEff = (x, dz) => {
         const p = p_a + p_c;
-        return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * (p / P0_LH) * Math.sqrt(T0_LH / T);
+        return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * echelleCS(p, T);
     };
     /** Tranche dz du nuage adiabatique c (océan ou continent) : ses épaisseurs optiques DANS le nuage, à la couche ic. */
     const nuage = (c, dz, ic) => {
@@ -315,9 +315,10 @@ function profilAtmosphere(z_range) {
         // nuage froid ne précipitait jamais : 1 à 8 kg/m² d'eau, τ jusqu'à 500 sous −10 °C (🪸), quand les observations
         // donnent l'eau nuageuse DÉCROISSANTE vers le froid (Somerville & Remer 1984). Aucun effet sur les nuages liquides.
         if (cwc >= f_liq * c.lwcPluie) { c.sommet = true; c.zSommet = z; return; }
-        // Liquide : W/(ρ_w r_eff) = dz·(LWC/ρ_w)^⅔·(4π k N/3)^⅓ (Martin 1994). Glace : rayon déclaré.
-        const s = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * c.k * c.n / 3)
-            + (1 - f_liq) * cwc * dz / (N.RHO_GLACE * N.R_EFF_GLACE);
+        // Liquide : W/(ρ_w r_eff) = dz·(LWC/ρ_w)^⅔·(4π k N/3)^⅓, r_eff = (3 LWC/(4π ρ_w k N))^⅓ (Martin 1994). Glace : rayon déclaré.
+        const rLiq = Math.cbrt(3 * lwc / (4 * Math.PI * N.RHO_LIQUIDE * c.k * c.n));   // [m]
+        const sLiq = dz * Math.pow(lwc / N.RHO_LIQUIDE, 2 / 3) * Math.cbrt(4 * Math.PI * c.k * c.n / 3);
+        const s = sLiq + (1 - f_liq) * cwc * dz / (N.RHO_GLACE * N.R_EFF_GLACE);
         c.tauIRCouche[ic] += 0.75 * s;                                           // absorption (Q_abs ≈ 1)
         c.tauIR += 0.75 * s;
         c.tauSW += 1.5 * s;                                                      // extinction (Q_ext ≈ 2)
@@ -326,6 +327,8 @@ function profilAtmosphere(z_range) {
         const tranches = c.tranches, k = tranches.profondeur.length - 1;
         tranches.profondeur.push(tranches.profondeur[k] + dz);
         tranches.tauSW.push(tranches.tauSW[k] + 1.5 * s);
+        tranches.tauLiq.push(tranches.tauLiq[k] + 1.5 * sLiq);
+        tranches.tauRLiq.push(tranches.tauRLiq[k] + 1.5 * sLiq * rLiq * 1e6);
         tranches.tauIR.push(tranches.tauIR[k] + 0.75 * s);
         tranches.wMoyen.push(tranches.wMoyen[k] + wEff(vapeurMoyenne(), dz));
         tranches.wSature.push(tranches.wSature[k] + wEff(p_c / p, dz));
@@ -478,7 +481,15 @@ function methaneFractionAtZ(z) {
 // Flux entrants/sortants absolus : π B_λ(T), τ = κ×Δz (HITRAN), transmission = exp(-τ), Kirchhoff.
 // Convergence = équilibre flux_entrant (solaire absorbé + géothermique) vs flux_sortant (OLR).
 // Les "forcing" (calculateCO2Forcing, etc.) sont calculés ailleurs pour affichage uniquement (climate.js).
-async function calculateFluxForT0() {
+// retrait : '🏭' | '💧' | '🐄' | '⛅' — cet absorbeur ne compte plus dans le TRANSFERT, le profil (T, vapeur, nuages) restant
+// celui de l'état courant (attribution par retrait, computeEdsRemovalShares) ; absent : tous les absorbeurs comptent.
+const RETRAIT_COUCHE = {
+    '🏭': (c) => { c.n_CO2 = 0; },                      // raies et CIA CO₂–CO₂
+    '💧': (c) => { c.n_H2O = 0; c.continuum = 0; },     // raies et continuum
+    '🐄': (c) => { c.n_CH4 = 0; },
+    '⛅': (c) => { c.tauNuage = 0; }                    // nuages bas, moyens et hauts
+};
+async function calculateFluxForT0(retrait) {
     const DATA = window.DATA;
     const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     // 🔒 Partition eau déjà mise à jour par le caller (calculateH2OParameters avant chaque calculateFluxForT0 dans la boucle radiatif)
@@ -711,7 +722,8 @@ async function calculateFluxForT0() {
     const ychange = new Float64Array(final_lambda_length).fill(z_range[z_range.length - 1]);
     const YCHANGE_THR = 0.05; // 5 % de baisse = début absorption significative
 
-    // Nuages IR : opacité par couche calculée dans profilAtmosphere (Ackerman & Marley 2001, Windsor et al. 2022).
+    // Nuages IR : opacité par couche calculée dans profilAtmosphere (condensat adiabatique de la parcelle jusqu'au seuil de
+    // pluie, gouttes de Martin et al. 1994, τ = 3/2·LWC·Δz/(ρ_w r_eff) de Stephens 1978 ; fractions bas / moyens / hauts).
     // Remplace τ = ☁️ × CLOUD_LW_TAU_REF (2,6, sans source) réparti uniformément jusqu'à la tropopause.
 
     // Sections efficaces : tables σ(λ) sur la grille de températures (interpolées à la T de chaque couche).
@@ -803,6 +815,7 @@ async function calculateFluxForT0() {
         // La grille z reste celle d'avant (pas fin sous calculateTropopauseHeight, plus large au-dessus).
         const profil = profilAtmosphere(z_range);
         const layers_w = profil.couches;
+        if (retrait) for (const c of layers_w) RETRAIT_COUCHE[retrait](c);
         const i_trop = profil.iTrop;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
@@ -1023,41 +1036,23 @@ var RADIATIVE = window.RADIATIVE;   // créé plus haut (computePWV / computeMtC
  */
 async function computeEdsRemovalShares() {
     const DATA = window.DATA;
-    const EARTH = window.EARTH;
     const T_K = DATA['🧮']['🧮🌡️'];
     const olrRef = DATA['📊'].total_flux;
-    const save = {
-        cloud: DATA['🪩']['🍰🪩⛅'],
-        co2:   DATA['🫧']['🍰🫧🏭'],
-        h2o:   DATA['💧']['🍰🫧💧'],
-        ch4:   DATA['🫧']['🍰🫧🐄']
-    };
-    const restore = function () {
-        DATA['🪩']['🍰🪩⛅'] = save.cloud;
-        DATA['🫧']['🍰🫧🏭'] = save.co2;
-        DATA['💧']['🍰🫧💧'] = save.h2o;
-        DATA['🫧']['🍰🫧🐄'] = save.ch4;
-        DATA['🧮']['🧮🌡️']  = T_K;
-    };
-    const olrSans = async function (poser) {
-        restore();
-        poser();
-        DATA['🧮']['🧮🌡️'] = T_K;   // T FIGÉE : on mesure un forçage, pas une réponse
-        await calculateFluxForT0();
-        return DATA['📊'].total_flux;
-    };
     const eff = {};
     try {
-        eff['⛅'] = (await olrSans(function () { DATA['🪩']['🍰🪩⛅'] = 0; })) - olrRef;   // fraction nuageuse à 0
-        eff['🏭'] = (await olrSans(function () { DATA['🫧']['🍰🫧🏭'] = 0; })) - olrRef;
-        eff['💧'] = (await olrSans(function () { DATA['💧']['🍰🫧💧'] = 0; })) - olrRef;   // raies ET continuum
-        eff['🐄'] = (await olrSans(function () { DATA['🫧']['🍰🫧🐄'] = 0; })) - olrRef;
+        // Retrait dans le TRANSFERT seulement (calculateFluxForT0(retrait), RETRAIT_COUCHE) : T, profil, vapeur et nuages
+        // restent ceux de l'état convergé, comme chez Schmidt. Poser la vapeur à 0 dans DATA retirerait aussi les nuages
+        // (sans eau, pas de condensat) et remplacerait l'adiabatique humide par la sèche ; poser ☁️ à 0 ne retirerait rien
+        // (l'IR lit les fractions F_BAS, F_MOYEN, F_HAUT).
+        for (const k of ['⛅', '🏭', '💧', '🐄']) {
+            await calculateFluxForT0(k);
+            eff[k] = DATA['📊'].total_flux - olrRef;
+        }
     } finally {
         // ⚠️ Les quatre passes ont laissé DATA['📊'] (total_flux, upward_flux, lambda_range…) et
         // window.EDS_SPECTRAL dans l'état de la DERNIÈRE, c'est-à-dire « sans CH₄ ». Le spectre
-        // affiché et getSpectralResultFromDATA() liraient ça. D'où une cinquième passe, tout
-        // remis, dont le seul rôle est de rendre l'état de référence. C'est le prix de la méthode.
-        restore();
+        // affiché et getSpectralResultFromDATA() liraient ça. D'où une cinquième passe, sans
+        // retrait, dont le seul rôle est de rendre l'état de référence. C'est le prix de la méthode.
         await calculateFluxForT0();
     }
     const keys = ['🏭', '💧', '🐄', '⛅'];

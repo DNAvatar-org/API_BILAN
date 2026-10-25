@@ -4,14 +4,14 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.0.0
-Date: [October 13, 2026]
+Version 2.1.1
+Date: [October 24, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
 Logs:
-  - v2.0.0 (2026-10-13): réécrite. L'ancienne page montrait des formules que le moteur n'utilise plus (sections efficaces
-    paramétriques, ΔF = 5,35 ln, T₀ = T_eff + ΔT, couverture × C_max, albédos fixes) et rien de ce qu'il calcule.
-    Classement P/M/F/C/N/⚠️ ; scripts et style sortis en js/equation.js et css/equation.css.
+  - v2.1.1 (2026-10-24): profil de Voigt — fonction de Faddeeva de Humlíček (W4), γ_D = (ν/c)√(2RT/M) ; répartition de l'EDS par retrait dans le transfert seul.
+  - v2.1.0 (2026-10-22): orbite à la date (Berger & Loutre 1991), calottes au bilan intégré (Weertman), fonte d'insolation.
+  - v2.0.0 (2026-10-13): réécrite depuis le code ; classement P/M/F/C/N/⚠️ ; js/equation.js et css/equation.css.
 -->
 <html lang="fr">
 <head>
@@ -61,7 +61,10 @@ Logs:
     <div class="eq N" id="eq-tolerance-recherche-racine">
         <div class="titre"><span class="cl N">N</span> Tolérance et recherche de la racine</div>
         <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ 0{,}1\ \text{W/m}^2\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>
-        <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 20 K (ne pas sauter la fenêtre d’une branche chaude : la planète s’arrête au premier équilibre rencontré), ≤ 101 itérations.</p>
+        <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 20 K, et jamais plus du double du pas
+            précédent (ne pas sauter la fenêtre d’une branche chaude : la planète traverse les températures intermédiaires et s’arrête
+            au premier équilibre rencontré ; la pente sécante, mesurée entre deux états d'eau et d'albédo différents, peut annoncer
+            un équilibre lointain), ≤ 101 itérations.</p>
         <p class="code">calculations_flux.js → computeToleranceWm2, computeSearchIncrement ; configTimeline.js → CONFIG_COMPUTE [SOLVER]</p>
     </div>
 </div>
@@ -82,6 +85,16 @@ Logs:
         <div class="f" data-tex="S = \frac{L}{4\pi d^2},\qquad \bar S = \frac{S}{4}"></div>
         <p>\(d\) = 1 UA (exacte par définition, UAI 2012). Le facteur 4 = surface de la sphère / disque intercepté.</p>
         <p class="code">compute.js → getSoleil</p>
+    </div>
+    <div class="eq P" id="eq-orbite-date">
+        <div class="titre"><span class="cl P">P</span> Orbite à la date du calcul (Milankovitch)</div>
+        <div class="f" data-tex="\varepsilon(t),\ e(t),\ \varpi(t)\ \text{(Berger \&amp; Loutre 1991)},\qquad \bar S = \frac{S}{\sqrt{1-e^2}}"></div>
+        <p>Solution astronomique valable ± 3 Ma autour de 1950 (tables de l'onglet Milankovitch). L'obliquité ε règle l'insolation
+            annuelle de chaque latitude (bilan méridien) et l'amplitude des saisons ; l'excentricité e, le flux moyen de l'année
+            (loi de Kepler) ; la précession ϖ, la répartition de l'insolation dans l'année, qui fond les calottes. Calendrier compté
+            depuis l'équinoxe de printemps, longitude solaire par l'équation de Kepler. Hors de la validité : orbite de référence.</p>
+        <p class="src">Berger &amp; Loutre 1991, Quat. Sci. Rev. 10:297</p>
+        <p class="code">physics/orbite.js ; compute.js → getEpochDateConfig (📜⚾), getSoleil</p>
     </div>
 </div>
 
@@ -219,10 +232,14 @@ Logs:
     </div>
     <div class="eq M" id="eq-profil-voigt-largeurs">
         <div class="titre"><span class="cl M">M</span> Profil de Voigt : largeurs</div>
-        <div class="f" data-tex="\gamma_L = P\left[x_s\gamma_{\text{self}} + (1-x_s)\gamma_{\text{air}}\right]\left(\frac{296}{T}\right)^{n_{\text{air}}},\qquad \gamma_D = 3{,}58\times10^{-7}\,\nu\sqrt{T/M}"></div>
-        <p>Coefficients d'élargissement HITRAN (M) ; Doppler (P). Voigt par l'approximation de Humlíček (P),
-            fenêtre ±5 cm⁻¹, ailes coupées à 100 largeurs (N).</p>
-        <p class="code">hitran.js → gammaLorentzTotal, gammaDoppler, voigtNormalized, crossSectionFromLines</p>
+        <div class="f" data-tex="\begin{gathered}\gamma_L = P\left[x_s\gamma_{\text{self}} + (1-x_s)\gamma_{\text{air}}\right]\left(\frac{296}{T}\right)^{n_{\text{air}}},\qquad \gamma_D = \frac{\nu}{c}\sqrt{\frac{2RT}{M}}\\ f_V(\Delta\nu) = \frac{\operatorname{Re} w(x+iy)}{\gamma_D\sqrt{\pi}},\quad x = \frac{\Delta\nu}{\gamma_D},\ y = \frac{\gamma_L}{\gamma_D},\qquad \operatorname{Re} w(x+iy) = \frac{y}{\pi}\int_{-\infty}^{\infty}\frac{e^{-t^2}\,dt}{(x-t)^2+y^2}\end{gathered}"></div>
+        <p>Coefficients d'élargissement HITRAN (M) ; Doppler (P). Fonction de Faddeeva w par l'algorithme W4 de Humlíček (P) :
+            quatre fractions rationnelles en t = y − ix, dont deux quadratures de Gauss–Hermite (2 et 4 nœuds) ; écart relatif
+            à l'intégrale ci-dessus &lt; 10⁻⁴ (9,6·10⁻⁵ au pire sur x ≤ 10⁶, 10⁻⁴ ≤ y ≤ 10⁴, contrôle numérique). Fenêtre ±5 cm⁻¹,
+            ailes coupées à 100 largeurs (N). γ_D est la demi-largeur à 1/e du profil gaussien (M en kg/mol) ; la demi-largeur à
+            mi-hauteur vaut γ_D√ln 2. À 1 atm, y ≈ 100 pour le CO₂ à 667 cm⁻¹ : les raies sont lorentziennes.</p>
+        <p class="src">Humlíček 1982, JQSRT 27:437</p>
+        <p class="code">hitran.js → gammaLorentzTotal, gammaDoppler, faddeevaRe, voigtNormalized, crossSectionFromLines</p>
     </div>
     <div class="eq N" id="eq-tables-grille-spectrale">
         <div class="titre"><span class="cl N">N</span> Tables σ(λ, T) et grille spectrale</div>
@@ -292,7 +309,8 @@ Logs:
         <div class="titre"><span class="cl P">P</span> OLR, effet de serre et sa répartition</div>
         <div class="f" data-tex="\text{OLR} = \sum_\lambda F_{\text{sommet}}(\lambda),\qquad \text{EDS} = \sum_\lambda F_0(\lambda) - \text{OLR},\qquad \text{part}_X \propto \text{OLR}_{\text{sans }X} - \text{OLR}"></div>
         <p>Répartition par retrait à température figée (Schmidt et al. 2010 ; Lacis et al. 2010), normalisée à 100 % —
-            les retraits ne somment pas à l'EDS (recouvrement).</p>
+            les retraits ne somment pas à l'EDS (recouvrement). Chaque absorbeur est retiré du transfert seul (raies, CIA,
+            continuum ou opacité des nuages à 0 dans les couches) ; T, profil, vapeur et nuages restent ceux de l'état convergé.</p>
         <p class="code">calculations.js → calculateFluxForT0, computeEdsRemovalShares</p>
     </div>
     <div class="eq N" id="eq-bornes-numeriques-transfert">
@@ -395,26 +413,43 @@ Logs:
             basse, aléatoire entre nuages bas et hauts (hypothèses standard).</p>
         <p class="code">calculations.js → profilAtmosphere</p>
     </div>
-    <div class="eq X" id="eq-nuages-hauts-altitude-epaisseurs">
-        <div class="titre"><span class="cl X">⚠️</span> Nuages hauts : altitude et épaisseurs</div>
-        <div class="f" data-tex="T_{\text{enclume}} = 220\ \text{K},\qquad \ln\tau \sim \mathcal U[\ln 0{,}03\ ;\ \ln 30],\qquad \tau_{\text{IR}} = \tau/2"></div>
-        <p>Température fixe des enclumes (Hartmann &amp; Larson 2002) : la loi est physique, la valeur de 220 K est <b>de
-            mémoire</b>. Distribution en ln τ : amincissement exponentiel (P), bornes ajustées sur les tiers CALIPSO
-            (Stubenrauch 2024).</p>
+    <div class="eq M" id="eq-nuages-hauts-altitude-epaisseurs">
+        <div class="titre"><span class="cl M">M</span> Nuages hauts : altitude et épaisseurs</div>
+        <div class="f" data-tex="T_{\text{enclume}} = 226{,}3\ \text{K},\qquad \ln\tau \sim \mathcal U[\ln 0{,}0408\ ;\ \ln 11{,}9],\qquad \tau_{\text{IR}} = \tau/2"></div>
+        <p>Température fixe des enclumes (Hartmann &amp; Larson 2002, loi physique) ; ⚠️ sa valeur est encore MESURÉE, en
+            attendant le niveau calculé par le modèle (convergence de la subsidence de ciel clair, Zelinka &amp; Hartmann 2010) :
+            température d'émission des sommets des nuages hauts, ISCCP-H 2010 (tropiques 225,1 K, latitudes moyennes 228,9 K). Distribution
+            en ln τ : amincissement exponentiel (P), bornes qui redonnent les parts CALIPSO de τ &lt; 0,3, de 0,3 à 3 et de τ
+            &gt; 3 : 0,13, 0,15 et 0,09 sur 0,37 (Stubenrauch 2024).</p>
         <p class="code">EARTH.NUAGES.T_ENCLUME, TAU_HAUT_* ; solaire.js → moyenneHauts</p>
     </div>
 </div>
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
-<h2>🌞 Transfert solaire (Lacis &amp; Hansen 1974)</h2>
+<h2>🌞 Transfert solaire (Lacis &amp; Hansen 1974 ; vapeur : Chou &amp; Suarez 1999)</h2>
 <div class="grille">
     <div class="eq M" id="eq-schema">
         <div class="titre"><span class="cl M">M</span> Le schéma</div>
-        <div class="f" data-tex="A_{\text{sommet}} = A_{\text{visible}}(\text{Rayleigh, O}_3\text{, sol, nuages}) + \sum_{n=1}^{7} p_n\,R_n(k_n)"></div>
-        <p>Paramétrisation <b>ajustée sur des calculs de diffusion multiple</b> (doubling-adding) : 64,7 % du flux hors des
-            bandes de la vapeur, 35,3 % dedans ; vapeur en 8 termes \(k_n, p_n\) (table 1, ajustée sur Yamamoto à 0,1 %).</p>
-        <p class="src">Lacis &amp; Hansen 1974, J. Atmos. Sci. 31:118</p>
+        <div class="f" data-tex="A_{\text{sommet}} = A_{\text{visible}}(\text{Rayleigh, O}_3\text{, H}_2\text{O, sol, nuages}) + \sum_{i=1}^{10} h_i\,R_i(k_i)"></div>
+        <p>Ozone, Rayleigh et nuages : paramétrisation <b>ajustée sur des calculs de diffusion multiple</b> (doubling-adding) de
+            Lacis &amp; Hansen. Partage du spectre de Chou &amp; Suarez : 47,074 % du flux sous 0,70 µm (ultraviolet et visible),
+            52,926 % au-delà (proche infrarouge, vapeur en 10 termes \(k_i, h_i\)).</p>
+        <p class="src">Lacis &amp; Hansen 1974, J. Atmos. Sci. 31:118 ; Chou &amp; Suarez 1999, NASA TM-104606 vol. 15</p>
         <p class="code">radiative/solaire.js → albedo, colonneNuageuse</p>
+    </div>
+    <div class="eq M" id="eq-vapeur-chou-suarez">
+        <div class="titre"><span class="cl M">M</span> Vapeur : k-distribution de Chou &amp; Suarez</div>
+        <div class="f" data-tex="T(w) = \sum_{i=1}^{10} h_i\,e^{-k_i w},\quad k_i = 0{,}0010 \ldots 1000\ \text{g}^{-1}\text{cm}^2,\quad \sum h_i = 0{,}52926\,;\qquad T_{\text{PAR}} = e^{-0{,}00075\,w}"></div>
+        <p>Proche IR : coefficients et poids de la table 2, calculés raie par raie (HITRAN 1996) à 300 hPa et 240 K ; sous nuage,
+            les bandes 9, 10 et 11 séparément (les gouttes y absorbent différemment), leurs poids additionnés en ciel clair. Visible
+            (bande 8, 39,081 % du flux) : k̄ = 0,00075 g⁻¹ cm² (éq. 3.12–3.13), en perturbation du transfert visible. Validation de
+            l'article : flux à moins de 1 % du raie par raie (table 8). ⚠️ Absents : Rayleigh du proche IR et CO₂ (−3,1 et −3,3 W/m²
+            au sol à 60°, table 7), continuum de la vapeur.</p>
+        <p>🎯 📱 : l'atmosphère absorbe 61,6 W/m² en ciel clair (observé 73 : Wild et al. 2019) ; la colonne d'eau du globe
+            pèse 16,8 kg/m² (observé 24,9 : Trenberth &amp; Smith 2005) — une colonne unique à la température moyenne manque la
+            convexité de Clausius-Clapeyron.</p>
+        <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, tables 2, 3, 7, 8</p>
+        <p class="code">solaire.js → CS99, colonneNuageuse, albedoMu</p>
     </div>
     <div class="eq M" id="eq-ozone-chemin-optique">
         <div class="titre"><span class="cl M">M</span> Ozone et chemin optique</div>
@@ -438,17 +473,31 @@ Logs:
     </div>
     <div class="eq M" id="eq-eau-precipitable-effective">
         <div class="titre"><span class="cl M">M</span> Eau précipitable effective</div>
-        <div class="f" data-tex="y = \int x_v\,\frac{p\,M_{\text{H}_2\text{O}}}{RT}\,\frac{p}{P_0}\sqrt{\frac{273}{T}}\;dz"></div>
-        <p>Mise à l'échelle en pression et en température de Lacis &amp; Hansen (éq. 24), intégrée sur le profil du modèle :
-            colonne entière, sous le nuage, et tranche par tranche dans le nuage.</p>
+        <div class="f" data-tex="w = \int x_v\,\frac{p\,M_{\text{H}_2\text{O}}}{RT}\left(\frac{p}{300\ \text{hPa}}\right)^{0{,}8}\big[1 + 0{,}00135\,(T - 240\ \text{K})\big]\;dz"></div>
+        <p>Mise à l'échelle en pression et en température de Chou &amp; Suarez (éq. 3.3, 3.5), celle de leurs coefficients k,
+            intégrée sur le profil du modèle : colonne entière, sous le nuage, et tranche par tranche dans le nuage.</p>
         <p class="code">calculations.js → profilAtmosphere (wEff)</p>
     </div>
     <div class="eq P" id="eq-couche-diffusante-deux-flux">
         <div class="titre"><span class="cl P">P</span> Couche diffusante : deux-flux de Sagan &amp; Pollack</div>
         <div class="f" data-tex="u = \sqrt{\frac{1-g\omega}{1-\omega}},\ t = \sqrt{3(1-\omega)(1-g\omega)}\,\tau,\quad R = \frac{(u^2-1)(1-e^{-2t})}{(u+1)^2-(u-1)^2e^{-2t}},\quad T = \frac{4u\,e^{-t}}{(u+1)^2-(u-1)^2e^{-2t}}"></div>
-        <p>Limite conservative : \(R = \sqrt3(1-g)\tau/(2+\sqrt3(1-g)\tau)\). \(g\) = 0,85 (Hansen &amp; Travis 1974, M).
-            Absorption des gouttes ≈ 0,08 cm d'eau pour τ = 8 (§4, M).</p>
+        <p>Limite conservative : \(R = \sqrt3(1-g)\tau/(2+\sqrt3(1-g)\tau)\). \(\omega\) et \(g\) des gouttes et des
+            cristaux : carte suivante.</p>
         <p class="code">solaire.js → couche, nuageVisible</p>
+    </div>
+    <div class="eq M" id="eq-optique-gouttes-cristaux">
+        <div class="titre"><span class="cl M">M</span> Gouttes et cristaux : co-albédo et asymétrie par bande</div>
+        <div class="f" data-tex="1-\omega_b = b_0 + b_1 r + b_2 r^2,\qquad g_b = c_0 + c_1 r + c_2 r^2\quad (b = \text{1–8},\ 9,\ 10,\ 11)\,;\qquad \bar\omega = \frac{\sum\omega_i\tau_i}{\sum\tau_i},\quad \bar g = \frac{\sum g_i\omega_i\tau_i}{\sum\omega_i\tau_i}"></div>
+        <p>Tables 5 et 6 de Chou &amp; Suarez, tirées des spectres de diffusion simple de Tsay et al. 1989 (gouttes, Mie) et de
+            Fu 1996 (cristaux hexagonaux) : co-albédo nul sous 0,70 µm ; pour des gouttes de 10 µm, 8·10⁻⁵ (bande 9), 8·10⁻³
+            (bande 10) et 0,15 (bande 11), environ 8 fois plus pour la glace. Gouttes : rayon effectif de Martin et al. 1994,
+            moyenné sur leur épaisseur optique ; cristaux : taille de Fu \(r_i = (8\sqrt3/9)\,r_e\), même extinction que le
+            profil. Sous nuage, les bandes 9, 10 et 11 sont calculées séparément (30 termes de vapeur).</p>
+        <p>🎯 📱 : l'atmosphère absorbe plus par ciel nuageux que par ciel clair, comme observé (64,3 contre 61,6 W/m² ; Wild et
+            al. 2019 : 79 contre 73) ; effet solaire des nuages −49,5 W/m² (CERES −47) ; noyau dA_p/dA_s 0,343
+            (Donohoe &amp; Battisti 2011 : 0,32).</p>
+        <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, §4.2, tables 5–6, éq. 6.3–6.4</p>
+        <p class="code">solaire.js → OPTIQUE, optiqueNuage ; calculations.js → profilAtmosphere (tauLiq, tauRLiq)</p>
     </div>
     <div class="eq P" id="eq-addition-couches-moyenne-sur">
         <div class="titre"><span class="cl P">P</span> Addition des couches et moyenne sur la sphère</div>
@@ -456,6 +505,24 @@ Logs:
         <p>L'hémisphère éclairé est uniformément réparti en \(\mu_0\) : géométrie, pas un angle « effectif » choisi
             (Gauss-Legendre 4 points). Sous-colonnes clair / bas / haut / bas+haut en recouvrement aléatoire.</p>
         <p class="code">solaire.js → poser, albedo</p>
+    </div>
+    <div class="eq M" id="eq-aerosol-de-fond">
+        <div class="titre"><span class="cl M">M</span> Aérosol de fond (MACv2)</div>
+        <div class="f" data-tex="\tau_{550} = 0{,}12,\quad \omega = 0{,}94,\quad g = 0{,}70\qquad R_{\text{sol vu}} = R_a + \frac{T_a^2 R_g}{1 - R_a R_g}"></div>
+        <p>Climatologie MACv2 (AERONET + modèles), moyennes globales au milieu du visible. Couche sous les nuages (couche limite),
+            deux-flux de la couche diffusante, posée sur le sol dans l'ultraviolet et le visible (47,074 % du flux). ⚠️ Même valeur pour
+            toutes les époques qui ont une atmosphère (pas de chimie des aérosols) ; plus mince dans le proche IR, non représenté.</p>
+        <p class="src">Kinne 2019, Atmos. Chem. Phys. 19:10919</p>
+        <p class="code">solaire.js → AEROSOL, solAerosol</p>
+    </div>
+    <div class="eq M" id="eq-absorption-o2">
+        <div class="titre"><span class="cl M">M</span> Absorption de l'O₂</div>
+        <div class="f" data-tex="\Delta F = 0{,}0633\,\big(1 - e^{-k\sqrt{w/\mu_0}}\big),\quad k = 0{,}000145\ (\text{cm-atm})^{-1/2},\quad w = x_{\text{O}_2}\,N_{\text{STP}}\,\frac{(p_s/300\ \text{hPa})^{0{,}8}}{1{,}8}"></div>
+        <p>Bandes A, B et faibles de l'O₂ (6,33 % du flux solaire), ajustées raie par raie ; la quantité d'O₂ suit la même mise à
+            l'échelle en pression que la vapeur. Sous les nuages, la réduction du flux au sol est multipliée par le rapport des flux
+            nets nuageux et clair (leur éq. 6.18).</p>
+        <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, éq. 3.5, 3.16–3.18, 6.18</p>
+        <p class="code">solaire.js → O2, colonneO2, albedoMu</p>
     </div>
     <div class="eq P" id="eq-voile-stratospherique">
         <div class="titre"><span class="cl P">P</span> Voile stratosphérique (événements)</div>
@@ -476,8 +543,12 @@ Logs:
     </div>
     <div class="eq M" id="eq-albedos-surfaces">
         <div class="titre"><span class="cl M">M</span> Albédos des surfaces</div>
-        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}08\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50"></div>
-        <p>Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). ⚠️ lave 0,05 et albédo « boue de neige »
+        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}066\ (\text{Fresnel})\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50"></div>
+        <p>Océan : réflexion de Fresnel d'une mer plane, \(R(\mu) = \tfrac12(r_s^2 + r_p^2)\), moyennée sur le disque éclairé
+            \(\int_0^1 R\,2\mu\,d\mu\), indice de l'eau 1,333 (Hale &amp; Querry 1973, laboratoire) ; ⚠️ mer plane (ni vagues, ni
+            lumière rétrodiffusée sous la surface), une seule valeur pour tous les \(\mu_0\). 🎯 mesures d'avion : 0,057 sur le
+            disque (Taylor et al. 1996), 0,06 en lumière diffuse (Briegleb et al. 1986).
+            Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). ⚠️ lave 0,05 et albédo « boue de neige »
             0,48 des snowballs : sans source.</p>
         <p class="code">physics.js → EARTH['🪩🍰'] ; configTimeline.js → '🌫️❄️'</p>
     </div>
@@ -507,9 +578,51 @@ Logs:
             (obliquité comprise) ; \(a(x)\) : co-albédo de la zone, calculé par le transfert solaire avec les angles solaires de la zone
             et sa glace ; point fixe glace ↔ gradient. \(\bar T\) vient du transfert radiatif complet. B et D publiés (D calé par North
             sur le gradient observé, T₂ = −28 °C) ; ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078.</p>
-        <p>⚠️ Moderne calculé T₂ = −20,7 : la zone polaire est trop sombre (co-albédo 0,674 contre
-            0,518 observé) — les calottes permanentes (Antarctique, Groenland) manquent.</p>
+        <p>⚠️ Moderne calculé T₂ = −21,2 avec les calottes actuelles (co-albédo pol / mid / trop 0,573 / 0,674 / 0,692) : le
+            contraste d'absorption entre tropiques et pôles est faible, les mêmes nuages couvrant les trois zones. Les hautes
+            latitudes sont trop chaudes de plusieurs degrés : c'est ce qui limite les calottes (ci-dessous).</p>
+        <p>🎯 Co-albédo observé (North &amp; Coakley 1979, celui avec lequel D reproduit −28 °C) : 0,681 − 0,202 P₂, soit
+            0,520 / 0,642 / 0,758 par zone au poids solaire ; trois zones uniformes en tirent T₂ = −26,9 °C au mieux (−28,2 en
+            continu). Donner à chaque zone sa colonne (à sa température) et ses fractions de nuages ISCCP-H mène à T₂ = −25,5 et au
+            co-albédo polaire observé (0,519), mais la rétroaction glace–albédo du modèle, trop forte (atmosphère trop transparente
+            en solaire), fait alors basculer l'EOT et le Quaternaire en boule de neige : ces nuages attendent l'absorption solaire
+            de la vapeur.</p>
         <p class="code">physics/meridien.js → MERIDIEN.resoudre ; physics.js → EARTH.facteurGlaceZones</p>
+    </div>
+    <div class="eq P" id="eq-calottes-bilan-integre">
+        <div class="titre"><span class="cl P">P</span> Calottes : bilan de masse intégré (géométrie de Weertman)</div>
+        <div class="f" data-tex="\bar b(a) = \frac{\int_{\varphi_e}^{\varphi_b} b\big(T(\varphi) - \Gamma z,\ z\big)\cos\varphi\,d\varphi}{\int_{\varphi_e}^{\varphi_b}\cos\varphi\,d\varphi},\quad z = z_{\text{socle}} + h_0\sqrt{1 - y/W}\,\Big(1 - \frac{\rho_i}{\rho_m}\Big),\quad h_0 = \sqrt{\frac{2\tau_0 W}{\rho_i g}}"></div>
+        <p>La calotte couvre la terre de sa bande depuis le bout polaire (partage des eaux) jusqu'à une marge vers l'équateur ;
+            profil parfaitement plastique le long du méridien (Nye), τ₀ = 100 kPa. Chaque point a sa latitude et son altitude : le
+            bord bas, tourné vers des latitudes plus chaudes, fond et borne la taille. L'équilibre est \(\bar b(a) = 0\), cherché
+            depuis l'état porté ; relaxation sur la durée du clic. ⚠️ Terre de la bande uniforme en sin φ, plateaux continentaux
+            jusqu'à −1 000 m compris (PaleoDEM).</p>
+        <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233</p>
+        <p class="code">physics/calottes.js → bilanCalotte, equilibre, calculer</p>
+    </div>
+    <div class="eq P" id="eq-neige-des-calottes">
+        <div class="titre"><span class="cl P">P</span> Neige des calottes : l'humidité qu'apportent les tourbillons</div>
+        <div class="f" data-tex="F_q(x) = -\frac{2\pi p_s}{g}\,D\,(1-x^2)\,[1-w(x)]\,\frac{dq}{dx},\quad q = \text{HR}\;q^*\big(T(x)\big),\quad P-E = -\frac{1}{2\pi a^2}\,\frac{dF_q}{dx},\quad w = e^{-x^2/0{,}3^2}"></div>
+        <p>L'eau qui tombe sur une calotte vient d'ailleurs : transport d'énergie humide vers les pôles en diffusion (Siler, Roe
+            &amp; Armour 2018) sur le profil T(x) du bilan de North, D = 1,16·10⁶ m²/s (leur ajustement sur la température zonale
+            d'ERA-Interim), humidité relative de surface du modèle. Sur la glace la sublimation est négligée : la neige d'un point
+            vaut P − E à sa latitude, réduite avec l'altitude comme la vapeur saturante au sommet de l'inversion (Jouzel &amp;
+            Merlivat 1984), les jours de gel seulement.</p>
+        <p>🎯 📱 : 55 à 73 kg m⁻² an⁻¹ sur les calottes (Antarctique mesuré : 143, Arthern et al. 2006) ; temps de réaction
+            15 à 75 ka, assez courts pour suivre l'orbite.</p>
+        <p class="src">Siler, Roe &amp; Armour 2018, J. Climate 31:7481, éq. 1, 2, 5, 6</p>
+        <p class="code">physics/calottes.js → calculer (PmoinsE), bilanPoint</p>
+    </div>
+    <div class="eq P" id="eq-fonte-insolation-orbite">
+        <div class="titre"><span class="cl P">P</span> Fonte des calottes : degrés-jours + insolation de l'orbite</div>
+        <div class="f" data-tex="M = M_{\text{DDF}} + \frac{A_{\text{sol}}(\alpha)}{L_f}\int_{T > 0\,^\circ\text{C}} \big(S(t) - S_{1950}(t)\big)\,dt"></div>
+        <p>Les facteurs degrés-jours (neige ~3, glace ~8 mm d'eau par °C·jour) sont mesurés sous l'orbite actuelle ; l'écart
+            d'insolation journalière entre l'orbite de la date et celle de 1950 fond en plus les jours au-dessus de 0 °C.
+            \(A_{\text{sol}}\) : part absorbée au sol par une surface qui fond (neige mouillée, puis glace nue au prorata des
+            degrés-jours), donnée par le transfert solaire du modèle aux angles solaires de la zone. C'est par là qu'entrent la
+            précession et l'insolation d'été à 65° N.</p>
+        <p class="src">Robinson &amp; Goelzer 2014, The Cryosphere 8:1419 (éq. 2) ; Braithwaite 1995, J. Glaciol. 41:153</p>
+        <p class="code">physics/calottes.js → bilanPoint ; physics/orbite.js → anomalie ; physics/meridien.js → absorbe</p>
     </div>
     <div class="eq X" id="eq-amplitudes-saisonnieres">
         <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières</div>

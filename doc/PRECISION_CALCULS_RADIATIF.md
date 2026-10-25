@@ -111,6 +111,15 @@ La convergence n’est pas la cause du décalage de ~2.7 K.
 
 **Bonus v1.3.1** : évite les appels `lineIntensityS` pour les raies au-delà de N largeurs (quand N×(γ_L+γ_D) < 5 cm⁻¹).
 
+**v1.4.0 (2026-10-24)** : la cause était la fonction elle-même. `faddeevaRe` n'était pas l'algorithme de Humlíček mais une
+somme rationnelle à 4 termes : Re w trop faible au centre de raie (×0,53 à y = 0,2, ×0,38 à y = 3,6, ×0,19 à y = 10),
+négatif dans les ailes proches (−0,95 pour un vrai K de 0,005 à x = 3,6, y = 0,1 ; 184 308 valeurs négatives sur 5,05·10⁶
+appels pour les tables à 2 000 points), branche |x| + y > 15 sans le 1/√π (×1,77) ; aire du profil sur ±5 cm⁻¹ :
+0,75 à 1 atm, 1,04 à 0,05 atm, 1,66 à 7 atm. Elle est remplacée par l'algorithme W4 de Humlíček (1982, JQSRT 27:437),
+contrôlé contre l'intégrale (y/π)∫e^(−t²)/((x−t)² + y²) dt : écart relatif 9,6·10⁻⁵ au pire, Re w > 0 partout, aire égale à
+la convolution exacte à 4·10⁻⁶ près. Le `Math.max(0, ·)` de v1.3.2 n'a plus d'objet et est retiré ; la coupure à 100
+largeurs reste (choix numérique).
+
 **Validation** : sonde `window.__RAD_CAP_LAST_DBG__.firstBad` dans `calculateRadiativeCapacities` (calculations.js v1.2.4) → `firstBad === null` attendu après v1.3.2. À retirer après validation multi-époques.
 
 ---

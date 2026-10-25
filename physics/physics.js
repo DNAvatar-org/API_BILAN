@@ -1,7 +1,9 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.5.0
+// Version 2.6.0
+// - v2.6.0 (2026-10-25): albédo de l'océan par Fresnel (n de l'eau, Hale & Querry 1973) ; bornes de ln τ des nuages hauts des
+//   parts CALIPSO ; nuages hauts à 226,3 K mesurés (⚠️ en attendant le niveau calculé par le modèle).
 // - v2.5.0 (2026-10-15): nuages MOYENS — EARTH.NUAGES.F_MOYEN 0,23 (Stubenrauch 2024, CAMcol) et SIGMA_MOYEN (440–680 hPa).
 // - v2.4.0 (2026-10-13): écarts de zone CALCULÉS (bilan méridien de North 1981, physics/meridien.js) : facteurGlaceZones(T, EPOCH, dT),
 //   STATE.dTzones, part d'énergie englacée par zone ; EPOCH['🥶'], obliquityZoneWarmingK, EBM_B / EBM_ALBEDO_REF retirés.
@@ -128,18 +130,11 @@ EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // [K] largeur de
 EARTH.ICE_FORMULA_MAX_FRACTION = 1.0;  // [m²/m² (fraction de surface englacée)]
 EARTH.T_ICE_TRANSITION_RANGE_K = 20;  // [K]
 
-// ─── Amplification latitudinale (EBM 0D 3 zones, Budyko-Sellers) — v2.0.15 ─────
-// Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où T_locale < T_freeze.
-// 3 zones pondérées par fraction de surface (géométrie sphérique, somme exacte = 1.0) :
-//   Tropical    (0°–30°,  f_trop=0.500) : T_trop = T_glob − POLAR_AMP_TROP_K   (dT_trop < 0 : plus chaud)
-//   Mi-latitude (30°–60°, f_mid=0.366)  : T_mid  = T_glob − POLAR_AMP_MID_K    (dT_mid  > 0 : plus froid)
-//   Polaire     (60°–90°, f_pol=0.134)  : T_pol  = T_glob − POLAR_AMP_POL_K    (dT_pol  > 0 : plus froid)
+// ─── Zones de latitude (EBM 0D à 3 zones, Budyko-Sellers) ──────────────────────
+// Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où T_zone = T̄ − dT_z < T_freeze.
+// 3 zones pondérées par leur surface (géométrie sphérique, somme exacte = 1) ; dT_z (> 0 : plus froid que la moyenne)
+// CALCULÉS par le bilan méridien (bloc suivant), pas posés.
 // Seuil local glace → seuil global : T_thresh_z_high = T_FREEZE_SEAWATER_K + dT_z + amp_z_eff.
-// Jusqu'à v2.0.14 : seulement pol+mid, avec cap artificiel 0.46 qui empêchait le Snowball.
-//
-// 🏷️ TUNING — valeurs Earth-modern (Budyko 1969 ; Sellers 1969 ; IPCC AR6 WG1 ch.7 & fig 4.18) :
-//   POLAR_AMP_POL_K = 20 K (gradient tropiques→pôles ~40 K réel, amplification polaire Arctique observée ~2×)
-//   POLAR_AMP_MID_K =  5 K (gradient tropiques→mi-lat ~10 K réel)
 // ─── ÉCARTS DE TEMPÉRATURE DES ZONES : CALCULÉS (2026-10-13), plus posés par époque ─────────────────────────────────
 // Avant : EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop } posés à la main pour chaque époque (moderne +20 / +5 / −5, qui ne sont
 // même pas de moyenne nulle et sous-estiment les tropiques de 5,5 K), et une correction d'obliquité ΔS̄(1 − 0,30)/2,0.
@@ -168,7 +163,7 @@ EARTH.SEASONAL_AMP_POL_K  = 15;  // [K] pôle : amplitude annuelle 2× (été + 
 EARTH.SEASONAL_AMP_MID_K  = 25;  // [K] mi-lat continentale : amplitude plus large (effet continentalité)
 // Tropical : faible saisonnalité (3 K pic-à-demi), dominée par océan chaud inertiel.
 //   Réf. ERA5 1991-2020, Peixoto & Oort 1992 ch.7 : ΔT mensuel tropical ≈ ±3 K.
-//   Combiné à dT_trop=-5 K → seuil haut T_trop_thresh_high = 271.15 + (-5) + 3 = 269.15 K (-4°C).
+//   Seuil haut T_trop_thresh_high = 271,15 + dT_trop + 3 K, dT_trop du bilan méridien (−10,5 K à l'état initial → 263,65 K).
 //   Rampe étroite (largeur 6 K) → pente forte → bifurcation Budyko-Sellers classique.
 EARTH.SEASONAL_AMP_TROP_K = 3;   // [K] tropical : amplitude annuelle faible (océan thermique)
 // Mi-latitudes OCÉANIQUES (2026-10-13) : SEASONAL_AMP_MID_K (25 K) est continental ; la surface de la mer des moyennes
@@ -203,7 +198,7 @@ function dailyMeanInsolation(lat_deg, dec_deg) {
         * (H * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(H));
 }
 
-EARTH.dailyMeanInsolation = dailyMeanInsolation;
+EARTH.dailyMeanInsolation = dailyMeanInsolation;   // [W/m²] insolation journalière moyenne (fonction de la latitude et de la déclinaison)
 
 /** Insolation annuelle moyenne (W/m²) d'une bande de latitude [l0,l1]°, pondérée par la surface. */
 function zoneAnnualMeanInsolation(l0_deg, l1_deg, obliquity_deg) {
@@ -290,11 +285,12 @@ EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) 
  * EARTH.computeIceTempFactor(T_glob_K, EPOCH) : ice_temp_factor ∈ [0,1].
  * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
  *
- * MODÈLE PHYSIQUE (EBM 0D 3 zones × saisonnalité × obliquité) — v2.0.15 :
- *   En zone z ∈ {pol, mid, trop}, la T_locale annuelle vaut T_glob − dT_z :
- *     - Polaire (60°–90°, f=0.134) : dT_pol = +20 K (plus froid)
- *     - Mi-lat  (30°–60°, f=0.366) : dT_mid =  +5 K (plus froid)
- *     - Tropical (0°–30°, f=0.500) : dT_trop = −5 K (plus chaud, NÉGATIF)
+ * MODÈLE PHYSIQUE (EBM 0D 3 zones × saisonnalité × obliquité) :
+ *   En zone z ∈ {pol, mid, trop}, la T_locale annuelle vaut T_glob − dT_z, dT_z du bilan méridien (ici l'état initial,
+ *   gradient mesuré de North 1981) :
+ *     - Polaire (60°–90°, f=0.134) : dT_pol = +22,6 K (plus froid)
+ *     - Mi-lat  (30°–60°, f=0.366) : dT_mid =  +6,1 K (plus froid)
+ *     - Tropical (0°–30°, f=0.500) : dT_trop = −10,5 K (plus chaud, NÉGATIF)
  *
  *   Amplitude saisonnière effective : amp_z_eff = SEASONAL_AMP_z_K × sin(ε) / sin(ε_REF).
  *   La glace se forme dès T_locale_hiver < T_FREEZE_SEAWATER (T_locale − amp_eff < T_FREEZE).
@@ -306,7 +302,7 @@ EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) 
  *
  *   ice_tf = f_pol·tf_pol + f_mid·tf_mid + f_trop·tf_trop    (somme pondérée directe, Σf_z=1.0)
  *
- *   Physique Snowball Earth (Budyko-Sellers classique) : quand T_glob < ~−4°C, la rampe
+ *   Physique Snowball Earth (Budyko-Sellers classique) : quand T_glob passe sous T_FREEZE + dT_trop + amp_trop, la rampe
  *   tropicale s'active, et la rétroaction glace-albédo peut dépasser le gain de 1 → bifurcation.
  *
  * EPOCH : l'entrée TIMELINE courante (⚾ facultatif). dT = { pol, mid, trop } (dT = T̄ − T_zone) : CALCULÉ par le bilan
@@ -543,15 +539,19 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     //     altostratus ISCCP 3,6–23) — pas de microphysique propre aux nuages moyens (phase mixte plus froide), déclaré.
     // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
     //     s'amincit à mesure que la glace tombe ; à amincissement exponentiel, une population en régime établi a ln τ
-    //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3 et
-    //     0,09 sont opaques (τ ≳ 3), soit environ un tiers par décade ; ⚠️ bornes 0,03–30 ajustées sur ces tiers.
+    //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3, 0,15
+    //     entre 0,3 et 3 et 0,09 sont opaques (τ ≳ 3). Bornes [τ_min, τ_max] de ln τ uniforme qui donnent ces trois parts :
+    //     ln(τ_max/τ_min) = ln 10 · 0,37/0,15 ; τ_min = 0,3·e^(−(0,13/0,37)·ln(τ_max/τ_min)) ; τ_max = 3·e^((0,09/0,37)·ln(τ_max/τ_min)).
     // Altitude des enclumes : la convection se détend là où la vapeur devient trop rare pour refroidir l'air par
     // rayonnement ; ce niveau est fixé par la pression de vapeur saturante, donc par une TEMPÉRATURE (« fixed anvil
-    // temperature », Hartmann & Larson 2002, GRL 29:1951). ⚠️ ~220 K de mémoire, à vérifier. Si la tropopause est plus
-    // chaude, l'enclume est à la tropopause.
-    T_ENCLUME: 220,            // [K]
-    TAU_HAUT_MIN: 0.03,        // [-]
-    TAU_HAUT_MAX: 30,          // [-]
+    // temperature », Hartmann & Larson 2002, GRL 29:1951). ⚠️ MESURE posée EN ATTENDANT le niveau calculé par le modèle (là où
+    // la subsidence de ciel clair converge le plus, Zelinka & Hartmann 2010 : en cours) : température d'émission des sommets des nuages
+    // hauts (P_c < 440 hPa), (⟨a·T_c⁴⟩/⟨a⟩)^¼ pondérée par leur quantité vue d'en haut et l'aire, ISCCP-H 2010 (12 mois,
+    // Young et al. 2018) : 226,3 K sur le globe (tropiques 225,1, latitudes moyennes 228,9, pôles 222,0). Si la tropopause
+    // est plus chaude, l'enclume est à la tropopause.
+    T_ENCLUME: 226.3,          // [K]
+    TAU_HAUT_MIN: 0.0408,      // [-]
+    TAU_HAUT_MAX: 11.9,        // [-]
     F_MOYEN: 0.23,             // [m²/m²] Stubenrauch et al. 2024 (CAMcol, ISCCP-CVL)
     SIGMA_MOYEN: 560 / 1013.25 // [-] p/p_s du niveau des nuages moyens (milieu de 440–680 hPa)
     // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².
@@ -559,8 +559,25 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
 // Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
 // Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
 EARTH.CP_AIR_MOIST_J_KG_K = 1005;  // [J/(kg·K)]
+// Albédo d'une mer PLANE : réflexion de Fresnel de la lumière non polarisée à l'interface air–eau d'indice n,
+//   R(μ) = ½ (r_s² + r_p²), r_s = (μ − n μ_t)/(μ + n μ_t), r_p = (n μ − μ_t)/(n μ + μ_t), μ_t = √(1 − (1 − μ²)/n²),
+// moyennée sur le disque éclairé, ∫₀¹ R(μ) 2μ dμ (la même intégrale qu'en lumière diffuse isotrope) : 0,066 pour n = 1,333.
+// n de l'eau MESURÉ au laboratoire (Hale & Querry 1973, Appl. Opt. 12:555 : 1,333 à 589 nm). ⚠️ DÉCLARÉ : mer plane — les
+// vagues et la lumière rétrodiffusée sous la surface ne sont pas comptées ; une seule valeur pour tous les μ₀. Contrôle 🎯 :
+// mesures d'avion 0,057 en moyenne sur le disque (Taylor et al. 1996), 0,06 en lumière diffuse (Briegleb et al. 1986).
+EARTH.INDICE_EAU = 1.333;   // [-]
+EARTH.albedoFresnel = function (n) {
+    var N = 2000, s = 0;
+    for (var k = 0; k < N; k++) {
+        var mu = (k + 0.5) / N, mut = Math.sqrt(1 - (1 - mu * mu) / (n * n));
+        var rs = (mu - n * mut) / (mu + n * mut), rp = (n * mu - mut) / (n * mu + mut);
+        s += (rs * rs + rp * rp) * mu / N;
+    }
+    return s;
+};
 EARTH['🪩🍰'] = {
-    '🪩🍰🎾': 0.05, '🪩🍰🌊': 0.08, '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
+    // 🌊 = océan libre : Fresnel (ci-dessus).
+    '🪩🍰🎾': 0.05, '🪩🍰🌊': EARTH.albedoFresnel(EARTH.INDICE_EAU), '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰🌍': 0.18,
     // ⛅ retiré (2026-10-12) : la réflectance du nuage n'est plus une constante réglée (0,42) mais le résultat du
     // condensat calculé (deux-flux, EARTH.NUAGES) — DATA['🪩']['🪩🍰⛅'].

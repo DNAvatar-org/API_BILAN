@@ -4,11 +4,10 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.6
+// Version 1.0.7
+// - v1.0.7 (2026-10-22): orbite de Berger & Loutre 1991 (CO2/static/astronomie*.js) et physics/orbite.js.
 // - v1.0.6 (2026-10-15): radiative/nuages_isccp.js + data/isccp_h_2010.js (simulateur ISCCP et sa référence).
 // - v1.0.5 (2026-10-15): CO2/static/histoire/point_modele.js (point des courbes du modèle, une seule fabrique).
-// - v1.0.4 (2026-10-15): CO2/static/histoire/litterature.js après configTimeline (graine = courbe de la littérature).
-// - v1.0.3 (2026-10-13): physics/meridien.js (bilan d'énergie méridien de North et al. 1981).
 // Date: 2026-10-10
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -19,6 +18,8 @@ window.ENGINE_SCRIPTS = [
     'config/configTimeline.js',
     '../CO2/static/histoire/litterature.js',   // la courbe cyan : graine 🌡️🧮 et fourchette tC (accesseurs de configTimeline)
     '../CO2/static/histoire/point_modele.js',  // un point des courbes du modèle d'Histoire (banc headless, banc de l'index)
+    '../CO2/static/astronomie_ber90.js',       // tables de Berger & Loutre 1991 (onglet Milankovitch), lues par physics/orbite.js
+    '../CO2/static/astronomie.js',             // leur calcul : orbite et insolation journalière à une date
     'data/alphabet.js',
     'data/episteme.js',     // liens épistémiques 🧭 / 🛠 (référence → valeur, avec statut) ; après l'alphabet
     'data/dico.js',
@@ -27,6 +28,7 @@ window.ENGINE_SCRIPTS = [
     'physics/physics.js',
     'tuning.js',
     'geology/interieur.js',
+    'physics/orbite.js',     // orbite à la date courante (Milankovitch) : ε, e, anomalie d'insolation — après l'intérieur (âges)
     'convergence/compute.js',
     'convergence/clics.js',
     'data/hitran_lines_CO2.js',

@@ -33,6 +33,10 @@
     Les clés <code>id</code> suivent la convention <em>AuteurANNÉE[lettre]</em> (ex. <code>gough1981</code>, <code>hoffman1998a</code>).
 </p>
 
+<p class="sec-note">Usages et statuts (🧭 d’où vient la connaissance, 🛠 ce que le modèle en fait) : sous chaque entrée, lus dans
+    <code>API_BILAN/data/episteme.js</code>. La page se range en deux parties lues dans ces mêmes liens : <strong>Physique</strong>
+    (au moins un usage entre dans le calcul) et <strong>Observations</strong> (courbe cyan d’Histoire et comparaisons 🎯 seulement).</p>
+
 <nav class="toc">
     <strong>Sommaire :</strong>
     <a href="#sec-solar">Luminosité solaire</a> ·
@@ -49,7 +53,7 @@
     <a href="#sec-water-rt">Eau &amp; transfert radiatif</a> ·
     <a href="#sec-composition">Composition, nuages froids, bilan méridien</a> ·
     <a href="#sec-calottes-cryogenien">Calottes, Cryogénien</a> ·
-    <a href="#sec-archive">Archive</a>
+    <a href="#sec-interieur">Intérieur</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -64,15 +68,6 @@
     <div class="used-in">Utilisée dans : <code>API_BILAN/convergence/compute.js</code> (goughLuminosity), <code>API_BILAN/config/configTimeline.js</code> (🔋☀️ par époque)</div>
 </article>
 
-<article class="ref" id="feulner2012" data-tags="solar faint-sun paleoclim">
-    <div class="cite-key">[feulner2012]</div>
-    <div class="authors">Feulner, G.</div>
-    <div class="title">The faint young Sun problem</div>
-    <div class="venue">Reviews of Geophysics, 50:RG2006 (2012)</div>
-    <div class="doi"><a href="https://doi.org/10.1029/2011RG000375">10.1029/2011RG000375</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/albedo/calculations_albedo.js</code> (nuages SW archéens, faible CCN) et <code>API_BILAN/config/configTimeline.js</code> (🌡️🧮 de 🦠 Archéen ; seuil CO₂ de bascule snowball, avec Feulner &amp; Kienert 2014). Le Soleil faible lui-même est calculé par Gough, pas interpolé — voir <a href="#gough1981">[gough1981]</a>.</div>
-</article>
-
 <article class="ref" id="koppLean2011" data-tags="solar observation">
     <div class="cite-key">[koppLean2011]</div>
     <div class="authors">Kopp, G. &amp; Lean, J. L.</div>
@@ -80,6 +75,15 @@
     <div class="venue">Geophysical Research Letters, 38:L01706 (2011)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2010GL045777">10.1029/2010GL045777</a></div>
     <div class="used-in"><code>REFS_LITTERATURE_ET_TUNING.md</code> (TSI 1361 W/m²)</div>
+</article>
+
+<article class="ref" id="bahcall2001" data-tags="solar faint-sun model">
+    <div class="cite-key">[bahcall2001]</div>
+    <div class="authors">Bahcall, J. N., Pinsonneault, M. H. &amp; Basu, S.</div>
+    <div class="title">Solar Models: Current Epoch and Time Dependences, Neutrinos, and Helioseismological Properties</div>
+    <div class="venue">The Astrophysical Journal, 555(2):990–1012 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1086/321493">10.1086/321493</a></div>
+    <div class="used-in">Modèle solaire standard : il confirme la luminosité du Soleil jeune de <a href="#gough1981">[gough1981]</a>. Cité dans <code>API_BILAN/config/configTimeline.js</code> (🔋☀️) et <code>API_BILAN/convergence/compute.js</code> (goughLuminosity).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -91,7 +95,7 @@
     <div class="title">The effect of solar radiation variations on the climate of the Earth</div>
     <div class="venue">Tellus, 21(5):611–619 (1969)</div>
     <div class="doi"><a href="https://doi.org/10.3402/tellusa.v21i5.10109">10.3402/tellusa.v21i5.10109</a></div>
-    <div class="used-in">EARTH.EBM_B_W_PER_M2_K = 2,0 W/m²/K (coefficient de refroidissement radiatif utilisé pour convertir ΔS̄ d'obliquité en ΔT de zone, <code>physics.js</code>). <code>API_BILAN/albedo/calculations_albedo.js</code> (Briegleb polar amp), <code>physics.js</code> (EARTH.POLAR_AMP_POL_K)</div>
+    <div class="used-in">Rétroaction glace–albédo des modèles d'équilibre énergétique : largeur de la transition de la mer gelée, jauge <code>seaIceTransitionRangeK</code> (<code>config/fine_tuning_bounds.js</code>, source <code>HYST_SEA_ICE_RANGE_K</code> de <code>config/model_tuning_biblio.js</code>) ; cadre cité en commentaire de <code>API_BILAN/albedo/calculations_albedo.js</code>.</div>
 </article>
 
 <article class="ref" id="sellers1969" data-tags="ebm polar-amp">
@@ -113,18 +117,61 @@
     <div class="used-in">Arctic Amplification 2–4× modern.</div>
 </article>
 
-<article class="ref" id="pierrehumbert2011" data-tags="ebm textbook paleoclim">
-    <div class="cite-key">[pierrehumbert2011]</div>
-    <div class="authors">Pierrehumbert, R. T.</div>
-    <div class="title">Principles of Planetary Climate</div>
-    <div class="venue">Cambridge University Press, ch. 5 (2011)</div>
-    <div class="doi">ISBN 9780521865562</div>
-    <div class="used-in">Cité en commentaire <code>calculations_albedo.js</code> (Briegleb).</div>
+<article class="ref" id="sodenHeld2006" data-tags="feedback planck gcm">
+    <div class="cite-key">[sodenHeld2006]</div>
+    <div class="authors">Soden, B. J. &amp; Held, I. M.</div>
+    <div class="title">An Assessment of Climate Feedbacks in Coupled Ocean–Atmosphere Models</div>
+    <div class="venue">Journal of Climate, 19(14):3354–3360 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI3799.1">10.1175/JCLI3799.1</a></div>
+    <div class="used-in">Réponse de Planck globale −3,2 W/m²/K : <code>PLANCK_W_M2_K</code> de <code>CO2/static/astronomie.js</code>, qui convertit l’anomalie d’insolation en écart de température. Article distinct de <a href="#heldSoden2006">[heldSoden2006]</a>.</div>
+</article>
+
+<article class="ref" id="loeb2018" data-tags="albedo observation ceres">
+    <div class="cite-key">[loeb2018]</div>
+    <div class="authors">Loeb, N. G., Doelling, D. R., Wang, H., Su, W., <em>et al.</em></div>
+    <div class="title">Clouds and the Earth’s Radiant Energy System (CERES) Energy Balanced and Filled (EBAF) Top-of-Atmosphere (TOA) Edition-4.0 Data Product</div>
+    <div class="venue">Journal of Climate, 31(2):895–918 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-17-0208.1">10.1175/JCLI-D-17-0208.1</a></div>
+    <div class="used-in">Albédo planétaire mesuré 0,29 (CERES EBAF) : <code>ALBEDO_PLANETAIRE</code> de <code>CO2/static/astronomie.js</code>.</div>
+</article>
+
+<article class="ref" id="peixotoOort1992" data-tags="textbook climatology seasonal">
+    <div class="cite-key">[peixotoOort1992]</div>
+    <div class="authors">Peixoto, J. P. &amp; Oort, A. H.</div>
+    <div class="title">Physics of Climate</div>
+    <div class="venue">American Institute of Physics, New York (1992)</div>
+    <div class="used-in">Cité avec ERA5 (<a href="#hersbach2020">[hersbach2020]</a>) pour les amplitudes saisonnières des zones, <code>EARTH.SEASONAL_AMP_*_K</code> (<code>physics/physics.js</code>) ; valeurs non relevées dans l’ouvrage (⚠️, carte « Amplitudes saisonnières »).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-snow-ice">3. Albédo neige, glace &amp; mer gelée</h2>
 
+<article class="ref" id="hale1973" data-tags="water optics refractive-index laboratory">
+    <div class="cite-key">[hale1973]</div>
+    <div class="authors">Hale, G. M. &amp; Querry, M. R.</div>
+    <div class="title">Optical constants of water in the 200-nm to 200-µm wavelength region</div>
+    <div class="venue">Appl. Opt., 12:555–563 (1973)</div>
+    <div class="doi"><a href="https://doi.org/10.1364/AO.12.000555">10.1364/AO.12.000555</a></div>
+    <div class="used-in">Indice de réfraction de l'eau, 1,333 à 589 nm : réflexion de Fresnel de l'océan (albédo d'une mer plane, 0,066 sur le
+        disque éclairé). <code>API_BILAN/physics/physics.js</code> (EARTH.INDICE_EAU, EARTH.albedoFresnel).</div>
+</article>
+<article class="ref" id="taylor1996" data-tags="ocean albedo solar aircraft">
+    <div class="cite-key">[taylor1996]</div>
+    <div class="authors">Taylor, J. P., Edwards, J. M., Glew, M. D., Hignett, P. &amp; Slingo, A.</div>
+    <div class="title">Studies with a flexible new radiation code. II: Comparisons with aircraft short-wave observations</div>
+    <div class="venue">Q. J. R. Meteorol. Soc., 122:839–861 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/qj.49712253204">10.1002/qj.49712253204</a></div>
+    <div class="used-in">Contrôle de l'albédo de l'océan : faisceau direct mesuré d'avion, α = 0,037/(1,1 μ₀^1,4 + 0,15), 0,057 en moyenne
+        sur le disque éclairé (le modèle calcule 0,066 par Fresnel, mer plane).</div>
+</article>
+<article class="ref" id="briegleb1986" data-tags="ocean albedo solar">
+    <div class="cite-key">[briegleb1986]</div>
+    <div class="authors">Briegleb, B. P., Minnis, P., Ramanathan, V. &amp; Harrison, E.</div>
+    <div class="title">Comparison of regional clear-sky albedos inferred from satellite observations and model computations</div>
+    <div class="venue">J. Climate Appl. Meteorol., 25:214–226 (1986)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0450(1986)025&lt;0214:CORCSA&gt;2.0.CO;2">10.1175/1520-0450(1986)025&lt;0214:CORCSA&gt;2.0.CO;2</a></div>
+    <div class="used-in">Contrôle de l'albédo de l'océan en lumière diffuse, 0,06 (schéma du modèle du NCAR).</div>
+</article>
 <article class="ref" id="briegleb2004" data-tags="sea-ice melt-pond albedo ccsm3">
     <div class="cite-key">[briegleb2004]</div>
     <div class="authors">Briegleb, B. P., Bitz, C. M., Hunke, E. C., Lipscomb, W. H., Holland, M. M., Schramm, J. L. &amp; Moritz, R. E.</div>
@@ -161,22 +208,22 @@
     <div class="used-in">SHEBA — valeur α_melt ≈ 0.50 (bloc Briegleb).</div>
 </article>
 
-<article class="ref" id="flanner2007" data-tags="black-carbon snow radiative-forcing">
-    <div class="cite-key">[flanner2007]</div>
-    <div class="authors">Flanner, M. G., Zender, C. S., Randerson, J. T. &amp; Rasch, P. J.</div>
-    <div class="title">Present-day climate forcing and response from black carbon in snow</div>
-    <div class="venue">Journal of Geophysical Research, 112:D11202 (2007)</div>
-    <div class="doi"><a href="https://doi.org/10.1029/2006JD008003">10.1029/2006JD008003</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/albedo/calculations_albedo.js</code> — à rebours. Le carbone-suie qui salit la neige vient de la combustion ; avant elle, aucune époque du modèle n'en porte, et le plateau de neige propre reste donc légitime sur tout le temps géologique.</div>
+<article class="ref" id="gardnerSharp2010" data-tags="snow albedo review">
+    <div class="cite-key">[gardnerSharp2010]</div>
+    <div class="authors">Gardner, A. S. &amp; Sharp, M. J.</div>
+    <div class="title">A review of snow and ice albedo and the development of a new physically based broadband albedo parameterization</div>
+    <div class="venue">Journal of Geophysical Research: Earth Surface, 115(F1):2009JF001444 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2009JF001444">10.1029/2009JF001444</a></div>
+    <div class="used-in">Plateau d’albédo de la neige profonde propre (🪩🍰❄️) aux pôles et aux moyennes latitudes : <code>albedo/calculations_albedo.js</code>, <code>data/dico.js</code>.</div>
 </article>
 
-<article class="ref" id="takeuchi2002" data-tags="snow algae biological-darkening">
-    <div class="cite-key">[takeuchi2002]</div>
-    <div class="authors">Takeuchi, N.</div>
-    <div class="title">Optical characteristics of cryoconite (surface dust) on glaciers: the relationship between light absorbency and the property of organic matter contained in the cryoconite</div>
-    <div class="venue">Annals of Glaciology, 34:409–414 (2002)</div>
-    <div class="doi"><a href="https://doi.org/10.3189/172756402781817743">10.3189/172756402781817743</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/albedo/calculations_albedo.js</code> — poussières et matière organique de surface : la voie NON anthropique d'assombrissement de la glace, celle qui joue dans le snowball établi (avec la sublimation, Abbot &amp; Pierrehumbert 2010).</div>
+<article class="ref" id="cuffeyPaterson2010" data-tags="ice albedo textbook glaciology">
+    <div class="cite-key">[cuffeyPaterson2010]</div>
+    <div class="authors">Cuffey, K. M. &amp; Paterson, W. S. B.</div>
+    <div class="title">The Physics of Glaciers (4ᵉ édition)</div>
+    <div class="venue">Academic Press, Amsterdam (2010)</div>
+    <div class="doi">ISBN 978-0-12-369461-4</div>
+    <div class="used-in">Albédo de la glace, de 0,34 (glace propre) à 0,98 (neige fraîche sèche), tableau 5.2 : bande de la courbe du corps noir ⚫ de l’onglet Histoire (<code>CO2/static/histoire/litterature.js</code>).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -197,7 +244,7 @@
     <div class="title">The influence of pollution on the shortwave albedo of clouds</div>
     <div class="venue">Journal of the Atmospheric Sciences, 34(7):1149–1152 (1977)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1977)034%3C1149:TIOPOT%3E2.0.CO;2">10.1175/1520-0469(1977)034&lt;1149:TIOPOT&gt;2.0.CO;2</a></div>
-    <div class="used-in">Couplage CCN-sulfate (<code>HYSTERESIS.ccnSulfateCoupling</code>).</div>
+    <div class="used-in">À eau nuageuse égale, plus de gouttes donnent des gouttes plus petites : r_eff ∝ N^(−1/3) dans le profil nuageux (<code>radiative/calculations.js</code>), avec le nombre de gouttes de l'époque de <code>rapportCCN</code> (<code>albedo/calculations_albedo.js</code>).</div>
 </article>
 
 <article class="ref" id="sundqvist1989" data-tags="cloud fraction parameterization">
@@ -206,7 +253,7 @@
     <div class="title">Condensation and cloud parameterization studies with a mesoscale numerical weather prediction model</div>
     <div class="venue">Monthly Weather Review, 117(8):1641–1657 (1989)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0493(1989)117%3C1641:CACPSW%3E2.0.CO;2">10.1175/1520-0493(1989)117&lt;1641:CACPSW&gt;2.0.CO;2</a></div>
-    <div class="used-in"><code>model_tuning_biblio.js</code> (CLOUD_FRACTION_INDEX_GAIN).</div>
+    <div class="used-in">Indice ☁️ = 1 − (1 − min(🍰🌧💧, 1))^0,6, tiré de l'humidité relative seule (<code>albedo/calculations_albedo.js</code>) : diagnostic affiché, il ne pilote pas la couverture nuageuse.</div>
 </article>
 
 <article class="ref" id="ackermanMarley2001" data-tags="cloud condensation sedimentation eddysed">
@@ -224,7 +271,7 @@
     <div class="title">An important constraint on tropical cloud–climate feedback</div>
     <div class="venue">Geophysical Research Letters, 29(20):1951 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GL015835">10.1029/2002GL015835</a></div>
-    <div class="used-in">Hypothèse de la température d'enclume fixe (FAT) — pour le sommet des nuages convectifs ; non codée.</div>
+    <div class="used-in">Hypothèse de la température d'enclume fixe (FAT) — sommet des nuages convectifs au niveau <code>EARTH.NUAGES.T_ENCLUME</code> (220 K, <code>physics/physics.js</code>), placé dans le profil par <code>radiative/calculations.js</code>.</div>
 </article>
 
 <article class="ref" id="marley2010" data-tags="cloud patchy fractional-cloudiness">
@@ -241,8 +288,8 @@
     <div class="authors">Stephens, G. L.</div>
     <div class="title">Radiation profiles in extended water clouds. II: Parameterization schemes</div>
     <div class="venue">Journal of the Atmospheric Sciences, 35(11):2123–2132 (1978)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035<2123:RPIEWC>2.0.CO;2">10.1175/1520-0469(1978)035&lt;2123:RPIEWC&gt;2.0.CO;2</a></div>
-    <div class="used-in">Émissivité IR ε = 1 − exp(−a₀·LWP) et τ = 3/2·LWP/(ρ_w r_eff) — chantier nuages ; cité dans <code>radiative/calculations.js</code> (CLOUD_LW_TAU_REF).</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035%3C2123:RPIEWC%3E2.0.CO;2">10.1175/1520-0469(1978)035&lt;2123:RPIEWC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Émissivité IR ε = 1 − exp(−a₀·LWP) et τ = 3/2·LWP/(ρ_w r_eff) — chantier nuages (<code>doc/RELAIS_2026-10-12_nuages.md</code>).</div>
 </article>
 
 <article class="ref" id="windsor2022" data-tags="cloud radiative-convective terrestrial-planet 1d-model">
@@ -251,6 +298,51 @@
     <div class="title">A radiative-convective model for terrestrial planets with self-consistent patchy clouds</div>
     <div class="venue">arXiv:2210.10004 (2022), soumis à The Planetary Science Journal</div>
         <div class="used-in">Modèle de référence pour les nuages d'un modèle 1D tellurique : CLIMA + EddySed (Ackerman &amp; Marley 2001), deux colonnes, profil de Manabe &amp; Wetherald. Note des auteurs : la fraction nuageuse « ne peut pas être prédite en 1D ». <a href="https://arxiv.org/abs/2210.10004">arXiv:2210.10004</a>.</div>
+</article>
+
+<article class="ref" id="hansenPollack1970" data-tags="clouds scattering asymmetry">
+    <div class="cite-key">[hansenPollack1970]</div>
+    <div class="authors">Hansen, J. E. &amp; Pollack, J. B.</div>
+    <div class="title">Near-Infrared Light Scattering by Terrestrial Clouds</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 27(2):265–281 (1970)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1970)027%3C0265:NILSBT%3E2.0.CO;2">10.1175/1520-0469(1970)027&lt;0265:NILSBT&gt;2.0.CO;2</a></div>
+    <div class="used-in">Facteur d’asymétrie des gouttes g = 0,85 : <code>G</code> de <code>radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="hansenTravis1974" data-tags="scattering review asymmetry">
+    <div class="cite-key">[hansenTravis1974]</div>
+    <div class="authors">Hansen, J. E. &amp; Travis, L. D.</div>
+    <div class="title">Light scattering in planetary atmospheres</div>
+    <div class="venue">Space Science Reviews, 16(4):527–610 (1974)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/BF00168069">10.1007/BF00168069</a></div>
+    <div class="used-in">Facteur d’asymétrie des gouttes g = 0,85 du deux-flux des couches nuageuses (carte « Couche diffusante ») : <code>radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="pettersKreidenweis2007" data-tags="ccn kohler activation">
+    <div class="cite-key">[pettersKreidenweis2007]</div>
+    <div class="authors">Petters, M. D. &amp; Kreidenweis, S. M.</div>
+    <div class="title">A single parameter representation of hygroscopic growth and cloud condensation nucleus activity</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 7(8):1961–1971 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-7-1961-2007">10.5194/acp-7-1961-2007</a></div>
+    <div class="used-in">Activation des noyaux de condensation (κ-Köhler) : ni l’O₂ ni le CH₄ ne sont des CCN, et le nombre de gouttes passe par la seule loi sulfate (<code>albedo/calculations_albedo.js</code>, rapportCCN).</div>
+</article>
+
+<article class="ref" id="kleinJakob1999" data-tags="isccp simulator gcm">
+    <div class="cite-key">[kleinJakob1999]</div>
+    <div class="authors">Klein, S. A. &amp; Jakob, C.</div>
+    <div class="title">Validation and Sensitivities of Frontal Clouds Simulated by the ECMWF Model</div>
+    <div class="venue">Monthly Weather Review, 127(10):2514–2531 (1999)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0493(1999)127%3C2514:VASOFC%3E2.0.CO;2">10.1175/1520-0493(1999)127&lt;2514:VASOFC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Principe du simulateur ISCCP : chaque colonne rangée au niveau de son sommet, avec l’épaisseur optique de toute la colonne — <code>radiative/nuages_isccp.js</code>.</div>
+</article>
+
+<article class="ref" id="pincus2012" data-tags="isccp modis simulator">
+    <div class="cite-key">[pincus2012]</div>
+    <div class="authors">Pincus, R., Platnick, S., Ackerman, S. A., Hemler, R. S. &amp; Patrick Hofmann, R. J.</div>
+    <div class="title">Reconciling Simulated and Observed Views of Clouds: MODIS, ISCCP, and the Limits of Instrument Simulators</div>
+    <div class="venue">Journal of Climate, 25(13):4699–4720 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00267.1">10.1175/JCLI-D-11-00267.1</a></div>
+    <div class="used-in">Seuil de détection τ ≥ 0,3 du simulateur ISCCP et limites des simulateurs d’instruments : <code>radiative/nuages_isccp.js</code>.</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -280,7 +372,7 @@
     <div class="title">Climate dynamics of a hard snowball Earth</div>
     <div class="venue">Journal of Geophysical Research Atmospheres, 110:D01111 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2004JD005162">10.1029/2004JD005162</a></div>
-    <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Fonde la modulation de l'albédo glace par la <strong>fraction couverte</strong> dans <code>calculations_albedo.js</code> : neige polaire propre (~0.85) tant que f ≤ 0.5, puis rampe vers 0.60 quand f→1 (glace nue tropicale, ligne de glace < 30° ⇔ f > 0.5) [<code>seuil F_BARE_ONSET</code>]. Bifurcation continue. Aussi : eau précipitable subtropicale ~0,7 kg/m² en Snowball dur (GCM) — cité dans la fourchette h2oVap de ⛄ (<code>BENCH_LIT_BY_EPOCH_ID</code>) comme limite de la vapeur calculée à T moyenne.</div>
+    <div class="used-in">Albédo glace nue = 0.50 (indép. λ), neige = 0.90 (visible), albédo SW glace du snowball de contrôle = 0.60. Dans un snowball établi, la glace tropicale est nue (sublimation, pas de neige fraîche) : albédo de glace par zone de <code>calculations_albedo.js</code>, neige profonde 🪩🍰❄️ aux pôles et aux moyennes latitudes, glace nue 🪩🍰🧊 aux tropiques. Aussi : eau précipitable subtropicale ~0,7 kg/m² en Snowball dur (GCM) — cité dans la fourchette h2oVap de ⛄ (<code>BENCH_LIT_BY_EPOCH_ID</code>) comme limite de la vapeur calculée à T moyenne.</div>
 </article>
 
 
@@ -290,7 +382,7 @@
     <div class="title">Assembly, configuration, and break-up history of Rodinia: A synthesis</div>
     <div class="venue">Precambrian Research, 160(1–2):179–210 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1016/j.precamres.2007.04.021">10.1016/j.precamres.2007.04.021</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/config/configTimeline.js</code> — la pompe Urey 🌊🏭 suit Rodinia : lente tant que le supercontinent tient (~1,1 Ga → ~800 Ma), accélérée à sa dislocation (800–720 Ma), qui expose de vastes surfaces à l'altération et prépare ⛄. Aussi <code>API_BILAN/albedo/calculations_albedo.js</code> (paléogéographie zonale).</div>
+    <div class="used-in">Utilisée dans : <code>API_BILAN/config/configTimeline.js</code> — la pompe Urey 🌊🏭 suit Rodinia : lente tant que le supercontinent tient (~1,1 Ga → ~800 Ma), accélérée à sa dislocation (800–720 Ma), qui expose de vastes surfaces à l'altération et prépare ⛄.</div>
 </article>
 
 <article class="ref" id="pierrehumbert2004" data-tags="snowball deglaciation co2-threshold">
@@ -308,7 +400,7 @@
     <div class="title">Model-dependence of the CO₂ threshold for melting the hard Snowball Earth</div>
     <div class="venue">Climate of the Past, 7:17–30 (2011)</div>
     <div class="doi"><a href="https://doi.org/10.5194/cp-7-17-2011">10.5194/cp-7-17-2011</a></div>
-    <div class="used-in"><strong>Clé déglaciation.</strong> Sans pressure-broadening ni collision-induced absorption (CIA), seuil CO₂ ≈ 1.0 bar (albédo 0.6) ; avec les deux → 0.38 bar. Rayleigh négligeable (~1 K à 0.4 bar). Motive l'ajout de la CIA CO₂ dans <code>spectral_slice_worker.js</code> et la révision du pressure-broadening haute pression.</div>
+    <div class="used-in"><strong>Clé déglaciation.</strong> Sans pressure-broadening ni collision-induced absorption (CIA), seuil CO₂ ≈ 1.0 bar (albédo 0.6) ; avec les deux → 0.38 bar. Rayleigh négligeable (~1 K à 0.4 bar). Repère de la branche froide des sorties de snowball sans poussière (&gt; 0,1–0,2 bar en GCM) : <code>configTimeline.js</code> (hystérésis 1b et 1c).</div>
 </article>
 
 <article class="ref" id="gruszkaBorysow1997" data-tags="CIA co2 radiative spectroscopy">
@@ -320,22 +412,13 @@
     <div class="used-in">Paramétrisation de la CIA CO₂–CO₂ (far-IR 0–250 cm⁻¹), le continuum de collision qui manque à haut CO₂. ⚠️ Non codée : aucun profil conforme à cet article dans le moteur. Ordre de grandeur de référence ~1e-4 m⁻¹/amagat² au pic.</div>
 </article>
 
-<article class="ref" id="wordsworth2010" data-tags="CIA co2 far-line dense-atmosphere radiative">
-    <div class="cite-key">[wordsworth2010]</div>
-    <div class="authors">Wordsworth, R., Forget, F. &amp; Eymet, V.</div>
-    <div class="title">Infrared collision-induced and far-line absorption in dense CO₂ atmospheres</div>
-    <div class="venue">Icarus, 210(2):992–997 (2010)</div>
-    <div class="doi"><a href="https://doi.org/10.1016/j.icarus.2010.06.010">10.1016/j.icarus.2010.06.010</a></div>
-    <div class="used-in">CIA + far-line CO₂ pour atmosphères denses (early Mars, snowball) : la méthode de référence du continuum CO₂ haute pression. Utilisée dans : <code>API_BILAN/radiative/calculations.js</code> et <code>API_BILAN/workers/spectral_slice_worker.js</code>, avec <code>EARTH.CIA_CO2_SCALE</code> pour l'intensité.</div>
-</article>
-
 <article class="ref" id="abbotPierrehumbert2010" data-tags="snowball dust ice-albedo deglaciation">
     <div class="cite-key">[abbotPierrehumbert2010]</div>
     <div class="authors">Abbot, D. S. &amp; Pierrehumbert, R. T.</div>
     <div class="title">Mudball: Surface dust and Snowball Earth deglaciation</div>
     <div class="venue">Journal of Geophysical Research, 115:D03103 (2010)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2009JD012007">10.1029/2009JD012007</a></div>
-    <div class="used-in">Poussière/cendres sur glace tropicale → α 0.62 → 0.45-0.50, abaisse le seuil déglaciation. Motive la borne basse (dark-ice) de la modulation de l'albédo glace par la fraction couverte dans <code>calculations_albedo.js</code> (<code>ICE_ALBEDO_BARE_SNOWBALL</code>).</div>
+    <div class="used-in">Poussière/cendres sur glace tropicale → α 0.62 → 0.45-0.50, abaisse le seuil déglaciation. Albédo de la glace sale des sorties de snowball : clé <code>EPOCH['🌫️❄️']</code> (<code>configTimeline.js</code>), appliquée à la neige profonde et à la glace nue par <code>calculations_albedo.js</code>.</div>
 </article>
 
 <article class="ref" id="marshallClark2002" data-tags="ice-sheet timescale latent-heat continental-ice">
@@ -467,36 +550,62 @@
     <div class="used-in">CH₄ Mésoprotérozoïque contraint < 10 ppm. Affine borne sup. Néoprotérozoïque.</div>
 </article>
 
+<article class="ref" id="feulnerKienert2014" data-tags="snowball co2-threshold sturtian marinoan">
+    <div class="cite-key">[feulnerKienert2014]</div>
+    <div class="authors">Feulner, G. &amp; Kienert, H.</div>
+    <div class="title">Climate simulations of Neoproterozoic snowball Earth events: Similar critical carbon dioxide levels for the Sturtian and Marinoan glaciations</div>
+    <div class="venue">Earth and Planetary Science Letters, 404:200–205 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2014.08.001">10.1016/j.epsl.2014.08.001</a></div>
+    <div class="used-in">Bascule en snowball à 100–130 ppm de CO₂, la même pour le Sturtien et le Marinoen : repère de la frontière de l’hystérésis 1a (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="feulner2023" data-tags="snowball co2-threshold bifurcation">
+    <div class="cite-key">[feulner2023]</div>
+    <div class="authors">Feulner, G., Bukenberger, M. &amp; Petri, S.</div>
+    <div class="title">Tracing the Snowball bifurcation of aquaplanets through time reveals a fundamental shift in critical-state dynamics</div>
+    <div class="venue">Earth System Dynamics, 14(3):533–547 (2023)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/esd-14-533-2023">10.5194/esd-14-533-2023</a></div>
+    <div class="used-in">CO₂ critique de la bifurcation snowball d’une planète océan au fil de l’histoire de la Terre, cité pour 95 ± 5 ppm à 700 Ma : repère de l’hystérésis 1a (<code>configTimeline.js</code>, qui l’attribue à « Brunetti 2023 » avec la même revue, le même volume et la même page).</div>
+</article>
+
+<article class="ref" id="godderis2003" data-tags="snowball weathering rodinia">
+    <div class="cite-key">[godderis2003]</div>
+    <div class="authors">Goddéris, Y., Donnadieu, Y., Nédélec, A., Dupré, B., <em>et al.</em></div>
+    <div class="title">The Sturtian ‘snowball’ glaciation: fire and ice</div>
+    <div class="venue">Earth and Planetary Science Letters, 211(1-2):1–12 (2003)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/S0012-821X(03)00197-3">10.1016/S0012-821X(03)00197-3</a></div>
+    <div class="used-in">Dislocation de Rodinia : surfaces continentales tropicales exposées à l’altération, pompe d’Urey 🌊🏭 accélérée de l’hystérésis 1a (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="donnadieu2004" data-tags="snowball runoff rodinia">
+    <div class="cite-key">[donnadieu2004]</div>
+    <div class="authors">Donnadieu, Y., Goddéris, Y., Ramstein, G., Nédélec, A. &amp; Meert, J.</div>
+    <div class="title">A ‘snowball Earth’ climate triggered by continental break-up through changes in runoff</div>
+    <div class="venue">Nature, 428(6980):303–306 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature02408">10.1038/nature02408</a></div>
+    <div class="used-in">Snowball déclenché par la dislocation de Rodinia (ruissellement accru) : 🌊🏭 accélérée de l’hystérésis 1a (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="macdonald2010" data-tags="cryogenian geochronology franklin">
+    <div class="cite-key">[macdonald2010]</div>
+    <div class="authors">Macdonald, F. A., Schmitz, M. D., Crowley, J. L., Roots, C. F., <em>et al.</em></div>
+    <div class="title">Calibrating the Cryogenian</div>
+    <div class="venue">Science, 327(5970):1241–1243 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1183325">10.1126/science.1183325</a></div>
+    <div class="used-in">Âge de la province de Franklin, ~717 Ma : basaltes frais très altérables, 🌊🏭 de l’hystérésis 1a (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="abbotHalevy2010" data-tags="snowball dust deglaciation">
+    <div class="cite-key">[abbotHalevy2010]</div>
+    <div class="authors">Abbot, D. S. &amp; Halevy, I.</div>
+    <div class="title">Dust Aerosol Important for Snowball Earth Deglaciation</div>
+    <div class="venue">Journal of Climate, 23(15):4121–4132 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/2010JCLI3378.1">10.1175/2010JCLI3378.1</a></div>
+    <div class="used-in">La poussière abaisse le CO₂ de déglaciation à 0,01–0,1 bar : sortie par glace sale, clé 🌫️❄️ des hystérésis 1b et 1c (<code>configTimeline.js</code>), lue par <code>albedo/calculations_albedo.js</code>.</div>
+</article>
+
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-biosphere">6. Biosphère, végétation &amp; albédo terrestre</h2>
-
-<article class="ref" id="kleidonFraedrichHeimann2000" data-tags="biosphere vegetation albedo land-surface climate-model">
-    <div class="cite-key">[kleidonFraedrichHeimann2000]</div>
-    <div class="authors">Kleidon, A., Fraedrich, K. &amp; Heimann, M.</div>
-    <div class="title">A green planet versus a desert world: Estimating the maximum effect of vegetation on the land surface climate</div>
-    <div class="venue">Climatic Change, 44(4):471–493 (2000)</div>
-    <div class="doi"><a href="https://doi.org/10.1023/A:1005559518889">10.1023/A:1005559518889</a></div>
-    <div class="used-in">Borne l'effet maximal de la végétation sur le climat de surface (albédo, évapotranspiration) → justifie l'amplitude du gate <code>EPOCH['🌱']</code>. <code>calculations_albedo.js</code> (<code>forest_potential</code>).</div>
-</article>
-
-<article class="ref" id="schefferHolmgren2005" data-tags="biosphere vegetation bistability feedback water-cycle">
-    <div class="cite-key">[schefferHolmgren2005]</div>
-    <div class="authors">Scheffer, M., Holmgren, M., Brovkin, V. &amp; Claussen, M.</div>
-    <div class="title">Synergy between small- and large-scale feedbacks of vegetation on the water cycle</div>
-    <div class="venue">Global Change Biology, 11(7):1003–1012 (2005)</div>
-    <div class="doi"><a href="https://doi.org/10.1111/j.1365-2486.2005.00962.x">10.1111/j.1365-2486.2005.00962.x</a></div>
-    <div class="used-in">Rétroaction végétation-précipitation à seuil (bistabilité forêt/désert) → cadre conceptuel du gate <code>EPOCH['🌱']</code> comme fraction de terres pouvant porter une végétation stable. <code>calculations_albedo.js</code> (<code>forest_potential</code>, <code>temp_suitability</code>).</div>
-</article>
-
-<article class="ref" id="bernerKothavala2001-biosphere" data-tags="biosphere weathering co2 geocarb cross-reference">
-    <div class="cite-key">[bernerKothavala2001]</div>
-    <div class="authors">Berner, R. A. &amp; Kothavala, Z.</div>
-    <div class="title">GEOCARB III: A revised model of atmospheric CO₂ over Phanerozoic time</div>
-    <div class="venue">American Journal of Science, 301(2):182–204 (2001)</div>
-    <div class="doi"><a href="https://doi.org/10.2475/ajs.301.2.182">10.2475/ajs.301.2.182</a></div>
-    <div class="used-in">Voir <a href="#bernerKothavala2001">entrée complète §7</a> : altération silicatée accélérée par la végétation terrestre (forêts Dévonien/Carbonifère) → couplage <code>EPOCH['🌱']</code> ↔ <code>EPOCH['🌊🏭']</code> entre <code>calculations_albedo.js</code> et <code>calculations_co2.js</code>.</div>
-</article>
-
 
 <article class="ref" id="charlson1987" data-tags="claw dms ccn marine biosphere aerosol">
     <div class="cite-key">[charlson1987]</div>
@@ -504,16 +613,7 @@
     <div class="title">Oceanic phytoplankton, atmospheric sulphur, cloud albedo and climate</div>
     <div class="venue">Nature, 326:655–661 (1987)</div>
     <div class="doi"><a href="https://doi.org/10.1038/326655a0">10.1038/326655a0</a></div>
-    <div class="used-in">Hypothèse princeps CLAW. <code>calculations_albedo.js</code> (gate <code>EPOCH['🧫']</code> × sulfate_boost). <code>configTimeline.js</code> (<code>'🧫'</code> par époque).</div>
-</article>
-
-<article class="ref" id="andreaeCrutzen1997" data-tags="claw dms sulfate ccn atmospheric-chemistry">
-    <div class="cite-key">[andreaeCrutzen1997]</div>
-    <div class="authors">Andreae, M. O. &amp; Crutzen, P. J.</div>
-    <div class="title">Atmospheric aerosols: Biogeochemical sources and role in atmospheric chemistry</div>
-    <div class="venue">Science, 276(5315):1052–1058 (1997)</div>
-    <div class="doi"><a href="https://doi.org/10.1126/science.276.5315.1052">10.1126/science.276.5315.1052</a></div>
-    <div class="used-in">Justification paramétrisation DMS→CCN (chaîne oxydation atmosphérique). <code>calculations_albedo.js</code>.</div>
+    <div class="used-in">Hypothèse princeps CLAW. <code>calculations_albedo.js</code> (part DMS du sulfate efficace modulée par <code>EPOCH['🧫']</code>). <code>configTimeline.js</code> (<code>'🧫'</code> par époque).</div>
 </article>
 
 <article class="ref" id="quinnBates2011" data-tags="claw dms ccn marine-aerosol critique">
@@ -554,6 +654,51 @@
 </article>
 
 
+
+<article class="ref" id="kenrickCrane1997" data-tags="land-plants paleobotany">
+    <div class="cite-key">[kenrickCrane1997]</div>
+    <div class="authors">Kenrick, P. &amp; Crane, P. R.</div>
+    <div class="title">The origin and early evolution of plants on land</div>
+    <div class="venue">Nature, 389(6646):33–39 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/37918">10.1038/37918</a></div>
+    <div class="used-in">Origine des plantes terrestres : potentiel forestier par époque 🌱 (<code>albedo/calculations_albedo.js</code>).</div>
+</article>
+
+<article class="ref" id="gensel2008" data-tags="land-plants paleobotany">
+    <div class="cite-key">[gensel2008]</div>
+    <div class="authors">Gensel, P. G.</div>
+    <div class="title">The Earliest Land Plants</div>
+    <div class="venue">Annual Review of Ecology, Evolution, and Systematics, 39(1):459–477 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1146/annurev.ecolsys.39.110707.173526">10.1146/annurev.ecolsys.39.110707.173526</a></div>
+    <div class="used-in">Premières plantes terrestres (Ordovicien–Dévonien) : potentiel forestier par époque 🌱 (<code>albedo/calculations_albedo.js</code>).</div>
+</article>
+
+<article class="ref" id="stein2012" data-tags="forest devonian paleobotany">
+    <div class="cite-key">[stein2012]</div>
+    <div class="authors">Stein, W. E., Berry, C. M., VanAller Hernick, L. &amp; Mannolini, F.</div>
+    <div class="title">Surprisingly complex community discovered in the mid-Devonian fossil forest at Gilboa</div>
+    <div class="venue">Nature, 483(7387):78–81 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature10819">10.1038/nature10819</a></div>
+    <div class="used-in">Forêt fossile de Gilboa, Dévonien moyen : premières forêts (<code>albedo/calculations_albedo.js</code>, qui le place dans PNAS et lui attribue Archaeopteris ; les racines d’Archaeopteris sont celles de Cairo, Stein et al. 2020, Current Biology 30:421).</div>
+</article>
+
+<article class="ref" id="bonan2008" data-tags="forest climate biosphere">
+    <div class="cite-key">[bonan2008]</div>
+    <div class="authors">Bonan, G. B.</div>
+    <div class="title">Forests and Climate Change: Forcings, Feedbacks, and the Climate Benefits of Forests</div>
+    <div class="venue">Science, 320(5882):1444–1449 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1155121">10.1126/science.1155121</a></div>
+    <div class="used-in">Forêts et climat (forçages, rétroactions) : potentiel forestier moderne 🌱 = 0,31 de 📱 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="fao2020" data-tags="forest inventory observation">
+    <div class="cite-key">[fao2020]</div>
+    <div class="authors">FAO</div>
+    <div class="title">Global Forest Resources Assessment 2020: Main report</div>
+    <div class="venue">Food and Agriculture Organization of the United Nations, Rome (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.4060/ca9825en">10.4060/ca9825en</a></div>
+    <div class="used-in">Forêts ≈ 31 % des terres émergées : 🌱 = 0,31 de 📱 (<code>configTimeline.js</code>) et part forestière de <code>albedo/calculations_albedo.js</code>.</div>
+</article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-co2">7. Cycle CO₂ &amp; partition océan/atmosphère</h2>
@@ -628,7 +773,7 @@
     <div class="title">The sulfate-CCN-cloud albedo effect: a sensitivity study with two general circulation models</div>
     <div class="venue">Tellus B, 47(3):281–300 (1995)</div>
     <div class="doi"><a href="https://doi.org/10.3402/tellusb.v47i3.16048">10.3402/tellusb.v47i3.16048</a></div>
-    <div class="used-in">Travail fondateur de la relation empirique sulfate → nombre de gouttelettes. Sa FORME est une loi de puissance — log₁₀(CDNC) = a·log₁₀(masse SO₄) + b — et c'est elle qu'utilisent encore les modèles trente ans après. ⚠️ <code>calculations_albedo.js</code> fait aujourd'hui autre chose : un facteur LINÉAIRE <code>🍰🫧✈ × SULFATE_BOOST_SCALE</code>. Forçage indirect obtenu par Boucher &amp; Lohmann : ≈ −1 W/m² (−0,5 à −1,5 selon l'expérience). Voir doc/DIAGNOSTIC_SULFATES_CCN.md.</div>
+    <div class="used-in">Travail fondateur de la relation empirique sulfate → nombre de gouttelettes. Sa FORME est une loi de puissance — log₁₀(CDNC) = a·log₁₀(masse SO₄) + b — et c'est elle qu'utilisent encore les modèles trente ans après. Le modèle l'emploie : CDNC / CDNC_ref = (m_SO₄ / m_ref)^a (<code>aerosols/sulfate_ccn.js</code>, <code>albedo/calculations_albedo.js</code>), l'exposant a venant de [mccoy2018]. Forçage indirect obtenu par Boucher &amp; Lohmann : ≈ −1 W/m² (−0,5 à −1,5 selon l'expérience). Voir doc/DIAGNOSTIC_SULFATES_CCN.md.</div>
 </article>
 
 <article class="ref" id="mccoy2018" data-tags="aerosol ccn sulfate cdnc satellite observation modis">
@@ -833,7 +978,7 @@
     <div class="title">The global forest age dataset and its uncertainties (GFADv1.1)</div>
     <div class="venue">PANGAEA (2019)</div>
     <div class="doi"><a href="https://doi.org/10.1594/PANGAEA.897392">10.1594/PANGAEA.897392</a></div>
-    <div class="used-in">Distribution mondiale de l'âge des peuplements par classes de 10 ans jusqu'à 140+ ans, construite sur les inventaires forestiers nationaux. Source de la fraction initiale de forêt « jeune » en l'an 2000. ⚠️ À télécharger : la valeur n'est pas encore dans la config. <code>land/sinks_land.js</code>.</div>
+    <div class="used-in">Distribution mondiale de l'âge des peuplements par classes de 10 ans jusqu'à 140+ ans, construite sur les inventaires forestiers nationaux. Source de la fraction initiale de forêt « jeune » en l'an 2000 : <code>landYoungFraction0</code> = 0,358 (part des forêts de moins de 30 ans, GFADv1.1 agrégé par <code>CO2/scripts/gfad_young_forest_fraction.py</code>) dans <code>configTimeline.js</code>, lue par <code>land/sinks_land.js</code>.</div>
 </article>
 
 <article class="ref" id="myhre1998" data-tags="radiative-forcing co2 line-by-line validation">
@@ -873,6 +1018,150 @@
 </article>
 
 
+<article class="ref" id="twomey1991" data-tags="aerosol ccn cloud-albedo">
+    <div class="cite-key">[twomey1991]</div>
+    <div class="authors">Twomey, S.</div>
+    <div class="title">Aerosols, clouds and radiation</div>
+    <div class="venue">Atmospheric Environment. Part A. General Topics, 25(11):2435–2442 (1991)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0960-1686(91)90159-5">10.1016/0960-1686(91)90159-5</a></div>
+    <div class="used-in">Sensibilité de l’albédo des nuages au nombre de gouttes : une des trois sources indépendantes de la vérification de l’ERFaci (−0,908 W/m²) dans <code>aerosols/sulfate_ccn.js</code>.</div>
+</article>
+
+<article class="ref" id="mccoy2017" data-tags="aerosol ccn erfaci observation">
+    <div class="cite-key">[mccoy2017]</div>
+    <div class="authors">McCoy, D. T., Bender, F. A.-M., Mohrmann, J. K. C., Hartmann, D. L., Wood, R. &amp; Grosvenor, D. P.</div>
+    <div class="title">The global aerosol‐cloud first indirect effect estimated using MODIS, MERRA, and AeroCom</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 122(3):1779–1796 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2016JD026141">10.1002/2016JD026141</a></div>
+    <div class="used-in">Premier effet indirect global −0,97 W/m² (MODIS, MERRA, AeroCom) : comparaison de l’ERFaci du modèle, <code>aerosols/sulfate_ccn.js</code>.</div>
+</article>
+
+<article class="ref" id="crutzen2006" data-tags="sulfate stratosphere geoengineering">
+    <div class="cite-key">[crutzen2006]</div>
+    <div class="authors">Crutzen, P. J.</div>
+    <div class="title">Albedo Enhancement by Stratospheric Sulfur Injections: A Contribution to Resolve a Policy Dilemma?</div>
+    <div class="venue">Climatic Change, 77(3-4):211–220 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s10584-006-9101-y">10.1007/s10584-006-9101-y</a></div>
+    <div class="used-in">Injection de soufre stratosphérique (1–5 Tg S) calée sur le Pinatubo : ordre de grandeur de la borne haute 🔒 ⚖️✈ de 📱 (<code>configTimeline.js</code>), avec <a href="#sukhodolov2018">[sukhodolov2018]</a>.</div>
+</article>
+
+<article class="ref" id="leQuere2018" data-tags="carbon-budget ocean-sink observation">
+    <div class="cite-key">[leQuere2018]</div>
+    <div class="authors">Le Quéré, C., Andrew, R. M., Friedlingstein, P., Sitch, S., <em>et al.</em></div>
+    <div class="title">Global Carbon Budget 2018</div>
+    <div class="venue">Earth System Science Data, 10(4):2141–2194 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/essd-10-2141-2018">10.5194/essd-10-2141-2018</a></div>
+    <div class="used-in">Absorption océanique ~25–30 % des émissions anthropiques : pompe d’Urey 🌊🏭 = 1,0 de 🚂, et puits de 📱 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="globalCarbonBudget2024" data-tags="carbon-budget emissions observation">
+    <div class="cite-key">[globalCarbonBudget2024]</div>
+    <div class="authors">Friedlingstein, P., O'Sullivan, M., Jones, M. W., Andrew, R. M., <em>et al.</em></div>
+    <div class="title">Global Carbon Budget 2024</div>
+    <div class="venue">Earth System Science Data, 17(3):965–1039 (2025)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/essd-17-965-2025">10.5194/essd-17-965-2025</a></div>
+    <div class="used-in">Rythme des émissions en 2024, ~41,6 GtCO₂/an (fossile + usage des sols) → 1 040 GtCO₂ par tranche de 25 ans des scénarios ⛽ de 📱 (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>). Le cumul 2000–2024 vient de l’édition suivante, <a href="#globalCarbonBudget2025">[globalCarbonBudget2025]</a>.</div>
+</article>
+
+<article class="ref" id="canadell2021" data-tags="carbon-cycle ipcc review">
+    <div class="cite-key">[canadell2021]</div>
+    <div class="authors">Canadell, J. G., Monteiro, P. M. S., <em>et al.</em></div>
+    <div class="title">Global Carbon and Other Biogeochemical Cycles and Feedbacks</div>
+    <div class="venue">Climate Change 2021: The Physical Science Basis (GIEC AR6, groupe I, chapitre 5), Cambridge University Press, 673–816 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1017/9781009157896.007">10.1017/9781009157896.007</a></div>
+    <div class="used-in">Puits de carbone des terres et des océans : cité avec <a href="#bonan2008">[bonan2008]</a> et <a href="#fao2020">[fao2020]</a> pour 🌱 de 📱 (<code>configTimeline.js</code>). Évaluation du GIEC : comparaison seulement.</div>
+</article>
+
+<article class="ref" id="lentonWatson2011" data-tags="earth-history weathering textbook">
+    <div class="cite-key">[lentonWatson2011]</div>
+    <div class="authors">Lenton, T. &amp; Watson, A.</div>
+    <div class="title">Revolutions that made the Earth</div>
+    <div class="venue">Oxford University Press (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1093/acprof:oso/9780199587049.001.0001">10.1093/acprof:oso/9780199587049.001.0001</a></div>
+    <div class="used-in">Avant les plantes vasculaires, l’altération par les acides organiques reste très limitée : pompe d’Urey 🌊🏭 = 0,15 de 🪸 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="algeoScheckler1998" data-tags="devonian land-plants weathering">
+    <div class="cite-key">[algeoScheckler1998]</div>
+    <div class="authors">Algeo, T. J. &amp; Scheckler, S. E.</div>
+    <div class="title">Terrestrial-marine teleconnections in the Devonian: links between the evolution of land plants, weathering processes, and marine anoxic events</div>
+    <div class="venue">Philosophical Transactions of the Royal Society B, 353(1365):113–130 (1998)</div>
+    <div class="doi"><a href="https://doi.org/10.1098/rstb.1998.0195">10.1098/rstb.1998.0195</a></div>
+    <div class="used-in">Plantes terrestres, altération et anoxies du Dévonien : drawdown du CO₂ du Dévonien–Carbonifère, 🍄 (<code>configTimeline.js</code>, qui le place dans GSA Today 8:1).</div>
+</article>
+
+<article class="ref" id="montanez2007" data-tags="co2 paleozoic glaciation">
+    <div class="cite-key">[montanez2007]</div>
+    <div class="authors">Montañez, I. P., Tabor, N. J., Niemeier, D., DiMichele, W. A., <em>et al.</em></div>
+    <div class="title">CO ₂ -Forced Climate and Vegetation Instability During Late Paleozoic Deglaciation</div>
+    <div class="venue">Science, 315(5808):87–91 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1134207">10.1126/science.1134207</a></div>
+    <div class="used-in">CO₂ de 180–300 ppm au cœur de l’âge glaciaire du Paléozoïque supérieur : 🍄 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="foster2017" data-tags="co2 phanerozoic compilation">
+    <div class="cite-key">[foster2017]</div>
+    <div class="authors">Foster, G. L., Royer, D. L. &amp; Lunt, D. J.</div>
+    <div class="title">Future climate forcing potentially without precedent in the last 420 million years</div>
+    <div class="venue">Nature Communications, 8(1):14845 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/ncomms14845">10.1038/ncomms14845</a></div>
+    <div class="used-in">Courbe du CO₂ sur 420 Ma : 🍄 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="payneClapham2012" data-tags="permian extinction ocean-acidification">
+    <div class="cite-key">[payneClapham2012]</div>
+    <div class="authors">Payne, J. L. &amp; Clapham, M. E.</div>
+    <div class="title">End-Permian Mass Extinction in the Oceans: An Ancient Analog for the Twenty-First Century?</div>
+    <div class="venue">Annual Review of Earth and Planetary Sciences, 40(1):89–111 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1146/annurev-earth-042711-105329">10.1146/annurev-earth-042711-105329</a></div>
+    <div class="used-in">Fin du Permien : acidification de l’océan, effondrement des carbonates — 🌊🏭 = 0,7 de 💀 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="raymoRuddiman1992" data-tags="weathering uplift cenozoic">
+    <div class="cite-key">[raymoRuddiman1992]</div>
+    <div class="authors">Raymo, M. E. &amp; Ruddiman, W. F.</div>
+    <div class="title">Tectonic forcing of late Cenozoic climate</div>
+    <div class="venue">Nature, 359(6391):117–122 (1992)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/359117a0">10.1038/359117a0</a></div>
+    <div class="used-in">Hypothèse soulèvement–altération (Himalaya, Tibet) : 🌊🏭 légèrement amplifiée de 🐊 (<code>configTimeline.js</code>, <code>co2/calculations_co2.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>).</div>
+</article>
+
+<article class="ref" id="berner2006" data-tags="geocarbsulf co2 o2 model">
+    <div class="cite-key">[berner2006]</div>
+    <div class="authors">Berner, R. A.</div>
+    <div class="title">GEOCARBSULF: A combined model for Phanerozoic atmospheric O2 and CO2</div>
+    <div class="venue">Geochimica et Cosmochimica Acta, 70(23):5653–5664 (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.gca.2005.11.032">10.1016/j.gca.2005.11.032</a></div>
+    <div class="used-in">GEOCARBSULF, qui minimise l’effet du soulèvement : 🌊🏭 de 🐊 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="misraFroelich2012" data-tags="weathering lithium-isotopes cenozoic">
+    <div class="cite-key">[misraFroelich2012]</div>
+    <div class="authors">Misra, S. &amp; Froelich, P. N.</div>
+    <div class="title">Lithium Isotope History of Cenozoic Seawater: Changes in Silicate Weathering and Reverse Weathering</div>
+    <div class="venue">Science, 335(6070):818–823 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1214697">10.1126/science.1214697</a></div>
+    <div class="used-in">δ⁷Li de l’eau de mer cénozoïque, qui confirme une altération accrue : 🌊🏭 de 🐊 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="zachos2001" data-tags="cenozoic climate isotopes">
+    <div class="cite-key">[zachos2001]</div>
+    <div class="authors">Zachos, J., Pagani, M., Sloan, L., Thomas, E. &amp; Billups, K.</div>
+    <div class="title">Trends, Rhythms, and Aberrations in Global Climate 65 Ma to Present</div>
+    <div class="venue">Science, 292(5517):686–693 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1059412">10.1126/science.1059412</a></div>
+    <div class="used-in">Cité pour la chute du CO₂ (~1 000 → 600 ppm) entre 35 et 33 Ma : 🌊🏭 = 1,1 de l’hystérésis 2 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="sigmanBoyle2000" data-tags="glacial-cycles co2 ocean">
+    <div class="cite-key">[sigmanBoyle2000]</div>
+    <div class="authors">Sigman, D. M. &amp; Boyle, E. A.</div>
+    <div class="title">Glacial/interglacial variations in atmospheric carbon dioxide</div>
+    <div class="venue">Nature, 407(6806):859–869 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/35038000">10.1038/35038000</a></div>
+    <div class="used-in">Variations glaciaire–interglaciaire du CO₂ (180 ↔ 280 ppm) : 🌊🏭 de 🦣 (<code>configTimeline.js</code>).</div>
+</article>
+
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-orbital">8. Paramètres orbitaux (obliquité, Milankovitch)</h2>
 
@@ -881,8 +1170,26 @@
     <div class="authors">Berger, A. L.</div>
     <div class="title">Long-term variations of daily insolation and Quaternary climatic changes</div>
     <div class="venue">Journal of the Atmospheric Sciences, 35(12):2362–2367 (1978)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2">10.1175/1520-0469(1978)035<2362:LTVODI>2.0.CO;2</a></div>
-    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035%3C2362:LTVODI%3E2.0.CO;2">10.1175/1520-0469(1978)035&lt;2362:LTVODI&gt;2.0.CO;2</a></div>
+    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation, dailyMeanInsolation ; page <code>CO2/html/test_milankovitch.html</code> (solution Berger 1978 gardée à côté de Berger &amp; Loutre 1991).</div>
+</article>
+
+<article class="ref" id="bergerLoutre1991" data-tags="orbital insolation milankovitch solution">
+    <div class="cite-key">[bergerLoutre1991]</div>
+    <div class="authors">Berger, A. &amp; Loutre, M. F.</div>
+    <div class="title">Insolation values for the climate of the last 10 million years</div>
+    <div class="venue">Quaternary Science Reviews, 10:297–317 (1991)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0277-3791(91)90033-Q">10.1016/0277-3791(91)90033-Q</a></div>
+    <div class="used-in">Solution astronomique (± 3 Ma) : obliquité, excentricité et précession à la date de chaque calcul. Tables <code>CO2/static/astronomie_ber90.js</code> (via palinsol, M. Crucifix), calcul <code>CO2/static/astronomie.js</code>, lus par <code>API_BILAN/physics/orbite.js</code> : 📜⚾, facteur de Kepler du Soleil, anomalie d'insolation qui fond les calottes.</div>
+</article>
+
+<article class="ref" id="robinsonGoelzer2014" data-tags="ice-sheet melt insolation paleo">
+    <div class="cite-key">[robinsonGoelzer2014]</div>
+    <div class="authors">Robinson, A. &amp; Goelzer, H.</div>
+    <div class="title">The importance of insolation changes for paleo ice sheet modeling</div>
+    <div class="venue">The Cryosphere, 8:1419–1428 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/tc-8-1419-2014">10.5194/tc-8-1419-2014</a></div>
+    <div class="used-in">Éq. 2 : la fonte due à une anomalie d'insolation est τ_a (1 − α_s)(S − S₀)/(ρ_w L_m), à ajouter à un schéma degrés-jours calé sous l'orbite actuelle. Ici τ_a (1 − α_s) est l'absorption au sol du transfert solaire du modèle. <code>physics/calottes.js</code> (bilanPoint).</div>
 </article>
 
 <article class="ref" id="laskar2004" data-tags="orbital obliquity solution long-term">
@@ -891,7 +1198,7 @@
     <div class="title">A long-term numerical solution for the insolation quantities of the Earth</div>
     <div class="venue">Astronomy &amp; Astrophysics, 428:261–285 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1051/0004-6361:20041335">10.1051/0004-6361:20041335</a></div>
-    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka → états 🕰.🔁 du Quaternaire. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation / obliquityZoneWarmingK (redistribution méridienne de l'insolation annuelle par ε) ; <code>configTimeline.js</code> 🦣 🕰.🔁 ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka. <code>API_BILAN/physics/physics.js</code> : amplitude saisonnière des zones ∝ sin ε (EARTH.facteurGlaceZones, EARTH.OBLIQUITY_DEG_REF) ; page <code>CO2/html/test_milankovitch.html</code>.</div>
 </article>
 
 <article class="ref" id="laskar1993" data-tags="obliquity moon chaos">
@@ -909,7 +1216,7 @@
     <div class="title">History of the Earth's obliquity</div>
     <div class="venue">Earth-Science Reviews, 34(1):1–45 (1993)</div>
     <div class="doi"><a href="https://doi.org/10.1016/0012-8252(93)90004-Q">10.1016/0012-8252(93)90004-Q</a></div>
-    <div class="used-in">Hypothèse high-obliquity Archéen (modulation amp polaire via ⚾).</div>
+    <div class="used-in">Hypothèse high-obliquity Archéen : ⚾ = 45° de 🦠 (<code>configTimeline.js</code>), qui règle l'amplitude saisonnière des zones ∝ sin ε (EARTH.facteurGlaceZones, <code>physics/physics.js</code>).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -932,7 +1239,43 @@
     <div class="title">A Pliocene-Pleistocene stack of 57 globally distributed benthic δ¹⁸O records</div>
     <div class="venue">Paleoceanography, 20:PA1003 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2004PA001071">10.1029/2004PA001071</a></div>
-    <div class="used-in">Cycles glaciaires 41 ka puis 100 ka : commentaire instabilité 🦣 Quaternaire (<code>configTimeline.js</code>).</div>
+    <div class="used-in">Stades isotopiques marins (MIS) : dates des clics de 🦣 sur les deux derniers cycles glaciaires (<code>configTimeline.js</code>, 🕰.order).</div>
+</article>
+
+<article class="ref" id="bereiter2015" data-tags="quaternary co2 ice-core epica composite">
+    <div class="cite-key">[bereiter2015]</div>
+    <div class="authors">Bereiter, B., Eggleston, S., Schmitt, J., Nehrbass-Ahles, C., Stocker, T. F., Fischer, H., Kipfstuhl, S. &amp; Chappellaz, J.</div>
+    <div class="title">Revision of the EPICA Dome C CO₂ record from 800 to 600 kyr before present</div>
+    <div class="venue">Geophysical Research Letters, 42:542–549 (2015)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2014GL061957">10.1002/2014GL061957</a></div>
+    <div class="used-in">Composite antarctique du CO₂ sur 800 ka (fichier NOAA NCEI antarctica2015co2composite.txt, chronologie AICC2012) : CO₂ de chaque état 🔁 de 🦣, moyenne à ± 1 ka de la date du clic (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="snyder2016" data-tags="quaternary temperature reconstruction">
+    <div class="cite-key">[snyder2016]</div>
+    <div class="authors">Snyder, C. W.</div>
+    <div class="title">Evolution of global temperature over the past two million years</div>
+    <div class="venue">Nature, 538:226–228 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature19798">10.1038/nature19798</a></div>
+    <div class="used-in">Courbe cyan d'Histoire sur 2 Ma (<code>CO2/static/histoire/litterature.js</code>) : comparaison seulement ; image glaciaire / interglaciaire des clics de 🦣 (sous / au-dessus de 11 °C).</div>
+</article>
+
+<article class="ref" id="hughes2016" data-tags="ice-sheet quaternary eurasia lgm">
+    <div class="cite-key">[hughes2016]</div>
+    <div class="authors">Hughes, A. L. C., Gyllencreutz, R., Lohne, Ø. S., Mangerud, J. &amp; Svendsen, J. I.</div>
+    <div class="title">The last Eurasian ice sheets – a chronological database and time-slice reconstruction, DATED-1</div>
+    <div class="venue">Boreas, 45:1–45 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1111/bor.12142">10.1111/bor.12142</a></div>
+    <div class="used-in">Calottes eurasiennes au maximum (~21 ka) : 5,5 millions de km², ~24 m d'équivalent niveau de la mer — comparaison seulement avec les calottes calculées au clic du DMG.</div>
+</article>
+
+<article class="ref" id="abeOuchi2013" data-tags="quaternary glacial-cycles hysteresis ice-sheet">
+    <div class="cite-key">[abeOuchi2013]</div>
+    <div class="authors">Abe-Ouchi, A., Saito, F., Kawamura, K., Raymo, M. E., Okuno, J., Takahashi, K. &amp; Blatter, H.</div>
+    <div class="title">Insolation-driven 100,000-year glacial cycles and hysteresis of ice-sheet volume</div>
+    <div class="venue">Nature, 500:190–193 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature12374">10.1038/nature12374</a></div>
+    <div class="used-in">Hystérésis du volume des calottes face à l'insolation d'été : cadre de lecture des clics de 🦣, comparaison seulement.</div>
 </article>
 
 <article class="ref" id="loulergue2008" data-tags="quaternary methane ice-core epica">
@@ -941,7 +1284,7 @@
     <div class="title">Orbital and millennial-scale features of atmospheric CH₄ over the past 800,000 years</div>
     <div class="venue">Nature, 453:383–386 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature06950">10.1038/nature06950</a></div>
-    <div class="used-in">CH₄ glaciaire–interglaciaire 350–800 ppb → 🦣 ⚖️🐄 et fourchette ch4 ✅ de 🦣 (<code>configTimeline.js</code>, <code>BENCH_LIT_BY_EPOCH_ID</code>).</div>
+    <div class="used-in">CH₄ EPICA Dome C (fichier NOAA NCEI edc-ch4-2008.txt, chronologie EDC3) : CH₄ de chaque état 🔁 de 🦣, moyenne à ± 1 ka de la date du clic ; fourchette ch4 ✅ de 🦣 (<code>configTimeline.js</code>, <code>BENCH_LIT_BY_EPOCH_ID</code>).</div>
 </article>
 
 <article class="ref" id="luthi2008" data-tags="quaternary co2 ice-core epica">
@@ -990,6 +1333,159 @@
     <div class="venue">Cold Spring Harbor Perspectives in Biology, 2:a004895 (2010)</div>
     <div class="doi"><a href="https://doi.org/10.1101/cshperspect.a004895">10.1101/cshperspect.a004895</a></div>
     <div class="used-in">Atmosphère de vapeur post-impact → 🔥 ⚖️💧 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="connelly2012" data-tags="solar-system chronology cai">
+    <div class="cite-key">[connelly2012]</div>
+    <div class="authors">Connelly, J. N., Bizzarro, M., Krot, A. N., Nordlund, Å., Wielandt, D. &amp; Ivanova, M. A.</div>
+    <div class="title">The Absolute Chronology and Thermal Processing of Solids in the Solar Protoplanetary Disk</div>
+    <div class="venue">Science, 338(6107):651–655 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1226919">10.1126/science.1226919</a></div>
+    <div class="used-in">Premiers solides du système solaire, 4 567,30 Ma : début de la vraie proto-Terre, dans la source de la courbe du corps noir ⚫ (<code>CO2/static/histoire/litterature.js</code>).</div>
+</article>
+
+<article class="ref" id="abeMatsui1985" data-tags="hadean accretion magma-ocean steam">
+    <div class="cite-key">[abeMatsui1985]</div>
+    <div class="authors">Abe, Y. &amp; Matsui, T.</div>
+    <div class="title">The formation of an impact‐generated H₂O atmosphere and its implications for the early thermal history of the Earth</div>
+    <div class="venue">Journal of Geophysical Research: Solid Earth, 90(S02):C545 (1985)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/JB090iS02p0C545">10.1029/JB090iS02p0C545</a></div>
+    <div class="used-in">Surface fondue pendant l’accrétion, sous une atmosphère de vapeur d’impact : source de la courbe du corps noir ⚫ (<code>CO2/static/histoire/litterature.js</code>).</div>
+</article>
+
+<article class="ref" id="matsuiAbe1986" data-tags="hadean accretion water">
+    <div class="cite-key">[matsuiAbe1986]</div>
+    <div class="authors">Matsui, T. &amp; Abe, Y.</div>
+    <div class="title">Evolution of an impact-induced atmosphere and magma ocean on the accreting Earth</div>
+    <div class="venue">Nature, 319(6051):303–305 (1986)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/319303a0">10.1038/319303a0</a></div>
+    <div class="used-in">Atmosphère d’impact de ~10²¹ kg d’eau, proche de la masse des océans : <code>EAU_ACCRETEE_KG</code> = un océan (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="barboni2017" data-tags="moon-formation geochronology">
+    <div class="cite-key">[barboni2017]</div>
+    <div class="authors">Barboni, M., Boehnke, P., Keller, B., Kohl, I. E., <em>et al.</em></div>
+    <div class="title">Early formation of the Moon 4.51 billion years ago</div>
+    <div class="venue">Science Advances, 3(1):e1602365 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/sciadv.1602365">10.1126/sciadv.1602365</a></div>
+    <div class="used-in">Formation de la Lune ~4,51 Ga : ◀ de ⚫, l’impact géant (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="charetteSmith2010" data-tags="ocean volume observation">
+    <div class="cite-key">[charetteSmith2010]</div>
+    <div class="authors">Charette, M. &amp; Smith, W.</div>
+    <div class="title">The Volume of Earth’s Ocean</div>
+    <div class="venue">Oceanography, 23(2):112–114 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.5670/oceanog.2010.51">10.5670/oceanog.2010.51</a></div>
+    <div class="used-in">Volume de l’océan, 1,335·10⁹ km³ : recoupe <code>OCEAN_KG</code> = 1,4·10²¹ kg (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="morbidelli2000" data-tags="water delivery accretion">
+    <div class="cite-key">[morbidelli2000]</div>
+    <div class="authors">Morbidelli, A., Chambers, J., Lunine, J. I., Petit, J. M., <em>et al.</em></div>
+    <div class="title">Source regions and timescales for the delivery of water to the Earth</div>
+    <div class="venue">Meteoritics &amp; Planetary Science, 35(6):1309–1320 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.1111/j.1945-5100.2000.tb01518.x">10.1111/j.1945-5100.2000.tb01518.x</a></div>
+    <div class="used-in">Livraison de l’eau terrestre, l’essentiel avec les derniers embryons venus de la ceinture externe : progression des ☄️ de ⚫ (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>).</div>
+</article>
+
+<article class="ref" id="pope2012" data-tags="ocean volume archean isotopes">
+    <div class="cite-key">[pope2012]</div>
+    <div class="authors">Pope, E. C., Bird, D. K. &amp; Rosing, M. T.</div>
+    <div class="title">Isotope composition and volume of Earth’s early oceans</div>
+    <div class="venue">Proceedings of the National Academy of Sciences, 109(12):4371–4376 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1073/pnas.1115705109">10.1073/pnas.1115705109</a></div>
+    <div class="used-in">Océan protérozoïque ≈ 1,2–1,4·10²¹ kg : ⚖️💧 de l’hystérésis 1a (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="sleepZahnle2001" data-tags="co2 carbon-cycle archean">
+    <div class="cite-key">[sleepZahnle2001]</div>
+    <div class="authors">Sleep, N. H. &amp; Zahnle, K.</div>
+    <div class="title">Carbon dioxide cycling and implications for climate on ancient Earth</div>
+    <div class="venue">Journal of Geophysical Research: Planets, 106(E1):1373–1399 (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2000JE001247">10.1029/2000JE001247</a></div>
+    <div class="used-in">Cycle du CO₂ de la Terre ancienne : 0,2–10 bar de CO₂ à l’Archéen précoce, cycle tamponné par les carbonates — 🦠 (<code>configTimeline.js</code>). Article distinct de <a href="#sleepZahnleNeuhoff2001">[sleepZahnleNeuhoff2001]</a>.</div>
+</article>
+
+<article class="ref" id="kienert2013" data-tags="archean climate 3d-model faint-sun">
+    <div class="cite-key">[kienert2013]</div>
+    <div class="authors">Kienert, H., Feulner, G. &amp; Petoukhov, V.</div>
+    <div class="title">Albedo and heat transport in 3-D model simulations of the early Archean climate</div>
+    <div class="venue">Climate of the Past, 9(4):1841–1862 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-9-1841-2013">10.5194/cp-9-1841-2013</a></div>
+    <div class="used-in">Albédo et transport de chaleur de l’Archéen en 3D : référence des graines de température 🌡️🧮 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="charnay2013" data-tags="archean climate 3d-model faint-sun">
+    <div class="cite-key">[charnay2013]</div>
+    <div class="authors">Charnay, B., Forget, F., Wordsworth, R., Leconte, J., <em>et al.</em></div>
+    <div class="title">Exploring the faint young Sun problem and the possible climates of the Archean Earth with a 3‐D GCM</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 118(18) (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/jgrd.50808">10.1002/jgrd.50808</a></div>
+    <div class="used-in">0,1–0,5 bar de CO₂ pour de l’eau liquide sous le Soleil faible : ⚖️🏭 de 🦠 (<code>configTimeline.js</code>, qui le place dans GRL).</div>
+</article>
+
+<article class="ref" id="charnay2017" data-tags="archean climate carbon-cycle">
+    <div class="cite-key">[charnay2017]</div>
+    <div class="authors">Charnay, B., Le Hir, G., Fluteau, F., Forget, F. &amp; Catling, D. C.</div>
+    <div class="title">A warm or a cold early Earth? New insights from a 3-D climate-carbon model</div>
+    <div class="venue">Earth and Planetary Science Letters, 474:97–109 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2017.06.029">10.1016/j.epsl.2017.06.029</a></div>
+    <div class="used-in">Terre précoce chaude ou froide (modèle 3D climat–carbone) : référence des graines 🌡️🧮 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="pavlov2000" data-tags="archean methane greenhouse">
+    <div class="cite-key">[pavlov2000]</div>
+    <div class="authors">Pavlov, A. A., Kasting, J. F., Brown, L. L., Rages, K. A. &amp; Freedman, R.</div>
+    <div class="title">Greenhouse warming by CH ₄ in the atmosphere of early Earth</div>
+    <div class="venue">Journal of Geophysical Research: Planets, 105(E5):11981–11990 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/1999JE001134">10.1029/1999JE001134</a></div>
+    <div class="used-in">CH₄ de l’Archéen, 100–1 000 ppm : ⚖️🐄 de 🦠 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="haqqMisra2008" data-tags="archean methane haze">
+    <div class="cite-key">[haqqMisra2008]</div>
+    <div class="authors">Haqq-Misra, J. D., Domagal-Goldman, S. D., Kasting, P. J. &amp; Kasting, J. F.</div>
+    <div class="title">A Revised, Hazy Methane Greenhouse for the Archean Earth</div>
+    <div class="venue">Astrobiology, 8(6):1127–1137 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1089/ast.2007.0197">10.1089/ast.2007.0197</a></div>
+    <div class="used-in">CH₄ jusqu’à 10 000 ppm, brume organique au-delà de CH₄/CO₂ = 0,1 : ⚖️🐄 de 🦠 (<code>configTimeline.js</code>) et seuil de brume de <code>physics/physics.js</code> (informatif, lu par aucun calcul).</div>
+</article>
+
+<article class="ref" id="arney2016" data-tags="archean methane haze">
+    <div class="cite-key">[arney2016]</div>
+    <div class="authors">Arney, G., Domagal-Goldman, S. D., Meadows, V. S., Wolf, E. T., <em>et al.</em></div>
+    <div class="title">The Pale Orange Dot: The Spectrum and Habitability of Hazy Archean Earth</div>
+    <div class="venue">Astrobiology, 16(11):873–899 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1089/ast.2015.1422">10.1089/ast.2015.1422</a></div>
+    <div class="used-in">Seuil de brume plutôt vers CH₄/CO₂ = 0,2 : note du seuil de brume de <code>physics/physics.js</code> (informatif).</div>
+</article>
+
+<article class="ref" id="som2012" data-tags="archean air-pressure n2">
+    <div class="cite-key">[som2012]</div>
+    <div class="authors">Som, S. M., Catling, D. C., Harnmeijer, J. P., Polivka, P. M. &amp; Buick, R.</div>
+    <div class="title">Air density 2.7 billion years ago limited to less than twice modern levels by fossil raindrop imprints</div>
+    <div class="venue">Nature, 484(7394):359–362 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature10890">10.1038/nature10890</a></div>
+    <div class="used-in">Densité de l’air à 2,7 Ga inférieure au double de l’actuelle (empreintes de gouttes de pluie) : bornes 🔒 du N₂ de 🦠 (<code>configTimeline.js</code>), avec <a href="#som2016">[som2016]</a>.</div>
+</article>
+
+<article class="ref" id="goldblatt2009" data-tags="archean n2 greenhouse">
+    <div class="cite-key">[goldblatt2009]</div>
+    <div class="authors">Goldblatt, C., Claire, M. W., Lenton, T. M., Matthews, A. J., Watson, A. J. &amp; Zahnle, K. J.</div>
+    <div class="title">Nitrogen-enhanced greenhouse warming on early Earth</div>
+    <div class="venue">Nature Geoscience, 2(12):891–896 (2009)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/ngeo692">10.1038/ngeo692</a></div>
+    <div class="used-in">Effet de serre renforcé par le N₂ : sens ambigu du N₂ dans le schéma des bornes 🔒 (<code>configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="glasspoolGastaldo2022" data-tags="oxygen wildfire silurian">
+    <div class="cite-key">[glasspoolGastaldo2022]</div>
+    <div class="authors">Glasspool, I. J. &amp; Gastaldo, R. A.</div>
+    <div class="title">Silurian wildfire proxies and atmospheric oxygen</div>
+    <div class="venue">Geology, 50(9):1048–1052 (2022)</div>
+    <div class="doi"><a href="https://doi.org/10.1130/G50193.1">10.1130/G50193.1</a></div>
+    <div class="used-in">Une combustion soutenue exige au moins 16 % d’O₂, seuil atteint au Silurien moyen : borne de ⚖️🫁 de 🪼 (<code>configTimeline.js</code>, qui le date de 2024 ; l’article de 2024 des mêmes auteurs porte sur le charbon de bois du Dévonien moyen).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1055,7 +1551,7 @@
     <div class="title">Recent climatology, variability, and trends in global surface humidity</div>
     <div class="venue">Journal of Climate, 19(15):3589–3606 (2006)</div>
     <div class="doi"><a href="https://doi.org/10.1175/JCLI3816.1">10.1175/JCLI3816.1</a></div>
-    <div class="used-in">Humidité relative de surface 75–80 % (océans), 70–80 % (terres) ; q de surface +4,9 %/°C à l'échelle globale (observé) → RH ∈ [0,70 ; 0,80] des fourchettes h2oVap <code>API_BILAN/config/configTimeline.js</code>. Repère contre <code>EARTH.H2O_SURFACE_RH_01</code> = 0,623 (physics.js), trop bas.</div>
+    <div class="used-in">Humidité relative de surface 75–80 % (océans), 70–80 % (terres) ; q de surface +4,9 %/°C à l'échelle globale (observé) → RH ∈ [0,70 ; 0,80] des fourchettes h2oVap <code>API_BILAN/config/configTimeline.js</code>. La jauge <code>H2O_SURFACE_RH_01</code> [0,70 ; 0,77] (<code>config/fine_tuning_bounds.js</code>) est dans cette plage.</div>
 </article>
 
 <article class="ref" id="heldSoden2006" data-tags="water-vapor clausius-clapeyron hydrological-cycle">
@@ -1109,6 +1605,34 @@
     <div class="doi"><a href="https://doi.org/10.1038/nature08518">10.1038/nature08518</a></div>
     <div class="used-in">Borne ≤ 40 °C à 3,42 Ga (cherts de Buck Reef), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
 </article>
+
+<article class="ref" id="hersbach2020" data-tags="reanalysis era5 observation">
+    <div class="cite-key">[hersbach2020]</div>
+    <div class="authors">Hersbach, H., Bell, B., Berrisford, P., Hirahara, S., <em>et al.</em></div>
+    <div class="title">The ERA5 global reanalysis</div>
+    <div class="venue">Quarterly Journal of the Royal Meteorological Society, 146(730):1999–2049 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/qj.3803">10.1002/qj.3803</a></div>
+    <div class="used-in">Réanalyse ERA5 : humidité relative de surface 0,70–0,75, borne basse de la jauge <code>H2O_SURFACE_RH_01</code> (<code>config/fine_tuning_bounds.js</code>) ; aussi citée pour les amplitudes saisonnières des zones (<code>physics/physics.js</code>, valeurs non relevées, ⚠️).</div>
+</article>
+
+<article class="ref" id="cohen2013" data-tags="chronostratigraphy geochronology">
+    <div class="cite-key">[cohen2013]</div>
+    <div class="authors">Cohen, K. M., Finney, S. C., Gibbard, P. L. &amp; Fan, J.-X.</div>
+    <div class="title">The ICS International Chronostratigraphic Chart</div>
+    <div class="venue">Episodes, 36(3):199–204 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.18814/epiiugs/2013/v36i3/002">10.18814/epiiugs/2013/v36i3/002</a></div>
+    <div class="used-in">Tableau chronostratigraphique international (version 2023) : dates des bases des époques, ▶ et ◀ de la frise (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>).</div>
+</article>
+
+<article class="ref" id="tiesinga2021" data-tags="constants metrology">
+    <div class="cite-key">[tiesinga2021]</div>
+    <div class="authors">Tiesinga, E., Mohr, P. J., Newell, D. B. &amp; Taylor, B. N.</div>
+    <div class="title">CODATA recommended values of the fundamental physical constants: 2018</div>
+    <div class="venue">Reviews of Modern Physics, 93(2):025010 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1103/RevModPhys.93.025010">10.1103/RevModPhys.93.025010</a></div>
+    <div class="used-in">Constantes CODATA 2018 : <code>CONST.PLANCK_H</code> et <code>CONST.BOLTZMANN_KB</code> (<code>physics/physics.js</code>), <code>R_GAZ</code> (<code>geology/interieur.js</code>), σ de la courbe du corps noir (<code>CO2/static/histoire/litterature.js</code>).</div>
+</article>
+
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-water-rt">12. Eau, transfert radiatif &amp; atmosphère de vapeur</h2>
 
@@ -1138,13 +1662,13 @@
     <div class="used-in">Durée de l'océan de magma sous atmosphère de vapeur (~Ma) → pas de 🔥 (1 ka, 100 ka, 100 Ma), <code>configTimeline.js</code>.</div>
 </article>
 
-<article class="ref" id="kasting1988" data-tags="runaway-greenhouse moist-adiabat steam">
-    <div class="cite-key">[kasting1988]</div>
-    <div class="authors">Kasting, J. F.</div>
-    <div class="title">Runaway and moist greenhouse atmospheres and the evolution of Earth and Venus</div>
-    <div class="venue">Icarus, 74:472–494 (1988)</div>
-    <div class="doi"><a href="https://doi.org/10.1016/0019-1035(88)90116-9">10.1016/0019-1035(88)90116-9</a></div>
-    <div class="used-in">Atmosphère de vapeur, adiabatique humide — <code>radiative/calculations.js</code> (profilAtmosphere).</div>
+<article class="ref" id="humlicek1982" data-tags="voigt faddeeva line-shape spectroscopy">
+    <div class="cite-key">[humlicek1982]</div>
+    <div class="authors">Humlíček, J.</div>
+    <div class="title">Optimized computation of the Voigt and complex probability functions</div>
+    <div class="venue">J. Quant. Spectrosc. Radiat. Transfer, 27(4):437–444 (1982)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0022-4073(82)90078-4">10.1016/0022-4073(82)90078-4</a></div>
+    <div class="used-in">Algorithme W4 de la fonction de Faddeeva w(z) : quatre fractions rationnelles en t = y − ix, dont les régions I et II sont les quadratures de Gauss–Hermite à 2 et 4 nœuds — profil de Voigt des raies HITRAN, <code>spectroscopy/hitran.js</code> (faddeevaRe, voigtNormalized), d'où les tables σ(λ, T) de CO₂, H₂O et CH₄ (<code>radiative/calculations.js</code>, tablesSigma). Contrôle contre l'intégrale (y/π)∫e^(−t²)/((x−t)² + y²) dt : écart relatif 9,6·10⁻⁵ au pire (x ≤ 10⁶, 10⁻⁴ ≤ y ≤ 10⁴).</div>
 </article>
 
 <article class="ref" id="lebrun2013" data-tags="magma-ocean thermal-evolution">
@@ -1156,15 +1680,6 @@
     <div class="used-in">Océan de magma ~1 Ma ; transition rhéologique φ = 0,4 — <code>geology/interieur.js</code>, pas de 🔥.</div>
 </article>
 
-<article class="ref" id="nakajima1992" data-tags="runaway-greenhouse olr-limit">
-    <div class="cite-key">[nakajima1992]</div>
-    <div class="authors">Nakajima, S., Hayashi, Y.-Y. &amp; Abe, Y.</div>
-    <div class="title">A study on the “runaway greenhouse effect” with a one-dimensional radiative–convective equilibrium model</div>
-    <div class="venue">Journal of the Atmospheric Sciences, 49(23):2256–2266 (1992)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1992)049<2256:ASOTGE>2.0.CO;2">10.1175/1520-0469(1992)049&lt;2256:ASOTGE&gt;2.0.CO;2</a></div>
-    <div class="used-in">Limite d'OLR d'une atmosphère de vapeur (~280–310 W/m²) — contrôle du modèle (~330 W/m²), <code>radiative/calculations.js</code>.</div>
-</article>
-
 <article class="ref" id="piani2020" data-tags="water-origin enstatite-chondrite">
     <div class="cite-key">[piani2020]</div>
     <div class="authors">Piani, L., Marrocchi, Y., Rigaudier, T., Vacher, L. G., Thomassin, D. &amp; Marty, B.</div>
@@ -1174,12 +1689,13 @@
     <div class="used-in">Origine de l'eau terrestre → EAU_ACCRETEE_KG portée par les ☄️ de ⚫, <code>configTimeline.js</code>.</div>
 </article>
 
-<article class="ref" id="pierrehumbert2010" data-tags="moist-adiabat non-dilute textbook">
+<article class="ref" id="pierrehumbert2010" data-tags="moist-adiabat non-dilute textbook ebm paleoclim">
     <div class="cite-key">[pierrehumbert2010]</div>
     <div class="authors">Pierrehumbert, R. T.</div>
     <div class="title">Principles of Planetary Climate — §2.7 (adiabatique humide non diluée, éq. 2.33) et §4.4 (continuum H₂O)</div>
     <div class="venue">Cambridge University Press (2010)</div>
-        <div class="used-in"><code>radiative/calculations.js</code> (profilAtmosphere) ; <code>physics/physics.js</code> (EARTH.CONTINUUM_H2O).</div>
+    <div class="doi">ISBN 9780521865562</div>
+    <div class="used-in"><code>radiative/calculations.js</code> (profilAtmosphere) ; <code>physics/physics.js</code> (EARTH.CONTINUUM_H2O). Ch. 5 (glace et albédo, snowball) : cité « Pierrehumbert 2011 » dans <code>configTimeline.js</code> (⛄).</div>
 </article>
 
 <article class="ref" id="roberts1976" data-tags="water-vapor continuum window">
@@ -1251,8 +1767,68 @@
     <div class="authors">Lacis, A. A. &amp; Hansen, J. E.</div>
     <div class="title">A parameterization for the absorption of solar radiation in the Earth’s atmosphere</div>
     <div class="venue">J. Atmos. Sci., 31(1):118–133 (1974)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1974)031<0118:APFTAO>2.0.CO;2">10.1175/1520-0469(1974)031<0118:APFTAO>2.0.CO;2</a></div>
-    <div class="used-in">Tout le transfert solaire : ozone (éq. 8–15), Rayleigh (18, 41), vapeur en distribution de k (table 1), nuages deux-flux (19, 31, 33), sol (39–42). <code>API_BILAN/radiative/solaire.js</code>.</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1974)031%3C0118:APFTAO%3E2.0.CO;2">10.1175/1520-0469(1974)031&lt;0118:APFTAO&gt;2.0.CO;2</a></div>
+    <div class="used-in">Transfert solaire : ozone (éq. 8–15), Rayleigh (18, 41), nuages deux-flux (19, 31, 33), sol (39–42), absorption des gouttes en vapeur équivalente (§4, convertie à l'échelle de Chou &amp; Suarez). <code>API_BILAN/radiative/solaire.js</code>.</div>
+</article>
+<article class="ref" id="chou1999" data-tags="solar radiation water-vapor k-distribution">
+    <div class="cite-key">[chou1999]</div>
+    <div class="authors">Chou, M.-D. &amp; Suarez, M. J.</div>
+    <div class="title">A solar radiation parameterization for atmospheric studies</div>
+    <div class="venue">NASA Technical Memorandum 1999-104606, Technical Report Series on Global Modeling and Data Assimilation, vol. 15, 40 p. (1999)</div>
+    <div class="doi"><a href="https://ntrs.nasa.gov/citations/19990060930">NTRS 19990060930</a> · <a href="https://gmao.gsfc.nasa.gov/pubs/docs/Chou136.pdf">PDF (GMAO)</a></div>
+    <div class="used-in">Vapeur du transfert solaire (CLIRAD-SW) : k-distribution du proche IR (table 2 : 10 coefficients k, poids h des bandes 9–11,
+        Σh = 0,52926), partage du spectre et vapeur de la bande 8, k̄ = 0,00075 g⁻¹ cm² (table 3, éq. 3.12–3.13), mise à l'échelle
+        (p/300 hPa)^0,8 · [1 + 0,00135 (T − 240 K)] (éq. 3.3, 3.5). Validation raie par raie à moins de 1 % (table 8) ; absorbants
+        mineurs absents chiffrés (table 7). Absorption de l'O₂ (éq. 3.5, 3.16–3.18, 6.18 : 6,33 % du flux, k = 0,000145 (cm-atm)^(−1/2)).
+        Gouttes et cristaux : co-albédo et asymétrie par bande selon la taille effective (§4.2, tables 5–6, éq. 6.3–6.4).
+        <code>API_BILAN/radiative/solaire.js</code>, <code>API_BILAN/radiative/calculations.js</code> (wEff).</div>
+</article>
+<article class="ref" id="tsay1989" data-tags="clouds optics mie solar">
+    <div class="cite-key">[tsay1989]</div>
+    <div class="authors">Tsay, S.-C., Stamnes, K. &amp; Jayaweera, K.</div>
+    <div class="title">Radiative energy balance in the cloudy and hazy Arctic</div>
+    <div class="venue">J. Atmos. Sci., 46:1002–1018 (1989)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1989)046&lt;1002:REBITC&gt;2.0.CO;2">10.1175/1520-0469(1989)046&lt;1002:REBITC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Spectres de diffusion simple des gouttes (Mie, 4–20 µm) d'où Chou &amp; Suarez 1999 tirent le co-albédo et
+        l'asymétrie des nuages d'eau par bande (leurs tables 5–6). <code>API_BILAN/radiative/solaire.js</code> (OPTIQUE).</div>
+</article>
+<article class="ref" id="fu1996" data-tags="clouds ice optics solar">
+    <div class="cite-key">[fu1996]</div>
+    <div class="authors">Fu, Q.</div>
+    <div class="title">An accurate parameterization of the solar radiative properties of cirrus clouds for climate models</div>
+    <div class="venue">J. Climate, 9:2058–2082 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0442(1996)009&lt;2058:AAPOTS&gt;2.0.CO;2">10.1175/1520-0442(1996)009&lt;2058:AAPOTS&gt;2.0.CO;2</a></div>
+    <div class="used-in">Cristaux hexagonaux (tracé de rayons, 28 distributions de tailles FIRE et CEPEX) : spectres d'où Chou &amp; Suarez
+        1999 tirent le co-albédo et l'asymétrie des nuages de glace ; taille effective r_i = (2√3/3ρ_i)·C/A_c, d'où
+        r_i = (8√3/9)·r_e à même extinction. <code>API_BILAN/radiative/solaire.js</code> (OPTIQUE, rayonGlace).</div>
+</article>
+<article class="ref" id="kinne2019" data-tags="aerosol climatology solar">
+    <div class="cite-key">[kinne2019]</div>
+    <div class="authors">Kinne, S.</div>
+    <div class="title">Aerosol radiative effects with MACv2</div>
+    <div class="venue">Atmos. Chem. Phys., 19:10919–10959 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-19-10919-2019">10.5194/acp-19-10919-2019</a></div>
+    <div class="used-in">Aérosol de fond troposphérique de la Terre actuelle, climatologie MACv2 (AERONET + modèles), moyennes globales au milieu
+        du visible : épaisseur optique 0,12, albédo de diffusion simple 0,94, facteur d'asymétrie 0,70. <code>API_BILAN/radiative/solaire.js</code> (AEROSOL).</div>
+</article>
+<article class="ref" id="wild2019" data-tags="energy-budget clear-sky observations">
+    <div class="cite-key">[wild2019]</div>
+    <div class="authors">Wild, M., Hakuba, M. Z., Folini, D., Dörig-Ott, P., Schär, C., Kato, S. &amp; Long, C. N.</div>
+    <div class="title">The cloud-free global energy balance and inferred cloud radiative effects: an assessment based on direct observations and climate models</div>
+    <div class="venue">Clim. Dyn., 52:4787–4812 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s00382-018-4413-y">10.1007/s00382-018-4413-y</a></div>
+    <div class="used-in">Comparaison 🎯 du bilan solaire en ciel clair : 287 W/m² absorbés au sommet, 214 au sol, 73 dans l'atmosphère, albédo de
+        surface 13,5 %. Le modèle (📱) : 285, 228 et 57 — il manque de l'absorption atmosphérique, pas de la réflexion.</div>
+</article>
+<article class="ref" id="donohoeBattisti2011" data-tags="albedo energy-budget atmosphere surface">
+    <div class="cite-key">[donohoeBattisti2011]</div>
+    <div class="authors">Donohoe, A. &amp; Battisti, D. S.</div>
+    <div class="title">Atmospheric and surface contributions to planetary albedo</div>
+    <div class="venue">J. Climate, 24(16):4402–4418 (2011)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/2011JCLI3946.1">10.1175/2011JCLI3946.1</a></div>
+    <div class="used-in">Décomposition de l'albédo planétaire en atmosphère et surface (modèle à une couche R, A, T), diagnostic du transfert
+        solaire : part de la surface et noyau dA<sub>p</sub>/dα<sub>s</sub> du modèle comparés aux leurs (surface 12 % de l'albédo).
+        Flux absorbé au sol de <code>API_BILAN/radiative/solaire.js</code> (S).</div>
 </article>
 <article class="ref" id="sagan1967" data-tags="two-stream clouds">
     <div class="cite-key">[sagan1967]</div>
@@ -1334,12 +1910,85 @@
     <div class="venue">Surv. Geophys., 45:1999–2048 (2024)</div>
     <div class="used-in">Fractions mesurées en colonne : bas 0,41 ± 0,05, moyens 0,23 ± 0,03, hauts 0,29–0,37 (0,13 de cirrus τ &lt; 0,3, 0,09 opaques) ; total 0,66 ± 0,04. <code>API_BILAN/physics/physics.js</code> (F_BAS, F_HAUT, TAU_HAUT_MIN/MAX).</div>
 </article>
+<article class="ref" id="young2018" data-tags="clouds isccp zonal">
+    <div class="cite-key">[young2018]</div>
+    <div class="authors">Young, A. H., Knapp, K. R., Inamdar, A., Hankins, W. &amp; Rossow, W. B.</div>
+    <div class="title">The International Satellite Cloud Climatology Project H-Series climate data record product</div>
+    <div class="venue">Earth Syst. Sci. Data, 10:583–593 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/essd-10-583-2018">10.5194/essd-10-583-2018</a></div>
+    <div class="used-in">ISCCP-H, moyennes mensuelles HGM de 2010 (NOAA NCEI) : nuages vus d'en haut par niveau de sommet et classe de τ
+        (<code>API_BILAN/data/isccp_h_2010.js</code>, contrôle du simulateur ISCCP). Par zone de latitude, de jour, au poids solaire,
+        rapport zone / globe des fractions bas / moyens / hauts : tropiques 0,84 / 0,75 / 1,00 ; moyennes latitudes 1,35 / 1,35 / 1,01 ;
+        pôles 1,01 / 1,39 / 0,94 (bilan méridien, carte « Bilan d'énergie méridien »). Température d'émission des sommets des
+        nuages hauts, pondérée par leur quantité et l'aire : 226,3 K (EARTH.NUAGES.T_ENCLUME).</div>
+</article>
 <article class="ref" id="segura2003" data-tags="ozone oxygen photochemistry">
     <div class="cite-key">[segura2003]</div>
     <div class="authors">Segura, A. et al.</div>
     <div class="title">Ozone concentrations and ultraviolet fluxes on Earth-like planets around other stars</div>
     <div class="venue">Astrobiology, 3(4):689–708 (2003)</div>
     <div class="used-in">Colonne d’ozone à 1 % du niveau actuel d’O₂ (124 DU) : loi de puissance de la colonne d’ozone. <code>API_BILAN/radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="elsasser1942" data-tags="radiative-transfer diffusivity">
+    <div class="cite-key">[elsasser1942]</div>
+    <div class="authors">Elsasser, W. M.</div>
+    <div class="title">Heat Transfer by Infrared Radiation in the Atmosphere</div>
+    <div class="venue">Harvard Meteorological Studies n° 6 (1942)</div>
+    <div class="used-in">Facteur de diffusivité D = 1,66 : un flux isotrope traverse une épaisseur verticale τ en 2E₃(τ) ≈ e^(−Dτ) — <code>EARTH.DIFFUSIVITE</code> (<code>physics/physics.js</code>), transfert de <code>workers/spectral_slice_worker.js</code>.</div>
+</article>
+
+<article class="ref" id="goodyYung1989" data-tags="radiative-transfer textbook">
+    <div class="cite-key">[goodyYung1989]</div>
+    <div class="authors">Goody, R. M. &amp; Yung, Y. L.</div>
+    <div class="title">Atmospheric Radiation: Theoretical Basis (2ᵉ édition)</div>
+    <div class="venue">Oxford University Press (1989)</div>
+    <div class="doi"><a href="https://doi.org/10.1093/oso/9780195051346.001.0001">10.1093/oso/9780195051346.001.0001</a></div>
+    <div class="used-in">Approximation de diffusivité D = 1,66 (§2.5) : <code>EARTH.DIFFUSIVITE</code> (<code>physics/physics.js</code>).</div>
+</article>
+
+<article class="ref" id="liou2002" data-tags="radiative-transfer textbook">
+    <div class="cite-key">[liou2002]</div>
+    <div class="authors">Liou, K. N.</div>
+    <div class="title">An Introduction to Atmospheric Radiation (2ᵉ édition)</div>
+    <div class="venue">Academic Press, International Geophysics (2002)</div>
+    <div class="used-in">Approximation de diffusivité, citée avec <a href="#elsasser1942">[elsasser1942]</a> et <a href="#goodyYung1989">[goodyYung1989]</a> : <code>EARTH.DIFFUSIVITE</code> (<code>physics/physics.js</code>).</div>
+</article>
+
+<article class="ref" id="schmidt2010" data-tags="greenhouse attribution radiative-transfer">
+    <div class="cite-key">[schmidt2010]</div>
+    <div class="authors">Schmidt, G. A., Ruedy, R. A., Miller, R. L. &amp; Lacis, A. A.</div>
+    <div class="title">Attribution of the present‐day total greenhouse effect</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 115(D20):D20106 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2010JD014287">10.1029/2010JD014287</a></div>
+    <div class="used-in">Répartition de l’effet de serre par retrait à température figée (vapeur ~50 %, nuages ~25 %, CO₂ ~20 %) : <code>computeEdsRemovalShares</code> (<code>radiative/calculations.js</code>), clés 🧲📛 (<code>data/dico.js</code>).</div>
+</article>
+
+<article class="ref" id="lacis2010" data-tags="greenhouse attribution co2">
+    <div class="cite-key">[lacis2010]</div>
+    <div class="authors">Lacis, A. A., Schmidt, G. A., Rind, D. &amp; Ruedy, R. A.</div>
+    <div class="title">Atmospheric CO ₂ : Principal Control Knob Governing Earth’s Temperature</div>
+    <div class="venue">Science, 330(6002):356–359 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.1190653">10.1126/science.1190653</a></div>
+    <div class="used-in">Même méthode du retrait à température figée : <code>computeEdsRemovalShares</code> (<code>radiative/calculations.js</code>), attribution de <code>CO2/static/courbes/plot.js</code>.</div>
+</article>
+
+<article class="ref" id="cooke2022" data-tags="ozone oxygen 3d-model">
+    <div class="cite-key">[cooke2022]</div>
+    <div class="authors">Cooke, G. J., Marsh, D. R., Walsh, C., Black, B. &amp; Lamarque, J.-F.</div>
+    <div class="title">A revised lower estimate of ozone columns during Earth’s oxygenated history</div>
+    <div class="venue">Royal Society Open Science, 9(1):211165 (2022)</div>
+    <div class="doi"><a href="https://doi.org/10.1098/rsos.211165">10.1098/rsos.211165</a></div>
+    <div class="used-in">Colonne d’ozone à 1 % d’O₂ : 66 DU en 3D (WACCM6), contre les 124 DU posés de <a href="#segura2003">[segura2003]</a> — facteur 2 d’incertitude aux faibles O₂ (<code>radiative/solaire.js</code>).</div>
+</article>
+
+<article class="ref" id="vanDerEnt2017" data-tags="water-vapor residence-time">
+    <div class="cite-key">[vanDerEnt2017]</div>
+    <div class="authors">van der Ent, R. J. &amp; Tuinenburg, O. A.</div>
+    <div class="title">The residence time of water in the atmosphere revisited</div>
+    <div class="venue">Hydrology and Earth System Sciences, 21(2):779–790 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/hess-21-779-2017">10.5194/hess-21-779-2017</a></div>
+    <div class="used-in">Temps de résidence de la vapeur dans l’atmosphère, 8–10 jours : P = W/τ (<code>albedo/calculations_albedo.js</code>, carte « Précipitations »).</div>
 </article>
 
 <h2 id="sec-composition">13. Composition de l’atmosphère, nuages froids &amp; bilan méridien</h2>
@@ -1350,7 +1999,8 @@
     <div class="title">The mass of the atmosphere: a constraint on global analyses</div>
     <div class="venue">J. Climate, 18:864–875 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.1175/JCLI-3299.1">10.1175/JCLI-3299.1</a></div>
-    <div class="used-in">Air sec 5,1352e18 kg × 0,7552 (fraction massique de N₂) → 1 PAL de N₂ = 3,878e18 kg, pour toutes les époques sauf ⚫ 🔥. <code>API_BILAN/config/configTimeline.js</code> (⚖️💨).</div>
+    <div class="used-in">Air sec 5,1352e18 kg × 0,7552 (fraction massique de N₂) → 1 PAL de N₂ = 3,878e18 kg, pour toutes les époques sauf ⚫ 🔥. <code>API_BILAN/config/configTimeline.js</code> (⚖️💨).
+        Vapeur 1,27e16 kg, soit 24,9 kg/m² : comparaison 🎯 de la colonne d'eau du modèle (15,7 kg/m² sur 📱, carte « Vapeur : k-distribution de Chou &amp; Suarez »).</div>
 </article>
 <article class="ref" id="marty2013" data-tags="archean n2 pressure">
     <div class="cite-key">[marty2013]</div>
@@ -1414,6 +2064,16 @@
     <div class="doi"><a href="https://doi.org/10.1029/RG019i001p00091">10.1029/RG019i001p00091</a></div>
     <div class="used-in">Modèle diffusif (éq. 22) ; OLR = A + BT, A = 203,3 W/m², B = 2,09 W/m²/°C ; D = 0,649 W/m²/°C (D/B = 0,310) calé sur le gradient OBSERVÉ de l’hémisphère nord T₂ = −28,0 °C (T ≈ T₀ + T₂ P₂(sin φ), éq. 32). Ramené aux trois zones : +10,5 / −6,1 / −22,6 K autour de la moyenne. Chantier « bilan méridien » (doc/AUDIT_REGLAGES_HERITES.md).</div>
 </article>
+<article class="ref" id="northCoakley1979" data-tags="ebm albedo satellite">
+    <div class="cite-key">[northCoakley1979]</div>
+    <div class="authors">North, G. R. &amp; Coakley, J. A.</div>
+    <div class="title">Differences between seasonal and mean annual energy balance model calculations of climate and climate sensitivity</div>
+    <div class="venue">J. Atmos. Sci., 36(7):1189–1204 (1979)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1979)036%3C1189:DBSAMA%3E2.0.CO;2">10.1175/1520-0469(1979)036&lt;1189:DBSAMA&gt;2.0.CO;2</a></div>
+    <div class="used-in">Co-albédo annuel OBSERVÉ de l'hémisphère nord (satellites), a(x) = 0,681 − 0,202 P₂(x) (repris par North et al. 1981,
+        éq. 18) : celui avec lequel D = 0,649 reproduit T₂ = −28 °C. Moyenné au poids solaire sur les trois zones : 0,758 / 0,642 / 0,520,
+        cible 🎯 des co-albédos du bilan méridien (trois zones uniformes : T₂ = −26,9 °C au mieux).</div>
+</article>
 <article class="ref" id="mauritsen2011" data-tags="clouds ccn arctic">
     <div class="cite-key">[mauritsen2011]</div>
     <div class="authors">Mauritsen, T., Sedlar, J., Tjernström, M. et al.</div>
@@ -1465,7 +2125,7 @@
     <div class="authors">Braithwaite, R. J.</div>
     <div class="title">Positive degree-day factors for ablation on the Greenland ice sheet studied by energy-balance modelling</div>
     <div class="venue">J. Glaciol., 41(137):153–160 (1995)</div>
-    <div class="used-in">Facteurs de fonte ~3 (neige) et ~8 (glace) mm d’eau par °C·jour. <code>physics/calottes.js</code> (bilanMasse).</div>
+    <div class="used-in">Facteurs de fonte ~3 (neige) et ~8 (glace) mm d’eau par °C·jour. <code>physics/calottes.js</code> (K.DDF_NEIGE, K.DDF_GLACE, bilanPoint).</div>
 </article>
 <article class="ref" id="reeh1991" data-tags="ice-sheet melt pdd">
     <div class="cite-key">[reeh1991]</div>
@@ -1474,12 +2134,37 @@
     <div class="venue">Polarforschung, 59(3):113–128 (1991)</div>
     <div class="used-in">Méthode des degrés-jours : la neige de l’année fond d’abord, puis la glace. <code>physics/calottes.js</code>.</div>
 </article>
+<article class="ref" id="weertman1976" data-tags="ice-sheet milankovitch geometry">
+    <div class="cite-key">[weertman1976]</div>
+    <div class="authors">Weertman, J.</div>
+    <div class="title">Milankovitch solar radiation variations and ice age ice sheet sizes</div>
+    <div class="venue">Nature, 261:17–20 (1976)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/261017a0">10.1038/261017a0</a></div>
+    <div class="used-in">Calotte parfaitement plastique en deux dimensions (le long du méridien), bilan intégré sur sa surface : sa taille d'équilibre suit l'insolation, avec deux états stables. <code>physics/calottes.js</code> (geometrie, bilanCalotte).</div>
+</article>
+<article class="ref" id="pollard1978" data-tags="ice-sheet milankovitch geometry">
+    <div class="cite-key">[pollard1978]</div>
+    <div class="authors">Pollard, D.</div>
+    <div class="title">An investigation of the astronomical theory of the ice ages using a simple climate-ice sheet model</div>
+    <div class="venue">Nature, 272:233–235 (1978)</div>
+    <div class="used-in">Calotte nord-américaine le long d'un méridien, bilan de masse fonction de la latitude et de l'altitude, forcée par l'insolation. <code>physics/calottes.js</code>. DOI non vérifié : omis.</div>
+</article>
 <article class="ref" id="jouzelMerlivat1984" data-tags="ice-sheet accumulation inversion">
     <div class="cite-key">[jouzelMerlivat1984]</div>
     <div class="authors">Jouzel, J. &amp; Merlivat, L.</div>
     <div class="title">Deuterium and oxygen 18 in precipitation: modeling of the isotopic effects during snow formation</div>
     <div class="venue">J. Geophys. Res., 89(D7):11749–11757 (1984)</div>
     <div class="used-in">Température de formation de la neige au sommet de l’inversion : T_inv = 0,67 T_s + 88,9 K (Antarctique). Accumulation des calottes à la saturation de l’inversion.</div>
+</article>
+<article class="ref" id="siler2018" data-tags="hydrologic-cycle energy-balance moisture-transport">
+    <div class="cite-key">[siler2018]</div>
+    <div class="authors">Siler, N., Roe, G. H. &amp; Armour, K. C.</div>
+    <div class="title">Insights into the zonal-mean response of the hydrologic cycle to global warming from a diffusive energy balance model</div>
+    <div class="venue">J. Climate, 31:7481–7493 (2018)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-18-0081.1">10.1175/JCLI-D-18-0081.1</a></div>
+    <div class="used-in">Transport d'énergie humide en diffusion, F = −(2π p_s/g) D (1 − x²) dh/dx (éq. 2), D = 1,16·10⁶ m²/s ajusté sur la
+        température zonale d'ERA-Interim, part de la cellule de Hadley w = e^(−x²/0,3²) (éq. 4–6) : P − E le long du profil méridien,
+        d'où la neige des calottes. <code>API_BILAN/physics/calottes.js</code> (calculer, bilanPoint).</div>
 </article>
 <article class="ref" id="arthern2006" data-tags="ice-sheet accumulation antarctica">
     <div class="cite-key">[arthern2006]</div>
@@ -1500,8 +2185,6 @@
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-calottes-cryogenien">14. Calottes, Cryogénien &amp; frontières d’hystérésis</h2>
-<p class="sec-note">Usages et statuts (🧭 d’où vient la connaissance, 🛠 ce que le modèle en fait) : sous chaque entrée, lus dans
-    <code>API_BILAN/data/episteme.js</code>.</p>
 <article class="ref" id="citterio2013" data-tags="ice-sheet greenland observation">
     <div class="cite-key">[citterio2013]</div>
     <div class="authors">Citterio, M. &amp; Ahlstrøm, A. P.</div>
@@ -1515,6 +2198,7 @@
     <div class="title">An updated radiocarbon-based ice margin chronology for the last deglaciation of the North American Ice Sheet Complex</div>
     <div class="venue">Quat. Sci. Rev., 234:106223 (2020)</div>
     <div class="doi"><a href="https://doi.org/10.1016/j.quascirev.2020.106223">10.1016/j.quascirev.2020.106223</a></div>
+    <div class="used-in">Complexe nord-américain à 18 ka : 18,37 millions de km² — comparaison seulement avec les calottes calculées au clic du DMG ; ~9,9e6 km² à 11,7 ka (🛖).</div>
 </article>
 <article class="ref" id="fretwell2013" data-tags="ice-sheet antarctica observation">
     <div class="cite-key">[fretwell2013]</div>
@@ -1563,104 +2247,88 @@
     <div class="venue">Geology, 45:615–618 (2017)</div>
 </article>
 
-<!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
-<h2 id="sec-archive">15. Archive : non citées par le code</h2>
-<p class="sec-note">Ni le code ni la documentation ne les citent ; le mécanisme qu’elles appuyaient n’est pas dans le
-    moteur (plage ΔT du pôle, remplacée par le bilan méridien ; HYST_CO2_OCEAN_EFF ; proxy CCN O₂).</p>
-<article class="ref" id="beerling2007" data-tags="biosphere plants paleobotany">
-    <div class="cite-key">[beerling2007]</div>
-    <div class="authors">Beerling, D. J.</div>
-    <div class="title">The Emerald Planet: How plants changed Earth's history</div>
-    <div class="venue">Oxford University Press (2007)</div>
-    <div class="doi">ISBN 978-0-19-280602-4</div>
-    <div class="used-in"><code>configTimeline.js</code> (<code>'🌱'</code> par époque).</div>
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<h2 id="sec-interieur">15. Intérieur de la Terre : radiogénique, convection, océan de magma</h2>
+
+<article class="ref" id="mcdonoughSun1995" data-tags="radiogenic composition mantle">
+    <div class="cite-key">[mcdonoughSun1995]</div>
+    <div class="authors">McDonough, W. F. &amp; Sun, S.-S.</div>
+    <div class="title">The composition of the Earth</div>
+    <div class="venue">Chemical Geology, 120(3-4):223–253 (1995)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0009-2541(94)00140-4">10.1016/0009-2541(94)00140-4</a></div>
+    <div class="used-in">Concentrations de la Terre silicatée : U 20,3 ppb, Th 79,5 ppb, K 240 ppm — <code>puissanceRadiogenique</code> (<code>geology/interieur.js</code>).</div>
 </article>
-<article class="ref" id="bernerLasagaGarrels1983" data-tags="co2 carbon-cycle weathering blag long-term">
-    <div class="cite-key">[bernerLasagaGarrels1983]</div>
-    <div class="authors">Berner, R. A., Lasaga, A. C. &amp; Garrels, R. M.</div>
-    <div class="title">The carbonate-silicate geochemical cycle and its effect on atmospheric carbon dioxide over the past 100 million years</div>
-    <div class="venue">American Journal of Science, 283(7):641–683 (1983)</div>
-    <div class="doi"><a href="https://doi.org/10.2475/ajs.283.7.641">10.2475/ajs.283.7.641</a></div>
-    <div class="used-in">Modèle BLAG fondateur du couplage silicate-carbonate long terme. Cadre théorique de <code>calculations_co2.js</code> (partition Henry + pompe Urey) et du facteur EPOCH['🌊🏭'] modulé par époque tectonique.</div>
+
+<article class="ref" id="turcotteSchubert2014" data-tags="geodynamics textbook">
+    <div class="cite-key">[turcotteSchubert2014]</div>
+    <div class="authors">Turcotte, D. &amp; Schubert, G.</div>
+    <div class="title">Geodynamics (3ᵉ édition)</div>
+    <div class="venue">Cambridge University Press (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1017/CBO9780511843877">10.1017/CBO9780511843877</a></div>
+    <div class="used-in">Chaleur par kg d’isotope, abondances et demi-vies (tableau 4.2), dilatation thermique (tableau 4.1), Nu ∝ Ra^β avec β = 1/3 (§6.21) : <code>geology/interieur.js</code> ; masse volumique du manteau supérieur pour l’isostasie (<code>physics/calottes.js</code>).</div>
 </article>
-<article class="ref" id="catlingKasting2017" data-tags="textbook atmospheric-evolution">
-    <div class="cite-key">[catlingKasting2017]</div>
-    <div class="authors">Catling, D. C. &amp; Kasting, J. F.</div>
-    <div class="title">Atmospheric Evolution on Inhabited and Lifeless Worlds</div>
-    <div class="venue">Cambridge University Press (2017), ISBN 978-0521844123</div>
-    <div class="used-in">Outgassing volcanique Protérozoïque ~6e12 mol CO₂/an (ref. moderne). CH₄ post-GOE.</div>
+
+<article class="ref" id="jaupart2015" data-tags="heat-flow mantle">
+    <div class="cite-key">[jaupart2015]</div>
+    <div class="authors">Jaupart, C., Labrosse, S., Lucazeau, F. &amp; Mareschal, J.-C.</div>
+    <div class="title">Temperatures, Heat, and Energy in the Mantle of the Earth</div>
+    <div class="venue">Treatise on Geophysics (2ᵉ édition), Elsevier, 223–270 (2015)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/B978-0-444-53802-4.00126-3">10.1016/B978-0-444-53802-4.00126-3</a></div>
+    <div class="used-in">Flux de chaleur actuel de la Terre, 46 ± 3 TW : point d’ancrage de <code>puissanceConvective</code> (<code>geology/interieur.js</code>).</div>
 </article>
-<article class="ref" id="hollandBitz2003" data-tags="polar-amp gcm">
-    <div class="cite-key">[hollandBitz2003]</div>
-    <div class="authors">Holland, M. M. &amp; Bitz, C. M.</div>
-    <div class="title">Polar amplification of climate change in coupled models</div>
-    <div class="venue">Climate Dynamics, 21:221–232 (2003)</div>
-    <div class="doi"><a href="https://doi.org/10.1007/s00382-003-0332-6">10.1007/s00382-003-0332-6</a></div>
-    <div class="used-in">Justification plage ΔT_pôle 1.4–4.5 K/K dans <code>calculations_albedo.js</code></div>
+
+<article class="ref" id="herzberg2007" data-tags="mantle temperature petrology">
+    <div class="cite-key">[herzberg2007]</div>
+    <div class="authors">Herzberg, C., Asimow, P. D., Arndt, N., Niu, Y., <em>et al.</em></div>
+    <div class="title">Temperatures in ambient mantle and plumes: Constraints from basalts, picrites, and komatiites</div>
+    <div class="venue">Geochemistry, Geophysics, Geosystems, 8(2):Q02006 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2006GC001390">10.1029/2006GC001390</a></div>
+    <div class="used-in">Température du manteau actuel, 1 280–1 400 °C (1 350 °C retenu) : ancrage de la convection (<code>geology/interieur.js</code>).</div>
 </article>
-<article class="ref" id="kloster2006" data-tags="dms model ccn earth-system-model">
-    <div class="cite-key">[kloster2006]</div>
-    <div class="authors">Kloster, S., Feichter, J., Maier-Reimer, E., Six, K. D., Stier, P. &amp; Wetzel, P.</div>
-    <div class="title">DMS cycle in the marine ocean-atmosphere system — a global model study</div>
-    <div class="venue">Biogeosciences, 3(1):29–51 (2006)</div>
-    <div class="doi"><a href="https://doi.org/10.5194/bg-3-29-2006">10.5194/bg-3-29-2006</a></div>
-    <div class="used-in">Modèle couplé DMS océan-atmo ; justification flux ppt paléo (ordre grandeur <code>'🧫'</code>).</div>
+
+<article class="ref" id="karatoWu1993" data-tags="rheology olivine viscosity">
+    <div class="cite-key">[karatoWu1993]</div>
+    <div class="authors">Karato, S.-I. &amp; Wu, P.</div>
+    <div class="title">Rheology of the Upper Mantle: A Synthesis</div>
+    <div class="venue">Science, 260(5109):771–778 (1993)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.260.5109.771">10.1126/science.260.5109.771</a></div>
+    <div class="used-in">Énergie d’activation du fluage de l’olivine sèche, 300 kJ/mol : viscosité d’Arrhenius de <code>geology/interieur.js</code>.</div>
 </article>
-<article class="ref" id="knollFollows2016" data-tags="plankton paleo marine biogeochemistry">
-    <div class="cite-key">[knollFollows2016]</div>
-    <div class="authors">Knoll, A. H. &amp; Follows, M. J.</div>
-    <div class="title">A bottom-up perspective on ecosystem change in Mesozoic oceans</div>
-    <div class="venue">Proc. R. Soc. B, 283:20161755 (2016)</div>
-    <div class="doi"><a href="https://doi.org/10.1098/rspb.2016.1755">10.1098/rspb.2016.1755</a></div>
-    <div class="used-in">Transition Méso→Cénozoïque du phytoplancton → plateau <code>'🧫' = 1.0</code> après 🦕.</div>
+
+<article class="ref" id="abe1997" data-tags="magma-ocean rheology">
+    <div class="cite-key">[abe1997]</div>
+    <div class="authors">Abe, Y.</div>
+    <div class="title">Thermal and chemical evolution of the terrestrial magma ocean</div>
+    <div class="venue">Physics of the Earth and Planetary Interiors, 100(1-4):27–39 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/S0031-9201(96)03229-3">10.1016/S0031-9201(96)03229-3</a></div>
+    <div class="used-in">Transition rhéologique de l’océan de magma : solide sous ~40 % de liquide — <code>refroidirMagma</code> (<code>geology/interieur.js</code>).</div>
 </article>
-<article class="ref" id="leHir2010" data-tags="snowball recovery weathering">
-    <div class="cite-key">[leHir2010]</div>
-    <div class="authors">Le Hir, G., Donnadieu, Y., Goddéris, Y., Pierrehumbert, R. T., Halverson, G. P., <em>et al.</em></div>
-    <div class="title">The snowball Earth aftermath: Exploring the limits of continental weathering processes</div>
-    <div class="venue">Earth and Planetary Science Letters, 277:453–463 (2010)</div>
-    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
-    <div class="used-in">Récupération post-snowball : altération fournit CO₂ sink, durée transition.</div>
+
+<article class="ref" id="stevensonSpohnSchubert1983" data-tags="thermal-evolution heat-capacity">
+    <div class="cite-key">[stevensonSpohnSchubert1983]</div>
+    <div class="authors">Stevenson, D. J., Spohn, T. &amp; Schubert, G.</div>
+    <div class="title">Magnetism and thermal evolution of the terrestrial planets</div>
+    <div class="venue">Icarus, 54(3):466–489 (1983)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0019-1035(83)90241-5">10.1016/0019-1035(83)90241-5</a></div>
+    <div class="used-in">Capacités thermiques : manteau 1 000–1 300, noyau 700–850 J/kg/K — <code>capacite</code> (<code>geology/interieur.js</code>).</div>
 </article>
-<article class="ref" id="picard2008" data-tags="air-composition molar-mass metrology">
-    <div class="cite-key">[picard2008]</div>
-    <div class="authors">Picard, A., Davis, R. S., Gläser, M. &amp; Fujii, K.</div>
-    <div class="title">Revised formula for the density of moist air (CIPM-2007)</div>
-    <div class="venue">Metrologia, 45(2):149–155 (2008)</div>
-    <div class="doi"><a href="https://doi.org/10.1088/0026-1394/45/2/004">10.1088/0026-1394/45/2/004</a></div>
-    <div class="used-in">Non lue par le moteur : l'O₂ n'est pas un noyau de condensation, le « proxy CCN » O₂ × biomasse n'est pas codé.</div>
+
+<article class="ref" id="solomatov2000" data-tags="magma-ocean latent-heat">
+    <div class="cite-key">[solomatov2000]</div>
+    <div class="authors">Solomatov, V. S.</div>
+    <div class="title">Fluid Dynamics of a Terrestrial Magma Ocean</div>
+    <div class="venue">Origin of the Earth and Moon, University of Arizona Press, 323–338 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.2307/j.ctv1v7zdrp.23">10.2307/j.ctv1v7zdrp.23</a></div>
+    <div class="used-in">Chaleur latente de cristallisation du manteau, 4–7·10⁵ J/kg (5,5·10⁵ retenu) : <code>geology/interieur.js</code>.</div>
 </article>
-<article class="ref" id="vallinaSimo2007" data-tags="dms ccn solar-radiation marine">
-    <div class="cite-key">[vallinaSimo2007]</div>
-    <div class="authors">Vallina, S. M. &amp; Simó, R.</div>
-    <div class="title">Strong relationship between DMS and the solar radiation dose over the global surface ocean</div>
-    <div class="venue">Science, 315(5811):506–508 (2007)</div>
-    <div class="doi"><a href="https://doi.org/10.1126/science.1133680">10.1126/science.1133680</a></div>
-    <div class="used-in">Corrélation DMS ↔ dose UV (argument pour couplage climatique CLAW actif à latitudes tropicales).</div>
-</article>
-<article class="ref" id="voigtAbbot2012" data-tags="snowball sea-ice-dynamics">
-    <div class="cite-key">[voigtAbbot2012]</div>
-    <div class="authors">Voigt, A. &amp; Abbot, D. S.</div>
-    <div class="title">Sea-ice dynamics strongly promote Snowball Earth initiation and destabilize tropical sea-ice margins</div>
-    <div class="venue">Climate of the Past, 8:2079–2092 (2012)</div>
-    <div class="doi"><a href="https://doi.org/10.5194/cp-8-2079-2012">10.5194/cp-8-2079-2012</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/config/configTimeline.js</code> — la dynamique de la banquise déstabilise la marge tropicale, argument derrière le calage de la bascule ⛄.</div>
-</article>
-<article class="ref" id="yangPeltierHu2012" data-tags="snowball gcm co2-threshold sturtian">
-    <div class="cite-key">[yangPeltierHu2012]</div>
-    <div class="authors">Yang, J., Peltier, W. R. &amp; Hu, Y.</div>
-    <div class="title">The Initiation of Modern "Soft Snowball" and "Hard Snowball" Climates in CCSM3. Part I &amp; II</div>
-    <div class="venue">Journal of Climate, 25:2711–2736 et 2737–2754 (2012)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00189.1">10.1175/JCLI-D-11-00189.1</a></div>
-    <div class="used-in">Seuil snowball GCM CCSM3 ~70-100 ppm (paléogéo Néoprotérozoïque).</div>
-</article>
-<article class="ref" id="zeebeWolfGladrow2001" data-tags="co2 ocean henry carbonate">
-    <div class="cite-key">[zeebeWolfGladrow2001]</div>
-    <div class="authors">Zeebe, R. E. &amp; Wolf-Gladrow, D.</div>
-    <div class="title">CO₂ in Seawater: Equilibrium, Kinetics, Isotopes</div>
-    <div class="venue">Elsevier Oceanography Series, vol. 65 (2001)</div>
-    <div class="doi">ISBN 9780444509468</div>
-    <div class="used-in"><code>model_tuning_biblio.js</code> (HYST_CO2_OCEAN_EFF).</div>
+
+<article class="ref" id="yoder1995" data-tags="earth constants geodesy">
+    <div class="cite-key">[yoder1995]</div>
+    <div class="authors">Yoder, C. F.</div>
+    <div class="title">Astrometric and Geodetic Properties of Earth and the Solar System</div>
+    <div class="venue">Global Earth Physics: A Handbook of Physical Constants, AGU Reference Shelf 1, 1–31 (1995)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/RF001p0001">10.1029/RF001p0001</a></div>
+    <div class="used-in">Masse du noyau, 1,932·10²⁴ kg : <code>geology/interieur.js</code>.</div>
 </article>
 
 <script src="js/bibliographie.js"></script>

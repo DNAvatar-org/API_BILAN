@@ -3,7 +3,8 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.3.2
+// Version 2.4.0
+// - v2.4.0 (2026-10-25): usage 📖 = contexte (cité, n'entre pas dans le calcul, n'est pas une cible).
 // - v2.3.2 (2026-10-15): 👁 = vu d'en haut par un satellite passif (simulateur ISCCP).
 // Date: [October 14, 2026]
 // logs :
@@ -294,12 +295,13 @@ const CHARS_DESC = {
     '🎚️': 'Jauge : fourchette parcourue par le réglage fin',
     '🔧': 'Calage : posé pour que le résultat tombe juste — à éliminer',
     '🔢': 'Numérique : grille, borne, tolérance — ne doit jamais mordre',
-    '🎯': 'Comparaison seulement : cible à valider ou invalider, n\'entre jamais dans le calcul'
+    '🎯': 'Comparaison seulement : cible à valider ou invalider, n\'entre jamais dans le calcul',
+    '📖': 'Contexte : cadre, justification ou piste citée — n\'entre pas dans le calcul et n\'est pas une cible'
 };
 // Les deux axes, dans l'ordre d'affichage. Libellés : CHARS_DESC.
 const EPISTEME = {
     AXE: '🧭', STATUTS: ['⚛', '📡', '🦴', '💻', '❔', '⚠️'],
-    USAGE: '🛠', USAGES: ['📌', '🎚️', '🔧', '🔢', '🎯']
+    USAGE: '🛠', USAGES: ['📌', '🎚️', '🔧', '🔢', '🎯', '📖']
 };
 
 // alt2sec des époques : déplacé dans static/texts/epochs_alt2sec.js (récit + chiffres lus à la source).

@@ -1,7 +1,7 @@
 // File: API_BILAN/spectroscopy/hitran.js - Formules HITRAN (Q(T), S(T), γ(T,P), Voigt)
 // Desc: En français, module de calcul LBL selon doc/HITRAN.txt (sections efficaces à partir des lignes).
-// Version 1.3.2
-// Date: 2025-02-06
+// Version 1.4.0
+// Date: 2026-10-24
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -10,6 +10,8 @@
 // UTF8 est la sémantique pour CODE & UI
 // - Initial: Q(T), S(T), γ_air/γ_self, γ_L total, γ_D, Voigt (réf. doc/HITRAN.txt).
 // - v1.3.2: voigtNormalized — Math.max(0, Re(w)) : Voigt est une pdf (≥0) ; HALF_WINDOW_CM=5 peut égaler 100×(γ_L+γ_D) donc la troncature v1.3.1 ne coupait pas la ligne fautive (σ_CH4 négatif bit-identique aux ailes).
+// - v1.4.0 (2026-10-24): faddeevaRe = algorithme W4 de Humlíček 1982 (contrôlé contre l'intégrale) ; Re w > 0, plus de Math.max ;
+//   γ_D = (ν/c)√(2RT/M), demi-largeur à 1/e (M en kg/mol entrait dans une formule en g/mol : ×26).
 
 (function (global) {
     'use strict';
@@ -101,29 +103,66 @@
     }
 
     /**
-     * Largeur Doppler (HWHM) en cm⁻¹ : γ_D ≈ 3.58e-7 * ν * √(T/M).
-     * ν en cm⁻¹, T en K, M en kg/mol. Réf. doc/HITRAN.txt.
+     * Largeur Doppler en cm⁻¹, DEMI-LARGEUR À 1/e : celle du profil gaussien e^(−(Δν/γ_D)²)/(γ_D √π) de voigtNormalized.
+     *   γ_D = (ν/c)·√(2RT/M),  ν en cm⁻¹, T en K, M en kg/mol (CONST.M_*), c en m/s ;
+     * la demi-largeur à mi-hauteur (HWHM) vaut γ_D·√ln2, soit 3,58·10⁻⁷·ν·√(T/M) avec M en g/mol (doc/HITRAN.txt).
      */
     function gammaDoppler(nu_cm, T_K, M_kg_mol) {
-        return 3.58e-7 * nu_cm * Math.sqrt(T_K / M_kg_mol);
+        return nu_cm / CONST.SPEED_OF_LIGHT * Math.sqrt(2 * CONST.R_GAS * T_K / M_kg_mol);
     }
 
     /**
-     * Réel de la Faddeeva w(z), z = x + i*y. Approximation rationnelle (style Humlíček).
+     * Partie réelle de la fonction de Faddeeva w(z) = e^(−z²)·erfc(−iz), z = x + iy, y ≥ 0 — la fonction de Voigt :
+     *   Re w(x, y) = K(x, y) = (y/π) ∫ e^(−t²) / ((x − t)² + y²) dt.
      * Utilisée pour Voigt normalisée : V(Δν) = Re(w(z)) / (γ_D * √π), z = (Δν + i*γ_L)/γ_D.
+     * Algorithme W4 de Humlíček (1982, JQSRT 27:437), avec t = y − ix, en quatre régions :
+     *   I   |x| + y ≥ 15   : (t/√π) / (½ + t²)                       Gauss–Hermite à 2 nœuds (limite lorentzienne)
+     *   II  |x| + y ≥ 5,5  : (t/√π)(5/2 + t²) / (¾ + 3t² + t⁴)       Gauss–Hermite à 4 nœuds
+     *   III y ≥ 0,195|x| − 0,176 : fraction rationnelle de degrés 4/5 en t
+     *   IV  sinon          : e^(t²) − t·P₆(t²)/Q₇(t²)
+     * I et II sont la quadrature de Gauss–Hermite de l'intégrale (coefficients exacts : 1/√π, 5/2, ¾, 3) ; III et IV
+     * portent les coefficients publiés. Contrôle contre l'intégrale numérique sur x ∈ [0, 10⁶], y ∈ [10⁻⁴, 10⁴] :
+     * écart relatif max 9,6·10⁻⁵ (région III), absolu max 3,0·10⁻⁵ ; Re w > 0 partout.
      */
+    var W4_III_N = [16.4955, 20.20933, 11.96482, 3.778987, 0.5642236];
+    var W4_III_D = [16.4955, 38.82363, 39.27121, 21.69274, 6.699398, 1];
+    var W4_IV_P = [36183.31, -3321.9905, 1540.787, -219.0313, 35.76683, -1.320522, 0.56419];
+    var W4_IV_Q = [32066.6, -24322.84, 9022.228, -2186.181, 364.2191, -61.57037, 1.841439, -1];
+
     function faddeevaRe(x, y) {
-        if (y < 1e-12) return Math.exp(-x * x);
+        if (y < 1e-12) return Math.exp(-x * x);          // limite gaussienne (Re w(x, 0) = e^(−x²))
         var s = Math.abs(x) + y;
-        if (s > 15) return y / (x * x + y * y);
-        var a = 1 / (4 * SQRT_PI);
-        var b = [0.5, 1.5, 2.5, 3.5];
-        var reW = 0;
-        for (var i = 0; i < 4; i++) {
-            var d = (b[i] - x) * (b[i] - x) + y * y;
-            reW += a * (b[i] - x) / d;
+        var ur = y * y - x * x;                          // u = t² = (y² − x²) − 2ixy
+        var ui = -2 * x * y;
+        var nr, ni, dr, di, k, r;
+        if (s >= 15) {
+            // Région I : Re[(t/√π)/(½ + t²)] = y(½ + x² + y²) / (√π |½ + t²|²)
+            dr = 0.5 + ur;
+            return y * (0.5 + x * x + y * y) / (SQRT_PI * (dr * dr + ui * ui));
         }
-        return reW;
+        if (s >= 5.5) {
+            // Région II : (t/√π)(5/2 + u) / (¾ + u(3 + u))
+            nr = (y * (2.5 + ur) + x * ui) / SQRT_PI;    // t·(5/2 + u), t = y − ix
+            ni = (y * ui - x * (2.5 + ur)) / SQRT_PI;
+            dr = 0.75 + ur * (3 + ur) - ui * ui;
+            di = ui * (3 + 2 * ur);
+            return (nr * dr + ni * di) / (dr * dr + di * di);
+        }
+        if (y >= 0.195 * Math.abs(x) - 0.176) {
+            // Région III : N₄(t)/D₅(t), Horner en t = y − ix
+            nr = W4_III_N[4]; ni = 0;
+            for (k = 3; k >= 0; k--) { r = nr * y + ni * x + W4_III_N[k]; ni = ni * y - nr * x; nr = r; }
+            dr = W4_III_D[5]; di = 0;
+            for (k = 4; k >= 0; k--) { r = dr * y + di * x + W4_III_D[k]; di = di * y - dr * x; dr = r; }
+            return (nr * dr + ni * di) / (dr * dr + di * di);
+        }
+        // Région IV : Re[e^u] − Re[t·P(u)/Q(u)], Horner en u
+        var pr = W4_IV_P[6], pi = 0, qr = W4_IV_Q[7], qi = 0;
+        for (k = 5; k >= 0; k--) { r = pr * ur - pi * ui + W4_IV_P[k]; pi = pr * ui + pi * ur; pr = r; }
+        for (k = 6; k >= 0; k--) { r = qr * ur - qi * ui + W4_IV_Q[k]; qi = qr * ui + qi * ur; qr = r; }
+        nr = y * pr + x * pi;                            // t·P
+        ni = y * pi - x * pr;
+        return Math.exp(ur) * Math.cos(ui) - (nr * qr + ni * qi) / (qr * qr + qi * qi);
     }
 
     /**
@@ -141,11 +180,7 @@
         }
         var x = delta_nu_cm / gamma_D_cm;
         var y = gamma_L_cm / gamma_D_cm;
-        var reW = faddeevaRe(x, y);
-        // Contrainte mathématique : Voigt = convolution Lorentz ⊗ Doppler (deux pdf ≥0) → f ≥ 0.
-        // L'approximation Faddeeva (Humlíček) peut rendre un Re(w) légèrement négatif (~eps machine)
-        // dans les ailes sous le bruit numérique : on restaure la définition, pas de masquage de bug.
-        return Math.max(0, reW) / (gamma_D_cm * SQRT_PI);
+        return faddeevaRe(x, y) / (gamma_D_cm * SQRT_PI);
     }
 
     /**
@@ -167,8 +202,8 @@
 
     // --- Sections efficaces à partir des lignes (données window.HITRAN_LINES_CO2 / H2O / CH4) ---
     var HALF_WINDOW_CM = 5;
-    // Nombre de largeurs (γ_L+γ_D) au-delà desquelles Faddeeva décroche sous l'eps machine → σ peut
-    // sortir légèrement négatif (artefact numérique). 100× = standard LBL, préserve les premières ailes.
+    // Coupure des ailes (choix numérique, sans source) : une raie ne compte plus au-delà de VOIGT_N_WIDTHS × (γ_L+γ_D)
+    // de son centre, ni hors de la fenêtre ±HALF_WINDOW_CM.
     var VOIGT_N_WIDTHS = 100;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
@@ -226,8 +261,7 @@
             var gamma_L = gammaLorentzTotal(P_atm, g_air_T, g_self_T, X_self, X_air);
             var gamma_D = gammaDoppler(line.nu, T_K, M_kg_mol);
             var delta_nu = nu_cm - line.nu;
-            // Troncature ailes lointaines : au-delà de VOIGT_N_WIDTHS × (γ_L+γ_D), Faddeeva décroche
-            // sous l'eps machine (σ peut sortir légèrement négatif, cf. doc/HITRAN.txt). Standard LBL.
+            // Coupure des ailes lointaines (VOIGT_N_WIDTHS, plus haut).
             if (Math.abs(delta_nu) > VOIGT_N_WIDTHS * (gamma_L + gamma_D)) continue;
             var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             sum_cm2 += lineCrossSectionCm2(S_T, delta_nu, gamma_L, gamma_D);
