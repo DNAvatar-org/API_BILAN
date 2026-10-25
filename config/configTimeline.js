@@ -229,10 +229,12 @@ const timeline = [
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés via calculations_h2o.js et calculations_atm.js
         // Événements interactifs : 🕰.order = la séquence des clics (CLICS, convergence/clics.js), pour toute interface.
         '🕰': {
-            // Un ☄️ à chaque tic de 100 Ma, chacun portant SA masse d'eau (🔺⚖️💧☄️, croissante : EAU_DU_CLIC_KG), puis 🎇.
+            // Quatre ☄️, chacun portant SA masse d'eau (🔺⚖️💧☄️, croissante : EAU_DU_CLIC_KG), puis 🎇. Trois tics de 100 Ma,
+            // le 4ᵉ jusqu'à 1 000 ans avant l'impact géant (◀ = 4 510 Ma) : 🎇 ne dure que ces 1 000 ans, le saut vers 🔥 est
+            // vertical sur l'onglet Histoire.
             // Cumul : 1e17 → 2,4e18 → 5,8e19 → 1,4e21 kg (≈ 0,3 m → 7,4 m → 178 m → 4,3 km d'eau globale sur ⚫).
-            'order': [1, 2, 3, 4].map(k => ({ '🕰': '☄️', '🔺⏳': 100, '🔺⚖️💧☄️': EAU_DU_CLIC_KG(k, 4) }))
-                .concat([{ '🕰': '🎇', '🔺⏳': 100 }]),
+            'order': [100, 100, 100, 189.999].map((dt, i) => ({ '🕰': '☄️', '🔺⏳': dt, '🔺⚖️💧☄️': EAU_DU_CLIC_KG(i + 1, 4) }))
+                .concat([{ '🕰': '🎇', '🔺⏳': 0.001 }]),
             '☄️': {},
             '🎇': {
                 '⏩': '🔥', // Transition vers Hadéen

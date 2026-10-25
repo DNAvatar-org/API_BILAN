@@ -12,7 +12,8 @@
 //         quoi   : ce qui est pris, en clair
 //       Libellés des logos : data/alphabet.js (CHARS_DESC, window.EPISTEME). Les évaluations de consensus (GIEC) ne sont
 //       jamais une entrée : 🎯 seulement — le modèle est là pour les valider ou les invalider.
-// Version 1.4.0
+// Version 1.4.1
+// - v1.4.1 (2026-10-25): Lebrun 2013 et Hamano 2013 bornent la fin de l'océan de magma sur la courbe cyan.
 // - v1.4.0 (2026-10-25): les 141 références sans lien reliées — chaque entrée de la bibliographie a au moins un usage ; usage 📖.
 // - v1.3.0 (2026-10-25): optique des gouttes et des cristaux (Chou & Suarez 1999, Tsay 1989, Fu 1996) ; océan (Taylor 1996, Briegleb 1986) ; nuages hauts mesurés.
 // - v1.2.1 (2026-10-24): profil de Voigt — Faddeeva de Humlíček 1982 (W4) ; γ_D = (ν/c)√(2RT/M) ; parts du retrait du modèle face à Schmidt 2010.
@@ -378,6 +379,8 @@
         { cible: 'eq:eq-absorption-induite-par-collisions', ref: 'gruszkaBorysow1997', statut: '📡', usage: '📖', quoi: 'CIA CO₂–CO₂ dans l’infrarouge lointain (0–250 cm⁻¹) : non codée, manque à haut CO₂' },
 
         // Hadéen, eau, intérieur, dates
+        { cible: 'histoire:hadeen', ref: 'lebrun2013', statut: '💻', usage: '📌', quoi: 'fin de l’océan de magma ~1 Ma sous atmosphère de vapeur : borne basse de la courbe cyan' },
+        { cible: 'histoire:hadeen', ref: 'hamano2013', statut: '💻', usage: '📌', quoi: 'solidification en ~4 Ma à 1 UA (5 masses d’océan) : borne haute de la courbe cyan' },
         { cible: 'histoire:hadeen', ref: 'cuffeyPaterson2010', statut: '📡', usage: '📌', quoi: 'albédo de la glace 0,34–0,98 (tableau 5.2) : bande de la courbe du corps noir ⚫' },
         { cible: 'histoire:hadeen', ref: 'connelly2012', statut: '📡', usage: '📌', quoi: 'premiers solides du système solaire, 4 567,30 Ma : début de la courbe du corps noir ⚫' },
         { cible: 'histoire:hadeen', ref: 'abeMatsui1985', statut: '💻', usage: '📌', quoi: 'surface fondue pendant l’accrétion, sous une atmosphère de vapeur d’impact' },
