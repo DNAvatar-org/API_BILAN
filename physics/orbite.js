@@ -1,8 +1,8 @@
 // File: API_BILAN/physics/orbite.js - Orbite de la Terre à la date courante (Milankovitch)
-// Desc: Je donne au moteur l'orbite de la Terre à la date du calcul, par la solution astronomique de Berger & Loutre 1991
-//       (Quaternary Science Reviews 10:297) — celle de l'onglet Milankovitch, dont je lis le calcul (CO2/static/astronomie.js)
-//       et les tables (CO2/static/astronomie_ber90.js), chargés avant moi par le manifeste : une seule référence. Dans sa
-//       validité (± 3 Ma autour de 1950) :
+// Desc: Je donne au moteur l'orbite de la Terre à la date du calcul, par la solution La2004 (Laskar et al. 2004, A&A 428:261)
+//       — celle de l'onglet Milankovitch, dont je lis le calcul (CO2/static/astronomie.js) et la table
+//       (CO2/static/astronomie_la04.js), chargés avant moi par le manifeste : une seule référence. Dans sa validité (de −51 Ma
+//       à aujourd'hui ; phase de la précession incertaine au-delà de ~20 Ma) :
 //         · obliquité ε → 📜⚾ (compute.js) : insolation annuelle par latitude du bilan méridien, amplitude des saisons ;
 //         · excentricité e → flux solaire moyen de l'année, S / √(1 − e²) (Kepler ; compute.js getSoleil) ;
 //         · insolation journalière par latitude, comparée à celle de l'orbite de 1950 — l'orbite sous laquelle les degrés-jours
@@ -10,9 +10,11 @@
 //           (Robinson & Goelzer 2014, The Cryosphere 8:1419, éq. 2 ; physics/calottes.js). C'est par lui qu'entre la précession.
 //       Calendrier : pas de 5 jours depuis l'équinoxe de printemps (λ = 0), comme le bilan méridien et la glace saisonnière ;
 //       la longitude solaire de chaque pas sort de l'équation de Kepler (une saison courte quand la Terre est au périhélie).
-//       Hors de la validité, pas de solution publiée : orbite de référence (aucune anomalie, Soleil sans facteur), ε de l'époque.
-// Version 1.0.0
-// Date: [October 22, 2026]
+//       Hors de la validité (avant −51 Ma), pas de solution publiée : orbite de référence (aucune anomalie, Soleil sans facteur),
+//       ε de l'époque — ⚠️ l'orbite de 1950 a son périhélie en janvier : un été austral plus chaud que la moyenne des orbites.
+// Version 1.1.0
+// - v1.1.0 (2026-10-26): solution La2004 (−51 Ma → aujourd'hui) à la place de Berger & Loutre 1991 (± 3 Ma) ; cache borné à 2000.
+// Date: [October 26, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -43,8 +45,10 @@
 
     const _orbites = new Map();
     /** { obliquite [rad], excentricite, varpi [rad] } à l'âge donné, à l'année près. */
+    /** Clé de cache : l'année des tables, bornée à 2000 (au-delà, astronomie.js donne la même ligne). */
+    const cle = (age) => Math.min(Math.round(tTables(age)), A.FIN_TABLE_AN - A.AN_REFERENCE);
     function elements(age) {
-        const t = Math.round(tTables(age));
+        const t = cle(age);
         if (!_orbites.has(t)) _orbites.set(t, A.orbite(t));
         return _orbites.get(t);
     }
@@ -99,7 +103,7 @@
      */
     function anomalie(age) {
         if (!valide(age)) return ZERO;
-        const t = Math.round(tTables(age));
+        const t = cle(age);
         if (!_anomalies.has(t)) {
             const S = insolations(elements(age));
             _anomalies.set(t, S.map((ligne, i) => {

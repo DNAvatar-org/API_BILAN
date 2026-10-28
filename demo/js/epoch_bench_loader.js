@@ -1,9 +1,10 @@
 // File: API_BILAN/demo/epoch_bench_loader.js
 // Desc: Chargement du banc par le loader commun (API_BILAN/loader/) : stubs hôtes, moteur, scripts du banc,
 //       avec l'écran de progression ; puis initEpochBenchPage().
-// Version 2.1.0
-// Date: 2026-10-15
+// Version 2.2.0
+// Date: 2026-10-26
 // logs :
+//   - v2.2.0: infobulles partagées du site (/_interfaces/tooltips.js) : alt0sec / alt2sec des jauges.
 //   - v2.1.0: html.encart quand la page est dans une iframe (onglet Bench de l'index).
 //   - v2.0.0: plus de liste de scripts recopiée (event_bus.js y manquait) : window.ENGINE_SCRIPTS par
 //     BILAN_LOADER. Plus de délai de garde de 120 s qui masquait l'écran : une erreur de chargement s'affiche
@@ -19,7 +20,7 @@ document.documentElement.classList.toggle('encart', window.parent !== window);
 (function loadEpochBench() {
     const opts = {
         apiBase: '../',
-        before: ['js/demo_host.js'],
+        before: ['/_interfaces/tooltips.js', 'js/demo_host.js'],
         // Scripts du banc, apres le moteur, dans l'ordre des dependances.
         after: [
             'js/epoch_bench_format.js',

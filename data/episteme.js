@@ -9,16 +9,15 @@
 //         ref    : id de <article class="ref"> dans BIBLIOGRAPHIE.html, ou null (définition, aucune publication)
 //         statut : axe 🧭 — ⚛ physique · 📡 mesure directe · 🦴 reconstruction · 💻 simulation publiée · ❔ extrapolé · ⚠️ sans source
 //         usage  : axe 🛠 — 📌 posée · 🎚️ jauge · 🔧 calage · 🔢 numérique · 🎯 comparaison seulement (n'entre pas dans le calcul)
+//                  · 📖 contexte (cadre ou piste citée, hors calcul)
 //         quoi   : ce qui est pris, en clair
 //       Libellés des logos : data/alphabet.js (CHARS_DESC, window.EPISTEME). Les évaluations de consensus (GIEC) ne sont
 //       jamais une entrée : 🎯 seulement — le modèle est là pour les valider ou les invalider.
-// Version 1.4.1
-// - v1.4.1 (2026-10-25): Lebrun 2013 et Hamano 2013 bornent la fin de l'océan de magma sur la courbe cyan.
-// - v1.4.0 (2026-10-25): les 141 références sans lien reliées — chaque entrée de la bibliographie a au moins un usage ; usage 📖.
-// - v1.3.0 (2026-10-25): optique des gouttes et des cristaux (Chou & Suarez 1999, Tsay 1989, Fu 1996) ; océan (Taylor 1996, Briegleb 1986) ; nuages hauts mesurés.
-// - v1.2.1 (2026-10-24): profil de Voigt — Faddeeva de Humlíček 1982 (W4) ; γ_D = (ν/c)√(2RT/M) ; parts du retrait du modèle face à Schmidt 2010.
-// - v1.2.0 (2026-10-22): orbite (Berger & Loutre 1991), calottes au bilan intégré, clics de 🦣 sur EPICA, vapeur, O₂ (Chou & Suarez 1999) et aérosol de fond MACv2.
-// Date: 2026-10-25
+// Version 1.7.0
+// - v1.7.0 (2026-10-28): rebond retardé du socle des calottes (Le Meur & Huybrechts, τ de Haskell, η de Mitrovica) et conservation de leur masse.
+// - v1.6.0 (2026-10-27): degrés-jours stochastiques et regel des calottes ; cycle saisonnier calculé en diagnostic (UDel 🎯).
+// - v1.5.2 (2026-10-26): socle des calottes : même croûte pour les deux calottes, glace antarctique fermée sur le volume et l'aire.
+// Date: 2026-10-28
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
     'use strict';
@@ -28,8 +27,13 @@
         { cible: 'eq:eq-luminosite-jeune-soleil', ref: 'gough1981', statut: '💻', usage: '📌', quoi: 'L(t) : approximation analytique des modèles solaires standard (à quelques % près sur 4 Ga)' },
         { cible: 'eq:eq-flux-recu-moyenne-sur', ref: 'koppLean2011', statut: '📡', usage: '📌', quoi: 'irradiance solaire totale 1 361 W/m² (radiomètres en orbite)' },
         { cible: 'eq:eq-flux-recu-moyenne-sur', ref: null, statut: '⚛', usage: '📌', quoi: 'facteur 4 = surface de la sphère / disque intercepté ; 1 UA exacte (UAI 2012)' },
-        { cible: 'eq:eq-orbite-date', ref: 'bergerLoutre1991', statut: '⚛', usage: '📌', quoi: 'solution astronomique ± 3 Ma : obliquité, excentricité et précession à la date du calcul' },
-        { cible: 'dico:⚾', ref: 'bergerLoutre1991', statut: '⚛', usage: '📌', quoi: 'obliquité de l\'orbite à la date du calcul (plus posée par les états 🔁)' },
+        { cible: 'eq:eq-orbite-date', ref: 'laskar2004', statut: '⚛', usage: '📌', quoi: 'solution numérique La2004, de −51 Ma à l\'an 2000 : excentricité, obliquité et longitude du périhélie à la date du calcul (table au pas de 1 ka, palinsol)' },
+        { cible: 'eq:eq-orbite-date', ref: null, statut: '⚛', usage: '📌', quoi: 'ϖ de la table + π : longitude géocentrique du périhélie, anomalie vraie ν = λ − ϖ (convention de palinsol)' },
+        { cible: 'eq:eq-orbite-date', ref: null, statut: '⚛', usage: '🔢', quoi: 'interpolation linéaire entre deux lignes de 1 ka, ϖ déroulé ; entiers e × 10⁶, ε × 10⁶ rad, ϖ × 10⁴ rad (arrondi ≤ 0,003°)' },
+        { cible: 'eq:eq-orbite-date', ref: null, statut: '❔', usage: '📌', quoi: 'après 2000, fin de la table : orbite de 2000' },
+        { cible: 'eq:eq-orbite-date', ref: null, statut: '❔', usage: '📌', quoi: 'avant −51 Ma, aucune solution : orbite circulaire, aucune anomalie d\'insolation (soit l\'orbite de 1950, périhélie en janvier), ⚾ de l\'époque' },
+        { cible: 'eq:eq-orbite-date', ref: 'bergerLoutre1991', statut: '⚛', usage: '🎯', quoi: 'contrôle de la table en 2000 : insolation du solstice d\'été à 65° N 477,4 W/m², La2004 en donne 477,9' },
+        { cible: 'dico:⚾', ref: 'laskar2004', statut: '⚛', usage: '📌', quoi: 'obliquité de l\'orbite à la date du calcul, de −51 Ma à aujourd\'hui (plus posée par les états 🔁) ; avant, ⚾ de l\'époque' },
         { cible: 'dico:🔁⚖️', ref: 'bereiter2015', statut: '📡', usage: '📌', quoi: 'CO₂ des clics de 🦣 : composite antarctique, moyenne à ± 1 ka de la date' },
         { cible: 'dico:🔁⚖️', ref: 'loulergue2008', statut: '📡', usage: '📌', quoi: 'CH₄ des clics de 🦣 : EPICA Dome C, moyenne à ± 1 ka de la date' },
         { cible: 'dico:🔁⚖️', ref: 'lisieckiRaymo2005', statut: '🦴', usage: '📌', quoi: 'dates des clics de 🦣, posées sur les stades isotopiques des deux derniers cycles' },
@@ -65,7 +69,9 @@
         // ── Glace, albédo ───────────────────────────────────────────────────────────────────────────────────────
         { cible: 'eq:eq-albedo-glace-selon-temperature', ref: 'briegleb2004', statut: '💻', usage: '📌', quoi: 'paramétrisation de l\'albédo de la glace du modèle NCAR CCSM3' },
         { cible: 'eq:eq-inertie-calottes', ref: 'marshallClark2002', statut: '💻', usage: '🎚️', quoi: 'temps de réponse des calottes 10⁴–10⁵ ans' },
-        { cible: 'eq:eq-amplitudes-saisonnieres', ref: null, statut: '⚠️', usage: '📌', quoi: 'amplitudes saisonnières posées « de mémoire » (ERA5 non relevé)' },
+        { cible: 'eq:eq-amplitudes-saisonnieres', ref: null, statut: '⚠️', usage: '📌', quoi: 'amplitudes des zones posées « de mémoire » (ERA5 non relevé), retard de 30 j : glace saisonnière de zone et cycle annuel des terres des calottes' },
+        { cible: 'eq:eq-amplitudes-saisonnieres', ref: null, statut: '❔', usage: '📌', quoi: 'on ne sait pas encore recevoir le cycle calculé : la mer d\'une zone y a 1 à 2 K d\'amplitude et une rampe de ZONE aussi étroite devient une marche (il faut une glace de mer par latitude) ; lu par les calottes, il fait basculer le 1er clic 🐾 en boule de neige (pôle trop chaud, N_mid né au bout polaire)' },
+        { cible: 'eq:eq-amplitudes-saisonnieres', ref: 'willmottMatsuura2001', statut: '❔', usage: '🎯', quoi: '(valeurs sans script de relevé) terres mesurées 1981–2010 (1er harmonique) : pôles 18,8 N / 12,1 S, moyennes latitudes 14,3 N / 6,5 S, tropiques 4,0 K — posé : 15 / 25 / 3 K' },
         { cible: 'eq:eq-bilan-energie-meridien', ref: 'ipccAR6WG1', statut: '💻', usage: '🎯', quoi: 'amplification arctique 2–4× : évaluation, comparaison seulement' },
 
         // ── Calottes (physics/calottes.js) ──────────────────────────────────────────────────────────────────────
@@ -75,10 +81,73 @@
         { cible: 'eq:eq-neige-des-calottes', ref: 'siler2018', statut: '📡', usage: '📌', quoi: 'D = 1,16·10⁶ m²/s, ajusté sur la température zonale d\'ERA-Interim' },
         { cible: 'eq:eq-neige-des-calottes', ref: 'jouzelMerlivat1984', statut: '📡', usage: '📌', quoi: 'neige formée au sommet de l\'inversion : réduction avec l\'altitude' },
         { cible: 'eq:eq-neige-des-calottes', ref: 'arthern2006', statut: '📡', usage: '🎯', quoi: 'accumulation moyenne de l\'Antarctique, 143 kg m⁻² an⁻¹' },
-        { cible: 'eq:eq-calottes-bilan-integre', ref: 'scoteseWright2018', statut: '🦴', usage: '📌', quoi: 'part de continent et latitude moyenne de la terre de chaque bande (PaleoDEM)' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'scoteseWright2018', statut: '🦴', usage: '📌', quoi: 'part de continent, socle et latitude moyenne de la terre de chaque bande (PaleoDEM)' },
         { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'terre de la bande uniforme en sin φ, plateaux jusqu\'à −1 000 m compris : approximation déclarée' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'fretwell2013', statut: '📡', usage: '📌', quoi: 'socle sans glace : volume (26,54e6 km³) ET aire (12,295e6 km², lue dans CALOTTES_ACTUELLES) de glace antarctique posée, tableau 7 — ils ferment les deux inconnues du profil de Nye, τ effectif et recul de la marge' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'nye1952', statut: '⚛', usage: '📌', quoi: 'épaisseur antarctique par cellule sur la carte 0 Ma : s(d) = √(2τ(d − d₀)/(ρ_i g)), d distance au bord du continent (socle > −1 000 m, fosses intérieures comprises), d₀ recul de la marge ; H = s − b là où la glace ne flotte pas' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'turcotteSchubert2014', statut: '📡', usage: '📌', quoi: 'ρ_m = 3 300 kg/m³ du manteau supérieur : enfoncement sous la calotte posée, rebond du socle déchargé et recharge d\'eau' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '⚛', usage: '📌', quoi: 'décharge, même règle pour les deux calottes : rebond d\'Airy u = b + ρ_i/ρ_m · H ; socle resté sous la mer rechargé de l\'eau qui remplace la glace, z = u/(1 − ρ_eau/ρ_m) ; socle moyen du continent exact par conservation du volume' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'l\'aire posée de Bedmap2 est une entrée, pas un contrôle : on ne sait pas faire autrement pour retirer la glace actuelle d\'une carte de données (le seuil de −1 000 m borne aussi le plateau libre de glace et les plates-formes) ; τ effectif (42,6 kPa, un peu sous les 50–150 kPa mesurés) et recul de la marge (228 km) uniformes sur tout le continent' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'flottaison et recharge d\'eau avec l\'eau douce du moteur (1 000 kg/m³) : le moteur n\'a pas la densité de l\'eau de mer' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'carte chargée si, tournée pour superposer au mieux le socle antarctique chargé de 0 Ma (recherche par motifs jusqu\'à 1/8°), elle y corrèle à r ≥ 0,6 : 0–80 Ma (r 0,70–0,85) ; dès 85 Ma, r ≤ 0,50, intacte' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'scoteseWright2018', statut: '❔', usage: '📌', quoi: 'même croûte : sur une carte chargée (0–80 Ma pour l\'Antarctique, 5–10 Ma pour le Groenland), l\'empreinte transportée de la calotte de 0 Ma reçoit le socle déchargé de 0 Ma transporté ; relief propre de la carte remplacé (15–25 Ma : basses terres antarctiques relevées de 300 à 600 m) ; hors de l\'empreinte, carte intacte (5–35 Ma : 0,2 à 0,3e6 km² de continent de la carte la bordent, recalage imparfait)' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'citterio2013', statut: '📡', usage: '📌', quoi: 'inlandsis du Groenland de la carte 0 Ma : cellules de surface la plus haute jusqu\'à 1 716 555 km² (lu dans CALOTTES_ACTUELLES)' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: 'morlighem2017', statut: '📡', usage: '📌', quoi: 'volume de glace du Groenland 2,99e6 km³ (BedMachine v3) : socle chargé b̄ = s̄ − V/A = 437 m, H = s − b̄, socle déchargé b̄ + ρ_i/ρ_m · H sur les cartes 0–10 Ma' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'Groenland : socle chargé uniforme sous l\'inlandsis (socle moyen exact par le volume) ; 5 et 10 Ma montrent la surface de l\'inlandsis, sans volume connu : même croûte' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '❔', usage: '📌', quoi: 'aire de l\'Antarctique juste par compensation (cœurs des plates-formes posés, 1,3e6 km² de terres nues) : rebond des hautes terres sous-estimé de 20 à 40 m ; marche de 80 à 85 Ma (reconstructions plus anciennes au niveau chargé, −572 m de hautes terres) ; Groenland de 15 Ma relevé, gardé' },
+        { cible: 'eq:eq-calottes-bilan-integre', ref: null, statut: '⚛', usage: '🔢', quoi: 'grille de 1° : règle des trapèzes au méridien ±180 (½ par colonne quand la carte a les deux, 1 à −180 seule) et aux latitudes frontières des bandes (½ ligne de chaque côté) ; quart le plus haut : cellules ex-aequo au seuil à la même fraction' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚛', usage: '📌', quoi: 'conservation de la masse de la calotte : d(a A H̄)/dt = a A b̄ / ρ_i, au profil de Nye' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'leMeurHuybrechts1996', statut: '⚛', usage: '📌', quoi: 'asthénosphère relaxante locale : ∂d/∂t = ((ρ_i/ρ_m) h − d)/τ_b, équilibre d\'Archimède (éq. 1 et 4) ; leur T = 3 ka, réglé, n\'est pas repris' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'schubertTurcotteOlson2001', statut: '⚛', usage: '📌', quoi: 'τ_b = 4π η / (ρ_m g λ), mode d\'un demi-espace visqueux (éq. 5.2.32)' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'mitrovica1996', statut: '🦴', usage: '📌', quoi: 'η = 10²¹ Pa·s, ⚠️ mesure posée : viscosité moyenne de la base de la lithosphère à ~1 400 km, tirée du soulèvement daté de la Fennoscandie (0,65–1,1·10²¹ ; résumé et Schubert et al. 2001, ch. 5)' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'haskell1935', statut: '🦴', usage: '📖', quoi: 'première estimation de 10²¹ Pa·s par le soulèvement fennoscandien (lue dans Schubert et al. 2001, ch. 5)' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'schubertTurcotteOlson2001', statut: '❔', usage: '📌', quoi: 'λ = 2 × largeur de la charge (3 000 km pour les 1 350 km de la Fennoscandie) ; ici la calotte qui couvre la terre de sa bande, W, ou 2W si son partage des eaux est au pôle' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'schubertTurcotteOlson2001', statut: '🦴', usage: '🎯', quoi: 'temps de relaxation observés (tableau 5.1) : Laurentide 2,6 ka pour 2 500 km de large, Fennoscandie 4,4 ka pour 1 350 km — l\'équation donne 2,46 et 4,56 ka' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'bueler2007', statut: '⚛', usage: '📖', quoi: 'correction de flexion du temps de relaxation, 1 + D k⁴/(ρ_m g) (éq. 14) : moins de 0,1 % pour λ ≥ 3 000 km, négligée' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '❔', usage: '📌', quoi: 'un seul τ_b par bande (la calotte qui couvre sa terre) ; η constante dans le temps ; part élastique instantanée, sphéricité et manteau inférieur négligés' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚛', usage: '🔢', quoi: 'sous-pas de τ_b : Heun pour la calotte, Euler implicite pour sa naissance, socle exact pour une charge linéaire ; 61 latitudes du socle par bande ; arrêt à 0,01 K / Γ ≈ 1,5 m' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '❔', usage: '🔢', quoi: 'seuls les 100 derniers ka d\'un clic intégrés ; avant, relaxation vers l\'équilibre au temps ρ_i H̄ / max(accumulation, fonte) : coût borné' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'abeOuchi2013', statut: '💻', usage: '📖', quoi: 'mécanisme des terminaisons : la surface d\'une calotte qui recule reste basse sur un socle qui n\'a pas remonté ; leurs τ = 5 ka et ρ_eff = 4 500 kg/m³, calés, ne sont pas repris' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: 'deblondePeltier1990', statut: '💻', usage: '📖', quoi: 'avec une Terre viscoélastique, les grands reculs d\'un socle amorti localement ne sont plus si marqués' },
+        { cible: 'dico:🔺📏🗻🧊', ref: 'leMeurHuybrechts1996', statut: '⚛', usage: '📌', quoi: 'socle en retard sur sa charge, relaxé localement en τ_b' },
+        { cible: 'dico:🔺📏🗻🧊', ref: 'schubertTurcotteOlson2001', statut: '⚛', usage: '📌', quoi: 'τ_b = 4π η / (ρ_m g λ) (éq. 5.2.32)' },
+        { cible: 'dico:🔺📏🗻🧊', ref: 'mitrovica1996', statut: '🦴', usage: '📌', quoi: 'η = 10²¹ Pa·s (⚠️ mesure posée)' },
         { cible: 'eq:eq-fonte-insolation-orbite', ref: 'robinsonGoelzer2014', statut: '⚛', usage: '📌', quoi: 'fonte d\'une anomalie d\'insolation = énergie absorbée en plus / chaleur de fusion (éq. 2)' },
         { cible: 'eq:eq-fonte-insolation-orbite', ref: 'braithwaite1995', statut: '📡', usage: '📌', quoi: 'degrés-jours mesurés sous l\'orbite actuelle : l\'anomalie se compte par rapport à 1950' },
+        { cible: 'eq:eq-fonte-insolation-orbite', ref: null, statut: '❔', usage: '📌', quoi: 'anomalie de chaque nœud pondérée par la probabilité d\'un jour de fonte Φ(T/σ) : analogue continu des jours de fonte (proposition)' },
+
+        // ── Fonte des calottes : degrés-jours stochastiques, regel (physics/calottes.js) ────────────────────────────────
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'calovGreve2005', statut: '⚛', usage: '📌', quoi: 'degrés-jours d\'une loi normale autour du cycle annuel, intégrale en température en forme fermée (éq. 6)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'seguinotRogozhina2014', statut: '📡', usage: '📌', quoi: 'σ = 1,66 − 0,15 T K, écart-type des moyennes journalières sur le Groenland (éq. 3, ERA-40, r² = 0,79) : une mesure, σ n\'a pas d\'équation' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: null, statut: '❔', usage: '📌', quoi: 'au-dessus de 0 °C σ garde sa valeur de 0 °C (la régression contient des mois jusqu\'à +2 °C, négative au-dessus de +11 °C)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'seguinotRogozhina2014', statut: '⚠️', usage: '📌', quoi: 'σ mesuré sur la calotte, appliqué aussi aux terres sans glace où naissent les calottes, que l\'article exclut' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'braithwaite1995', statut: '📡', usage: '📌', quoi: 'facteurs neige 3, glace 8 mm d\'eau par °C·jour, définis sur les degrés-jours des moyennes journalières : le même σ' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'reeh1991', statut: '💻', usage: '📌', quoi: 'neige de l\'année fondue d\'abord, puis glace' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'janssensHuybrechts2000', statut: '⚛', usage: '📌', quoi: 'regel : froid du névé de l\'année (c_i/L_f) max(0, −T̄) N et rétention capillaire (ρ_e/ρ_o − 1)(N − M), E_r = min(P_r, M) ≥ 0 : nul en zone d\'ablation (éq. 7)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'reijmer2012', statut: '⚛', usage: '📌', quoi: 'forme écrite du regel de Janssens & Huybrechts : E_r = min(P_r, W_r), P_r = (c_i/L_f) C|T_s| + (C − M)(ρ_pc − ρ_f)/ρ_f, M fonte annuelle (éq. 2, 5)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'janssensHuybrechts2000', statut: '📡', usage: '📌', quoi: 'ρ_o = 300 et ρ_e = 960 kg/m³, névé sec et névé saturé d\'eau' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'pfeffer1991', statut: '⚛', usage: '📌', quoi: 'l\'eau de fonte regèle dans le névé froid avant de ruisseler (article original non relu : forme de Janssens & Huybrechts)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'feistelWagner2006', statut: '📡', usage: '📌', quoi: 'c_i = 2 096,78 J kg⁻¹ K⁻¹, glace Ih au point triple (IAPWS R10-06)' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: 'abramowitzStegun1964', statut: '⚛', usage: '🔢', quoi: 'erfc par l\'approximation 7.1.26, |ε| ≤ 1,5·10⁻⁷' },
+        { cible: 'eq:eq-degres-jours-stochastiques', ref: null, statut: '⚛', usage: '🔢', quoi: '24 nœuds de l\'année : degrés-jours à ≤ 0,035 K de marge équivalente d\'une intégration fine (amplitude ≤ 30 K)' },
+
+        // ── Cycle saisonnier calculé (physics/saisons.js) ──────────────────────────────────────────────────────────
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'north1981', statut: '⚛', usage: '📌', quoi: 'mode saisonnier du bilan diffusif : impédance B + n(n+1)D + i nω C par harmonique (éq. 54–58), B et D du bilan annuel' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '⚛', usage: '📌', quoi: 'forçage : harmonique de l\'insolation journalière de la bande × co-albédo de la zone (bilan méridien convergé) ; n = 1 exactement ⟨x⟩ sin ε / 2' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '❔', usage: '🎯', quoi: 'diagnostic : ni les calottes ni la glace de mer ne le lisent encore (amplitudes de zone posées)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '⚛', usage: '📌', quoi: 'sol semi-infini e√(iω) ; colonne d\'air c_p p_s/g' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'carslawJaeger1959', statut: '⚛', usage: '📌', quoi: 'glace de mer en dalle sur l\'eau à son point de gel : flux / température de surface = k_i q coth(q h), q = √(i nω/κ_i)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '❔', usage: '📌', quoi: 'n = 2 assigné au mode semi-annuel ; glace de mer pondérée par sa part de l\'année g ; deux boîtes par bande' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'mckinnon2013', statut: '❔', usage: '📌', quoi: 'couplage terre–mer réduit à une traversée de la bande, ν = u C_air / (2π R cos φ) (réduction maison de leur éq. 3)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'mckinnon2013', statut: '📡', usage: '📌', quoi: 'u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N) et couche de mélange de 75 m : mesures posées faute d\'équation (⚠️ à relire dans l\'article)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '⚠️', usage: '📌', quoi: 'effusivité du sol 1 500 J m⁻² K⁻¹ s^-½ : ordre de grandeur sans source' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'ioc2010', statut: '📡', usage: '📌', quoi: 'eau de mer : c_p⁰ = 3 991,87 J kg⁻¹ K⁻¹, ρ ≈ 1 025 kg/m³ (TEOS-10)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'stefan1891', statut: '⚛', usage: '📌', quoi: 'épaisseur de la glace de mer h = √(2 k_i FDD / (ρ_i L_f)), degrés-jours de gel du cycle de la mer' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'carnahan2021', statut: '📡', usage: '📌', quoi: 'k_i = 2,24 W m⁻¹ K⁻¹ au point de fusion (ajustement des mesures compilées)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'feistelWagner2006', statut: '📡', usage: '📌', quoi: 'c_i de la glace Ih : effusivité de la glace de mer' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: null, statut: '⚛', usage: '🔢', quoi: 'point fixe glace de mer ↔ cycle de la mer : 12 itérations, relaxation ½ ; 2ᵉ harmonique du forçage sur 20 × 360 points' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'willmottMatsuura2001', statut: '❔', usage: '🎯', quoi: '(valeurs sans script de relevé, version des données non relevée) 1er harmonique des terres 1981–2010 : N_pol 18,8, S_pol 12,1, N_mid 14,3, S_mid 6,5, tropiques 4,0 K — le modèle donne 18,9 / 13,8 / 16,5 / 5,7 / 5,5 N et 4,9 S (📱)' },
+        { cible: 'eq:eq-cycle-saisonnier-calcule', ref: 'mckinnon2013', statut: '📡', usage: '🎯', quoi: 'retard moyen des saisons des terres, 28 jours — le modèle donne 21 à 38 jours (📱)' },
         { cible: 'dico:🍰🗻🧊', ref: 'dalton2020', statut: '🦴', usage: '🎯', quoi: 'complexe nord-américain à 18 ka : 18,37e6 km²' },
         { cible: 'dico:🍰🗻🧊', ref: 'hughes2016', statut: '🦴', usage: '🎯', quoi: 'calottes eurasiennes à ~21 ka : 5,5e6 km²' },
         { cible: 'dico:🍰🗻🧊', ref: 'abeOuchi2013', statut: '💻', usage: '🎯', quoi: 'hystérésis du volume des calottes face à l\'insolation d\'été (modèle climat–calotte)' },
@@ -87,7 +156,7 @@
         { cible: 'dico:🍰🗻🧊', ref: 'braithwaite1995', statut: '📡', usage: '📌', quoi: 'facteurs degrés-jours : neige 3, glace 8 mm d\'eau par °C·jour' },
         { cible: 'dico:🍰🗻🧊', ref: 'reeh1991', statut: '💻', usage: '📌', quoi: 'bilan de masse par degrés-jours positifs, neige puis glace' },
         { cible: 'dico:🍰🗻🧊', ref: 'jouzelMerlivat1984', statut: '📡', usage: '📌', quoi: 'T de l\'inversion = 0,67 T_s + 88,9 K (relation mesurée en Antarctique)' },
-        { cible: 'dico:🍰🗻🧊', ref: 'scoteseWright2018', statut: '🦴', usage: '📌', quoi: 'continent, socle et hautes terres par bande (PaleoDEM, tous les 5 Ma)' },
+        { cible: 'dico:🍰🗻🧊', ref: 'scoteseWright2018', statut: '🦴', usage: '📌', quoi: 'continent, socle sans glace et hautes terres par bande (PaleoDEM, tous les 5 Ma)' },
         { cible: 'dico:🍰🗻🧊', ref: 'arthern2006', statut: '📡', usage: '🎯', quoi: 'accumulation antarctique 143 ± 4 kg m⁻² an⁻¹ — le modèle donne ~23' },
         { cible: 'dico:🍰🗻🧊', ref: 'muttoniKent2026', statut: '🦴', usage: '🎯', quoi: 'terre et mer par ceinture et hémisphère (53 reconstructions) : contrôle des PaleoDEM' },
         { cible: 'dico:🍰🗻🧊', ref: 'decontoPollard2003', statut: '💻', usage: '🎯', quoi: 'naissance de la calotte antarctique sous ~2,8 × CO₂ préindustriel' },
@@ -116,6 +185,8 @@
         { cible: 'histoire:precambrien', ref: null, statut: '❔', usage: '🎯', quoi: 'Paléoprotérozoïque : borne basse du snowball cryogénien sous un Soleil plus faible ; épisodes non datés finement' },
         { cible: 'histoire:kt2018', ref: 'krissansenTotton2018', statut: '💻', usage: '🎯', quoi: 'T moyenne 4,0 Ga → 525 Ma : modèle du cycle du carbone contraint par proxys' },
         { cible: 'histoire:phanda', ref: 'judd2024', statut: '🦴', usage: '🎯', quoi: 'GMST par étage : assimilation de proxys dans un modèle' },
+        { cible: 'histoire:phanda', ref: 'inglis2020', statut: '🦴', usage: '🎯', quoi: 'désaccord entre six méthodes (Paléocène terminal, PETM, EECO ; IC 66 %) : élargit la bande de PhanDA, en quadrature' },
+        { cible: 'histoire:phanda', ref: null, statut: '❔', usage: '🎯', quoi: 'désaccord mesuré au Paléogène seulement, appliqué à tout le Phanérozoïque (borne basse)' },
         { cible: 'histoire:cryogenien', ref: 'hoffman2017', statut: '📡', usage: '🎯', quoi: 'dates U-Pb / Re-Os : Sturtien 717 → 659 Ma, Marinoen 639 → 635,2 Ma, intervalle 9–19 Ma' },
         { cible: 'histoire:cryogenien', ref: 'pierrehumbert2005', statut: '💻', usage: '🎯', quoi: 'snowball [−73 ; −23] °C : moyennes annuelles ~200 K (hautes latitudes) et ~250 K (tropiques) du modèle' },
         { cible: 'histoire:cryogenien', ref: 'yang2017', statut: '💻', usage: '🎯', quoi: 'sortie de snowball [40 ; 60] °C : surface de la lentille d\'eau de fonte, pôles → équateur' },
@@ -245,14 +316,13 @@
         { cible: 'eq:eq-precipitations', ref: 'vanDerEnt2017', statut: '📡', usage: '📌', quoi: 'temps de résidence de la vapeur 8–10 j' },
 
         // ── Références sans lien jusqu’ici (2026-10-25) : chaque entrée de la bibliographie a au moins un usage ──────────
-        // Soleil, bilan méridien, effet orbital direct
+        // Soleil, bilan méridien, orbite
         { cible: 'eq:eq-luminosite-jeune-soleil', ref: 'bahcall2001', statut: '💻', usage: '📌', quoi: 'modèle solaire standard : confirme L(t) de Gough à quelques % près' },
         { cible: 'eq:eq-mer-gelee', ref: 'budyko1969', statut: '⚛', usage: '🎚️', quoi: 'rétroaction glace–albédo d’un modèle d’équilibre énergétique : largeur de la transition de la mer gelée (jauge seaIceTransitionRangeK)' },
         { cible: 'eq:eq-bilan-energie-meridien', ref: 'sellers1969', statut: '⚛', usage: '📖', quoi: 'modèle d’équilibre énergétique à bilan méridien, socle avec Budyko 1969' },
-        { cible: 'config:PLANCK_W_M2_K', ref: 'sodenHeld2006', statut: '💻', usage: '📌', quoi: 'réponse de Planck −3,2 W/m²/K (modèles couplés) : effet orbital direct de l’onglet Histoire (CO2/static/astronomie.js)' },
-        { cible: 'config:ALBEDO_PLANETAIRE', ref: 'loeb2018', statut: '📡', usage: '📌', quoi: 'albédo planétaire 0,29 (CERES EBAF) : effet orbital direct de l’onglet Histoire (CO2/static/astronomie.js)' },
         { cible: 'eq:eq-amplitudes-saisonnieres', ref: 'peixotoOort1992', statut: '⚠️', usage: '📌', quoi: 'amplitudes saisonnières des zones, citées avec ERA5 : valeurs non relevées dans l’ouvrage' },
         { cible: 'eq:eq-trois-zones-latitude', ref: 'berger1978', statut: '⚛', usage: '📌', quoi: 'insolation journalière selon ε, e et la précession : insolation annuelle par zone (EARTH.zoneAnnualInsolation)' },
+        { cible: 'eq:eq-fonte-insolation-orbite', ref: 'berger1978', statut: '⚛', usage: '📌', quoi: 'insolation journalière au sommet selon ε, e, ϖ et la longitude solaire : S(t) de l’orbite de la date et de celle de 1950 (astronomie.js → insolationJournaliere)' },
         { cible: 'eq:eq-amplitudes-saisonnieres', ref: 'laskar2004', statut: '⚛', usage: '📌', quoi: 'ε entre 22,1° et 24,5° sur ~41 ka : amplitude saisonnière des zones ∝ sin ε' },
         { cible: 'dico:⚾', ref: 'laskar1993', statut: '💻', usage: '📌', quoi: 'obliquité chaotique d’une Terre sans Lune (0–60°) : ⚾ par époque' },
         { cible: 'dico:⚾', ref: 'williams1993', statut: '❔', usage: '📌', quoi: 'hypothèse d’une forte obliquité précambrienne : ⚾ = 45° de 🦠' },

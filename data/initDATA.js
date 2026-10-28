@@ -5,13 +5,11 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.4.6
+// Version 1.4.8
+// - v1.4.8 (2026-10-28): socle des calottes, 🔺📏🗻🧊 et 🧮🔺📏🗻🧊, à null jusqu'au clic frise.
+// - v1.4.7 (2026-10-26): barycentres FROID et CHAUD à 50 % (milieu des plages).
 // - v1.4.6 (2026-10-15): barycentre FROID (☁️) 55 → 53 %.
-// - v1.4.5 (2026-10-15): barycentres FROID et CHAUD 45 → 55 %.
-// - v1.4.4 (2026-10-13): CLOUD_SW sans le proxy CCN (CCN_BASE, CCN_O2_WEIGHT, BIOMASS_GAIN, ANTHRO_*, MODERN_REF_*).
-// - v1.4.3 (2026-10-13): barycentre ATM 62 → 15 % ; jauge R_EFF_PLUIE.
-// - v1.4.2 (2026-10-12): CLOUD_SW — 9 constantes réglées des nuages SW retirées ; CDNC_OCEAN_CM3 (mesurée, Bennartz 2007).
-// Date: [October 10, 2026]
+// Date: [October 28, 2026]
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -52,7 +50,9 @@
         // v-2026-10-13 (soir) : jauges séparées (fine_tuning_bounds v1.6.x). Avec la spectroscopie complétée (raies de la
         // fenêtre, CO₂ 850–2500 cm⁻¹, CIA mesurée) : FROID 45 → 📱 15,8 / 🚂 14,7 ; FROID 55 → 📱 14,2 / 🚂 12,8.
         // FROID 50 entre les deux (attendu ≈ 📱 15,0 / 🚂 13,7).
-        baryByGroup: { FROID: 53, CHAUD: 55, SUBTIL: 70, HYSTERESIS: 70 },   // 2026-10-15 : FROID 53 %, CHAUD 55 % (demande utilisateur)
+        // FROID 50 / CHAUD 50 : milieu des plages mesurées, point de départ des explorations (2026-10-26, demande utilisateur ;
+        // essai dans l'interface : 📱 14,49 °C, 14,4 mesurés).
+        baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70, HYSTERESIS: 70 },
 
         // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
@@ -123,6 +123,8 @@
     // sans clic frise crashe à la lecture au lieu de partir d'un état inventé.
     DATA['🗻']['🍰🗻🧊'] = null;
     DATA['🗻']['🧮🍰🗻🧊'] = null;   // posé par calculateAlbedo à chaque pas
+    DATA['🗻']['🔺📏🗻🧊'] = null;   // socle des calottes, posé avec elles (CALOTTES.depuisConfig)
+    DATA['🗻']['🧮🔺📏🗻🧊'] = null;   // posé par calculateAlbedo à chaque pas
 
     // DATA['🎚️'] = deep clone de DEFAULT.TUNING (source live de la physique).
     // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).

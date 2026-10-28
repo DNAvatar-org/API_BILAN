@@ -3,12 +3,12 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.0.7
-// Date: [October 15, 2026]
+// Version 2.0.8
+// Date: [October 28, 2026]
 // logs :
+// - v2.0.8: 🔺📏🗻🧊 = socle des calottes (écart à son équilibre d'Airy, km), 🧮🔺📏🗻🧊 = celui du pas ; FORM['🗻'] en un seul bloc.
 // - v2.0.7: 🪩👁 = nuages vus d'en haut (simulateur ISCCP), posé en fin de calcul, diagnostic seul.
 // - v2.0.6: 📜🔺⏳ = durée du dernier clic joué (Ma), posée par CLICS.jouer.
-//   - v2.0.5 (2026-10-12): 🪩🍰⛅ dans DATA['🪩'] (réflectance du nuage calculée) ; FORM de 🍰🪩⛅ = fraction mesurée.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -41,7 +41,7 @@ const KEYS = {
     // 🔺📛🏭, 🔺📛🐄 et 🔺📿📛 retirées le 2026-09-23 : jamais écrites ni lues (page 🔎 Paramètres).
     '📛': ['🧲📛', '🧲📛🏭', '🧲📛💧', '🧲📛🐄', '🧲📛⛅', '🍰📛🏭', '🍰📛💧', '🍰📛🐄', '🍰📛⛅', '🔺📛💧'],
     // Géologie (Surfaces géologiques - Couche A)
-    '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍', '🍰🗻🧊', '📅🗻🧊', '🧮🍰🗻🧊'],
+    '🗻': ['🍰🗻🌊', '🍰🗻🏔', '🍰🗻🌍', '🍰🗻🧊', '📅🗻🧊', '🧮🍰🗻🧊', '🔺📏🗻🧊', '🧮🔺📏🗻🧊'],
     // Constantes physiques
     // Albédo matériau (EARTH['🪩🍰'], override EPOCH['🪩🍰'])
     '🪩🍰': ['🪩🍰❄️', '🪩🍰🧊', '🪩🍰🏊']
@@ -177,8 +177,10 @@ const DESC = {
         '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles, géologie)',
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents, géologie)',
         '🍰🗻🧊': 'Calottes : part de chaque bande (S/N × pol/mid/trop) sous calotte permanente (état porté d\'un clic à l\'autre)',
-        '📅🗻🧊': 'Date de cet état des calottes (années avant 2025)',
-        '🧮🍰🗻🧊': 'Calottes du pas de calcul courant (relaxées depuis 🍰🗻🧊), engagées en fin de convergence',
+        '📅🗻🧊': 'Date de cet état des calottes et de leur socle (années avant 2025)',
+        '🧮🍰🗻🧊': 'Calottes du pas de calcul courant (avancées depuis 🍰🗻🧊), engagées en fin de convergence',
+        '🔺📏🗻🧊': 'Socle des calottes : altitude moins celle de son équilibre d\'Airy sous la calotte portée, aux 61 latitudes de chaque bande (km ; négatif = resté plus bas, la glace ayant pesé plus) — porté avec 🍰🗻🧊',
+        '🧮🔺📏🗻🧊': 'Socle des calottes du pas de calcul courant, engagé en fin de convergence',
     },
     '🪩🍰': {
         '🪩🍰❄️': 'Neige profonde propre',
@@ -278,17 +280,14 @@ const FORM = {
         '_contribution_nuages': 'contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅ ; α_nuageux = 🪩🍰⛅ + (1−🪩🍰⛅)²·albedo/(1 − 🪩🍰⛅·albedo) (🪩🍰⛅ calculée, DATA)'
     },
     '🗻': {
-        '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique, géologie)',
-        '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles, géologie)',
-        '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents, géologie)'
-    },
-    '🗻': {
         '🍰🗻🌊': 'Surface océanique potentielle (bassin océanique) = f(époque) : Hadéen=1.0, Archéen=0.80, Moderne=0.71',
         '🍰🗻🏔': 'Surface hautes terres (zones de glace potentielles) = f(époque) : Hadéen=0.0, Archéen=0.05, Moderne=0.09',
         '🍰🗻🌍': 'Surface terres basses (zones de forêts/continents) = f(époque) : Hadéen=0.0, Archéen=0.15, Moderne=0.20',
-        '🍰🗻🧊': 'Clic frise : EPOCH.🗻.🍰🗻🧊 (aires sourcées) ; clic time : a = a₀ + (a_éq − a₀)(1 − e^(−Δt/τ)), τ = ρ_i H̄ / max(accumulation, fonte) — physics/calottes.js',
-        '📅🗻🧊': 'Âge de l\'état 🍰🗻🧊 (années avant 2025) : ▶ de l\'époque au clic frise, date du calcul ensuite',
-        '🧮🍰🗻🧊': 'a = a₀ + (a_éq − a₀)(1 − e^(−Δt/τ)), Δt = 📅🗻🧊 − âge courant — posé par calculateAlbedo, lu par CALOTTES.engager',
+        '🍰🗻🧊': 'Clic frise : EPOCH.🗻.🍰🗻🧊 (aires sourcées) ; clic time : dV/dt = a A_bande B̄(a, socle 🔺📏🗻🧊) / ρ_i, V = a A_bande H̄(a) (profil de Nye), Heun en sous-pas de τ_b avec le socle, naissance en Euler implicite, sur les 100 derniers ka du clic (avant : relaxation vers a_éq au temps ρ_i H̄ / max(accumulation, fonte)) — physics/calottes.js',
+        '📅🗻🧊': 'Âge de l\'état 🍰🗻🧊 et 🔺📏🗻🧊 (années avant 2025) : ▶ de l\'époque au clic frise, date du calcul ensuite',
+        '🧮🍰🗻🧊': 'Même intégration sur Δt = 📅🗻🧊 − âge courant — posé par calculateAlbedo, lu par CALOTTES.engager',
+        '🔺📏🗻🧊': 'Clic frise : 0 ; clic time : dd/dt = ((ρ_i/ρ_m) h − d)/τ_b, τ_b = 4π η / (ρ_m g λ), η = 1e21 Pa·s, λ = 2 × largeur de la charge ; 🔺📏🗻🧊 = −(d − (ρ_i/ρ_m) h)/1000',
+        '🧮🔺📏🗻🧊': 'Même intégration sur Δt = 📅🗻🧊 − âge courant — posé par calculateAlbedo, lu par CALOTTES.engager',
         '_note': '🗻 = Géologie (Couche A) : surfaces fixes déterminées par la géologie/relief, indépendantes des stocks d\'eau'
     },
     '⚖️': {

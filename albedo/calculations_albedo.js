@@ -1,10 +1,10 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.6.2
+// Version 1.6.3
+// - v1.6.3 (2026-10-28): socle porté des calottes (🔺📏🗻🧊) passé au bilan méridien ; socle du pas (🧮🔺📏🗻🧊) posé.
 // - v1.6.2 (2026-10-22): albédos d'une calotte qui fond (neige mouillée, glace nue) passés au bilan méridien.
 // - v1.6.1 (2026-10-14): calottes = état porté d'un clic à l'autre (config au clic frise), plus de graine sans glace.
-// - v1.5.0 (2026-10-13): bilan méridien (MERIDIEN.resoudre) en tête de calculateAlbedo ; plus d'EPOCH['🥶'].
-// Date: [October 22, 2026]
+// Date: [October 28, 2026]
 //   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
@@ -289,17 +289,22 @@ function calculateAlbedo() {
     const neigeTrop = albedo_coeff['🪩🍰❄️'] - (albedo_coeff['🪩🍰❄️'] - albedo_coeff['🪩🍰🧊']) * Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
     const albedoGlaceZone = (cle, T_zone_K) => brieglebIceAlbedoLocal(T_zone_K,
         cle === 'trop' ? neigeTrop : albedo_coeff['🪩🍰❄️'], albedo_coeff, DATA['🪩']['🍰🪩🧊']);
-    // Calottes continentales (physics/calottes.js) : état porté DATA['🗻']['🍰🗻🧊'] (config de l'époque au clic frise, état du
-    // clic précédent au clic time), relaxé vers l'équilibre sur le temps écoulé depuis sa date. Résultat du pas : DATA['🗻']['🧮🍰🗻🧊'],
-    // engagé en fin de convergence (calculations_flux.js → CALOTTES.engager).
+    // Calottes continentales (physics/calottes.js) : état porté DATA['🗻']['🍰🗻🧊'] et son socle DATA['🗻']['🔺📏🗻🧊'] (config de
+    // l'époque au clic frise, socle à l'équilibre ; état du clic précédent au clic time), avancés ensemble sur le temps écoulé
+    // depuis leur date. Résultat du pas : DATA['🗻']['🧮🍰🗻🧊'] et ['🧮🔺📏🗻🧊'], engagés en fin de convergence
+    // (calculations_flux.js → CALOTTES.engager).
     const dureeCalottes = DATA['🗻']['📅🗻🧊'] - window.INTERIEUR.ageCourant(DATA);
     // Calotte qui fond : neige mouillée (🪩🍰🧊, glace saisonnière) puis glace nue (🪩🍰🏊) — anomalie d'insolation de l'orbite.
     const meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone,
-        albedo_coeff['🪩🍰❄️'], { neige: albedo_coeff['🪩🍰🧊'], glace: albedo_coeff['🪩🍰🏊'] }, DATA['🗻']['🍰🗻🧊'], dureeCalottes);
+        albedo_coeff['🪩🍰❄️'], { neige: albedo_coeff['🪩🍰🧊'], glace: albedo_coeff['🪩🍰🏊'] }, DATA['🗻']['🍰🗻🧊'], DATA['🗻']['🔺📏🗻🧊'], dureeCalottes);
     window._hystDiag.meridien = meridien;
-    const calottesPas = {};
-    for (const b of window.CALOTTES.BANDES) calottesPas[b.cle] = meridien.calottes[b.cle].a;
+    const calottesPas = {}, soclePas = {};
+    for (const b of window.CALOTTES.BANDES) {
+        calottesPas[b.cle] = meridien.calottes[b.cle].a;
+        soclePas[b.cle] = meridien.calottes[b.cle].socle;
+    }
     DATA['🗻']['🧮🍰🗻🧊'] = calottesPas;
+    DATA['🗻']['🧮🔺📏🗻🧊'] = soclePas;
     // Part du globe sous calotte permanente : Σ zones f_z × fraction moyenne des deux hémisphères.
     const calotte_surface = EARTH.POLAR_ZONE_FRAC * meridien.calottes.parZone.pol + EARTH.MIDLAT_ZONE_FRAC * meridien.calottes.parZone.mid
         + EARTH.TROPICAL_ZONE_FRAC * meridien.calottes.parZone.trop;

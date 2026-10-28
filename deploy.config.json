@@ -317,6 +317,10 @@
       "dest": "pages/bilan_radiatif/API_BILAN/physics/calottes.js"
     },
     {
+      "src": "physics/saisons.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/physics/saisons.js"
+    },
+    {
       "src": "physics/orbite.js",
       "dest": "pages/bilan_radiatif/API_BILAN/physics/orbite.js"
     },

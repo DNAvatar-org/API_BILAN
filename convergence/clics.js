@@ -9,7 +9,8 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.3.6
+// Version 1.4.0
+// - v1.4.0: chemins (🕰.🛤, 🦣) : au premier clic, un bouton par chemin (🐾 pas à pas, 🦘 le saut) ; chaque chemin sa séquence.
 // - v1.3.6: emettre(kg, ans) — émission libre sur 📱 (une page hôte : les déplacements du joueur de DNA Tamagoshi),
 //   comme une action de tranche mais de masse et de durée données, puits compris.
 // - v1.3.5: tranches de 📱 jusqu'à la borne de la frise (TIMELINE_FUTUR ◀ = 2300), plus jusqu'à ◀ de 📱 (2100).
@@ -17,7 +18,7 @@
 // - v1.3.3: ☄️ cumule l'eau de SON entrée de séquence (🔺⚖️💧☄️) dans 📜🔺⚖️💧 — la masse peut changer d'un ☄️ à l'autre.
 // - v1.3.2: frise = calottes de la config de l'époque (CALOTTES.depuisConfig) ; CLICS.date() remplace la copie 📜📅.
 // - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
-// Date: 2026-10-14
+// Date: 2026-10-26
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -27,8 +28,9 @@ window.CLICS = (function () {
     /** État propre à une époque : remis à zéro à chaque changement d'époque (frise ou passage). */
     const COMPTEURS_EPOQUE = ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭'];
 
-    /** Tics de temps géologique : même effet (📿💫, voile de la racine 🍰⚽), boutons différents selon l'époque. */
-    const TICS = ['💫', '🏔', '⛰'];
+    /** Tics de temps géologique : même effet (📿💫, voile de la racine 🍰⚽), boutons différents selon l'époque — dont les deux
+     *  chemins du Quaternaire (🐾 pas à pas, 🦘 le saut). */
+    const TICS = ['💫', '🏔', '⛰', '🐾', '🦘'];
 
     function epoque() {
         return window.TIMELINE[window.DATA['📜']['👉']];
@@ -41,6 +43,12 @@ window.CLICS = (function () {
         COMPTEURS_EPOQUE.forEach(function (k) { H[k] = 0; });
         H['🔘🕰'] = '';
         H['🔺⏳'] = 0;
+    }
+
+    /** La séquence que joue `key` : celle de son chemin quand l'époque en offre (🕰.🛤, 🦣), sinon 🕰 lui-même (sa séquence
+     *  order). Au premier clic d'une époque à chemins, chaque bouton annonce ainsi la durée et l'état de SON chemin. */
+    function sequence(W, key) {
+        return ('🛤' in W && key in W['🛤']) ? W['🛤'][key] : W;
     }
 
     /** 🕰 indexé par année (📱) : le choix est offert par tranche, il n'y a pas de séquence imposée. */
@@ -69,19 +77,22 @@ window.CLICS = (function () {
         const W = EP['🕰'];
         if (parTranche(W)) return;
         const duree = Math.abs(EP['◀'] - EP['▶']) / 1e6;
-        let t = 0;
-        W.order.forEach(function (e, i) {
-            const k = e['🕰'];
-            if (!(k in W)) throw new Error('[CLICS] ' + EP['📅'] + ' : 🕰.order[' + i + '] = ' + k + ', action non définie');
-            const dernier = i === W.order.length - 1;
-            if (k === '🎇' && ('⏩' in W[k])) {
-                if (!dernier) throw new Error('[CLICS] ' + EP['📅'] + ' : 🎇 ⏩ doit clore la séquence');
-                return;
-            }
-            t += e['🔺⏳'];
-            if ((t >= duree - 1e-9) !== dernier) {
-                throw new Error('[CLICS] ' + EP['📅'] + ' : le clic ' + (i + 1) + '/' + W.order.length + ' (' + k + ') porte ⏳ à ' + t + ' Ma pour une durée de ' + duree + ' Ma');
-            }
+        const sequences = ('🛤' in W) ? Object.values(W['🛤']) : [W];   // chaque chemin traverse l'époque
+        sequences.forEach(function (S) {
+            let t = 0;
+            S.order.forEach(function (e, i) {
+                const k = e['🕰'];
+                if (!(k in W)) throw new Error('[CLICS] ' + EP['📅'] + ' : 🕰.order[' + i + '] = ' + k + ', action non définie');
+                const dernier = i === S.order.length - 1;
+                if (k === '🎇' && ('⏩' in W[k])) {
+                    if (!dernier) throw new Error('[CLICS] ' + EP['📅'] + ' : 🎇 ⏩ doit clore la séquence');
+                    return;
+                }
+                t += e['🔺⏳'];
+                if ((t >= duree - 1e-9) !== dernier) {
+                    throw new Error('[CLICS] ' + EP['📅'] + ' : le clic ' + (i + 1) + '/' + S.order.length + ' (' + k + ') porte ⏳ à ' + t + ' Ma pour une durée de ' + duree + ' Ma');
+                }
+            });
         });
     });
 
@@ -110,7 +121,7 @@ window.CLICS = (function () {
         pas: function (key) {
             const W = epoque()['🕰'];
             if (parTranche(W)) return trancheActive(epoque())[key]['🔺⏳'];
-            return W.order[window.DATA['📜']['📿🕰']]['🔺⏳'];
+            return sequence(W, key).order[window.DATA['📜']['📿🕰']]['🔺⏳'];
         },
 
         /** Date courante [an] de l'époque, tirée de la seule horloge 📜⏳ : ▶ − ⏳ (géologique, âge) ou ▶ + ⏳ (calendaire).
@@ -170,7 +181,7 @@ window.CLICS = (function () {
 
         /**
          * Un clic d'action sur l'époque courante.
-         * @param {string} key  action de 🕰 (💫 🏔 ⛰ ☄️ 🗻 🌋 🎇) ou, sur 📱, action de la tranche active (⛽ 🛢 🪾)
+         * @param {string} key  action de 🕰 (💫 🏔 ⛰ 🐾 🦘 ☄️ 🗻 🌋 🎇) ou, sur 📱, action de la tranche active (⛽ 🛢 🪾)
          * @returns {{passage: string|null}} époque où le clic fait arriver (fin d'époque atteinte, ou ⏩ de 🎇)
          */
         jouer: function (key) {
@@ -180,7 +191,12 @@ window.CLICS = (function () {
             const tranche = parTranche(W) ? trancheActive(EP) : null;
             // Durée du clic : portée par l'entrée de séquence (le même 💫 peut durer 1 ka ou 379 Ma), ou par l'action
             // de la tranche sur 📱.
-            const entree = (tranche === null) ? W.order[H['📿🕰']] : tranche[key];
+            // Époque à chemins : le premier clic choisit le chemin, les suivants le continuent (un autre chemin en cours de
+            // route mêlerait deux séquences).
+            if ('🛤' in W && H['📿🕰'] > 0 && key !== H['🔘🕰']) {
+                throw new Error('[CLICS] ' + key + ' joué sur ' + EP['📅'] + ' alors que le chemin ' + H['🔘🕰'] + ' est en cours');
+            }
+            const entree = (tranche === null) ? sequence(W, key).order[H['📿🕰']] : tranche[key];
             if (tranche === null && entree['🕰'] !== key) {
                 throw new Error('[CLICS] ' + key + ' joué sur ' + EP['📅'] + ' alors que 🕰.order attend ' + entree['🕰'] + ' (clic n° ' + H['📿🕰'] + ')');
             }

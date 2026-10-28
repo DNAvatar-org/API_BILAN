@@ -98,8 +98,8 @@ function getEpochDateConfig() {
     // Rayon : f(T de l'intérieur) — geology/interieur.js, la seule source (avancer le remet à jour).
     H['📐'] = window.INTERIEUR.rayonKm(DATA);
 
-    // ⚾ : obliquité de l'orbite à la date courante (physics/orbite.js, Berger & Loutre 1991) ; 0 hors de la solution
-    // (± 3 Ma), soit l'obliquité de l'époque (physics.js obliquiteCourante).
+    // ⚾ : obliquité de l'orbite à la date courante (physics/orbite.js, La2004) ; 0 hors de la solution
+    // (avant −51 Ma), soit l'obliquité de l'époque (physics.js obliquiteCourante).
     H['⚾'] = window.ORBITE.obliquiteDeg(window.INTERIEUR.ageCourant(DATA));
     // 🔁 ÉTATS PAR TIC (🍄, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
     // maintenu. Un état porte des masses '⚖️*' (→ 📜🔁⚖️, getMasses) et '📝' ; jamais d'obliquité : elle vient de l'orbite.

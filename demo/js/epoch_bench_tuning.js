@@ -1,7 +1,8 @@
 // File: API_BILAN/demo/epoch_bench_tuning.js
 // Desc: Panneau fine-tuning du banc : jauges séparées (FINE_TUNING_BOUNDS.jauges), détail par jauge avec la valeur
 //       LIVE des cibles, synchronisation avec la page parente.
-// Version 3.3.0
+// Version 3.4.0
+// - v3.4.0 (2026-10-26): alt0sec / alt2sec de chaque jauge (ce qu'elle règle, son sens, ses paramètres et leur valeur).
 // - v3.3.0 (2026-10-15): boutons −1 / +1 de part et d'autre de chaque curseur.
 // - v3.2.0 (2026-10-15): libellé et jauges en classes (.bench-ft-label, .bench-ft-jauge) ; bouton détail sorti de la fenêtre.
 // - v3.1.0 (2026-10-13): sens de chaque jauge et cible (TUNING.sensJauge / sensCible : 🔺 🔻 ↕️).
@@ -43,6 +44,32 @@ function benchRenderTargets() {
         }).join('');
 }
 
+/** alt0sec d'une jauge : son nom (la clé de baryByGroup), ce qu'elle règle, sa position, son sens. */
+function benchJaugeAlt0sec(j) {
+    const sens = window.TUNING.sensJauge(j);
+    return window.FINE_TUNING_BOUNDS.jauges[j].logo + ' ' + j + ' — ' + window.FINE_TUNING_BOUNDS.jauges[j].titre + ' — '
+        + window.DATA['🎚️'].baryByGroup[j] + ' % — ' + sens.logo + ' ' + sens.titre;
+}
+
+/** alt2sec d'une jauge : son explication, la mesure qui l'a classée, puis chaque paramètre qu'elle déplace (valeur lue par
+ *  la physique, plage 0 % → 100 %, rôle). */
+function benchJaugeAlt2sec(j) {
+    const J = window.FINE_TUNING_BOUNDS.jauges[j], T = window.DATA['🎚️'];
+    return J.explication + '\n📏 ' + J.mesure + '\n'
+        + window.FINE_TUNING_BOUNDS.targets.filter(function (t) { return t.baryGroup === j; }).map(function (t) {
+            return window.TUNING.sensCible(t).logo + ' <b>' + t.key + '</b> = ' + benchFormatTuningValue(T[t.group][t.key]) + ' ' + t.unit
+                + ' (0 % → 100 % : ' + benchFormatTuningValue(t.min) + ' → ' + benchFormatTuningValue(t.max) + ') — ' + t.note;
+        }).join('\n');
+}
+
+/** Bulles des jauges remises à la valeur courante (tooltips.js relit data-tooltip / data-alt2sec à chaque survol). */
+function benchSyncJaugeBulles() {
+    document.querySelectorAll('[data-jauge-bulle]').forEach(function (el) {
+        el.setAttribute('data-tooltip', benchJaugeAlt0sec(el.dataset.jaugeBulle));
+        el.setAttribute('data-alt2sec', benchJaugeAlt2sec(el.dataset.jaugeBulle));
+    });
+}
+
 /** Titre de la popup : combien de paramètres, sous combien de jauges. */
 function benchDetailTitle() {
     const F = window.FINE_TUNING_BOUNDS;
@@ -55,15 +82,21 @@ function benchDisplayFineTuning() {
     const bg = window.DATA['🎚️'].baryByGroup;
     document.getElementById('bench-ft-title-slot').innerHTML = '<span class="bench-ft-label">🧩 Fine-tuning</span>'
         + Object.keys(F.jauges).map(function (j) {
-            return '<span class="bench-ft-jauge">'
+            return '<span class="bench-ft-jauge" data-jauge-bulle="' + j + '">'
                 + F.jauges[j].logo
                 + '<button type="button" class="bench-ft-pas" onclick="window.__BENCH_FT__.pas(\'' + j + '\', -1)">−1</button>'
                 + '<input class="bench-ft-curseur" data-jauge="' + j + '" type="range" min="0" max="100" step="1" value="' + bg[j]
                 + '" oninput="window.__BENCH_FT__.onInput(this.dataset.jauge, this.value)">'
                 + '<button type="button" class="bench-ft-pas" onclick="window.__BENCH_FT__.pas(\'' + j + '\', 1)">+1</button>'
                 + '<span data-jauge-pct="' + j + '">' + bg[j] + '%</span>'
-                + '<span title="' + window.TUNING.sensJauge(j).titre + '">' + window.TUNING.sensJauge(j).logo + '</span></span>';
+                + '<span>' + window.TUNING.sensJauge(j).logo + '</span></span>';
         }).join('');   // le bouton « détail… » est hors de la fenêtre des jauges (#bench-ft-detail, epoch_bench.html)
+    // Le sens est dans l'alt0sec de la jauge entière : plus de title sur son logo (deux bulles l'une dans l'autre).
+    benchSyncJaugeBulles();
+    document.querySelectorAll('[data-jauge-bulle]').forEach(function (el) {
+        window.addTooltipFromAttribute(el);
+        el.setAttribute('data-tooltip-initialized', 'true');
+    });
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();
     document.getElementById('bench-ft-content').innerHTML = benchRenderTargets();
 }
@@ -73,6 +106,7 @@ function benchSyncFineTuningSlidersFromBary() {
     const bg = window.DATA['🎚️'].baryByGroup;
     document.querySelectorAll('.bench-ft-curseur').forEach(function (el) { el.value = String(bg[el.dataset.jauge]); });
     document.querySelectorAll('[data-jauge-pct]').forEach(function (el) { el.textContent = bg[el.dataset.jaugePct] + '%'; });
+    benchSyncJaugeBulles();
     document.getElementById('bench-ft-dialog-title').textContent = benchDetailTitle();
     document.getElementById('bench-ft-content').innerHTML = benchRenderTargets();
 }

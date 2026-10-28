@@ -18,10 +18,11 @@
 //       l'ensoleillement qu'elle reçoit, et sa surface libre). La glace dépend de T₂ et T₂ de la glace : point fixe.
 //       Approximations DÉCLARÉES : deux modes (le gradient tropical réel est plus plat, North §3) ; mêmes nuages dans les trois
 //       zones (fractions globales mesurées) ; surface libre = océan + terres de la géologie.
-// Version 1.2.0
+// Version 1.4.0
+// - v1.4.0 (2026-10-28): socle porté des calottes transmis à CALOTTES.calculer ; TOLERANCE_K exportée (lue par les calottes).
+// - v1.3.0 (2026-10-27): cycle annuel des terres par bande transmis aux calottes ; cycle calculé (physics/saisons.js) en diagnostic.
 // - v1.2.0 (2026-10-22): calottes au profil T(x) = T̄ + T₂ P₂(x) et à l'insolation absorbée par une surface qui fond.
-// - v1.1.0 (2026-10-14): calottes continentales (physics/calottes.js) dans l'albédo de surface de chaque zone.
-// Date: [October 13, 2026]
+// Date: [October 28, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -113,10 +114,12 @@
      *   albedoGlace: (cle, T_zone_K) → albédo de la glace saisonnière de la zone (Briegleb, calculations_albedo.js) ;
      *   albedoNeige: albédo des calottes (neige permanente) ;
      *   albedoFonte: { neige, glace } albédos d'une calotte qui fond (neige mouillée, glace nue) ;
-     *   calottesDepart, dureeAns : état de départ des calottes et durée de relaxation (physics/calottes.js).
-     * Renvoie { T2, dT, coAlbedo, Rg, calottes, absorbe } pour le diagnostic.
+     *   calottesDepart, socleDepart, dureeAns : état de départ des calottes, de leur socle, et temps écoulé depuis (physics/calottes.js).
+     * Renvoie { T2, dT, coAlbedo, Rg, calottes, absorbe, saisons } pour le diagnostic.
      */
-    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace, albedoNeige, albedoFonte, calottesDepart, dureeAns) {
+    const TOLERANCE_K = 0.01;   // [K] point fixe glace ↔ gradient : écart de zone toléré entre deux itérations (lu aussi par les calottes)
+
+    function resoudre(T_K, EPOCH, colonne, albedoLibre, albedoGlace, albedoNeige, albedoFonte, calottesDepart, socleDepart, dureeAns) {
         const DATA = window.DATA;
         const eps = window.EARTH.obliquiteCourante(EPOCH);
         const J = integralesJ(eps);
@@ -139,13 +142,19 @@
             }
             absorbe[z.cle] = { neige: neige, glace: glace };
         }
+        // Cycle annuel des terres lu par les calottes : amplitude de la ZONE posée (EARTH.SEASONAL_AMP_*, × sin ε) et retard posé
+        // (EARTH.RETARD_SAISONS_JOURS), sans 2ᵉ harmonique. ⚠️ Le cycle calculé (physics/saisons.js), contrôlé sur les terres
+        // mesurées, n'est pas lu : le pôle de ce bilan est trop chaud (T₂ ≈ −21,5 contre −28 observé) et les hautes terres de
+        // N_mid naissent au bout polaire de leur bande ; avec lui, le 1er clic 🐾 bascule en boule de neige.
+        const retard = 2 * Math.PI * window.EARTH.RETARD_SAISONS_JOURS / window.ORBITE.JOURS_AN;
         let calottes = null;
         for (let k = 0; k < 30; k++) {
             const f = window.EARTH.facteurGlaceZones(T_K, EPOCH, dT);
+            const cycles = {};
+            for (const b of window.CALOTTES.BANDES) cycles[b.cle] = { terre: { a1: f['amp_' + b.zone], d1: retard, r2: 0, i2: 0 } };
             // Calottes continentales au profil méridien de cette itération : T(x) = T̄ + T₂ P₂(x), T₂ tiré des écarts de zone
-            // (dT_z = −T₂ ⟨P₂⟩_z), amplitude saisonnière des TERRES.
-            calottes = window.CALOTTES.calculer(T_K, -dT.pol / P2_MOYEN.pol, { pol: f.amp_pol, mid: f.amp_mid, trop: f.amp_trop },
-                absorbe, ageMa, EPOCH, calottesDepart, dureeAns);
+            // (dT_z = −T₂ ⟨P₂⟩_z), cycle annuel des TERRES de leur bande.
+            calottes = window.CALOTTES.calculer(T_K, -dT.pol / P2_MOYEN.pol, cycles, absorbe, ageMa, EPOCH, calottesDepart, socleDepart, dureeAns);
             let H = 0;
             for (const z of ZONES) {
                 const e = f['e_' + z.cle];                          // part de l'énergie de la zone qui tombe sur la glace saisonnière
@@ -164,11 +173,13 @@
                 ecart = Math.max(ecart, Math.abs(nouveau[z.cle] - dT[z.cle]));
                 dT[z.cle] = 0.5 * dT[z.cle] + 0.5 * nouveau[z.cle];   // relaxation : la glace est une rampe raide
             }
-            if (ecart < 0.01) break;
+            if (ecart < TOLERANCE_K) break;
         }
         window.STATE.dTzones = dT;
-        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg, calottes: calottes, absorbe: absorbe };
+        // Diagnostic : cycle annuel calculé des terres et des mers (mode saisonnier de North 1981) de l'état convergé.
+        const saisons = window.SAISONS.cycles(T_K, dT, coAlbedo, EPOCH, ageMa);
+        return { T2: T2, dT: dT, coAlbedo: coAlbedo, Rg: Rg, calottes: calottes, absorbe: absorbe, saisons: saisons };
     }
 
-    window.MERIDIEN = { NORTH1981: NORTH1981, P2_MOYEN: P2_MOYEN, integralesJ: integralesJ, quadratureMu: quadratureMu, resoudre: resoudre };
+    window.MERIDIEN = { TOLERANCE_K: TOLERANCE_K, NORTH1981: NORTH1981, P2_MOYEN: P2_MOYEN, integralesJ: integralesJ, quadratureMu: quadratureMu, resoudre: resoudre };
 })();

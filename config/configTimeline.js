@@ -549,11 +549,11 @@ const timeline = [
     // Chaîne : 🪸 10,3 → 1a 0,0 → ⛄ −65,0 → −62,5 → 1b 29,5 → 27,5 → 23,5 → 🏂 −61,9 → −59,4 → 1c 29,6 → 🪼 21,0 °C
     // Entre −60 °C et −8 °C (glace partielle), on est SUR le basculement, pas « à côté » : c'est un
     // seuil pas encore franchi, pas une erreur de physique.
-    //   hysteresis 2 : AUCUNE bascule trouvée. Son CO₂ balayé de 200 à 1 200 ppm, l'arrivée depuis 🐊
-    //   reste sans glace (16–20 °C) et 🏔 donne toujours 16,1 °C, glace 0,009 — le passage ne dépend que
-    //   du CO₂ de 🏔. Le modèle n'a pas de calotte continentale (seulement glace de mer / neige zonales),
-    //   or la glaciation antarctique Oi-1 est une bascule de CALOTTE (DeConto & Pollard 2003, seuil
-    //   ~2,8 × CO₂ préindustriel). Chantier ouvert, pas un réglage.
+    //   hysteresis 2 : la bascule attendue est la NAISSANCE de la calotte antarctique (Oi-1 ; DeConto & Pollard
+    //   2003, seuil ~2,8 × CO₂ préindustriel ≈ 780 ppm, 560–920 selon les modèles, Gasson et al. 2014). Elle
+    //   vient de physics/calottes.js : une calotte naît quand le bilan d'une petite calotte posée sur les
+    //   hautes terres polaires (socle sans glace, data/paleogeo_zones.js) devient positif. Seuil à mesurer
+    //   sur la chaîne (sonde de naissance) avant d'y poser la config. Chantier ouvert, pas un réglage.
     //
     // CE QU'IL NE FAUT PAS FAIRE. Déplacer leur CO₂ ou leur graine pour viser le milieu d'une
     // fourchette, ou pour rapprocher T fin de T init : ces deux critères n'ont pas de sens ici.
@@ -1337,45 +1337,77 @@ const timeline = [
         '⚖️✈': 4.0e8,
         '⚖️💨': N2_1PAL_KG,
         '🕰': {
-            // DEUX CYCLES GLACIAIRES ENTIERS, les deux derniers : un grand pas de 2,58 Ma à 240 ka (MIS 7e), puis des pas de 8 à 30 ka
-            // posés sur les stades isotopiques (Lisiecki & Raymo 2005, Paleoceanography 20:PA1003) — MIS 7e 240, 7c 220, entrée du
-            // MIS 6 190, 160, maximum du MIS 6 140, MIS 5e 128, entrée glaciaire 116 (insolation d'été la plus basse), 5c 104, 5b 88,
-            // MIS 4 72 et 64, MIS 3 44, DMG 21, base de l'Holocène 11,7 ka (passage à 🛖). Les calottes portées n'ont, d'un pas à
-            // l'autre, que le temps du pas pour suivre (croissance lente, fonte rapide) : le retard est celui du calcul.
-            'order': [{ '🕰': '💫', '🔺⏳': 2.34 }, { '🕰': '💫', '🔺⏳': 0.02 }, { '🕰': '💫', '🔺⏳': 0.03 }, { '🕰': '💫', '🔺⏳': 0.03 },
-                { '🕰': '💫', '🔺⏳': 0.02 }, { '🕰': '💫', '🔺⏳': 0.012 }, { '🕰': '💫', '🔺⏳': 0.012 }, { '🕰': '💫', '🔺⏳': 0.012 },
-                { '🕰': '💫', '🔺⏳': 0.016 }, { '🕰': '💫', '🔺⏳': 0.016 }, { '🕰': '💫', '🔺⏳': 0.008 }, { '🕰': '💫', '🔺⏳': 0.02 },
-                { '🕰': '💫', '🔺⏳': 0.023 }, { '🕰': '💫', '🔺⏳': 0.0093 }],
-            '💫': { '🔺🌡️💫': 0 },
-            // 🔁 CYCLES : états successifs appliqués par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu) : les masses de
-            // CO₂ et de CH₄ MESURÉES à la date où le clic arrive (→ 📜🔁⚖️, lues par getMasses), moyenne des mesures à ± 1 ka.
-            // CO₂ : composite antarctique de Bereiter et al. 2015 (GRL 42:542, chronologie AICC2012) ; CH₄ : EPICA Dome C, Loulergue
-            // et al. 2008 (Nature 453:383, chronologie EDC3) — fichiers NOAA NCEI antarctica2015co2composite.txt et edc-ch4-2008.txt.
-            // Âges des fichiers « avant 1950 » + 75 = avant 2025. Masses : ppm d'air sec avec N₂ 1 PAL et O₂ de l'époque (les
-            // autres gaz ne comptent pas à cette précision). L'obliquité n'est PAS posée ici : elle vient de l'orbite à la date
-            // (physics/orbite.js). AUCUN texte ici : le récit de chaque clic vit dans CO2/static/texts/epochs_alt2sec.js.
-            '🔁': [
-                { '⚖️🏭': 1.8797e15, '⚖️🐄': 1.6239e12 },   // 240 ka : 247,9 ppm / 588 ppb
-                { '⚖️🏭': 1.8236e15, '⚖️🐄': 1.3644e12 },   // 220 ka : 240,5 ppm / 494 ppb
-                { '⚖️🏭': 1.7538e15, '⚖️🐄': 1.2205e12 },   // 190 ka : 231,3 ppm / 442 ppb
-                { '⚖️🏭': 1.4140e15, '⚖️🐄': 1.1551e12 },   // 160 ka : 186,5 ppm / 418 ppb
-                { '⚖️🏭': 1.4614e15, '⚖️🐄': 1.0427e12 },   // 140 ka : 192,8 ppm / 377 ppb
-                { '⚖️🏭': 2.1028e15, '⚖️🐄': 1.8701e12 },   // 128 ka : 277,3 ppm / 677 ppb
-                { '⚖️🏭': 2.0821e15, '⚖️🐄': 1.3960e12 },   // 116 ka : 274,6 ppm / 505 ppb
-                { '⚖️🏭': 1.8383e15, '⚖️🐄': 1.5328e12 },   // 104 ka : 242,4 ppm / 555 ppb
-                { '⚖️🏭': 1.6804e15, '⚖️🐄': 1.3573e12 },   //  88 ka : 221,6 ppm / 491 ppb
-                { '⚖️🏭': 1.7722e15, '⚖️🐄': 1.2246e12 },   //  72 ka : 233,7 ppm / 443 ppb
-                { '⚖️🏭': 1.5163e15, '⚖️🐄': 1.2790e12 },   //  64 ka : 200,0 ppm / 463 ppb
-                { '⚖️🏭': 1.5532e15, '⚖️🐄': 1.2346e12 },   //  44 ka : 204,9 ppm / 447 ppb
-                { '⚖️🏭': 1.4400e15, '⚖️🐄': 1.0166e12 }    //  21 ka : 189,9 ppm / 368 ppb
-            ],
-            // 🖼 SUITE D'IMAGES imposée (sinon : texture déduite de la date), index = 📿💫 modulo longueur : une image par clic.
-            // Glaciaire (-00002Ma) quand la courbe cyan (Snyder 2016) est sous 11 °C à la date du clic — le milieu entre le DMG
-            // (7,9 °C) et l'Holocène (14,0 °C) —, interglaciaire (-00001Ma) sinon. La date seule ne choisit pas : deux états
-            // stables existent pour une même date.
-            '🖼': ['fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png',
-                'fonds/-00002Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png', 'fonds/-00001Ma.png',
-                'fonds/-00002Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png', 'fonds/-00002Ma.png'],
+            // DEUX CHEMINS (🕰.🛤), au choix du premier clic, du même départ (frise de 🦣, 2,58 Ma) à la même arrivée (11,7 ka, passage
+            // à 🛖) :
+            //   🐾 pas à pas — un pas de 2,58 Ma à 800 ka (avant les carottes de glace, aucune mesure continue du CO₂), puis des pas de
+            //      20 ka le long des carottes antarctiques (un cycle de précession, une demi-période d'obliquité) jusqu'à 20 ka, puis
+            //      l'entrée dans l'Holocène : 41 clics. La courbe orange peut suivre les cycles de la courbe cyan (Snyder 2016) ;
+            //   🦘 le saut — de 2,58 Ma au dernier maximum glaciaire (21 ka) en un clic, puis la déglaciation : 2 clics. L'Holocène
+            //      arrive par la physique, calottes portées depuis un état glaciaire, sans la graine de 🛖.
+            // Chaque chemin porte sa séquence (order) et ses états (🔁) ; 🕰.order, 🔁 et 🖼 sont des accesseurs vers le chemin joué
+            // (encadré « CHEMINS » en fin de fichier).
+            // 🔁 : les masses de CO₂ et de CH₄ MESURÉES à la date où le clic arrive (→ 📜🔁⚖️, lues par getMasses), moyenne des mesures
+            // à ± 1 ka, interpolation linéaire entre les deux mesures voisines quand il n'y en a aucune. CO₂ : composite antarctique de
+            // Bereiter et al. 2015 (GRL 42:542, chronologie AICC2012) ; CH₄ : EPICA Dome C, Loulergue et al. 2008 (Nature 453:383,
+            // EDC3) — fichiers NOAA NCEI antarctica2015co2composite.txt et edc-ch4-2008.txt. Âges des fichiers « avant 1950 » + 75 =
+            // avant 2025. Masses : ppm d'air sec avec N₂ 1 PAL et O₂ de l'époque. L'obliquité n'est PAS posée ici : elle vient de
+            // l'orbite à la date (physics/orbite.js). AUCUN texte ici : le récit de chaque clic vit dans CO2/static/texts/epochs_alt2sec.js.
+            '🛤': {
+                '🐾': {
+                    'order': [{ '🕰': '🐾', '🔺⏳': 1.78 }].concat(Array.from({ length: 39 }, () => ({ '🕰': '🐾', '🔺⏳': 0.02 })),
+                        [{ '🕰': '🐾', '🔺⏳': 0.0083 }]),
+                    '🔁': [
+                    { '⚖️🏭': 1.5133e+15, '⚖️🐄': 1.1027e+12 },   // 800 ka : 199,6 ppm / 399 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.9269e+15, '⚖️🐄': 1.6988e+12 },   // 780 ka : 254,1 ppm / 615 ppb
+                    { '⚖️🏭': 1.7038e+15, '⚖️🐄': 1.2436e+12 },   // 760 ka : 224,7 ppm / 450 ppb
+                    { '⚖️🏭': 1.4010e+15, '⚖️🐄': 1.1303e+12 },   // 740 ka : 184,8 ppm / 409 ppb
+                    { '⚖️🏭': 1.5918e+15, '⚖️🐄': 1.1179e+12 },   // 720 ka : 210,0 ppm / 404 ppb
+                    { '⚖️🏭': 1.8046e+15, '⚖️🐄': 1.6157e+12 },   // 700 ka : 238,0 ppm / 585 ppb
+                    { '⚖️🏭': 1.7600e+15, '⚖️🐄': 1.3385e+12 },   // 680 ka : 232,1 ppm / 484 ppb
+                    { '⚖️🏭': 1.4189e+15, '⚖️🐄': 9.9211e+11 },   // 660 ka : 187,2 ppm / 359 ppb
+                    { '⚖️🏭': 1.4368e+15, '⚖️🐄': 1.0308e+12 },   // 640 ka : 189,5 ppm / 373 ppb
+                    { '⚖️🏭': 1.8734e+15, '⚖️🐄': 1.6638e+12 },   // 620 ka : 247,1 ppm / 602 ppb
+                    { '⚖️🏭': 1.7261e+15, '⚖️🐄': 1.4758e+12 },   // 600 ka : 227,7 ppm / 534 ppb
+                    { '⚖️🏭': 1.8628e+15, '⚖️🐄': 1.5567e+12 },   // 580 ka : 245,7 ppm / 563 ppb
+                    { '⚖️🏭': 1.7527e+15, '⚖️🐄': 1.3730e+12 },   // 560 ka : 231,2 ppm / 497 ppb
+                    { '⚖️🏭': 1.5894e+15, '⚖️🐄': 1.1110e+12 },   // 540 ka : 209,7 ppm / 402 ppb
+                    { '⚖️🏭': 1.8664e+15, '⚖️🐄': 1.4482e+12 },   // 520 ka : 246,2 ppm / 524 ppb
+                    { '⚖️🏭': 1.7491e+15, '⚖️🐄': 1.3883e+12 },   // 500 ka : 230,7 ppm / 502 ppb
+                    { '⚖️🏭': 1.7199e+15, '⚖️🐄': 1.4067e+12 },   // 480 ka : 226,9 ppm / 509 ppb
+                    { '⚖️🏭': 1.5568e+15, '⚖️🐄': 1.1510e+12 },   // 460 ka : 205,4 ppm / 416 ppb
+                    { '⚖️🏭': 1.5239e+15, '⚖️🐄': 1.1123e+12 },   // 440 ka : 201,0 ppm / 402 ppb
+                    { '⚖️🏭': 2.0691e+15, '⚖️🐄': 1.8877e+12 },   // 420 ka : 272,9 ppm / 683 ppb
+                    { '⚖️🏭': 2.1241e+15, '⚖️🐄': 1.6854e+12 },   // 400 ka : 280,1 ppm / 610 ppb
+                    { '⚖️🏭': 1.7352e+15, '⚖️🐄': 1.4309e+12 },   // 380 ka : 228,9 ppm / 518 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.4370e+15, '⚖️🐄': 1.1874e+12 },   // 360 ka : 189,6 ppm / 430 ppb
+                    { '⚖️🏭': 1.8087e+15, '⚖️🐄': 1.2526e+12 },   // 340 ka : 238,6 ppm / 453 ppb
+                    { '⚖️🏭': 1.8545e+15, '⚖️🐄': 1.3535e+12 },   // 320 ka : 244,6 ppm / 490 ppb
+                    { '⚖️🏭': 1.7263e+15, '⚖️🐄': 1.3879e+12 },   // 300 ka : 227,7 ppm / 502 ppb
+                    { '⚖️🏭': 1.5750e+15, '⚖️🐄': 1.2563e+12 },   // 280 ka : 207,8 ppm / 455 ppb
+                    { '⚖️🏭': 1.5675e+15, '⚖️🐄': 1.2403e+12 },   // 260 ka : 206,8 ppm / 449 ppb
+                    { '⚖️🏭': 1.8795e+15, '⚖️🐄': 1.6240e+12 },   // 240 ka : 247,9 ppm / 588 ppb
+                    { '⚖️🏭': 1.8234e+15, '⚖️🐄': 1.3645e+12 },   // 220 ka : 240,5 ppm / 494 ppb
+                    { '⚖️🏭': 1.8393e+15, '⚖️🐄': 1.5624e+12 },   // 200 ka : 242,6 ppm / 565 ppb
+                    { '⚖️🏭': 1.5747e+15, '⚖️🐄': 1.3017e+12 },   // 180 ka : 207,7 ppm / 471 ppb
+                    { '⚖️🏭': 1.4139e+15, '⚖️🐄': 1.1552e+12 },   // 160 ka : 186,5 ppm / 418 ppb
+                    { '⚖️🏭': 1.4613e+15, '⚖️🐄': 1.0428e+12 },   // 140 ka : 192,8 ppm / 377 ppb
+                    { '⚖️🏭': 2.0621e+15, '⚖️🐄': 1.6085e+12 },   // 120 ka : 272,0 ppm / 582 ppb
+                    { '⚖️🏭': 1.8613e+15, '⚖️🐄': 1.4744e+12 },   // 100 ka : 245,5 ppm / 534 ppb
+                    { '⚖️🏭': 1.7526e+15, '⚖️🐄': 1.4893e+12 },   //  80 ka : 231,2 ppm / 539 ppb
+                    { '⚖️🏭': 1.6697e+15, '⚖️🐄': 1.1899e+12 },   //  60 ka : 220,2 ppm / 431 ppb
+                    { '⚖️🏭': 1.5190e+15, '⚖️🐄': 1.1879e+12 },   //  40 ka : 200,4 ppm / 430 ppb
+                    { '⚖️🏭': 1.4542e+15, '⚖️🐄': 1.0186e+12 }    //  20 ka : 191,8 ppm / 369 ppb
+                    ]
+                },
+                '🦘': {
+                    'order': [{ '🕰': '🦘', '🔺⏳': 2.559 }, { '🕰': '🦘', '🔺⏳': 0.0093 }],
+                    '🔁': [
+                        { '⚖️🏭': 1.4399e+15, '⚖️🐄': 1.0167e+12 }    //  21 ka : 189,9 ppm / 368 ppb
+                    ]
+                }
+            },
+            '🐾': { '🔺🌡️💫': 0 },
+            '🦘': { '🔺🌡️💫': 0 },
             // Interpolation linéaire 🌡️🧮 (graine solveur) de ▶ vers ◀ de 🦣, deux points de la courbe cyan.
             '🔀': ['📅'],
             '◀': {
@@ -1940,7 +1972,8 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
 // polarZoneFraction (0,13) / midlatZoneFraction (0,37) retirés le 2026-10-13 : arrondis de la géométrie, qui
 // est calculée une fois dans physics.js (EARTH.POLAR_ZONE_FRAC = 1 − sin 60° = 0,134 ; EARTH.MIDLAT_ZONE_FRAC = 0,366).
 // ⚾ OBLIQUITÉ AXIALE ε (degrés). Défaut Terre 2025 = 23.44° (= EARTH.OBLIQUITY_DEG_REF).
-// Par époque : clé '⚾' sur l'objet epoch écrase ce défaut (ex. Archéen ε ~ 45–70° hyp. Williams 1993).
+// Priorité : l'orbite à la date (La2004, −51 Ma → aujourd'hui, physics/orbite.js → 📜⚾) ; avant −51 Ma, la clé '⚾' de l'époque
+// (ex. Archéen ε ~ 45–70°, hyp. Williams 1993) ; sinon ce défaut.
 // Effet : amp_z_eff = SEASONAL_AMP_z_K × sin(ε)/sin(23.44°) dans EARTH.computeIceTempFactor.
 //
 // ─── BORNES PHYSIQUES ACCEPTABLES (et pourquoi pas ! — libre au dialogue avec le modèle) ───
@@ -2115,5 +2148,28 @@ window.CONFIG_COMPUTE.logReproComparableState = true;
         const B = window.BENCH_LIT_BY_EPOCH_ID[EP['📅']];
         Object.defineProperty(B, 'tC', { enumerable: true, get: () => { const c = cyan(EP, EP['▶']); return [c[1], c[3]]; } });
         Object.defineProperty(B.src, 'tC', { enumerable: true, get: () => '📈 courbe cyan d\'Histoire à ▶ (± 1σ) : ' + cyan(EP, EP['▶'])[4] });
+    }
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHEMINS (🦣) : une époque dont 🕰 porte 🛤 = { clé : { order, 🔁 } } offre au premier clic un bouton par chemin ; le chemin joué
+// est la clé du dernier clic (📜🔘🕰), le premier de 🛤 avant tout clic (celui des bancs et des courbes d'Histoire). 🕰.order et
+// 🕰.🔁 sont des accesseurs vers lui (une seule référence, non énumérables), et 🕰.🖼 en tire ses images : glaciaire quand la
+// courbe cyan est sous 11 °C à la date où le clic arrive — le milieu entre le dernier maximum glaciaire (7,9 °C) et l'Holocène
+// (14,0 °C) de Snyder 2016 —, interglaciaire sinon (index = 📿💫, l'image 0 étant celle de la frise).
+// ═══════════════════════════════════════════════════════════════════════════
+(function () {
+    for (const EP of window.TIMELINE) {
+        const W = EP['🕰'];
+        if (!('🛤' in W)) continue;
+        const chemin = () => W['🛤'][window.DATA['📜']['🔘🕰'] in W['🛤'] ? window.DATA['📜']['🔘🕰'] : Object.keys(W['🛤'])[0]];
+        Object.defineProperty(W, 'order', { enumerable: false, get: () => chemin().order });
+        Object.defineProperty(W, '🔁', { enumerable: false, get: () => chemin()['🔁'] });
+        Object.defineProperty(W, '🖼', { enumerable: false, get: () => {
+            let age = EP['▶'];
+            const images = [age];
+            for (const e of chemin().order) { age -= e['🔺⏳'] * 1e6; images.push(age); }
+            return images.map((t) => window.HISTOIRE.litterature.a(t)[2] < 11 ? 'fonds/-00002Ma.png' : 'fonds/-00001Ma.png');
+        } });
     }
 })();

@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.6.0
+// Version 2.7.0
+// - v2.7.0 (2026-10-27): glace Ih dans CONST (L_f, c_p, k) ; rôle et défaut des amplitudes de zone déclarés.
 // - v2.6.0 (2026-10-25): albédo de l'océan par Fresnel (n de l'eau, Hale & Querry 1973) ; bornes de ln τ des nuages hauts des
 //   parts CALIPSO ; nuages hauts à 226,3 K mesurés (⚠️ en attendant le niveau calculé par le modèle).
 // - v2.5.0 (2026-10-15): nuages MOYENS — EARTH.NUAGES.F_MOYEN 0,23 (Stubenrauch 2024, CAMcol) et SIGMA_MOYEN (440–680 hPa).
@@ -62,6 +63,10 @@ CONST.P_TRIPLE_WATER = 611.657;     // [Pa] Pa  — pression de vapeur au point 
 CONST.L_VAPORIZATION = 2.5e6;  // [J/kg] Chaleur latente vaporisation (J/kg)
 CONST.RV_WATER = 461.5;  // [J/(kg·K)] R vapeur d'eau J/(kg·K)
 CONST.CP_AIR = 1005;  // [J/(kg·K)] Capacité calorifique air sec J/(kg·K)
+// Glace Ih : lues par les calottes (fonte, regel : physics/calottes.js) et par le cycle saisonnier de la mer gelée (physics/saisons.js).
+CONST.L_FUSION_GLACE = 3.3355e5;  // [J/kg] chaleur latente de fusion de la glace à 0 °C (CRC Handbook of Chemistry and Physics)
+CONST.CP_GLACE = 2096.78;  // [J/(kg·K)] chaleur massique de la glace Ih au point triple (IAPWS R10-06, Feistel & Wagner 2006)
+CONST.K_GLACE = 2.24;  // [W/(m·K)] conductivité thermique de la glace Ih au point de fusion (Carnahan et al. 2021, ajustement des mesures)
 CONST.T_BOIL = 373.15;  // [K] Ébullition eau 1 atm (K)
 CONST.T0_WATER = 273.15;  // [K] K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
 // triple (273,16 K, cf. CONST.T_TRIPLE_WATER) : l'ancien commentaire le disait à tort.
@@ -154,11 +159,17 @@ EARTH.POLAR_ZONE_FRAC    = 1 - Math.sin(Math.PI / 3);                      // [m
 EARTH.MIDLAT_ZONE_FRAC   = Math.sin(Math.PI / 3) - Math.sin(Math.PI / 6);  // [m²/m² (surface de la zone / surface du globe)] 30°–60°, 0,366
 EARTH.TROPICAL_ZONE_FRAC = Math.sin(Math.PI / 6);                          // [m²/m² (surface de la zone / surface du globe)] 0°–30°, 0,500
 
-// ─── Amplitude saisonnière : largeur physique de la rampe glace ────────────────
-// Amplitude saisonnière pic-à-pic divisée par 2 (half-range été-hiver), CALIBRÉES à ε_REF.
-// Sources : ERA5 reanalysis 1991-2020 (T_mensuelles min/max) ; Peixoto & Oort 1992 ch.7.
-// 🏷️ FLOU SCIENTIFIQUE — l'amplitude dépend aussi de la capacité thermique (océan/continent),
-// circulation atmosphérique, ère glaciaire vs interglaciaire. Valeurs ci-dessous = Terre-moderne.
+// ─── Amplitude saisonnière des ZONES ────────────────
+// Demi-amplitude été-hiver de la zone, ⚠️ POSÉE (ERA5 et Peixoto & Oort 1992 ch. 7 cités, valeurs non relevées), × sin ε.
+// Elle sert à la glace SAISONNIÈRE de zone — largeur des rampes de facteurGlaceZones (seuils de gel, bascules en boule de
+// neige), glace pondérée par l'ensoleillement (fractionGelee) — et au cycle annuel des terres des calottes (physics/meridien.js).
+// Le cycle CALCULÉ (physics/saisons.js, mode saisonnier de North et al. 1981) existe et tient les terres mesurées à ±15 % aux
+// pôles et aux moyennes latitudes (❔ relevé UDel sans script), mais on ne sait pas encore le recevoir (⚠️) :
+//   · glace de mer : la mer d'une zone n'a que 1 à 2 K d'amplitude calculée, et une rampe de ZONE aussi étroite devient une
+//     marche (70 % de la zone tropicale gèle en 1,9 K) ; la largeur posée tient lieu de l'étalement en latitude de la zone —
+//     il faut une glace de mer par latitude ;
+//   · calottes : le pôle du bilan méridien est trop chaud (T₂ ≈ −21,5 contre −28 observé) et les hautes terres de N_mid naissent
+//     au bout polaire de leur bande ; avec le cycle calculé, le 1er clic 🐾 bascule en boule de neige.
 EARTH.SEASONAL_AMP_POL_K  = 15;  // [K] pôle : amplitude annuelle 2× (été + 15 K, hiver − 15 K) autour de la moyenne
 EARTH.SEASONAL_AMP_MID_K  = 25;  // [K] mi-lat continentale : amplitude plus large (effet continentalité)
 // Tropical : faible saisonnalité (3 K pic-à-demi), dominée par océan chaud inertiel.
@@ -179,7 +190,7 @@ EARTH.SEASONAL_AMP_MID_OCEAN_K = 4;  // [K]
 // Source : insolation annuelle latitude-dépendante f(ε) — Berger 1978, Laskar et al. 2004.
 // Hypothèse Archéen : Williams 1993 suggère ε ~ 45–70° (expliquerait glaciations basse-latitude
 // du Protérozoïque sans invoquer un Snowball global).
-EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont calibrés
+EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont posées
 
 // ─── Insolation par latitude (Berger 1978, géométrie orbitale) ─────────────────────────────────────────────────────
 // La redistribution méridienne de l'insolation par ε (Milankovitch) entre désormais dans le bilan méridien
@@ -240,7 +251,8 @@ EARTH.zoneAnnualInsolation = function (obliquity_deg) {
 // sur l'albédo est la fraction de l'ÉNERGIE solaire annuelle qui tombe sur elle, pas la fraction du temps. Calcul exact :
 // insolation journalière (dailyMeanInsolation, géométrie orbitale) × [T(jour) < T_gel], T(jour) = T_zone + amp·sin(λ − δ),
 // δ = retard des saisons thermiques sur le soleil. ⚠️ MESURE APPROCHÉE : maximum de température ~1 mois après le
-// solstice sur les continents, ~2 mois sur l'océan → 1 mois retenu (borne basse).
+// solstice sur les continents, ~2 mois sur l'océan → 1 mois retenu (borne basse). Lu aussi par les calottes (cycle annuel des
+// terres, physics/meridien.js) ; le retard calculé (physics/saisons.js) donne 21–38 j sur les terres, 79–93 j sur la mer.
 EARTH.RETARD_SAISONS_JOURS = 30;  // [jour]
 var _tableInsolation = {};
 /** Insolation journalière S[lat][jour] d'une bande [l0,l1]° (hémisphère nord), en cache par ε. */
@@ -266,7 +278,7 @@ function tableInsolation(l0_deg, l1_deg, obliquity_deg) {
 /** { temps, energie } : fractions de l'année et de l'énergie solaire annuelle d'une bande sous le gel. */
 EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) {
     var t = tableInsolation(l0_deg, l1_deg, obliquity_deg);
-    var retard = 2 * Math.PI * EARTH.RETARD_SAISONS_JOURS / 365.25;
+    var retard = 2 * Math.PI * EARTH.RETARD_SAISONS_JOURS / window.ORBITE.JOURS_AN;
     var nDay = t.S[0].length;
     var tps = 0, nrj = 0, nrjTot = 0, n = 0;
     for (var i = 0; i < t.S.length; i++) {
@@ -385,7 +397,8 @@ EARTH.facteurGlaceZones = function (T_glob_K, EPOCH, dT) {
 EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
     return EARTH.facteurGlaceZones(T_glob_K, EPOCH, window.STATE.dTzones);
 };
-/** [°] Obliquité courante : 📜⚾ quand un état 🔁 la pose (Milankovitch), sinon celle de l'époque, sinon la config. */
+/** [°] Obliquité courante : 📜⚾ — l'orbite à la date (La2004, −51 Ma → aujourd'hui, physics/orbite.js) —, sinon celle de
+ *  l'époque (avant −51 Ma), sinon la config. */
 EARTH.obliquiteCourante = function (EPOCH) {
     if (window.DATA['📜']['⚾'] > 0) return window.DATA['📜']['⚾'];
     return ('⚾' in EPOCH) ? EPOCH['⚾'] : window.CONFIG_COMPUTE.obliquityDeg;

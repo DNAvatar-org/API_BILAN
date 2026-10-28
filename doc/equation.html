@@ -4,14 +4,13 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.1.1
-Date: [October 24, 2026]
+Version 2.4.0
+  - v2.4.0 (2026-10-28): rebond retardé du socle des calottes ; clic time des calottes par la conservation de leur masse.
+  - v2.3.0 (2026-10-27): degrés-jours stochastiques et regel des calottes ; cycle saisonnier calculé des terres et des mers (diagnostic).
+  - v2.2.2 (2026-10-26): socle des calottes : même croûte pour les deux calottes, glace antarctique fermée sur le volume et l'aire.
+Date: [October 28, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
-Logs:
-  - v2.1.1 (2026-10-24): profil de Voigt — fonction de Faddeeva de Humlíček (W4), γ_D = (ν/c)√(2RT/M) ; répartition de l'EDS par retrait dans le transfert seul.
-  - v2.1.0 (2026-10-22): orbite à la date (Berger & Loutre 1991), calottes au bilan intégré (Weertman), fonte d'insolation.
-  - v2.0.0 (2026-10-13): réécrite depuis le code ; classement P/M/F/C/N/⚠️ ; js/equation.js et css/equation.css.
 -->
 <html lang="fr">
 <head>
@@ -88,13 +87,27 @@ Logs:
     </div>
     <div class="eq P" id="eq-orbite-date">
         <div class="titre"><span class="cl P">P</span> Orbite à la date du calcul (Milankovitch)</div>
-        <div class="f" data-tex="\varepsilon(t),\ e(t),\ \varpi(t)\ \text{(Berger \&amp; Loutre 1991)},\qquad \bar S = \frac{S}{\sqrt{1-e^2}}"></div>
-        <p>Solution astronomique valable ± 3 Ma autour de 1950 (tables de l'onglet Milankovitch). L'obliquité ε règle l'insolation
-            annuelle de chaque latitude (bilan méridien) et l'amplitude des saisons ; l'excentricité e, le flux moyen de l'année
-            (loi de Kepler) ; la précession ϖ, la répartition de l'insolation dans l'année, qui fond les calottes. Calendrier compté
-            depuis l'équinoxe de printemps, longitude solaire par l'équation de Kepler. Hors de la validité : orbite de référence.</p>
-        <p class="src">Berger &amp; Loutre 1991, Quat. Sci. Rev. 10:297</p>
-        <p class="code">physics/orbite.js ; compute.js → getEpochDateConfig (📜⚾), getSoleil</p>
+        <div class="f" data-tex="\varepsilon(t),\ e(t),\ \varpi(t) = \varpi_{\text{La2004}}(t) + \pi\quad (-51\ \text{Ma} \to \text{an } 2000),\qquad \bar S = \frac{S}{\sqrt{1-e^2}}"></div>
+        <p>Solution numérique La2004 (intégration du système solaire, Laskar et al. 2004), tabulée au pas de 1 ka de −51 Ma à
+            l'an 2000 (fichier INSOLN.LA2004.BTL.ASC du paquet palinsol) ; interpolation linéaire entre deux lignes, ϖ déroulé sur
+            le tour. Ses auteurs la donnent précise sur 40 à 50 Ma ; la phase de la précession et de l'obliquité, qui dépend en plus
+            de la dissipation de marée et de la forme de la Terre, mal connues dans le passé, devient incertaine vers 20 Ma — leurs
+            amplitudes restent celles de la solution. L'obliquité ε règle l'insolation annuelle de chaque latitude (bilan méridien)
+            et l'amplitude des saisons ; l'excentricité e, le flux moyen de l'année (loi de Kepler) ; la précession ϖ, la
+            répartition de l'insolation dans l'année, qui fond les calottes.</p>
+        <p>Convention : ϖ de la table (héliocentrique, depuis l'équinoxe mobile) + π = longitude géocentrique du périhélie ;
+            anomalie vraie ν = λ − ϖ, λ longitude solaire vraie (π/2 = solstice d'été boréal). Calendrier compté depuis l'équinoxe
+            de printemps, longitude solaire par l'équation de Kepler. Orbite de référence : celle de 1950.0, sous laquelle les
+            degrés-jours de fonte ont été mesurés ; l'anomalie d'insolation des calottes se compte par rapport à elle.</p>
+        <p>❔ Après 2000, la table s'arrête : orbite de 2000 (au rythme de la table, sur 300 ans ϖ tournerait d'environ 5° et
+            e baisserait de 1,4·10⁻⁴). ❔ Avant −51 Ma, aucune solution (orbite chaotique) : le calcul de l'orbite refuse la date ;
+            le moteur pose une orbite circulaire, aucune anomalie d'insolation et l'obliquité de l'époque (⚾) — ⚠️ une anomalie
+            nulle, c'est l'orbite de 1950, périhélie en janvier : un été austral plus chaud que la moyenne des orbites.</p>
+        <p>🎯 En 2000 : e = 0,016702, ε = 23,439°, ϖ = 282,9° ; insolation du solstice d'été à 65° N 477,9 W/m², à 0,5 W/m² de
+            Berger &amp; Loutre 1991 (477,4).</p>
+        <p class="src">Laskar et al. 2004, A&amp;A 428:261 ; insolation journalière : Berger 1978, J. Atmos. Sci. 35:2362</p>
+        <p class="code">CO2/static/astronomie.js → orbite, insolationJournaliere ; table CO2/static/astronomie_la04.js
+            (CO2/scripts/astronomie/la2004_table.py) ; physics/orbite.js ; compute.js → getEpochDateConfig (📜⚾), getSoleil</p>
     </div>
 </div>
 
@@ -591,14 +604,91 @@ Logs:
     </div>
     <div class="eq P" id="eq-calottes-bilan-integre">
         <div class="titre"><span class="cl P">P</span> Calottes : bilan de masse intégré (géométrie de Weertman)</div>
-        <div class="f" data-tex="\bar b(a) = \frac{\int_{\varphi_e}^{\varphi_b} b\big(T(\varphi) - \Gamma z,\ z\big)\cos\varphi\,d\varphi}{\int_{\varphi_e}^{\varphi_b}\cos\varphi\,d\varphi},\quad z = z_{\text{socle}} + h_0\sqrt{1 - y/W}\,\Big(1 - \frac{\rho_i}{\rho_m}\Big),\quad h_0 = \sqrt{\frac{2\tau_0 W}{\rho_i g}}"></div>
+        <div class="f" data-tex="\bar b(a) = \frac{\int_{\varphi_e}^{\varphi_b} b\big(T(\varphi) - \Gamma z,\ z\big)\cos\varphi\,d\varphi}{\int_{\varphi_e}^{\varphi_b}\cos\varphi\,d\varphi},\quad z = z_{\text{socle}} + h_0\sqrt{1 - y/W} - d,\quad h_0 = \sqrt{\frac{2\tau_0 W}{\rho_i g}}"></div>
         <p>La calotte couvre la terre de sa bande depuis le bout polaire (partage des eaux) jusqu'à une marge vers l'équateur ;
             profil parfaitement plastique le long du méridien (Nye), τ₀ = 100 kPa. Chaque point a sa latitude et son altitude : le
-            bord bas, tourné vers des latitudes plus chaudes, fond et borne la taille. L'équilibre est \(\bar b(a) = 0\), cherché
-            depuis l'état porté ; relaxation sur la durée du clic. ⚠️ Terre de la bande uniforme en sin φ, plateaux continentaux
+            bord bas, tourné vers des latitudes plus chaudes, fond et borne la taille. L'équilibre est \(\bar b(a) = 0\) sur un socle
+            à l'équilibre d'Archimède, \(d = \frac{\rho_i}{\rho_m}h\), cherché depuis l'état porté ; au clic time, la calotte avance
+            par la conservation de sa masse sur un socle en retard (carte suivante). ⚠️ Terre de la bande uniforme en sin φ, plateaux continentaux
             jusqu'à −1 000 m compris (PaleoDEM).</p>
-        <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233</p>
-        <p class="code">physics/calottes.js → bilanCalotte, equilibre, calculer</p>
+        <p>Socle SANS glace : la calotte et sa charge, c'est le moteur qui les pose (\(z\) ci-dessus). Les PaleoDEM portent
+            l'Antarctique au socle actuel chargé par sa glace et le Groenland à la surface de la sienne. Une seule règle pour les
+            deux, MÊME CROÛTE : la table retire la glace de la carte 0 Ma cellule par cellule, puis porte ce socle déchargé sur les
+            cartes qui copient la carte 0 Ma. Retirer une épaisseur posée \(H\) d'un socle chargé \(b\) : rebond d'Airy
+            \(u = b + \frac{\rho_i}{\rho_m}H\) ; un socle resté sous la mer se recharge de l'eau qui remplace la glace,
+            \(z_u = u\,/\,(1 - \rho_{\text{eau}}/\rho_m)\) ; mer libre et plates-formes flottantes portent déjà leur eau.
+            ⚠️ Eau douce du moteur pour la flottaison et la recharge : le moteur n'a pas la densité de l'eau de mer.</p>
+        <p>Antarctique de la carte 0 Ma (continent : socle &gt; −1 000 m relié au pôle, fosses intérieures comprises,
+            16,86·10⁶ km²) : profil plastique \(s(d) = \sqrt{2\tau\,(d - d_0)/(\rho_i g)}\), d distance de grand cercle au bord
+            du continent, d₀ recul de la marge ; \(H = s - b\) là où la glace ne flotte pas (\(\rho_i H &gt; \rho_{\text{eau}}\,(-b)\)).
+            Deux inconnues fermées sur deux mesures de Bedmap2 (tableau 7) : volume posé 26,54·10⁶ km³ et aire posée
+            12,295·10⁶ km² — τ effectif 42,6 kPa, d₀ = 228 km, H̄ = 2 159 m, H max 4 763 m, rebond de 390 m sous le quart le plus
+            haut du socle. Socle moyen du continent : 6 m chargé, 444 m après rebond (exact par conservation du volume), 435 m après
+            recharge (1,74·10⁶ km² de socle sous glace posée restent sous la mer). ❔ L'aire est une entrée, pas un contrôle : on ne sait pas
+            faire autrement — retirer la glace actuelle d'une carte de données demande de savoir où elle est posée, et le seuil de
+            −1 000 m borne aussi le plateau continental libre de glace et les plates-formes flottantes. ❔ τ et d₀ uniformes sur tout
+            le continent ; τ effectif un peu sous les 50–150 kPa mesurés.</p>
+        <p>Recalage : chaque carte de 0 à 120 Ma est tournée (rotation rigide, recherche par motifs jusqu'à 1/8°) pour superposer
+            au mieux le socle antarctique chargé de 0 Ma. Corrélation pondérée par l'aire r ≥ 0,6 : la carte copie ce socle — 0 à
+            80 Ma, r de 0,70 à 0,85 — et l'empreinte transportée du continent, fosses comprises, reçoit le socle déchargé transporté ;
+            dès 85 Ma, r ≤ 0,50 : reconstruction de Scotese, intacte. Hors de l'empreinte, la carte est intacte. ❔ Le relief propre
+            de la carte sous l'empreinte est remplacé (15–25 Ma : basses terres relevées de 300 à 600 m en moyenne par la
+            reconstruction) ; recalage imparfait : de 5 à 35 Ma, 0,2 à 0,3·10⁶ km² de continent de la carte bordent l'empreinte, intacts.
+            S_pol de 0 à 80 Ma : socle de 346 à 430 m, hautes terres de 1 271 à 1 330 m (à 0 Ma, 44 et 888 m avec la glace).
+            Groenland : inlandsis de la carte 0 Ma = cellules de surface la plus haute jusqu'à 1 716 555 km² (Citterio &amp;
+            Ahlstrøm 2013) ; socle chargé \(\bar b = \bar s - V/A\) = 437 m fermé sur BedMachine v3 (V = 2,99·10⁶ km³),
+            \(H = s - \bar b\) ; même décharge, et même croûte sur les cartes de 5 et 10 Ma, qui montrent la surface de l'inlandsis
+            (dès 15 Ma, le socle) : à 0 Ma, socle de N_pol 194 m (273 m avec la glace), hautes terres 798 m (1 113 m). ❔ Socle
+            chargé uniforme sous l'inlandsis. Méridien ±180 et latitudes frontières des bandes : règle des trapèzes ; quart le plus
+            haut : les cellules ex-aequo au seuil y entrent à la même fraction.
+            ❔ Aire juste par compensation : les cœurs des plates-formes de Ross et de Ronne-Filchner (0,73·10⁶ km², flottants
+            aujourd'hui) reçoivent de la glace posée, 1,3·10⁶ km² de terres émergées n'en reçoivent pas — rebond des hautes terres
+            sous-estimé de 20 à 40 m. ❔ Marche entre 80 et 85 Ma : les reconstructions de 85 Ma et plus ne copient plus la carte
+            0 Ma (r ≤ 0,50) et restent au niveau du socle chargé, sans règle cellule par cellule pour elles — hautes terres de S_pol
+            1 271 → 699 m, dont environ 270 m dus à la décharge des seules copies. ❔ Groenland de 15 Ma, relevé par Scotese au-dessus
+            du socle déchargé, gardé tel quel (hautes terres de N_pol 803 → 823 → 719 m de 10 à 20 Ma).</p>
+        <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 ; Nye 1952, Nature 169:529 ; Fretwell et al.
+            2013, The Cryosphere 7:375 ; Citterio &amp; Ahlstrøm 2013, The Cryosphere 7:445 ; Morlighem et al. 2017, GRL 44:11051 ;
+            Scotese &amp; Wright 2018</p>
+        <p class="code">physics/calottes.js → bilanCalotte, equilibre, calculer ; data/paleogeo_zones.js
+            (CO2/scripts/paleogeo/paleodem_zones.py)</p>
+    </div>
+    <div class="eq P" id="eq-calottes-rebond-socle">
+        <div class="titre"><span class="cl P">P</span> Calottes : rebond retardé du socle et conservation de la masse</div>
+        <div class="f" data-tex="\frac{d}{dt}\big(a\,A\,\bar H(a)\big) = \frac{a\,A\,\bar b(a, d)}{\rho_i},\qquad \frac{\partial d}{\partial t} = \frac{\frac{\rho_i}{\rho_m}\,h - d}{\tau_b},\qquad \tau_b = \frac{4\pi\eta}{\rho_m\,g\,\lambda},\qquad z = z_{\text{socle}} + h - d"></div>
+        <p>Au clic time, la calotte avance par la conservation de sa masse : son volume \(V = a\,A\,\bar H(a)\) (profil de Nye,
+            \(A\) aire de la bande) gagne ce que son bilan intégré lui apporte. Le socle ne suit pas sa charge sans retard : son
+            enfoncement \(d\), porté aux 61 latitudes de la bande, relaxe vers l'équilibre d'Archimède \(\frac{\rho_i}{\rho_m}h\)
+            en un temps \(\tau_b\) (asthénosphère relaxante locale, Le Meur &amp; Huybrechts 1996, éq. 1 et 4). Une calotte qui
+            recule reste posée sur un socle encore enfoncé par sa charge passée : sa surface est plus basse, plus chaude, et fond
+            davantage (Abe-Ouchi et al. 2013). À l'équilibre \(d = \frac{\rho_i}{\rho_m}h\) : l'équilibre d'une calotte et le clic
+            de frise ne dépendent pas du retard.</p>
+        <p>\(\tau_b\) : mode d'un demi-espace visqueux (Haskell ; Schubert, Turcotte &amp; Olson 2001, éq. 5.2.32). ⚠️ η =
+            10²¹ Pa·s, mesure posée : viscosité moyenne du manteau jusqu'à ~1 400 km, tirée par cette même équation du soulèvement
+            daté de la Fennoscandie (Haskell 1935 ; Mitrovica 1996 : 0,65–1,1·10²¹). ❔ λ = 2 × largeur de la charge (Schubert et
+            al. prennent 3 000 km pour les 1 350 km de la Fennoscandie) : la calotte qui couvre la terre de sa bande, de largeur
+            W depuis son partage des eaux, ou de diamètre 2W quand le partage est au pôle. Calotte nord pleine : W = 2 282 km,
+            τ_b = 2,70 ka ; Antarctique 1,24 ka ; N_mid 2,00 ka. 🎯 Laurentide (2 500 km de large) : l'équation donne 2,46 ka pour
+            2,6 ka observés ; Fennoscandie (1 350 km) : 4,56 ka pour 4,4 ka (tableau 5.1).</p>
+        <p>Négligés : la flexion de la lithosphère (\(D k^4/\rho_m g\) &lt; 0,1 % pour λ ≥ 3 000 km, Bueler et al. 2007, éq. 14),
+            la part élastique instantanée, la sphéricité, le manteau inférieur plus visqueux. ❔ Un seul τ_b par bande, celui de la
+            calotte qui couvre sa terre (une petite calotte relaxe en vérité plus lentement) ; η constante dans le temps.</p>
+        <p>Résolution : calotte et socle avancent ensemble en sous-pas de τ_b. Calotte : Heun, taux au départ et à l'état prédit
+            (socle compris) ; naissance (pas de glace, neige qui reste au sommet) : Euler implicite,
+            \(V(a') = h\,a'\,A\,\bar b(a')/\rho_i\). Socle : solution exacte pour une charge qui varie linéairement sur le sous-pas,
+            \(d(h) = L_N + (d - L)\,e^{-x} - (L_N - L)\,\frac{1 - e^{-x}}{x}\), \(x = h/\tau_b\). Arrêt quand plus rien ne se verrait
+            d'ici la fin du clic : écart du socle et épaisseur gagnée ou perdue sous la tolérance du point fixe méridien ramenée en
+            altitude, 0,01 K / Γ ≈ 1,5 m ; le socle finit alors de relaxer exactement. ❔ Seuls les 100 derniers milliers d'années
+            d'un clic sont intégrés : avant, la calotte relaxe vers son équilibre au temps de renouvellement
+            \(\rho_i \bar H / \max(\text{accumulation}, \text{fonte})\) et l'écart du socle s'éteint en τ_b — au bout de plusieurs
+            de ces temps c'est l'équilibre, et le coût d'un clic de plusieurs millions d'années reste borné.</p>
+        <p>📖 Avec une Terre viscoélastique réaliste, les grands reculs qu'un socle amorti localement produit ne sont plus si marqués
+            (Deblonde &amp; Peltier 1990) : le retard ne suffit pas à lui seul à déglacer une calotte dont l'équilibre reste englacé.</p>
+        <p class="src">Le Meur &amp; Huybrechts 1996, Ann. Glaciol. 23:309 ; Haskell 1935, Physics 6:265 ; Mitrovica 1996, JGR
+            101:555 ; Schubert, Turcotte &amp; Olson 2001, Mantle Convection in the Earth and Planets, ch. 5 ; Bueler, Lingle &amp;
+            Brown 2007, Ann. Glaciol. 46:97 ; Abe-Ouchi et al. 2013, Nature 500:190 ; Deblonde &amp; Peltier 1990, Ann. Glaciol. 14:47</p>
+        <p class="code">physics/calottes.js → calculer, naissance, bilanCalotte (airy, fige), chargeNoeuds, volume, aireDe ;
+            physics/meridien.js → MERIDIEN.TOLERANCE_K</p>
     </div>
     <div class="eq P" id="eq-neige-des-calottes">
         <div class="titre"><span class="cl P">P</span> Neige des calottes : l'humidité qu'apportent les tourbillons</div>
@@ -607,29 +697,102 @@ Logs:
             &amp; Armour 2018) sur le profil T(x) du bilan de North, D = 1,16·10⁶ m²/s (leur ajustement sur la température zonale
             d'ERA-Interim), humidité relative de surface du modèle. Sur la glace la sublimation est négligée : la neige d'un point
             vaut P − E à sa latitude, réduite avec l'altitude comme la vapeur saturante au sommet de l'inversion (Jouzel &amp;
-            Merlivat 1984), les jours de gel seulement.</p>
+            Merlivat 1984), sur la part de l'année sous 0 °C seulement.</p>
         <p>🎯 📱 : 55 à 73 kg m⁻² an⁻¹ sur les calottes (Antarctique mesuré : 143, Arthern et al. 2006) ; temps de réaction
             15 à 75 ka, assez courts pour suivre l'orbite.</p>
         <p class="src">Siler, Roe &amp; Armour 2018, J. Climate 31:7481, éq. 1, 2, 5, 6</p>
         <p class="code">physics/calottes.js → calculer (PmoinsE), bilanPoint</p>
     </div>
+    <div class="eq P" id="eq-degres-jours-stochastiques">
+        <div class="titre"><span class="cl P">P</span> Fonte des calottes : degrés-jours stochastiques et regel</div>
+        <div class="f" data-tex="\text{PDD} = \sum_{k=1}^{24}\Delta t\Big[\frac{\sigma_k}{\sqrt{2\pi}}\,e^{-T_k^2/2\sigma_k^2} + T_k\,\Phi\Big(\frac{T_k}{\sigma_k}\Big)\Big],\quad \sigma_k = 1{,}66 - 0{,}15\,\min(T_k, 0),\quad M = M_n + f_g\Big(\text{PDD} - \frac{M_n}{f_n}\Big) + M_{\text{orbite}},\quad M_n = \min(N,\ f_n\,\text{PDD}),\quad R = \max\Big(0,\ \min\Big(M,\ \frac{c_i}{L_f}\max(0, -\bar T)\,N + \Big(\frac{\rho_e}{\rho_o} - 1\Big)(N - M)\Big)\Big),\quad \text{fonte} = M - R"></div>
+        <p>Chaque jour s'écarte du cycle annuel \(T_k\) de la terre de la bande (24 nœuds de l'année ; amplitude de zone posée et
+            retard posé, carte « Amplitudes saisonnières des zones ») selon une loi normale : degrés-jours positifs en forme
+            semi-analytique (Calov &amp; Greve 2005, éq. 6), Φ = probabilité d'un jour au-dessus de 0 °C (erfc d'Abramowitz &amp;
+            Stegun 7.1.26). σ est l'écart-type MESURÉ des moyennes journalières sur le Groenland (Seguinot &amp; Rogozhina 2014,
+            éq. 3, ERA-40) : ⚠️ σ n'a pas d'équation ; ⚠️ mesuré sur la calotte, il sert aussi aux terres sans glace où les calottes
+            naissent, que l'article exclut ; ❔ au-dessus de 0 °C il garde sa valeur de 0 °C (la régression contient des mois
+            jusqu'à +2 °C et deviendrait négative au-dessus de +11 °C). C'est le
+            σ des moyennes journalières, celui des facteurs de Braithwaite 1995 (neige \(f_n\) = 3, glace \(f_g\) = 8 mm d'eau par
+            °C·jour) : le cycle diurne n'y entre pas une seconde fois. La neige de l'année \(N\) fond d'abord, puis la glace (Reeh
+            1991). Une part de la fonte \(M\) de l'année (degrés-jours et insolation de l'orbite, carte suivante) regèle dans le
+            névé : son froid, \(c_i/L_f \cdot \max(0, -\bar T)\), et l'eau retenue par capillarité dans la neige restante \(N - M\),
+            entre névé sec \(\rho_o\) = 300 et névé saturé \(\rho_e\) = 960 kg/m³ (Pfeffer et al. 1991, sous la forme de Janssens
+            &amp; Huybrechts 2000 écrite par Reijmer et al. 2012, éq. 2 et 5) ; en zone d'ablation (\(M > N\)) la rétention devient
+            négative et le regel s'annule. \(c_i\) = 2 096,78 J kg⁻¹ K⁻¹ (IAPWS). L'écart-type de 4,5–5 K et le
+            plafond de regel de 60 % des modèles de calotte courants sont des calages : ils ne sont pas pris.</p>
+        <p>🎯 À climat figé, la naissance d'une calotte demande 1,0 à 1,3 K de refroidissement de plus qu'avec un cycle sans écart
+            journalier : 🚂 le nord naît après 2,5 K (il doit naître de peu, Ganopolski et al. 2016) ; 📱 l'Antarctique tient à 0,349
+            de sa bande (0,36 posé) ; ⚠️ le Groenland ne tient pas (0,05 posé) — une seule terre par bande : N_pol reçoit le cycle
+            de toute sa terre, Sibérie et Canada compris ; l'Antarctique de l'EOT manque sa naissance de 1,7 K (frise) et de 3,2 K
+            (clic ⛰).</p>
+        <p class="src">Calov &amp; Greve 2005, J. Glaciol. 51:173 (éq. 6) ; Seguinot &amp; Rogozhina 2014, J. Glaciol. 60:603 (éq. 3) ;
+            Janssens &amp; Huybrechts 2000, Ann. Glaciol. 31:133 (éq. 7) ; Reijmer et al. 2012, The Cryosphere 6:743 (éq. 2, 5) ;
+            Pfeffer et al. 1991, JGR 96:22117 ; Reeh 1991 ;
+            Braithwaite 1995 ; Feistel &amp; Wagner 2006 ; Abramowitz &amp; Stegun 1964</p>
+        <p class="code">physics/calottes.js → bilanPoint (K.SIGMA_FONTE_K, K.PENTE_SIGMA, K.RHO_NEIGE_*, K.NOEUDS) ; physics.js →
+            CONST.CP_GLACE, CONST.L_FUSION_GLACE</p>
+    </div>
     <div class="eq P" id="eq-fonte-insolation-orbite">
         <div class="titre"><span class="cl P">P</span> Fonte des calottes : degrés-jours + insolation de l'orbite</div>
-        <div class="f" data-tex="M = M_{\text{DDF}} + \frac{A_{\text{sol}}(\alpha)}{L_f}\int_{T > 0\,^\circ\text{C}} \big(S(t) - S_{1950}(t)\big)\,dt"></div>
+        <div class="f" data-tex="M = M_{\text{PDD}} + \frac{A_{\text{sol}}(\alpha)}{L_f}\int \Phi\Big(\frac{T(t)}{\sigma}\Big)\big(S(t) - S_{1950}(t)\big)\,dt"></div>
         <p>Les facteurs degrés-jours (neige ~3, glace ~8 mm d'eau par °C·jour) sont mesurés sous l'orbite actuelle ; l'écart
-            d'insolation journalière entre l'orbite de la date et celle de 1950 fond en plus les jours au-dessus de 0 °C.
+            d'insolation journalière entre l'orbite de la date et celle de 1950 fond en plus les jours de fonte, chacun pondéré par
+            sa probabilité Φ(T/σ) (❔ analogue continu des jours au-dessus de 0 °C ; avant −51 Ma, hors de la solution orbitale :
+            aucun écart).
             \(A_{\text{sol}}\) : part absorbée au sol par une surface qui fond (neige mouillée, puis glace nue au prorata des
             degrés-jours), donnée par le transfert solaire du modèle aux angles solaires de la zone. C'est par là qu'entrent la
             précession et l'insolation d'été à 65° N.</p>
         <p class="src">Robinson &amp; Goelzer 2014, The Cryosphere 8:1419 (éq. 2) ; Braithwaite 1995, J. Glaciol. 41:153</p>
         <p class="code">physics/calottes.js → bilanPoint ; physics/orbite.js → anomalie ; physics/meridien.js → absorbe</p>
     </div>
+    <div class="eq P" id="eq-cycle-saisonnier-calcule">
+        <div class="titre"><span class="cl P">P</span> Cycle saisonnier calculé des terres et des mers (diagnostic)</div>
+        <div class="f" data-tex="Z_T\hat T_T = F_n + \frac{\nu}{f_T}(\hat T_M - \hat T_T),\quad Z_M\hat T_M = F_n + \frac{\nu}{f_M}(\hat T_T - \hat T_M),\quad Z_T = B + n(n{+}1)D + i n\omega C_{\text{air}} + e_{\text{sol}}\sqrt{i n\omega},\quad Z_M = (1{-}g)\big[B + n(n{+}1)D + i n\omega (C_{\text{mer}} {+} C_{\text{air}})\big] + g\Big[B + n(n{+}1)D + i n\omega C_{\text{air}} + k_i q\coth(q h_i)\Big],\quad q = \sqrt{i n\omega/\kappa_i},\quad \nu = \frac{u\,C_{\text{air}}}{2\pi R\cos\varphi}"></div>
+        <p>Mode saisonnier du bilan diffusif de North, Cahalan &amp; Coakley 1981 (éq. 54–58), harmonique par harmonique (n = 1 annuel,
+            n = 2 semi-annuel), une boîte terre (part \(f_T\) de la bande, PaleoDEM) et une boîte mer par bande ; B et D du bilan
+            annuel. Forçage \(F_n\) : harmonique de l'insolation journalière de la bande × co-albédo de la zone (bilan méridien) ×
+            Soleil de l'époque ; \(F_1\) = S ⟨x⟩ sin ε / 2 exactement, \(F_2\) sur l'insolation journalière exacte (l'été pointu et
+            l'hiver sans creux des pôles). Terre : colonne d'air \(c_p p_s/g\) et sol semi-infini. Mer : couche de mélange
+            (eau de mer TEOS-10) ; la part de l'année gelée \(g\) porte une dalle de glace sur l'eau à son point de gel, d'impédance
+            \(k_i q\coth(q h_i)\) (équation de la chaleur, Carslaw &amp; Jaeger 1959 : \(k_i/h_i\) mince, \(e_i\sqrt{i n\omega}\)
+            épaisse), d'épaisseur de Stefan
+            \(h_i = \sqrt{2 k_i\,\text{FDD}/(\rho_i L_f)}\), \(k_i\) = 2,24 W m⁻¹ K⁻¹ — \(g\) et les degrés-jours de gel sortent du
+            cycle de la mer (point fixe). Couplage : l'air traverse la bande en \(2\pi R\cos\varphi/u\). Sortie : amplitude, retard
+            sur le soleil et 2ᵉ harmonique de chaque surface, pour l'état convergé du bilan méridien.</p>
+        <p>⚠️ Mesures posées faute d'équation : couche de mélange 75 m et vitesse de l'air u = 6,1 m/s (McKinnon et al. 2013,
+            rétrotrajectoires à 45–50° N), effusivité du sol 1 500 J m⁻² K⁻¹ s^-½ (ordre de grandeur sans source). ❔ Réduction à deux
+            boîtes du couplage advectif de McKinnon et al. (éq. 3) ; n = 2 pour le mode semi-annuel ; glace de mer pondérée par g ;
+            une seule terre par bande (la Sibérie et le Groenland de N_pol ont le même cycle).</p>
+        <p>❔ Premier harmonique des terres mesuré (University of Delaware, 1981–2010 ; valeurs sans script de relevé, version des
+            données non relevée) contre calculé (📱) : N_pol 18,8 / 18,9 K,
+            S_pol 12,1 / 13,8, N_mid 14,3 / 16,5, S_mid 6,5 / 5,7, tropiques 4,0 / 5,5 (N) et 4,9 (S) ; retard des terres 21 à 38 jours
+            (28 mesurés en moyenne, McKinnon et al. 2013) ; mer 79 à 93 jours. Le 2ᵉ harmonique (2,7 K à N_pol) n'a pas encore de
+            contrôle.</p>
+        <p>⚠️ Ni les calottes ni la glace de mer ne le lisent encore (carte suivante). Lu par les calottes, à climat figé : 📱
+            l'Antarctique tient à 0,333 de sa bande, le Groenland ne tient pas ; 🚂 le nord ne naît qu'après 9,2 K de refroidissement,
+            la terre de N_mid dès 2,8 K ; l'Antarctique de l'EOT manque sa naissance de 5,4 K (clic ⛰). En couplé, le 1er clic 🐾
+            bascule alors en boule de neige (−66 °C) : N_mid naît vers 10 °C et sa glace emporte tout. Le pôle du bilan méridien
+            est trop chaud (T₂ ≈ −21,5 contre −28 observé) et les hautes terres de N_mid naissent au bout polaire de leur bande :
+            c'est ce que le cycle mesuré met à nu.</p>
+        <p class="src">North, Cahalan &amp; Coakley 1981, Rev. Geophys. 19:91 (éq. 54–58) ; McKinnon, Stine &amp; Huybers 2013, J. Climate
+            26:7852 ; Stefan 1891 ; Carslaw &amp; Jaeger 1959 ; Carnahan et al. 2021 ; Feistel &amp; Wagner 2006 ; IOC et al. 2010 (TEOS-10) ; Willmott &amp;
+            Matsuura (UDel)</p>
+        <p class="code">physics/saisons.js → SAISONS.cycles ; physics/meridien.js → resoudre (saisons, état convergé)</p>
+    </div>
     <div class="eq X" id="eq-amplitudes-saisonnieres">
-        <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières</div>
-        <div class="f" data-tex="a_{\text{pol}} = 15,\ a_{\text{mid,cont}} = 25,\ a_{\text{mid,océan}} = 4,\ a_{\text{trop}} = 3\ \text{K}\ \times\frac{\sin\varepsilon}{\sin 23{,}44^\circ}"></div>
+        <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières des zones</div>
+        <div class="f" data-tex="a_{\text{pol}} = 15,\ a_{\text{mid,cont}} = 25,\ a_{\text{mid,océan}} = 4,\ a_{\text{trop}} = 3\ \text{K}\ \times\frac{\sin\varepsilon}{\sin 23{,}44^\circ},\qquad \delta = 30\ \text{j}"></div>
         <p>ERA5 / Peixoto &amp; Oort cités, valeurs non relevées (4 K « de mémoire »). Le facteur \(\sin\varepsilon\) est une
-            approximation (P).</p>
-        <p class="code">physics.js → EARTH.SEASONAL_AMP_*</p>
+            approximation (P). Elles règlent la glace saisonnière de zone (largeur des rampes de la glace de mer, glace pondérée par
+            l'ensoleillement) et le cycle annuel des terres des calottes (amplitude de la zone, retard δ, sans 2ᵉ harmonique).
+            ⚠️ On ne sait pas encore recevoir le cycle calculé (carte précédente) : la mer d'une zone n'y a que 1 à 2 K d'amplitude, et
+            une rampe de ZONE aussi étroite devient une marche — 70 % de la zone tropicale gèle en 1,9 K ; la largeur posée tient
+            lieu de l'étalement en latitude de la zone, il faut une glace de mer par latitude. Pour les calottes, il attend un pôle
+            moins chaud et la naissance de N_mid sur ses hautes terres.</p>
+        <p>❔ Terres mesurées (UDel 1981–2010, valeurs sans script de relevé) : pôles 18,8 N / 12,1 S, moyennes latitudes 14,3 N / 6,5 S, tropiques 4,0 K.</p>
+        <p class="code">physics.js → EARTH.SEASONAL_AMP_*, EARTH.RETARD_SAISONS_JOURS, EARTH.facteurGlaceZones, EARTH.fractionGelee ;
+            physics/meridien.js → resoudre (cycle des calottes)</p>
     </div>
     <div class="eq F" id="eq-mer-gelee">
         <div class="titre"><span class="cl F">F</span> Mer gelée</div>

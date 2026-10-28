@@ -4,7 +4,9 @@
 //       le charge par API_BILAN/loader/loader.js, qui lit cette liste. Avant, chaque page recopiait sa propre
 //       liste (7 copies divergentes : event_bus.js manquait au banc, model_tuning.js vide traînait dans CO2…).
 //       Chemins relatifs à API_BILAN/.
-// Version 1.0.7
+// Version 1.0.9
+// - v1.0.9 (2026-10-27): physics/saisons.js (cycle annuel calculé des terres et des mers, diagnostic du bilan méridien).
+// - v1.0.8 (2026-10-26): orbite La2004 (astronomie_la04.js) à la place des tables de Berger & Loutre 1991.
 // - v1.0.7 (2026-10-22): orbite de Berger & Loutre 1991 (CO2/static/astronomie*.js) et physics/orbite.js.
 // - v1.0.6 (2026-10-15): radiative/nuages_isccp.js + data/isccp_h_2010.js (simulateur ISCCP et sa référence).
 // - v1.0.5 (2026-10-15): CO2/static/histoire/point_modele.js (point des courbes du modèle, une seule fabrique).
@@ -18,7 +20,7 @@ window.ENGINE_SCRIPTS = [
     'config/configTimeline.js',
     '../CO2/static/histoire/litterature.js',   // la courbe cyan : graine 🌡️🧮 et fourchette tC (accesseurs de configTimeline)
     '../CO2/static/histoire/point_modele.js',  // un point des courbes du modèle d'Histoire (banc headless, banc de l'index)
-    '../CO2/static/astronomie_ber90.js',       // tables de Berger & Loutre 1991 (onglet Milankovitch), lues par physics/orbite.js
+    '../CO2/static/astronomie_la04.js',        // table La2004 (Laskar et al. 2004) de l'orbite, lue par astronomie.js
     '../CO2/static/astronomie.js',             // leur calcul : orbite et insolation journalière à une date
     'data/alphabet.js',
     'data/episteme.js',     // liens épistémiques 🧭 / 🛠 (référence → valeur, avec statut) ; après l'alphabet
@@ -54,6 +56,7 @@ window.ENGINE_SCRIPTS = [
     'data/isccp_h_2010.js',        // sa référence mesurée (ISCCP-H 2010)
     'data/paleogeo_zones.js',   // paléogéographie zonale (PaleoDEM Scotese & Wright 2018), lue par physics/calottes.js
     'physics/calottes.js',      // calottes continentales (profil plastique + bilan de masse)
+    'physics/saisons.js',       // cycle annuel calculé des terres et des mers par bande (North 1981) : diagnostic de meridien.js
     'physics/meridien.js',   // bilan méridien (North 1981) : utilise SOLAIRE.albedoMu, lu par calculations_albedo
     'convergence/calculations_flux.js',
     'api.js'

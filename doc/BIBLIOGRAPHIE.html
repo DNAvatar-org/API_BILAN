@@ -117,30 +117,12 @@
     <div class="used-in">Arctic Amplification 2–4× modern.</div>
 </article>
 
-<article class="ref" id="sodenHeld2006" data-tags="feedback planck gcm">
-    <div class="cite-key">[sodenHeld2006]</div>
-    <div class="authors">Soden, B. J. &amp; Held, I. M.</div>
-    <div class="title">An Assessment of Climate Feedbacks in Coupled Ocean–Atmosphere Models</div>
-    <div class="venue">Journal of Climate, 19(14):3354–3360 (2006)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/JCLI3799.1">10.1175/JCLI3799.1</a></div>
-    <div class="used-in">Réponse de Planck globale −3,2 W/m²/K : <code>PLANCK_W_M2_K</code> de <code>CO2/static/astronomie.js</code>, qui convertit l’anomalie d’insolation en écart de température. Article distinct de <a href="#heldSoden2006">[heldSoden2006]</a>.</div>
-</article>
-
-<article class="ref" id="loeb2018" data-tags="albedo observation ceres">
-    <div class="cite-key">[loeb2018]</div>
-    <div class="authors">Loeb, N. G., Doelling, D. R., Wang, H., Su, W., <em>et al.</em></div>
-    <div class="title">Clouds and the Earth’s Radiant Energy System (CERES) Energy Balanced and Filled (EBAF) Top-of-Atmosphere (TOA) Edition-4.0 Data Product</div>
-    <div class="venue">Journal of Climate, 31(2):895–918 (2018)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-17-0208.1">10.1175/JCLI-D-17-0208.1</a></div>
-    <div class="used-in">Albédo planétaire mesuré 0,29 (CERES EBAF) : <code>ALBEDO_PLANETAIRE</code> de <code>CO2/static/astronomie.js</code>.</div>
-</article>
-
 <article class="ref" id="peixotoOort1992" data-tags="textbook climatology seasonal">
     <div class="cite-key">[peixotoOort1992]</div>
     <div class="authors">Peixoto, J. P. &amp; Oort, A. H.</div>
     <div class="title">Physics of Climate</div>
     <div class="venue">American Institute of Physics, New York (1992)</div>
-    <div class="used-in">Cité avec ERA5 (<a href="#hersbach2020">[hersbach2020]</a>) pour les amplitudes saisonnières des zones, <code>EARTH.SEASONAL_AMP_*_K</code> (<code>physics/physics.js</code>) ; valeurs non relevées dans l’ouvrage (⚠️, carte « Amplitudes saisonnières »).</div>
+    <div class="used-in">Cité avec ERA5 (<a href="#hersbach2020">[hersbach2020]</a>) pour les amplitudes saisonnières des zones, <code>EARTH.SEASONAL_AMP_*_K</code> (<code>physics/physics.js</code>), largeur des rampes de la glace de mer de zone ; valeurs non relevées dans l’ouvrage (⚠️, carte « Amplitudes saisonnières des zones »). Elles donnent aussi le cycle annuel des terres des calottes (<code>physics/meridien.js</code>) : le cycle calculé de <code>physics/saisons.js</code> n'est pas encore lu.</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1171,7 +1153,7 @@
     <div class="title">Long-term variations of daily insolation and Quaternary climatic changes</div>
     <div class="venue">Journal of the Atmospheric Sciences, 35(12):2362–2367 (1978)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035%3C2362:LTVODI%3E2.0.CO;2">10.1175/1520-0469(1978)035&lt;2362:LTVODI&gt;2.0.CO;2</a></div>
-    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation, dailyMeanInsolation ; page <code>CO2/html/test_milankovitch.html</code> (solution Berger 1978 gardée à côté de Berger &amp; Loutre 1991).</div>
+    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation, dailyMeanInsolation ; <code>CO2/static/astronomie.js</code> : insolationJournaliere, qui donne l'anomalie d'insolation fondant les calottes (<code>API_BILAN/physics/orbite.js</code>) et l'insolation d'été à 65° N de l'onglet Histoire et de la page <code>CO2/html/test_milankovitch.html</code>. Les éléments orbitaux eux-mêmes viennent de <a href="#laskar2004">[laskar2004]</a>.</div>
 </article>
 
 <article class="ref" id="bergerLoutre1991" data-tags="orbital insolation milankovitch solution">
@@ -1180,7 +1162,7 @@
     <div class="title">Insolation values for the climate of the last 10 million years</div>
     <div class="venue">Quaternary Science Reviews, 10:297–317 (1991)</div>
     <div class="doi"><a href="https://doi.org/10.1016/0277-3791(91)90033-Q">10.1016/0277-3791(91)90033-Q</a></div>
-    <div class="used-in">Solution astronomique (± 3 Ma) : obliquité, excentricité et précession à la date de chaque calcul. Tables <code>CO2/static/astronomie_ber90.js</code> (via palinsol, M. Crucifix), calcul <code>CO2/static/astronomie.js</code>, lus par <code>API_BILAN/physics/orbite.js</code> : 📜⚾, facteur de Kepler du Soleil, anomalie d'insolation qui fond les calottes.</div>
+    <div class="used-in">Contrôle de la solution La2004 (<a href="#laskar2004">[laskar2004]</a>), comparaison seulement : en 2000, l'insolation du solstice d'été à 65° N vaut 477,4 W/m² dans cette solution, 477,9 dans La2004 (excentricité 0,0172 contre 0,016702). Note de contrôle en tête de <code>CO2/static/astronomie.js</code>.</div>
 </article>
 
 <article class="ref" id="robinsonGoelzer2014" data-tags="ice-sheet melt insolation paleo">
@@ -1192,13 +1174,13 @@
     <div class="used-in">Éq. 2 : la fonte due à une anomalie d'insolation est τ_a (1 − α_s)(S − S₀)/(ρ_w L_m), à ajouter à un schéma degrés-jours calé sous l'orbite actuelle. Ici τ_a (1 − α_s) est l'absorption au sol du transfert solaire du modèle. <code>physics/calottes.js</code> (bilanPoint).</div>
 </article>
 
-<article class="ref" id="laskar2004" data-tags="orbital obliquity solution long-term">
+<article class="ref" id="laskar2004" data-tags="orbital obliquity insolation milankovitch solution long-term">
     <div class="cite-key">[laskar2004]</div>
     <div class="authors">Laskar, J., Robutel, P., Joutel, F., Gastineau, M., Correia, A. C. M. &amp; Levrard, B.</div>
     <div class="title">A long-term numerical solution for the insolation quantities of the Earth</div>
-    <div class="venue">Astronomy &amp; Astrophysics, 428:261–285 (2004)</div>
+    <div class="venue">Astronomy &amp; Astrophysics, 428(1):261–285 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1051/0004-6361:20041335">10.1051/0004-6361:20041335</a></div>
-    <div class="used-in">Solution orbitale de référence : ε oscille entre 22,1° et 24,5° avec une période de ~41 ka. <code>API_BILAN/physics/physics.js</code> : amplitude saisonnière des zones ∝ sin ε (EARTH.facteurGlaceZones, EARTH.OBLIQUITY_DEG_REF) ; page <code>CO2/html/test_milankovitch.html</code>.</div>
+    <div class="used-in">Solution La2004 : excentricité, obliquité et longitude du périhélie à la date de chaque calcul, de −51 Ma à l'an 2000. Table au pas de 1 ka <code>CO2/static/astronomie_la04.js</code>, écrite par <code>CO2/scripts/astronomie/la2004_table.py</code> depuis le fichier INSOLN.LA2004.BTL.ASC du paquet palinsol (M. Crucifix) ; calcul <code>CO2/static/astronomie.js</code> (orbite : interpolation linéaire, ϖ + π en longitude géocentrique ; orbite de 2000 après 2000 ; aucune solution avant −51 Ma), lu par <code>API_BILAN/physics/orbite.js</code> : 📜⚾, facteur de Kepler du Soleil, anomalie d'insolation qui fond les calottes ; insolation d'été à 65° N de l'onglet Histoire (<code>CO2/static/histoire/rendu.js</code>) et page <code>CO2/html/test_milankovitch.html</code>. Précise sur 40 à 50 Ma selon ses auteurs. ε oscille entre 22,1° et 24,5° avec une période de ~41 ka : amplitude saisonnière des zones ∝ sin ε (<code>API_BILAN/physics/physics.js</code>, EARTH.facteurGlaceZones, EARTH.OBLIQUITY_DEG_REF).</div>
 </article>
 
 <article class="ref" id="laskar1993" data-tags="obliquity moon chaos">
@@ -1275,7 +1257,7 @@
     <div class="title">Insolation-driven 100,000-year glacial cycles and hysteresis of ice-sheet volume</div>
     <div class="venue">Nature, 500:190–193 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature12374">10.1038/nature12374</a></div>
-    <div class="used-in">Hystérésis du volume des calottes face à l'insolation d'été : cadre de lecture des clics de 🦣, comparaison seulement.</div>
+    <div class="used-in">Hystérésis du volume des calottes face à l'insolation d'été : cadre de lecture des clics de 🦣, comparaison seulement ; mécanisme des terminaisons par le rebond retardé du socle (<code>physics/calottes.js</code>), dont leurs τ = 5 ka et ρ_eff = 4 500 kg/m³, calés, ne sont pas repris.</div>
 </article>
 
 <article class="ref" id="loulergue2008" data-tags="quaternary methane ice-core epica">
@@ -1497,7 +1479,16 @@
     <div class="title">A 485-million-year history of Earth's surface temperature (PhanDA)</div>
     <div class="venue">Science, 385:eadk3705 (2024)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.adk3705">10.1126/science.adk3705</a></div>
-    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong>, étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu. Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>).</div>
+    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong>, étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu. Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>). Sa bande est la précision d'UNE méthode — un seul a priori (le modèle HadCM3L), des températures de mer seules, 420 assimilations qui partagent ces hypothèses : elle est élargie du désaccord entre méthodes mesuré par <a href="#inglis2020">[inglis2020]</a>.</div>
+</article>
+
+<article class="ref" id="inglis2020" data-tags="paleogene eocene gmst methods uncertainty">
+    <div class="cite-key">[inglis2020]</div>
+    <div class="authors">Inglis, G. N., Bragg, F., Burls, N. J., Cramwinckel, M. J., Evans, D., Foster, G. L. et al. (19 auteurs)</div>
+    <div class="title">Global mean surface temperature and climate sensitivity of the early Eocene Climatic Optimum (EECO), Paleocene–Eocene Thermal Maximum (PETM), and latest Paleocene</div>
+    <div class="venue">Climate of the Past, 16:1953–1968 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/cp-16-1953-2020">10.5194/cp-16-1953-2020</a></div>
+    <div class="used-in">Six méthodes confrontées sur les mêmes intervalles (tableau 3, mise en commun à poids égaux, intervalle à 66 % ≈ ± 1σ) : Paléocène terminal 26,3 (22,3–28,3), PETM 31,6 (27,2–34,5), EECO 27,0 (23,2–29,7) °C, jusqu'à 5 °C d'une méthode à l'autre. Leurs demi-largeurs moyennes (4,1 °C vers le bas, 2,5 °C vers le haut) s'ajoutent en quadrature au ± 1σ de <a href="#judd2024">[judd2024]</a> sur tout le Phanérozoïque — ⚠️ seule mesure publiée de ce désaccord, au Paléogène : borne basse ailleurs. <code>CO2/static/histoire/litterature.js</code> (<code>L.inglis2020</code>, <code>L.avecMethodes</code>) : la bande cyan d'Histoire, donc aussi les fourchettes tC du banc ; la médiane ne change pas.</div>
 </article>
 
 <article class="ref" id="jones1999" data-tags="modern gmst absolute">
@@ -2062,7 +2053,7 @@
     <div class="title">Energy balance climate models</div>
     <div class="venue">Rev. Geophys. Space Phys., 19(1):91–121 (1981)</div>
     <div class="doi"><a href="https://doi.org/10.1029/RG019i001p00091">10.1029/RG019i001p00091</a></div>
-    <div class="used-in">Modèle diffusif (éq. 22) ; OLR = A + BT, A = 203,3 W/m², B = 2,09 W/m²/°C ; D = 0,649 W/m²/°C (D/B = 0,310) calé sur le gradient OBSERVÉ de l’hémisphère nord T₂ = −28,0 °C (T ≈ T₀ + T₂ P₂(sin φ), éq. 32). Ramené aux trois zones : +10,5 / −6,1 / −22,6 K autour de la moyenne. Chantier « bilan méridien » (doc/AUDIT_REGLAGES_HERITES.md).</div>
+    <div class="used-in">Mode saisonnier du même modèle (éq. 54–58) : impédance B + n(n+1)D + i nω C par harmonique, cycle annuel des terres et des mers de chaque bande (<code>physics/saisons.js</code>). Modèle diffusif (éq. 22) ; OLR = A + BT, A = 203,3 W/m², B = 2,09 W/m²/°C ; D = 0,649 W/m²/°C (D/B = 0,310) calé sur le gradient OBSERVÉ de l’hémisphère nord T₂ = −28,0 °C (T ≈ T₀ + T₂ P₂(sin φ), éq. 32). Ramené aux trois zones : +10,5 / −6,1 / −22,6 K autour de la moyenne. Chantier « bilan méridien » (doc/AUDIT_REGLAGES_HERITES.md).</div>
 </article>
 <article class="ref" id="northCoakley1979" data-tags="ebm albedo satellite">
     <div class="cite-key">[northCoakley1979]</div>
@@ -2073,6 +2064,59 @@
     <div class="used-in">Co-albédo annuel OBSERVÉ de l'hémisphère nord (satellites), a(x) = 0,681 − 0,202 P₂(x) (repris par North et al. 1981,
         éq. 18) : celui avec lequel D = 0,649 reproduit T₂ = −28 °C. Moyenné au poids solaire sur les trois zones : 0,758 / 0,642 / 0,520,
         cible 🎯 des co-albédos du bilan méridien (trois zones uniformes : T₂ = −26,9 °C au mieux).</div>
+</article>
+<article class="ref" id="mckinnon2013" data-tags="seasonal-cycle land-ocean ebm observation">
+    <div class="cite-key">[mckinnon2013]</div>
+    <div class="authors">McKinnon, K. A., Stine, A. R. &amp; Huybers, P.</div>
+    <div class="title">The spatial structure of the annual cycle in surface temperature: amplitude, phase, and Lagrangian history</div>
+    <div class="venue">J. Climate, 26(20):7852–7862 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-13-00021.1">10.1175/JCLI-D-13-00021.1</a></div>
+    <div class="used-in">Bilan d'énergie terre–océan à atmosphère advectée (éq. 3), réduit dans le modèle à deux boîtes par bande couplées par ν = u C_air / (2π R cos φ) (⚠️ réduction maison) ; vitesse de traversée des masses d'air u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N) et couche de mélange de 75 m (⚠️ valeurs à relire dans l'article). Contrôle : retard moyen des saisons sur les terres, 28 jours. <code>physics/saisons.js</code>.</div>
+</article>
+<article class="ref" id="willmottMatsuura2001" data-tags="observation temperature land seasonal-cycle">
+    <div class="cite-key">[willmottMatsuura2001]</div>
+    <div class="authors">Willmott, C. J. &amp; Matsuura, K.</div>
+    <div class="title">Terrestrial Air Temperature and Precipitation: Monthly and Annual Time Series (University of Delaware, UDel_AirT_Precip)</div>
+    <div class="venue">Center for Climatic Research, University of Delaware ; distribué par NOAA PSL (données sur grille 0,5°, version non relevée)</div>
+    <div class="doi"><a href="https://psl.noaa.gov/data/gridded/data.UDel_AirT_Precip.html">psl.noaa.gov/data/gridded/data.UDel_AirT_Precip.html</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée ; ❔ valeurs sans script de relevé dans le dépôt) : premier harmonique de la température des terres 1981–2010 par bande — N_pol 18,8, S_pol 12,1, N_mid 14,3, S_mid 6,5, tropiques 4,0 K — face au cycle calculé de <code>physics/saisons.js</code> et aux amplitudes de zone posées de <code>physics/physics.js</code>.</div>
+</article>
+<article class="ref" id="stefan1891" data-tags="sea-ice conduction">
+    <div class="cite-key">[stefan1891]</div>
+    <div class="authors">Stefan, J.</div>
+    <div class="title">Über die Theorie der Eisbildung, insbesondere über die Eisbildung im Polarmeere</div>
+    <div class="venue">Ann. Phys. Chem. (Wiedemann), 42:269–286 (1891)</div>
+    <div class="used-in">Croissance de la glace de mer par conduction : h = √(2 k_i FDD / (ρ_i L_f)), FDD degrés-jours de gel. Épaisseur de la glace de mer saisonnière dans l'impédance de la mer. <code>physics/saisons.js</code>. DOI non vérifié : omis.</div>
+</article>
+<article class="ref" id="carslawJaeger1959" data-tags="conduction textbook sea-ice">
+    <div class="cite-key">[carslawJaeger1959]</div>
+    <div class="authors">Carslaw, H. S. &amp; Jaeger, J. C.</div>
+    <div class="title">Conduction of Heat in Solids, 2nd ed.</div>
+    <div class="venue">Oxford University Press, Oxford (1959)</div>
+    <div class="used-in">Équation de la chaleur dans une dalle dont la base est tenue à température fixe et la surface oscille : flux de surface / température de surface = k q coth(q h), q = √(iω/κ) — k/h pour une dalle mince, √(kρc) √(iω) pour un milieu semi-infini. Glace de mer posée sur l'eau à son point de gel dans l'impédance de la mer. <code>physics/saisons.js</code>.</div>
+</article>
+<article class="ref" id="feistelWagner2006" data-tags="ice thermodynamics laboratory">
+    <div class="cite-key">[feistelWagner2006]</div>
+    <div class="authors">Feistel, R. &amp; Wagner, W.</div>
+    <div class="title">A new equation of state for H₂O ice Ih</div>
+    <div class="venue">J. Phys. Chem. Ref. Data, 35(2):1021–1047 (2006) ; IAPWS R10-06</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.2183324">10.1063/1.2183324</a></div>
+    <div class="used-in">Chaleur massique de la glace Ih au point triple, c_p = 2 096,78 J kg⁻¹ K⁻¹ (<code>CONST.CP_GLACE</code>, <code>physics/physics.js</code>) : regel dans le névé (<code>physics/calottes.js</code>) et effusivité de la glace de mer (<code>physics/saisons.js</code>).</div>
+</article>
+<article class="ref" id="carnahan2021" data-tags="ice thermal-conductivity laboratory">
+    <div class="cite-key">[carnahan2021]</div>
+    <div class="authors">Carnahan, E., Wolfenbarger, N. S., Jordan, J. S. &amp; Hesse, M. A.</div>
+    <div class="title">New insights into temperature-dependent ice properties and their effect on ice shell convection for icy ocean worlds</div>
+    <div class="venue">Earth Planet. Sci. Lett., 116886 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2021.116886">10.1016/j.epsl.2021.116886</a></div>
+    <div class="used-in">Conductivité thermique de la glace Ih ajustée sur les mesures compilées : 2,24 W m⁻¹ K⁻¹ au point de fusion (matériel supplémentaire), <code>CONST.K_GLACE</code> (<code>physics/physics.js</code>) : glace de mer conductrice et loi de Stefan (<code>physics/saisons.js</code>).</div>
+</article>
+<article class="ref" id="ioc2010" data-tags="seawater thermodynamics laboratory">
+    <div class="cite-key">[ioc2010]</div>
+    <div class="authors">IOC, SCOR &amp; IAPSO</div>
+    <div class="title">The international thermodynamic equation of seawater – 2010: calculation and use of thermodynamic properties (TEOS-10)</div>
+    <div class="venue">Intergovernmental Oceanographic Commission, Manuals and Guides No. 56, UNESCO (2010)</div>
+    <div class="used-in">Eau de mer de la couche de mélange : c_p⁰ = 3 991,87 J kg⁻¹ K⁻¹ et ρ ≈ 1 025 kg/m³ (S = 35 g/kg, ~20 °C). Capacité de la couche de mélange, <code>physics/saisons.js</code> (K.CP_EAU_MER, K.RHO_EAU_MER).</div>
 </article>
 <article class="ref" id="mauritsen2011" data-tags="clouds ccn arctic">
     <div class="cite-key">[mauritsen2011]</div>
@@ -2111,14 +2155,14 @@
     <div class="title">PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic</div>
     <div class="venue">PALEOMAP Project, données 1° × 1° tous les 5 Ma, 0–540 Ma (2018), CC-BY 4.0</div>
     <div class="doi"><a href="https://doi.org/10.5281/zenodo.5460860">10.5281/zenodo.5460860</a></div>
-    <div class="used-in">Paléogéographie zonale CALCULÉE (CO2/scripts/paleogeo/paleodem_zones.py → <code>data/paleogeo_zones.js</code>) : part de continent (socle &gt; −1 000 m), altitude moyenne du socle et des hautes terres, latitudes moyennes, par bande et par hémisphère. La carte actuelle donne le socle SOUS la glace. Lu par <code>physics/calottes.js</code>.</div>
+    <div class="used-in">Paléogéographie zonale CALCULÉE (CO2/scripts/paleogeo/paleodem_zones.py → <code>data/paleogeo_zones.js</code>) : part de continent (socle &gt; −1 000 m), altitude moyenne du socle et des hautes terres, latitudes moyennes, par bande et par hémisphère. Socle SANS glace, même croûte pour les deux calottes : la carte 0 Ma porte le socle antarctique enfoncé par sa glace et la SURFACE de l'inlandsis du Groenland ; le script en retire la glace cellule par cellule (profil de <a href="#nye1952">[nye1952]</a> fermé sur le volume et l'aire de <a href="#fretwell2013">[fretwell2013]</a> ; inlandsis de <a href="#citterio2013">[citterio2013]</a> fermé sur le volume de <a href="#morlighem2017">[morlighem2017]</a>). Les cartes de 0 à 80 Ma copient le socle antarctique actuel chargé (rotation rigide de quelques degrés, corrélation de 0,70 à 0,85 après recalage ; dès 85 Ma, reconstruction, r ≤ 0,50), celles de 5 et 10 Ma la surface de l'inlandsis : l'empreinte transportée de la calotte y REMPLACE la carte par le socle déchargé de 0 Ma transporté — ⚠️ relief propre de la carte perdu, dont les basses terres antarctiques relevées de 300 à 600 m de 15 à 25 Ma ; hors de l'empreinte, la carte est intacte. Méridien ±180 : deux demi-échantillons (colonnes −180 et +180) sur les cartes de 361 colonnes, le seul −180 sur celles de 360 (150 à 395 Ma) — règle des trapèzes ; à 0 Ma, la colonne −180 vaut 0 m au sud de 60° S. Lu par <code>physics/calottes.js</code>.</div>
 </article>
 <article class="ref" id="nye1952" data-tags="ice-sheet plasticity">
     <div class="cite-key">[nye1952]</div>
     <div class="authors">Nye, J. F.</div>
     <div class="title">A method of calculating the thicknesses of the ice-sheets</div>
     <div class="venue">Nature, 169:529–530 (1952)</div>
-    <div class="used-in">Calotte parfaitement plastique : h² = 2 τ₀ x / (ρ_i g), τ₀ mesuré 50–150 kPa (100 retenu). <code>physics/calottes.js</code> (geometrie).</div>
+    <div class="used-in">Calotte parfaitement plastique : h² = 2 τ₀ x / (ρ_i g), τ₀ mesuré 50–150 kPa (100 retenu). <code>physics/calottes.js</code> (geometrie). Même loi pour l'épaisseur de la glace antarctique par cellule sur la carte 0 Ma des PaleoDEM, depuis la marge du continent reculée de d₀ : τ effectif (42,6 kPa) et d₀ (228 km) ferment le volume et l'aire posés de <a href="#fretwell2013">[fretwell2013]</a> (<code>CO2/scripts/paleogeo/paleodem_zones.py</code>).</div>
 </article>
 <article class="ref" id="braithwaite1995" data-tags="ice-sheet melt pdd">
     <div class="cite-key">[braithwaite1995]</div>
@@ -2133,6 +2177,53 @@
     <div class="title">Parameterization of melt rate and surface temperature on the Greenland ice sheet</div>
     <div class="venue">Polarforschung, 59(3):113–128 (1991)</div>
     <div class="used-in">Méthode des degrés-jours : la neige de l’année fond d’abord, puis la glace. <code>physics/calottes.js</code>.</div>
+</article>
+<article class="ref" id="calovGreve2005" data-tags="ice-sheet melt pdd">
+    <div class="cite-key">[calovGreve2005]</div>
+    <div class="authors">Calov, R. &amp; Greve, R.</div>
+    <div class="title">A semi-analytical solution for the positive degree-day model with stochastic temperature variations</div>
+    <div class="venue">J. Glaciol., 51(172):173–175 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/172756505781829601">10.3189/172756505781829601</a></div>
+    <div class="used-in">Degrés-jours positifs d'une loi normale d'écart-type σ autour du cycle annuel, intégrale en température faite à la main : PDD = ∫ [σ e^(−T²/2σ²)/√(2π) + (T/2) erfc(−T/(√2 σ))] dt (éq. 6). <code>physics/calottes.js</code> (bilanPoint, 24 nœuds de l'année).</div>
+</article>
+<article class="ref" id="seguinotRogozhina2014" data-tags="ice-sheet melt pdd reanalysis">
+    <div class="cite-key">[seguinotRogozhina2014]</div>
+    <div class="authors">Seguinot, J. &amp; Rogozhina, I.</div>
+    <div class="title">Daily temperature variability predetermined by thermal conditions over ice-sheet surfaces</div>
+    <div class="venue">J. Glaciol., 60(221):603–605 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/2014JoG14J036">10.3189/2014JoG14J036</a></div>
+    <div class="used-in">Écart-type des températures journalières autour du cycle annuel sur le Groenland, σ = −0,15 T_m + 1,66 K (éq. 3 ; ERA-40 1958–2001, régression pondérée en 1/σ, r² = 0,79) — sa décroissance vers 0 °C vient du point de fusion. Une mesure : σ n'a pas d'équation. ⚠️ L'article l'exclut des terres sans glace, où le modèle fait naître les calottes. ❔ Au-dessus de 0 °C, σ garde sa valeur de 0 °C (la régression contient des mois jusqu'à +2 °C). <code>physics/calottes.js</code> (K.SIGMA_FONTE_K, K.PENTE_SIGMA).</div>
+</article>
+<article class="ref" id="janssensHuybrechts2000" data-tags="ice-sheet melt refreezing">
+    <div class="cite-key">[janssensHuybrechts2000]</div>
+    <div class="authors">Janssens, I. &amp; Huybrechts, P.</div>
+    <div class="title">The treatment of meltwater retention in mass-balance parameterizations of the Greenland ice sheet</div>
+    <div class="venue">Ann. Glaciol., 31:133–140 (2000)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/172756400781819941">10.3189/172756400781819941</a></div>
+    <div class="used-in">Regel de l'eau de fonte d'après <a href="#pfeffer1991">[pfeffer1991]</a> (éq. 7, écrite par <a href="#reijmer2012">[reijmer2012]</a>) : froid de la couche de neige de l'année, (c_i/L_f) max(0, −T̄) × accumulation, et rétention capillaire de la neige restante, (ρ_e/ρ_o − 1)(accumulation − fonte de l'année), nulle en zone d'ablation ; le regel ne dépasse pas la fonte. ρ_o = 300 et ρ_e = 960 kg/m³ (névé sec et saturé). <code>physics/calottes.js</code> (bilanPoint, K.RHO_NEIGE_SECHE, K.RHO_NEIGE_MOUILLEE).</div>
+</article>
+<article class="ref" id="pfeffer1991" data-tags="ice-sheet melt refreezing">
+    <div class="cite-key">[pfeffer1991]</div>
+    <div class="authors">Pfeffer, W. T., Meier, M. F. &amp; Illangasekare, T. H.</div>
+    <div class="title">Retention of Greenland runoff by refreezing: implications for projected future sea level change</div>
+    <div class="venue">J. Geophys. Res., 96(C12):22117–22124 (1991)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/91JC02502">10.1029/91JC02502</a></div>
+    <div class="used-in">L'eau de fonte d'un névé sous 0 °C y regèle, le réchauffe et en comble les pores ; elle ne ruisselle qu'au-delà. Lu sous la forme de <a href="#janssensHuybrechts2000">[janssensHuybrechts2000]</a> (l'article original n'est pas relu). <code>physics/calottes.js</code> (bilanPoint).</div>
+</article>
+<article class="ref" id="reijmer2012" data-tags="ice-sheet melt refreezing">
+    <div class="cite-key">[reijmer2012]</div>
+    <div class="authors">Reijmer, C. H., van den Broeke, M. R., Fettweis, X., Ettema, J. &amp; Stap, L. B.</div>
+    <div class="title">Refreezing on the Greenland ice sheet: a comparison of parameterizations</div>
+    <div class="venue">The Cryosphere, 6:743–762 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/tc-6-743-2012">10.5194/tc-6-743-2012</a></div>
+    <div class="used-in">Forme écrite du regel de <a href="#janssensHuybrechts2000">[janssensHuybrechts2000]</a> : E_r = min(P_r, W_r) (éq. 2), P_r = (c_i/L_f) C|T_s| + (C − M)(ρ_pc − ρ_f)/ρ_f (éq. 5), C neige et M fonte de l'année, W_r eau disponible (fonte, plus la pluie que le modèle néglige), E_r borné par la précipitation de l'année. <code>physics/calottes.js</code> (bilanPoint).</div>
+</article>
+<article class="ref" id="abramowitzStegun1964" data-tags="numerical special-functions">
+    <div class="cite-key">[abramowitzStegun1964]</div>
+    <div class="authors">Abramowitz, M. &amp; Stegun, I. A. (éd.)</div>
+    <div class="title">Handbook of Mathematical Functions with Formulas, Graphs, and Mathematical Tables</div>
+    <div class="venue">National Bureau of Standards, Applied Mathematics Series 55, Washington (1964)</div>
+    <div class="used-in">Fonction d'erreur complémentaire par l'approximation 7.1.26, erfc(x) = t (a₁ + a₂t + … + a₅t⁴) e^(−x²), t = 1/(1 + 0,3275911 x), |ε| ≤ 1,5·10⁻⁷ : probabilité d'un jour au-dessus de 0 °C dans les degrés-jours. <code>physics/calottes.js</code> (bilanPoint).</div>
 </article>
 <article class="ref" id="weertman1976" data-tags="ice-sheet milankovitch geometry">
     <div class="cite-key">[weertman1976]</div>
@@ -2185,12 +2276,21 @@
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-calottes-cryogenien">14. Calottes, Cryogénien &amp; frontières d’hystérésis</h2>
+<article class="ref" id="bueler2007" data-tags="ice-sheet isostasy viscoelastic">
+    <div class="cite-key">[bueler2007]</div>
+    <div class="authors">Bueler, E., Lingle, C. S. &amp; Brown, J.</div>
+    <div class="title">Fast computation of a viscoelastic deformable Earth model for ice-sheet simulations</div>
+    <div class="venue">Annals of Glaciology, 46:97–105 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/172756407782871567">10.3189/172756407782871567</a></div>
+    <div class="used-in">Temps de relaxation d'un demi-espace visqueux sous une plaque élastique, par longueur d'onde (éq. 14) : la flexion y pèse moins de 0,1 % au-delà de 3 000 km de longueur d'onde, négligée dans le rebond du socle des calottes (<code>physics/calottes.js</code>).</div>
+</article>
 <article class="ref" id="citterio2013" data-tags="ice-sheet greenland observation">
     <div class="cite-key">[citterio2013]</div>
     <div class="authors">Citterio, M. &amp; Ahlstrøm, A. P.</div>
     <div class="title">Brief communication: The aerophotogrammetric map of Greenland ice masses</div>
     <div class="venue">The Cryosphere, 7:445–449 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.5194/tc-7-445-2013">10.5194/tc-7-445-2013</a></div>
+    <div class="used-in">Groenland : 1 804 638 km² englacés dont 88 083 km² de glaciers et calottes locales, soit un inlandsis de 1 716 555 km². Aire de la calotte actuelle (<code>CALOTTES_ACTUELLES</code>, <code>config/configTimeline.js</code>) ; masque de l'inlandsis qui décharge le Groenland des PaleoDEM, aire lue dans <code>CALOTTES_ACTUELLES</code> (<code>CO2/scripts/paleogeo/paleodem_zones.py</code>).</div>
 </article>
 <article class="ref" id="dalton2020" data-tags="ice-sheet quaternary deglaciation">
     <div class="cite-key">[dalton2020]</div>
@@ -2200,18 +2300,35 @@
     <div class="doi"><a href="https://doi.org/10.1016/j.quascirev.2020.106223">10.1016/j.quascirev.2020.106223</a></div>
     <div class="used-in">Complexe nord-américain à 18 ka : 18,37 millions de km² — comparaison seulement avec les calottes calculées au clic du DMG ; ~9,9e6 km² à 11,7 ka (🛖).</div>
 </article>
+<article class="ref" id="deblondePeltier1990" data-tags="ice-sheet isostasy quaternary">
+    <div class="cite-key">[deblondePeltier1990]</div>
+    <div class="authors">Deblonde, G. &amp; Peltier, W. R.</div>
+    <div class="title">A paleoclimatic model of the mid-Pleistocene climate transition</div>
+    <div class="venue">Annals of Glaciology, 14:47–50 (1990)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/S0260305500008247">10.3189/S0260305500008247</a></div>
+    <div class="used-in">Calotte à une dimension sur une Terre viscoélastique : les grands reculs qu'un socle amorti localement produit ne sont plus si marqués ; il faut l'eau de fonte de Pollard pour des déglaciations complètes. Contexte du rebond retardé, hors calcul.</div>
+</article>
 <article class="ref" id="fretwell2013" data-tags="ice-sheet antarctica observation">
     <div class="cite-key">[fretwell2013]</div>
     <div class="authors">Fretwell, P. et al.</div>
     <div class="title">Bedmap2: improved ice bed, surface and thickness datasets for Antarctica</div>
     <div class="venue">The Cryosphere, 7:375–393 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.5194/tc-7-375-2013">10.5194/tc-7-375-2013</a></div>
+    <div class="used-in">Glace posée de l'Antarctique, plates-formes exclues (tableau 7) : 26,54e6 km³ sur 12,295e6 km². Aire des calottes actuelles (<code>CALOTTES_ACTUELLES</code>, <code>config/configTimeline.js</code>). Volume ET aire ferment les deux inconnues du profil de <a href="#nye1952">[nye1952]</a> — τ effectif et recul de la marge — qui donne l'épaisseur de la glace par cellule sur la carte 0 Ma des PaleoDEM, d'où le rebond d'Airy ρ_i/ρ_m · H et la recharge d'eau qui déchargent le socle antarctique (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>) ; l'aire, lue dans <code>CALOTTES_ACTUELLES</code>, y est une entrée.</div>
 </article>
 <article class="ref" id="gumsley2017" data-tags="paleoproterozoic glaciation goe geochronology">
     <div class="cite-key">[gumsley2017]</div>
     <div class="authors">Gumsley, A. P., Chamberlain, K. R., Bleeker, W., Söderlund, U., de Kock, M. O., Larsson, E. R. &amp; Bekker, A.</div>
     <div class="title">Timing and tempo of the Great Oxidation Event</div>
     <div class="venue">PNAS, 114:1811–1816 (2017)</div>
+</article>
+<article class="ref" id="haskell1935" data-tags="isostasy mantle-viscosity">
+    <div class="cite-key">[haskell1935]</div>
+    <div class="authors">Haskell, N. A.</div>
+    <div class="title">The motion of a viscous fluid under a surface load</div>
+    <div class="venue">Physics, 6:265–269 (1935)</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.1745329">10.1063/1.1745329</a></div>
+    <div class="used-in">Première estimation de la viscosité du manteau, 10²¹ Pa·s, par le soulèvement post-glaciaire de la Fennoscandie (lue dans Schubert, Turcotte &amp; Olson 2001, ch. 5) : η du rebond du socle des calottes (<code>physics/calottes.js</code>).</div>
 </article>
 <article class="ref" id="krissansenTotton2018" data-tags="precambrian carbon-cycle temperature">
     <div class="cite-key">[krissansenTotton2018]</div>
@@ -2227,11 +2344,43 @@
     <div class="venue">Earth Planet. Sci. Lett. (2009)</div>
     <div class="doi"><a href="https://doi.org/10.1016/j.epsl.2008.11.010">10.1016/j.epsl.2008.11.010</a></div>
 </article>
+<article class="ref" id="leMeurHuybrechts1996" data-tags="ice-sheet isostasy">
+    <div class="cite-key">[leMeurHuybrechts1996]</div>
+    <div class="authors">Le Meur, E. &amp; Huybrechts, P.</div>
+    <div class="title">A comparison of different ways of dealing with isostasy: examples from modelling the Antarctic ice sheet during the last glacial cycle</div>
+    <div class="venue">Annals of Glaciology, 23:309–317 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.3189/S0260305500013586">10.3189/S0260305500013586</a></div>
+    <div class="used-in">Isostasie locale (éq. 1) et asthénosphère relaxante (éq. 4) : forme du rebond retardé du socle des calottes. Leur temps de 3 000 ans, réglé, n'est pas repris : τ_b vient de l'équation du demi-espace visqueux (<code>physics/calottes.js</code>).</div>
+</article>
 <article class="ref" id="macdonaldWordsworth2017" data-tags="snowball sulfate-aerosol lip">
     <div class="cite-key">[macdonaldWordsworth2017]</div>
     <div class="authors">Macdonald, F. A. &amp; Wordsworth, R.</div>
     <div class="title">Initiation of Snowball Earth with volcanic sulfur aerosol emissions</div>
     <div class="venue">Geophys. Res. Lett., 44:1938–1946 (2017)</div>
+</article>
+<article class="ref" id="mitrovica1996" data-tags="isostasy mantle-viscosity">
+    <div class="cite-key">[mitrovica1996]</div>
+    <div class="authors">Mitrovica, J. X.</div>
+    <div class="title">Haskell [1935] revisited</div>
+    <div class="venue">Journal of Geophysical Research: Solid Earth, 101(B1):555–569 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/95JB03208">10.1029/95JB03208</a></div>
+    <div class="used-in">Ce que mesure le soulèvement fennoscandien : la viscosité moyenne du manteau de la base de la lithosphère à ~1 400 km, 0,65–1,1·10²¹ Pa·s. ⚠️ Mesure posée η = 10²¹ Pa·s du rebond retardé (<code>physics/calottes.js</code>, K.VISCOSITE_MANTEAU). Lu : résumé et Schubert et al. 2001, ch. 5.</div>
+</article>
+<article class="ref" id="morlighem2017" data-tags="ice-sheet greenland observation">
+    <div class="cite-key">[morlighem2017]</div>
+    <div class="authors">Morlighem, M. et al.</div>
+    <div class="title">BedMachine v3: Complete bed topography and ocean bathymetry mapping of Greenland from multibeam echo sounding combined with mass conservation</div>
+    <div class="venue">Geophys. Res. Lett., 44(21):11051–11061 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2017GL074954">10.1002/2017GL074954</a></div>
+    <div class="used-in">Volume total de glace du Groenland, « total ice volume of 2.99 ± 0.02 10⁶ km³ » : il ferme le socle chargé moyen sous l'inlandsis des PaleoDEM (b̄ = s̄ − V/A = 437 m sur la carte 0 Ma), d'où l'épaisseur H = s − b̄ et le socle déchargé b̄ + ρ_i/ρ_m · H, porté sur les cartes de 5 et 10 Ma (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>).</div>
+</article>
+<article class="ref" id="schubertTurcotteOlson2001" data-tags="geodynamics mantle-viscosity textbook">
+    <div class="cite-key">[schubertTurcotteOlson2001]</div>
+    <div class="authors">Schubert, G., Turcotte, D. L. &amp; Olson, P.</div>
+    <div class="title">Mantle Convection in the Earth and Planets</div>
+    <div class="venue">Cambridge University Press (2001)</div>
+    <div class="doi"><a href="https://doi.org/10.1017/CBO9780511612879">10.1017/CBO9780511612879</a></div>
+    <div class="used-in">Ch. 5 : temps de relaxation d'un demi-espace visqueux τ = 4πμ/(ρ g λ) (éq. 5.2.32), λ de la Fennoscandie (3 000 km), rebonds observés du tableau 5.1 (Laurentide 2,6 ka, Fennoscandie 4,4 ka) : τ_b du socle des calottes et son contrôle (<code>physics/calottes.js</code>).</div>
 </article>
 <article class="ref" id="wilson2013" data-tags="ice-sheet antarctica eot gcm">
     <div class="cite-key">[wilson2013]</div>
@@ -2265,7 +2414,7 @@
     <div class="title">Geodynamics (3ᵉ édition)</div>
     <div class="venue">Cambridge University Press (2014)</div>
     <div class="doi"><a href="https://doi.org/10.1017/CBO9780511843877">10.1017/CBO9780511843877</a></div>
-    <div class="used-in">Chaleur par kg d’isotope, abondances et demi-vies (tableau 4.2), dilatation thermique (tableau 4.1), Nu ∝ Ra^β avec β = 1/3 (§6.21) : <code>geology/interieur.js</code> ; masse volumique du manteau supérieur pour l’isostasie (<code>physics/calottes.js</code>).</div>
+    <div class="used-in">Chaleur par kg d’isotope, abondances et demi-vies (tableau 4.2), dilatation thermique (tableau 4.1), Nu ∝ Ra^β avec β = 1/3 (§6.21) : <code>geology/interieur.js</code> ; masse volumique du manteau supérieur pour l’isostasie (<code>physics/calottes.js</code>), le rebond des socles antarctique et groenlandais et la recharge d’eau des socles restés sous la mer (<code>CO2/scripts/paleogeo/paleodem_zones.py</code>).</div>
 </article>
 
 <article class="ref" id="jaupart2015" data-tags="heat-flow mantle">

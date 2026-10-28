@@ -3,7 +3,8 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.4.0
+// Version 2.5.0
+// - v2.5.0 (2026-10-26): 🐾 et 🦘, les deux chemins du Quaternaire.
 // - v2.4.0 (2026-10-25): usage 📖 = contexte (cité, n'entre pas dans le calcul, n'est pas une cible).
 // - v2.3.2 (2026-10-15): 👁 = vu d'en haut par un satellite passif (simulateur ISCCP).
 // Date: [October 14, 2026]
@@ -222,6 +223,8 @@ const CHARS_DESC = {
     // Événements
     '⚗': 'Affiche les concentrations (action d\'interface — ce n\'est PAS une unité)',
     '💫': 'TicTime',
+    '🐾': 'Pas à pas — suivre les carottes de glace, 20 000 ans par clic',
+    '🦘': 'Le saut — jusqu\'au dernier maximum glaciaire, puis l\'Holocène',
     '🛢': 'Scénario émissions',
     '🪾': 'Scénario émissions — double du bidon',
     '☄️': 'Météorite de glace',
