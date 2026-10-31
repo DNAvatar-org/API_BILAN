@@ -1,13 +1,14 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.4.0
-// Date: [October 22, 2026]
+// Version 1.5.2
+// Date: [October 31, 2026]
 // logs :
-// - v1.4.0: obliquité 📜⚾ et facteur de Kepler du Soleil depuis l'orbite à la date (physics/orbite.js) ; plus de ⚾ dans les 🔁.
-// - v1.3.3: DATA['📅'] = l'entrée du TIMELINE au début de getEpochDateConfig (n'écrit plus sa graine, devenue un accesseur).
-// - v1.3.2: eau des météorites = cumul 📜🔺⚖️💧 tenu par CLICS.jouer (plus 📿☄️ × une masse unique par époque).
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// - v1.5.2: 📜🧫, la biosphère marine du clic : celle de l'époque, ou de son état 🔁 daté.
+// - v1.5.1: commentaires : le voile SW en rampe le long d'une époque n'a pas d'exemple dans la config.
+// - v1.5.0: 📜⚾ = l'obliquité utilisée (l'orbite, sinon celle que l'époque déclare) ; graine du clic dans 📜🌡️🧮 ; Soleil de Gough
+//   à l'ÂGE courant, L☉ = CONST.L_SOLEIL_W ; l'époque est DATA['📅'] (accesseur).
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -33,7 +34,7 @@ function syncDryAtmosphereMassKg(state) {
 function getMasses() {
     const DATA = window.DATA;
     const H = DATA['📜'];
-    const EPOCH = window.TIMELINE.find(item => item['📅'] === H['🗿']);
+    const EPOCH = DATA['📅'];
     const base = {
         '⚖️🏭': EPOCH['⚖️🏭'],
         '⚖️🐄': EPOCH['⚖️🐄'],
@@ -58,12 +59,12 @@ function getMasses() {
     return true;
 }
 
-/** Date courante, voile, rayon, états 🔁, images, interpolation 🔀, puis masses. L'époque est celle posée par
+/** Date courante, graine, voile, rayon, obliquité, états 🔁, images, interpolation 🔀, puis masses. L'époque est celle posée par
  *  CLICS (frise / passer) : getEpochDateConfig n'en change jamais — le passage est décidé par le clic. */
 function getEpochDateConfig() {
     const DATA = window.DATA;
     const H = DATA['📜'];
-    const EPOCH = window.TIMELINE[H['👉']];
+    const EPOCH = DATA['📅'];   // TIMELINE[📜👉] (accesseur de data/initDATA.js)
     const W = EPOCH['🕰'];
 
     // Temps écoulé dans l'époque : 📜⏳ (Ma), seule horloge, tenue par CLICS.jouer (somme des 🔺⏳ joués).
@@ -71,19 +72,23 @@ function getEpochDateConfig() {
 
     // Delta de température par tictime (graine sans anim : calculateT0).
     H['🔺🌡️💫'] = ('💫' in W) ? W['💫']['🔺🌡️💫'] : 0;
-    // DATA['📅'] repart de l'entrée du TIMELINE (sa graine 🌡️🧮 est la courbe cyan, un accesseur) ; 🔀 '📅' plus bas la
-    // remplace par une copie fusionnée.
-    DATA['📅'] = EPOCH;
+    // Graine du clic (calculateT0) : la courbe cyan à ▶ (accesseur de l'époque) ; 🔀 '📜' plus bas l'interpole le long de
+    // l'époque quand son ◀ en porte une (🏔, 🦣).
+    H['🌡️🧮'] = EPOCH['🌡️🧮'];
     H['🧲🔬'] = EPOCH['🧲🔬'];
+    // Biosphère marine du clic (gate CLAW du sulfate efficace, calculations_albedo.js) : celle de l'époque ; un état 🔁 qui en
+    // porte une la remplace plus bas (🦕 à 151,9 Ma).
+    H['🧫'] = EPOCH['🧫'];
 
     // Voile SW 📜🔺🍰⚽. Trois sources possibles, par config :
-    //  - 🔀 contient '📜' : rampe le long de l'époque (🏔) — l'interpolation plus bas le pose ;
+    //  - 🔀 contient '📜' et ◀['📜'] porte 🔺🍰⚽ : rampe le long de l'époque — l'interpolation plus bas la pose (aucune époque
+    //    de la config n'en déclare) ;
     //  - racine EPOCH['🔺🍰⚽'] : impulsion posée une fois à l'entrée (📿💫 = 0), retirée au tic (CLICS.jouer) ;
     //  - action 🗻 / 🌋 qui déclare 🔺🍰⚽ : le clic la pose (CLICS.jouer), le compute n'y touche pas.
     // Sinon : le voile hérité d'une époque précédente est effacé.
     const interpolKeys = ('🔀' in W) ? W['🔀'] : [];
     const veilAction = ['🗻', '🌋'].some(k => (k in W) && ('🔺🍰⚽' in W[k]));
-    if (interpolKeys.includes('📜')) {
+    if (interpolKeys.includes('📜') && ('🔺🍰⚽' in W['◀']['📜'])) {
         H['_veilTimelinePulseActive'] = false;
     } else if ('🔺🍰⚽' in EPOCH) {
         if (H['📿💫'] === 0 && H['_veilTimelinePulseActive'] !== true) {
@@ -96,13 +101,20 @@ function getEpochDateConfig() {
     }
 
     // Rayon : f(T de l'intérieur) — geology/interieur.js, la seule source (avancer le remet à jour).
-    H['📐'] = window.INTERIEUR.rayonKm(DATA);
+    H['📐'] = window.INTERIEUR.rayonKm();
 
-    // ⚾ : obliquité de l'orbite à la date courante (physics/orbite.js, La2004) ; 0 hors de la solution
-    // (avant −51 Ma), soit l'obliquité de l'époque (physics.js obliquiteCourante).
-    H['⚾'] = window.ORBITE.obliquiteDeg(window.INTERIEUR.ageCourant(DATA));
-    // 🔁 ÉTATS PAR TIC (🍄, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
-    // maintenu. Un état porte des masses '⚖️*' (→ 📜🔁⚖️, getMasses) et '📝' ; jamais d'obliquité : elle vient de l'orbite.
+    // ⚾ : l'obliquité qu'utilise le calcul (bilan méridien, glace saisonnière, boîtes saisonnières, calottes) — celle de l'orbite à
+    // la date courante (physics/orbite.js, La2004) ; hors de la solution (avant −51 Ma), celle que DÉCLARE l'époque (EPOCH['⚾']).
+    const age = window.INTERIEUR.ageCourant();
+    if (window.ORBITE.valide(age)) {
+        H['⚾'] = window.ORBITE.obliquiteDeg(age);
+    } else {
+        if (!(EPOCH['⚾'] >= 0 && EPOCH['⚾'] <= 180)) throw new Error('[getEpochDateConfig] ' + EPOCH['📅'] + ' : date hors de la solution La2004 (−51 Ma) et EPOCH[\'⚾\'] = ' + EPOCH['⚾'] + ' (obliquité de l\'époque à déclarer, en degrés)');
+        H['⚾'] = EPOCH['⚾'];
+    }
+    // 🔁 ÉTATS PAR TIC (🍄, 🦕, 🦣) : index = 📿💫 − 1 (tic 0 = racine) ; au-delà de la liste, le dernier état est
+    // maintenu. Un état porte des masses '⚖️*' (→ 📜🔁⚖️, getMasses), '📝' et '🧫' (→ 📜🧫) ; jamais d'obliquité : elle vient de
+    // l'orbite.
     H['🔁⚖️'] = {};
     H['🔁📝'] = '';
     H['🖼'] = '';
@@ -114,14 +126,15 @@ function getEpochDateConfig() {
         }
         if ('⚾' in state) throw new Error('[getEpochDateConfig] 🔁 de ' + EPOCH['📅'] + ' pose ⚾ : l\'obliquité vient de l\'orbite (physics/orbite.js)');
         if ('📝' in state) H['🔁📝'] = state['📝'];
+        if ('🧫' in state) H['🧫'] = state['🧫'];
     }
     // 🖼 suite d'images imposée par l'époque : index = 📿💫 modulo longueur (sinon texture déduite de la date).
     if ('🖼' in W) H['🖼'] = W['🖼'][H['📿💫'] % W['🖼'].length];
     // 🌙 carte de nuit superposée (toute l'époque) : lumières des villes côté ombre.
     if ('🌙' in W) H['🌙'] = W['🌙'];
 
-    // 🔀 INTERPOLATION entre la racine (▶) et 🕰['◀'] des groupes listés : '⚖️' (masses → 📜🔀⚖️), '📅' (graine
-    // 🌡️🧮), '📜' (voile 🔺🍰⚽). Sans ◀, la cible est la racine de l'époque suivante (masses seulement).
+    // 🔀 INTERPOLATION entre la racine (▶) et 🕰['◀'] des groupes listés : '⚖️' (masses → 📜🔀⚖️), '📜' (graine 🌡️🧮, voile
+    // 🔺🍰⚽ → 📜). Sans ◀, la cible est la racine de l'époque suivante (masses seulement).
     H['🔀⚖️'] = {};
     if (interpolKeys.length) {
         if (interpolKeys.includes('🌕')) throw new Error('[getEpochDateConfig] 🔀 contient 🌕 (époque ' + EPOCH['📅'] + ') : le flux intérieur ne s\'interpole plus, il sort du bilan d\'énergie (geology/interieur.js)');
@@ -147,9 +160,6 @@ function getEpochDateConfig() {
             }
             if (groupKey === '⚖️') H['🔀⚖️'] = out;
             else if (groupKey === '📜') Object.assign(H, out);
-            // DATA['📅'] est l'entrée du TIMELINE (api.run / setEpoch) : on la remplace par une copie fusionnée pour
-            // ne jamais écrire dans la config.
-            else if (groupKey === '📅') DATA['📅'] = Object.assign({}, DATA['📅'], out);
             else throw new Error('[getEpochDateConfig] 🔀 : groupe inconnu ' + groupKey + ' (époque ' + EPOCH['📅'] + ')');
         }
     }
@@ -159,26 +169,27 @@ function getEpochDateConfig() {
 }
 
 // 🔒 FORMULE DE GOUGH (1981), Solar Physics 74:21
-// L(t_ago) = L_SUN / (1 + 0.4 × t_ago_Ga / T_SUN_GA)
+// L(t_ago) = L☉ / (1 + 0.4 × t_ago_Ga / T_SUN_GA), L☉ = CONST.L_SOLEIL_W (Soleil actuel, IAU 2015) ; t_ago = ÂGE (années avant
+// le présent), jamais une date du calendrier.
 // Confirmé par Bahcall, Pinsonneault & Basu (2001), ApJ 555:990.
 // NE PAS REMPLACER PAR UNE INTERPOLATION LINÉAIRE — la relation est hyperbolique.
-var GOUGH_L_SUN_W = 3.828e26;  // IAU 2015 Resolution B3
 var GOUGH_T_SUN_GA = 4.57;     // Âge du Soleil en Ga
 var GOUGH_COEFF = 0.4;         // Coefficient d'évolution (homologie stellaire H→He)
 
 function goughLuminosity(t_ago_years) {
     var t_ago_Ga = t_ago_years / 1e9;
-    return GOUGH_L_SUN_W / (1 + GOUGH_COEFF * t_ago_Ga / GOUGH_T_SUN_GA);
+    return CONST.L_SOLEIL_W / (1 + GOUGH_COEFF * t_ago_Ga / GOUGH_T_SUN_GA);
 }
 
-//Calcule les valeurs du soleil depuis la date courante via Gough (1981)
+//Calcule les valeurs du soleil à l'âge courant via Gough (1981)
 function getSoleil() {
     const DATA = window.DATA;
-    // Date courante (CLICS.date, depuis 📜⏳). 🔒 Luminosité exacte via Gough.
-    const P_watts = goughLuminosity(window.CLICS.date());
+    // Âge courant (INTERIEUR.ageCourant, depuis 📜⏳). 🔒 Luminosité exacte via Gough.
+    const age = window.INTERIEUR.ageCourant();
+    const P_watts = goughLuminosity(age);
     DATA['☀️']['🔋☀️'] = P_watts;
     // Moyenne annuelle sur l'orbite elliptique : × 1/√(1 − e²) (Kepler ; physics/orbite.js, 1 hors de la solution).
-    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M) * window.ORBITE.facteurSoleil(window.INTERIEUR.ageCourant(DATA));
+    DATA['☀️']['🧲☀️'] = P_watts / (4 * Math.PI * CONV.AU_M * CONV.AU_M) * window.ORBITE.facteurSoleil(age);
     DATA['☀️']['🧲☀️🎱'] = DATA['☀️']['🧲☀️'] / 4;
     return true;
 }
@@ -188,7 +199,7 @@ function getNoyau() {
     // Source UNIQUE de DATA['🌕'] : l'état de l'intérieur (geology/interieur.js), amené à la date courante par
     // CONVERGE.computeRadiativeTransfer (bilan d'énergie). Ici on ne fait que le publier : flux [W/m²] = puissance /
     // (4πR²) au rayon courant 📜📐. Intérieur fondu → NaN jusqu'au radiatif de l'init (surface = magma).
-    window.INTERIEUR.publier(window.DATA);
+    window.INTERIEUR.publier();
     return true;
 }
 

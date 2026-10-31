@@ -1,13 +1,11 @@
 // File: API_BILAN/config/fine_tuning_bounds.js - Bornes de fine-tuning min/max
 // Desc: En français, dans l'architecture, je définis les bornes d'essais (min, moyenne, max) pour calibrer sans sortir des plages visées.
-// Version 1.7.0
+// Version 1.8.0
+// - v1.8.0 (2026-10-30): jauge HYSTERESIS retirée (sa cible, la rampe de la mer gelée, n'est lue par aucun module de physique).
 // - v1.7.0 (2026-10-13): FROID et CHAUD inversés — 100 % = le plus chaud (🔺, monter réchauffe) ; champ `sens` des jauges
 //   retiré (le sens est calculé : TUNING.sensJauge). Valeurs à 50 % inchangées.
-// - v1.6.1 (2026-10-13): classement remesuré après les corrections physiques : humidité de surface → CHAUD.
-// - v1.6.0 (2026-10-13): barycentre unique éclaté en jauges FROID / CHAUD / SUBTIL / HYSTERESIS (classement mesuré) ;
-//   cibles F_BAS, F_HAUT, H2O_SURFACE_RH_01 (fourchettes mesurées).
-// Date: [October 12, 2026]
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -23,8 +21,7 @@ window.FINE_TUNING_BOUNDS = {
     //            fraction de nuages bas (−5 à −8 ; +3 sur ⛄, nuages au-dessus de la glace) ;
     //   CHAUD  — réchauffe TOUJOURS : fraction de nuages hauts (+2 à +5), humidité de surface (+1 à +1,8 depuis le retrait
     //            du facteur « Iris » ; avant, son signe changeait selon l'époque — artefact) ;
-    //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +0,8 à +1,5 avant l'industrie) ;
-    //   HYSTERESIS — rampe de la mer gelée : sans effet aux graines, n'agit qu'au passage du gel.
+    //   SUBTIL — le signe dépend de l'époque : exposant sulfate (0 sur 📱, +0,8 à +1,5 avant l'industrie).
     // Convention (v1.7.0, 2026-10-13, demande de l'utilisateur) : FROID et CHAUD vont dans le même sens que le climat —
     // 100 % = la valeur la plus RÉCHAUFFANTE de chaque plage (🔺). Avant : 100 % = la plus refroidissante. Bornes inversées,
     // valeurs à 50 % inchangées (milieu des plages).
@@ -47,11 +44,7 @@ window.FINE_TUNING_BOUNDS = {
             explication: 'Exposant a de la loi gouttes ∝ (masse de sulfate)^a, rapportée à la charge actuelle : sans effet sur 📱, '
                 + 'il réchauffe une époque moins chargée en sulfate qu\'aujourd\'hui et refroidirait une époque plus chargée. '
                 + '100 % = borne haute.',
-            mesure: 'Bilan net à la graine, 0,11 → 0,29 : 0 sur 📱, +0,8 à +1,5 W/m² avant l\'industrie.' },
-        HYSTERESIS: { logo: '🧊', titre: 'rampe de la mer gelée',
-            explication: 'Largeur, sous le point de gel, de la rampe qui fait passer la mer de libre à gelée. Sans effet loin du gel ; '
-                + 'elle règle les bascules (snowball, sorties).',
-            mesure: 'Sans effet sur le bilan aux graines des sept époques testées.' }
+            mesure: 'Bilan net à la graine, 0,11 → 0,29 : 0 sur 📱, +0,8 à +1,5 W/m² avant l\'industrie.' }
     },
     targets: [
         // CLOUD_FRACTION_BASE [0,17 ; 0,23], CLOUD_FRACTION_INDEX_GAIN [0,08 ; 0,14], OPTICAL_EFF_BASE [1,00 ; 1,20]
@@ -178,7 +171,7 @@ window.FINE_TUNING_BOUNDS = {
             source: 'McCoy et al. 2018 ACP 18:2035, Table 1 : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]. Forme de Boucher & Lohmann 1995 Tellus B 47:281.',
             effect: 'epoch-dependent',
             biblio_ref: 'SULFATE_CCN_EXPONENT'
-        },
+        }
         // TEMP_FACTOR_REF_K retiré : remplacé dans calculations_albedo.js par la
         // partition de phase Hu & Stamnes (1993). Plus de borne arbitraire sur T.
         // H2O_EDS_SCALE [1,00 ; 0,60] RETIRÉ (v1.5.1, 2026-10-13) : il remplaçait trois physiques absentes — continuum
@@ -186,18 +179,5 @@ window.FINE_TUNING_BOUNDS = {
         // recouvrement des raies CO₂/H₂O (automatique : les κ sont sommés par longueur d'onde). Avec le facteur de
         // diffusivité, le ciel clair à 288 K vaut 268,5 W/m² sans lui (CERES 266–269). Un multiplicateur à 1 ne
         // porte plus rien : il quitte le code.
-        {
-            group: 'HYSTERESIS',
-            key: 'seaIceTransitionRangeK',
-            baryGroup: 'HYSTERESIS',
-            min: 1,
-            max: 6,
-            default: 2.2,
-            unit: 'K',
-            note: 'largeur T sous T_gel : fraction mer gelée 0→1 (moteur calculations_albedo)',
-            source: 'EBM cryosphère Budyko–Sellers ; transitions résolues typ. ~quelques K en paramétrisation agrégée ; plage UI scie ×1000',
-            effect: 'mixed',
-            biblio_ref: 'HYST_SEA_ICE_RANGE_K'
-        }
     ]
 };

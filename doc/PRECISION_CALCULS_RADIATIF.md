@@ -40,15 +40,19 @@ Littérature (Charnay 2017, Kienert 2013) : 281–303 K (8–30°C) plausible po
 
 ## 2. Sources potentielles de décalage
 
-### 2.1 Absence de pressure broadening (priorité élevée)
+### 2.1 Élargissement par la pression
 
-**Problème** : Les sections efficaces σ(λ) sont **indépendantes de la pression**. À 2 bars (Archéen), l’élargissement par pression (pressure broadening) augmente l’absorption dans les ailes des raies.
+**Modèle** : la section efficace est celle de la (T, P) de chaque couche. La largeur de Lorentz de chaque raie HITRAN est
+proportionnelle à P ; `radiative/calculations.js` (tablesSigma) calcule des tables σ(λ, T, P) sur 12 températures × 19 pressions
+(demi-décades de 10⁻⁵ à 10⁴ atm), interpolées linéairement en T et, en P, en ln σ linéaire en ln P (exact pour σ ∝ P^a : aile de
+Lorentz a = 1, centre de raie a = −1, raie gaussienne a = 0). La vapeur est lue à sa pression effective P·(1 + x_v (R_self − 1)).
 
-**Impact estimé** : À 2 bar, l’absorption peut être sous-estimée de ~10–30 % par rapport à un modèle avec broadening. L’EDS serait donc trop faible → température simulée trop basse.
+**Pourquoi pas σ(1 atm)·√(P/P₀)** : c’est la limite des raies fortes de la largeur équivalente d’une BANDE, pas la loi d’une
+section efficace en un point. Un point de la grille spectrale tombe presque toujours dans les ailes, où σ ∝ P : √(P/P₀) les
+doublerait vers 250 hPa.
 
-**Référence** : HITRAN fournit des données σ(λ, T, P). Les modèles radiatifs (LBLRTM, etc.) utilisent des profils de largeur de raie ∝ P.
-
-**Piste de correction** : Introduire un facteur de scaling des sections efficaces en fonction de P/P_ref, par exemple σ_eff(λ,z) = σ(λ) × √(P(z)/P_ref) pour un broadening de type Lorentz.
+**Contrôle** : forçage instantané du CH₄ de 0,7 à 1,8 ppm à 📱, au sommet en ciel complet : 0,60 W/m² (Myhre et al. 1998 sans
+N₂O : 0,575 ; Etminan et al. 2016 : 0,66). Écart restant : l’échantillonnage spectral (un point par intervalle), voir `doc/equation.html#eq-elargissement-par-pression`.
 
 ---
 
@@ -146,8 +150,8 @@ La section efficace CO₂ du modèle est environ 10–100× plus faible que les 
 - Comparer avec HITRAN/PNNL pour la bande 15 μm
 - Ajuster l’exposant ou le préfacteur si nécessaire
 
-### Priorité 2 – Ajouter le pressure broadening ✅ (implémenté)
-- Facteur : σ_eff = σ × √(P/P_ref), cap 2.0. `CONFIG_COMPUTE.pressureBroadening = true`
+### Priorité 2 – Élargissement par la pression ✅
+- Tables σ(λ, T, P), lues à la (T, P) de chaque couche (§ 2.1). `CONFIG_COMPUTE.pressureBroadening = true` ; false : tables de 1 atm à toutes les couches.
 
 ### Priorité 3 – Résolution spectrale
 - Défaut 2000 bins (`maxSpectralBinsConvergence`). Pour tests de sensibilité : 150, 500, 2000.

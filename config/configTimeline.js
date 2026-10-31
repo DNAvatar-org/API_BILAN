@@ -1,21 +1,12 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.6.1
-// - v1.6.1 (2026-10-15): 📱 ⛽ ×0,5 / 🛢 constant / 🪾 1,5 × 🛢 puis ×1,1 par tranche de 25 ans, tranches explicites jusqu'en 2275.
-// - v1.6.0 (2026-10-15): 📱 cliquable jusqu'en 2300 (TIMELINE_FUTUR ◀) ; tranche 2100 : 🌈 (0 CO₂) en plus de ⛽ 🛢 🪾.
-// - v1.5.9 (2026-10-15): BENCH_LIT tCRepere = fourchette des sources par époque, affichée à côté de la bande cyan.
-// - v1.5.8 (2026-10-15): graine 🌡️🧮 et fourchette tC du banc = la courbe cyan d'Histoire (litterature.js, L.a) à ▶.
-// - v1.5.7 (2026-10-14): window.TIMELINE_FUTUR (🔮 2100 → 2200, affichage seulement).
-// - v1.5.6 (2026-10-14): tictimes nommés avant les bascules (🫠 660 Ma, ⛄→1b ; 🌨 639,1 Ma, 1b→🏂 ; 🫗 635,3 Ma, 🏂→1c) ; '📅' dans l'entrée.
-// - v1.5.5 (2026-10-14): 🦠 tictimes à 3 500 et 3 200 Ma (bords de la fenêtre Blake 2010).
-// - v1.5.4 (2026-10-14): 🦠 1ᵉʳ tictime à 3 250 Ma (dans la fenêtre Blake 2010 3,5 → 3,2 Ga), était 3 520,67 Ma.
-// - v1.5.3 (2026-10-14): EAU_ACCRETEE_KG = un océan (OCEAN_KG = 1,4e21, Matsui & Abe 1986 / Zahnle 2010), était 6e20.
-// - v1.5.2 (2026-10-14): eau des ☄️ portée par chaque entrée de 🕰.order ; ⚫ = un ☄️ à chaque tic, cumul géométrique.
-// - v1.5.1 (2026-10-14): calottes au clic frise (EPOCH['🗻']['🍰🗻🧊'], aires sourcées : CALOTTES_* en tête de fichier).
-// - v1.5.0 (2026-10-13): EPOCH['🥶'] retirés de toutes les époques — écarts de zone calculés (physics/meridien.js).
-// - v1.4.99 (2026-10-13): N₂ = 1 PAL (3,878e18 kg) sauf ⚫ et 🔥 ; O₂ de 🪼 🍄 💀 🦕 sourcé (Krause 2018).
-// Date: [October 15, 2026]
-// © 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.10.7
+// - v1.10.7 (2026-10-31): CO₂ de 🪸 à 79,4 mbar (🔧 : moyenne géométrique de Kanzaki & Murakami 2015).
+// - v1.10.6 (2026-10-31): 🧫 par clic : 🦕 et 🦤 lisent celle de 💀 (lendemains de crise), 🦕 à 151,9 Ma celle de 📱 (état 🔁) ;
+//   fourchettes ch4 du banc de 🍄 💀 🦕 🐊 à la règle de l'encadré « CH₄ DES ÉPOQUES ».
+// - v1.10.5 (2026-10-31): commentaires : pressureBroadening (σ à la (T, P) de chaque couche), sources de 🧫 de 🦕 relues.
+// Date: [October 31, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -29,15 +20,14 @@
 // Les icônes des boutons d'événements sont définies dans events.tic_time.icon et events.meteor.icon
 //
 // ============================================================================
-// 🔒 LUMINOSITÉ SOLAIRE — NE PAS MODIFIER
+// 🔒 LUMINOSITÉ SOLAIRE — calculée, jamais posée par époque
 // Formule de Gough (1981), Solar Physics 74:21 — physique nucléaire stellaire :
 //   L(t_ago) = L☉ / (1 + 0.4 × t_ago / 4.57)
-//   L☉ = 3.828e26 W (IAU 2015 Resolution B3)
-//   t_ago = temps avant présent en Ga ; 4.57 Ga = âge du Soleil
-//   🧲☀️ = L / (4π × AU²), AU = 1.496e11 m → TSI = 1361 W/m² (Kopp & Lean 2011)
-//   🧲☀️🎱 = 🧲☀️ / 4 (géométrie sphérique)
+//   L☉ = CONST.L_SOLEIL_W = 3.828e26 W (IAU 2015 Resolution B3)
+//   t_ago = ÂGE courant en Ga ; 4.57 Ga = âge du Soleil
+//   🧲☀️ = L / (4π × AU²) (× 1/√(1 − e²) de l'orbite), 🧲☀️🎱 = 🧲☀️ / 4 (géométrie sphérique)
 // Confirmé par Bahcall, Pinsonneault & Basu (2001), ApJ 555:990 (Standard Solar Model).
-// Toute valeur de 🔋☀️ DOIT être calculée avec cette formule. Pas d'arrondi arbitraire.
+// 🔋☀️ = L à l'âge courant, dans DATA['☀️'] (convergence/compute.js, getSoleil) : aucune époque n'en porte une copie.
 // ============================================================================
 //
 // ---------------------------------------------------------------------------
@@ -170,6 +160,28 @@ const EAU_DU_CLIC_KG = (k, N) => EAU_CUMUL_KG(k, N) - (k > 1 ? EAU_CUMUL_KG(k - 
 //   Glaciers et petites calottes hors inlandsis (Arctique canadien, Svalbard, montagnes…) : non comptés.
 // N₂ = 1 PAL : 5,1352e18 kg d'air sec (Trenberth & Smith 2005) × 0,7552 — une seule valeur pour toutes les époques sauf ⚫ 🔥.
 const N2_1PAL_KG = 3.878e18;
+// ─── LE PRÉSENT ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// Origine des âges : ▶ et ◀ des époques géologiques sont des années avant AN_PRESENT ; 🛖 🚂 📱 sont en années du calendrier
+// (INTERIEUR.ageDe). Une seule origine, lue par geology/interieur.js, physics/orbite.js, la courbe de l'onglet Histoire
+// (CO2/static/histoire/litterature.js) et CO2/scripts/quaternaire/epica_etats.py.
+window.AN_PRESENT = 2025;   // [an]
+// Obliquité de la Terre actuelle (IAU 2009 ; la solution La2004 donne 23,439° en 2000) : l'obliquité DÉCLARÉE des époques
+// antérieures à −51 Ma, hors de La2004, faute de reconstruction (❔), sauf 🦠.
+window.OBLIQUITE_ACTUELLE_DEG = 23.44;   // [°]
+// Base de l'Holocène, 11 700 ans b2k (ICS 2023) = −9 700 du calendrier : ▶ de 🛖 et, en âge, ◀ de 🦣 — une seule date.
+const BASE_HOLOCENE_AN = -9700;   // [an calendaire]
+// Quaternaire (🦣) : de sa base (ICS 2023, ▶) à celle de l'Holocène ; ses chemins de clics finissent exactement là.
+const BASE_QUATERNAIRE_AGE = 2.58e6;   // [an avant AN_PRESENT]
+const DUREE_QUATERNAIRE_MA = (BASE_QUATERNAIRE_AGE - (window.AN_PRESENT - BASE_HOLOCENE_AN)) / 1e6;
+/** Séquence d'un chemin de 🦣 : les pas donnés [Ma], puis le dernier, ce qui reste jusqu'à la base de l'Holocène. */
+const CHEMIN_QUATERNAIRE = (cle, pas) => pas.concat([DUREE_QUATERNAIRE_MA - pas.reduce((t, d) => t + d, 0)]).map((d) => ({ '🕰': cle, '🔺⏳': d }));
+// Chemin 🐾 : un pas jusqu'à la plus vieille carotte de glace (EPICA Dome C, 800 ka), puis des pas de 5 ka — 8,2 dates par
+// période d'obliquité (41 ka), 3,8 à 4,6 par période de précession (19–23 ka), au-dessus de 2 (Nyquist) — jusqu'au dernier qui
+// reste dans 🦣 (15 ka) ; le clic suivant, plus court, finit à la base de l'Holocène. Dates des états 🔁 : CO2/scripts/quaternaire/
+// epica_etats.py les relit ici.
+const CAROTTES_AGE = 8e5;   // [an avant AN_PRESENT]
+const PAS_CAROTTES_AN = 5000;   // [an]
+const N_PAS_CAROTTES = Math.ceil((CAROTTES_AGE - (window.AN_PRESENT - BASE_HOLOCENE_AN)) / PAS_CAROTTES_AN) - 1;   // pas entiers dans 🦣
 // Sturtien : ☃ (hysteresis 1a, ◀ = 717 Ma) et ⛄ (▶ = 717 Ma) sont la MÊME planète au même instant — même CO₂, même CH₄,
 // deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14, CO₂ et CH₄ descendus ENSEMBLE dans leurs fourchettes
 // (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas, critère « frise = clic » : ☃ chaud au CLIC
@@ -187,30 +199,29 @@ const CALOTTES_ACTUELLES = { S_pol: 0.35984, N_pol: 0.050239, S_mid: 0, N_mid: 0
 // 3:e1600983) — toute la bande, plafonnée par son continent. ⚠️ Les zones sèches sans glace d'un snowball sont ignorées.
 const CALOTTES_SNOWBALL = { S_pol: 1, N_pol: 1, S_mid: 1, N_mid: 1, S_trop: 1, N_trop: 1 };
 // Oligocène basal (33,9 Ma) : Antarctique de Wilson et al. 2013 (GRL 40:4305) — 33,4–35,9e6 km³ de glace, 1,3–1,4 × l'actuel
-// (26,54e6 km³ posés, Bedmap2 tableau 7). L'aire en sort par le profil plastique de physics/calottes.js : H̄ ∝ √L ∝ S^¼,
-// donc V ∝ S^(5/4) et S = 12,295e6 × (34,65 / 26,54)^(4/5) = 15,22e6 km² (fourchette 14,78–15,66e6) → 0,44540.
+// (26,54e6 km³ posés, Bedmap2 tableau 7). Aire tirée du volume par le dôme plastique du moteur (physics/calottes.js), V ∝ S^(5/4)
+// avec le τ fermé sur Bedmap2 : S = 12,295e6 × (34,65 / 26,54)^(4/5) = 15,22e6 km², 0,4454 de la bande (0,4325–0,4582 sur la
+// fourchette du volume).
 const CALOTTES_OLIGOCENE = { S_pol: 0.44540, N_pol: 0, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
+// Une époque de la timeline par son 📅 : une valeur qu'une époque prend d'une autre se LIT chez elle (accesseur), elle n'est pas
+// recopiée (🧫 de 🦕 et de 🦤).
+const epoqueDe = (id) => timeline.find((e) => e['📅'] === id);
 const timeline = [
     {// Corps noir
         '📅': '⚫', // Corps noir
         '▶': 5.0e9, // Départ
         '◀': 4510e6, // v-2026-09-24 : vraie date — impact géant / formation de la Lune ~4,51 Ga (Barboni et al. 2017) (était 4.5e9) ‖ Fin
-        // 🥶 : valeurs Terre-moderne nominales — pas d'atmosphère donc ice_tf inactif sur le radiatif.
         '🧲🔬': 0.3,
-        '🔋☀️': 2.663e26, // 🔒 Gough (1981) : L☉/(1+0.4×5.0/4.57) = 69.6% — NE PAS MODIFIER
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
         '🍎': 8.3, // Gravité en m/s²
-        '📏🌊': 0.0, // Profondeur moyenne océans en km (valeur par défaut, pas d'eau pour cette époque)
-        '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 0.0,  // Surface océanique potentielle (0% - pas d'eau)
+            '🍰🗻🌊': 0.0,  // Mer de l'époque (❔ posée avant 540 Ma, la PaleoDEM s'arrête là) : pas de bassin
             '🍰🗻🏔': 0.0,  // Hautes terres (0% - pas de relief)
             '🍰🗻🌍': 1.0, // Terres basses (100% - surface rocheuse)
             '🍰🗻🧊': CALOTTES_SANS
         },
-        // 🔒 Corps noir : pas de désert, albedo = 0 (corps noir absorbe tout)
-        '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0 (pas de désert pour corps noir)
         '🪩🍰': {
             '🪩🍰🌍': 0.0  // Override coefficient albedo terres à 0 (corps noir absorbe tout)
         },
@@ -251,9 +262,7 @@ const timeline = [
         '📅': '🔥', // Hadéen — début, juste après impact formant la Lune (ordre 100–1000 ans)
         '▶': 4510e6, // v-2026-09-24 : vraie date — impact géant ~4,51 Ga (était 4.5e9)
         '◀': 4031e6, // v-2026-09-24 : vraie date — base de l'Archéen, ICS 2023 (était 4.0e9)
-        // 🥶 : T_glob >> T_freeze, ice_tf=0 quoi qu'il en soit. Valeurs nominales modernes.
         '🧲🔬': 1.7,//596,
-        '🔋☀️': 2.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.5/4.57) = 71.7% — NE PAS MODIFIER
         // 🌡️🌕 : CONDITION INITIALE de l'intérieur (geology/interieur.js) — l'histoire thermique commence au ▶ de
         //   l'époque qui la porte (une seule). Après l'impact géant la surface EST l'océan de magma : 2300–2800 °C
         //   (Sleep, Zahnle & Neuhoff 2001, PNAS 98:3666) → milieu, 2550 °C. Le flux n'est plus posé (il était de
@@ -262,11 +271,10 @@ const timeline = [
         '📐': 6371, // [km] rayon FROID de référence (à T₀ de l'intérieur, aujourd'hui) ; le rayon courant 📜📐 en est tiré
         //   par la température de l'intérieur (geology/interieur.js, rayonKm) — 7008 km et −120 km/clic sont retirés.
         '🍎': 9.8, // Gravité en m/s²
-        '📏🌊': 0.0, // Profondeur moyenne océan de magma en km (Hadéen)
-        '🐚': 1.0, // Facteur relief sous-marin
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 1.0,  // Surface océanique potentielle (100% - océan de magma)
+            '🍰🗻🌊': 1.0,  // Mer de l'époque (❔ posée avant 540 Ma) : tout le globe est bassin, à sec tant que l'eau est au-dessus de son point critique
             '🍰🗻🏔': 0.0,  // Hautes terres (0% - pas de continents stables)
             '🍰🗻🌍': 0.0, // Terres basses (0% - pas de continents)
             '🍰🗻🧊': CALOTTES_SANS
@@ -307,7 +315,6 @@ const timeline = [
             },
             '☄️': {}   // eau portée par chaque entrée de 🕰.order (🔺⚖️💧☄️ : 1e20 kg, ~7 % de l'eau initiale)
         },
-        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 = biosphère marine (gate CLAW, cf. calculations_albedo.js §Couplage DMS-CCN).
         // 🔥 Hadéen : océan de magma à ~2500 K, pas de vie → pas de DMS → gate = 0.
         '🧫': 0.0,
@@ -328,7 +335,6 @@ const timeline = [
         //   Albédo effectif 🪩 : [0.20, 0.30] (colonne CSV « Albedo », pas une clé TIMELINE séparée)
         //
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
-        '🔋☀️': 2.836e26, // 🔒 Gough (1981) : L☉/(1+0.4×4.0/4.57) = 74.1% — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         // ⚾ OBLIQUITÉ ε — plages acceptables (cf. commentaire global '⚾' en bas de fichier) :
@@ -336,16 +342,13 @@ const timeline = [
         //   Facteur sin(ε)/sin(23.44°) : 23.44→1.00  35→1.44  45→1.78  54→2.04  60→2.18  70→2.36  90→2.51.
         //   Pourquoi pas ! → tester 54° (seuil Williams basse-lat.), 35° (intermédiaire), 0° (pas de saison).
         '⚾': 45.0, // ε Archéen = 45° (choix conservateur Williams 1993 : 45–70° sans Snowball global). amp saisonnière × 1.78.
-        '📏🌊': 4.7, // Profondeur moyenne océans en km (Archéen, moins d'eau)
-        '🐚': 1.0, // Facteur relief sous-marin
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 0.85, // Surface océanique potentielle (80% - moins de continents qu'aujourd'hui)
+            '🍰🗻🌊': 0.85, // Mer de l'époque (❔ posée avant 540 Ma, la PaleoDEM s'arrête là) : moins de continents qu'aujourd'hui
             '🍰🗻🏔': 0.00, // Hautes terres (5% - peu de relief élevé)
             '🍰🗻🌍': 0.15, // Terres basses (15% - premiers continents)
             '🍰🗻🧊': CALOTTES_SANS
         },
-        '🍰🪩🏜️': 0.0,  // Forcer couverture désert à 0
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
         // Simulation parameters - Quantités en kg. Recalib post-fix solaire 80% (272 W/m² vs ancien 320 W/m²)
         // Faint Young Sun Paradox : soleil ~74% à 4 Ga → CO₂+CH₄ élevés requis pour maintenir ~288 K.
@@ -363,12 +366,6 @@ const timeline = [
         // ppm calculés par demo/epoch_bench_format.js (fmtConvAtmSnapshot) : ppm_molaire = mass_frac × (M_air / M_gaz) × 1e6.
         // Repère rapide pour ajuster les masses (N₂ ≈ 9.918e18 dominant) : CO₂ 150k mol ppm ⇒ ≈ 2.75e18 kg ; CO₂ 50k mol ppm ⇒ ≈ 0.80e18 kg ; CH₄ 10k mol ppm ⇒ ≈ 6.7e16 kg ; CH₄ 1k mol ppm ⇒ ≈ 6.5e15 kg.
         //
-        // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50).
-        // Faint sun 74% à 4 Ga + obliquité ⚾=45° (Williams 1993 EPSL 117:377). Polar amp réduite :
-        // gradient méridien Archéen probablement plus faible que Terre moderne (transport zonal
-        // amplifié par circulation atmosphérique dense, océans peu profonds). Pas de continents
-        // élevés (relief modéré) → moins d'effet hauteur sur T_pol.
-        // dT_pol 20→10K, dT_mid 5→2K. Plus aggressif que Proté car faint sun plus dur.
         // ─── ESSAI MOYENNE DES FOURCHETTES (v1.4.40) ───────────────────────────
         // Valeurs au milieu des bornes 🔒 ci-dessous pour tester le banc sans extrêmes.
         // ─── v1.4.50 (2026-04-25) : CO₂ et CH₄ poussés au max CSV bench pour lutter contre faint sun 74% ───
@@ -426,7 +423,6 @@ const timeline = [
                 '⚖️': { '⚖️💧': 1.3e21, '⚖️🏭': 3.5474e+16, '⚖️🐄': 2.1511e+14, '⚖️🫁': 0, '⚖️✈': 4.0e8, '⚖️💨': 3.8780e+18 }
             }
         },
-        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 : 🦠 Archéen — océans anoxiques dominés par cyanobactéries procaryotes
         // (pas d'eucaryotes marins, DMSP producteurs quasi-absents). Knoll 2003, Falkowski 2004.
         // Tapis microbiens côtiers → flux DMS minimal (~5% moderne).
@@ -444,31 +440,26 @@ const timeline = [
         '▶': 2.5e9,
         '◀': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
         '🧲🔬': 0.01,
-        '🔋☀️': 3.140e26, // 🔒 Gough (1981) : L☉/(1+0.4×2.5/4.57) = 82.0% — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.6, // Profondeur moyenne océans en km (Protérozoïque)
-        '🐚': 1.0, // Facteur relief sous-marin
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 0.75, // Surface océanique potentielle (75% - continents en formation)
+            '🍰🗻🌊': 0.75, // Mer de l'époque (❔ posée avant 540 Ma, la PaleoDEM s'arrête là) : continents en formation
             '🍰🗻🏔': 0.08, // Hautes terres (8% - relief modéré)
             '🍰🗻🌍': 0.17, // Terres basses (17% - continents émergents)
             '🍰🗻🧊': CALOTTES_SANS
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        // 🥶 Override per-époque ice physics (calculations_albedo.js v1.2.50, _flux v1.2.93, _h2o v1.0.23).
-        // Justification : faint sun 82% à 2.5 Ga + arrangement continental low-mid latitude
-        // (Vaalbara, fragments cratoniques pré-Kenorland). Pas de calotte continentale polaire massive
-        // — Williams 1993 EPSL 117:377 (gradient méridien Précambrien réduit possible).
-        // dT_pol 20→10K : T_pol_proxy = T_glob - 10K (au lieu de -20K). À T_glob=12.5°C → T_pol=2.5°C.
-        // dT_mid  5→3K : pareil pour mi-latitude.
-        // Effet : tf_pol passe de 0.68 à 0.35 ; ice_tf de 0.20 à 0.15 ; Sabs gagne ~+10 W/m² uniquement Proté.
         // Lit. Proterozoic: CO2 10–200× actuel; paléosols ~2.2 Ga: 8000–9000 ppm. CH4 100–300 ppm.
         // v1.4.50 (2026-04-25): bump CO₂ 5e16→9.47e16 (6216→12000 ppm) et CH₄ 3e14→7.2e14 (102→250 ppm)
         // pour récupérer ~+13 W/m² de forçage GES manquant à 12.5°C (branche chaude).
         // Toujours dans CSV bench [5000,20000] CO₂ et [50,500] CH₄ (litt. paléosols + Wordsworth/Pierrehumbert 2013).
-        '⚖️🏭': 4.4818e+17, // v-2026-10-13 : pCO₂ = 57 mbar, milieu du RECOUVREMENT [45 ; 70] mbar des deux méthodes de paléosols vers 2,5 Ga — Kanzaki & Murakami 2015 (GCA 159:190) : 45–140 mbar à 2,46 Ga ; Sheldon 2006 : 2 à 5 fois moins (Charnay et al. 2020, Space Sci. Rev.). Avant 7.2284e+16 (≈ 9 mbar, sous les deux mesures).
+        // 🔧 CO₂ de 🪸 : pCO₂ = 79,4 mbar, moyenne géométrique de Kanzaki & Murakami 2015 (GCA 159:190, paléosols, 45–140 mbar à 2,46 Ga)
+        //   — dans la mesure (9–140 mbar avec Sheldon 2006), mais CHOISIE en regardant le résultat : au milieu du recouvrement des deux
+        //   méthodes (57 mbar), le clic 🦠 → 🪸 (700 Ma) laisse les calottes polaires atteindre leur équilibre et bascule en boule de neige
+        //   (seuil vers 65 mbar) ; le modèle n'a pas encore le dégazage qui ferait sortir d'une boule de neige (CO₂ imposé par la config).
+        '⚖️🏭': 6.2430e+17, // pCO₂ = 79,4 mbar (🔧 ci-dessus) ; avant 4.4818e+17 (57 mbar)
         '⚖️🐄': 5.4957e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 7.20e14  // ch4_kg — 250 ppm (était 3.0e14 = 102 ppm)
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
@@ -489,7 +480,6 @@ const timeline = [
             '🔀': ['⚖️'],
         },
         // Ancien 🕰 (sans bary) : { '💫': { '🔺🌡️💫': 0 } }
-        '🌱': 0.0, // Avant -450 Ma : pas de plantes → 🍰🪩🌳 = 0
         // 🧫 : 🪸 Protérozoïque — post-GOE, premiers eucaryotes marins (acritarches ~1.8 Ga),
         // algues rouges ~1.2 Ga. Diversification lente, encore dominés par procaryotes.
         // Flux DMS ~10% moderne (avant radiation des phytoplanctons modernes).
@@ -568,16 +558,10 @@ const timeline = [
         hidden: true, // interne (non cliquable / non affiché dans la frise)
         '▶': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
         '◀': 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman et al. 2017) (était 720e6)
-        // 🥶 : aligné sur ⛄ (v1.4.75) — le cycle hystérésis 1a↔⛄ est la même planète, même gradient méridien.
-        // L'ancien {dT_pol:10, dT_mid:3} (copié de 🪸) mettait le seuil d'engagement glace polaire à
-        // T_glob ≈ 8 °C au lieu de ≈ 18 °C : depuis une baseline chaude ~17 °C, la rétroaction glace-albédo
-        // restait éteinte (ice_eff=0.5 melt, tf_pol≈0.06) et le scan CO₂↓ ne pouvait jamais bifurquer.
         '🧲🔬': 0.01,
-        '🔋☀️': 3.592e26, // même ordre que ⛄ (on garde la luminosité du Néoprotérozoïque)
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_SANS },
         // CO₂ pré-snowball branche chaude. 1.0e16 kg = 1280 ppm (conv. via ⚖️💨=5.125e18 kg, M_air/M_CO2=0.659).
         // Fourchette lit. pré-Sturtienne warm branch : 1000-3000 ppm (Hoffman & Schrag 2002 ; Bao et al. 2008 ; Hoffman 2017).
@@ -638,7 +622,6 @@ const timeline = [
             'order': [{ '🕰': '🗻', '🔺⏳': 3 }],
             '🗻': {}, // v-2026-09-24 : 🔺⏳ 30 → 3 (durée 720→717)
         },
-        '🌱': 0.0,
         // 🧫 : ☃ Entrée Sturtienne (750 Ma) — pré-glaciation, plancton marin dilué,
         // faibles émissions DMS (même ordre que ⛄). ~5% moderne.
         '🧫': 0.05,
@@ -687,11 +670,9 @@ const timeline = [
     "▶": 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman 2017) (était 72e7)
     "◀": 659e6, // v-2026-09-24 : vraie date — fin du Sturtien, U-Pb 659,3–658,5 (Hoffman 2017) (était 69e7)
     "🧲🔬": 0.01,
-    "🔋☀️": 3.592e26,
     "📐": 6371,
     "🍎": 9.81,
-    "📏🌊": 3.6,
-    "🐚": 1,
+    "⚾": window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
     "🗻": {
         "🍰🗻🌊": 0.75,
         "🍰🗻🏔": 0.08,
@@ -757,7 +738,6 @@ const timeline = [
         },
         "🌋": {} // v-2026-09-24 : 🔺⏳ 20 → 29 (seconde moitié → 1b)
     },
-    "🌱": 0,
     "🧫": 0.05,
     "🌊🏭": 0.5
 },
@@ -770,13 +750,10 @@ const timeline = [
         hidden: true,
         '▶': 659e6, // v-2026-09-24 : vraie date — fin du Sturtien (Hoffman 2017) (était 690e6)
         '◀': 639e6, // v-2026-09-24 : vraie date — début du Marinoen, ≥ 639,0 (Hoffman 2017) (était 600e6)
-        // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🧲🔬': 0.01,
-        '🔋☀️': 3.620e26, // Gough @ 0.69 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_SANS },
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
@@ -823,7 +800,6 @@ const timeline = [
             '🔀': ['⚖️'],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 90 → 7 (2 clics (rampe vers 🏂), le 3ᵉ passe — 20 Ma)
         },
-        '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
         // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
         '🧫': 0.1,
@@ -844,11 +820,9 @@ const timeline = [
     "▶": 639e6, // début du Marinoen, ≥ 639,0 Ma (Hoffman 2017)
     "◀": 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
     "🧲🔬": 0.01,
-    "🔋☀️": 3.613e26, // Gough @ 0,639 Ga (indicatif : getSoleil recalcule depuis la date)
     "📐": 6371,
     "🍎": 9.81,
-    "📏🌊": 3.6,
-    "🐚": 1,
+    "⚾": window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
     "🗻": {
         "🍰🗻🌊": 0.75,
         "🍰🗻🏔": 0.08,
@@ -914,7 +888,6 @@ const timeline = [
         },
         "🌋": {} // seconde moitié → hysteresis 1c (sortie Marinoenne)
     },
-    "🌱": 0,
     "🧫": 0.05,
     "🌊🏭": 0.5
 },
@@ -923,13 +896,10 @@ const timeline = [
         hidden: true,
         '▶': 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
         '◀': 538.8e6, // base du Cambrien, ICS 2023 (l'Édiacarien)
-        // 🥶 : sortie marinoenne, atm CO₂ dense post-snowball, gradient méridien intermédiaire (transition).
         '🧲🔬': 0.01,
-        '🔋☀️': 3.622e26, // Gough @ 0,635 Ga (indicatif)
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.10, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_SANS },
         // Hyper-greenhouse post-Marinoen : CO₂ très élevé = cause de la déglaciation (déstabilise la branche froide).
         // v1.4.77 : 7.0e17 kg ≈ 80 000 ppm mol (0.08 bar) — cœur fourchette sortie Marinoen 0.01–0.12 bar
@@ -971,7 +941,6 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 96.4 }],
             '💫': { '🔺🌡️💫': 0 }, // durée 635,2 → 538,8
         },
-        '🌱': 0.0,
         // 🧫 : ⛈ Sortie Marinoen (690→600 Ma) — dégel post-snowball, hyper-greenhouse,
         // recolonisation marine progressive. Retour modéré du plancton. ~10% moderne.
         '🧫': 0.1,
@@ -988,17 +957,13 @@ const timeline = [
         '📅': '🪼', // Paléozoïque marin (600–420 Ma) — explosion cambrienne, Hirnantienne
         '▶': 538.8e6, // v-2026-09-24 : vraie date — base du Cambrien, ICS 2023 (était 600e6)
         '◀': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
-        // 🥶 : Cambrien/Hirnantien, continents éparpillés en cours de regroupement (Gondwana en formation).
-        // Gradient méridien légèrement inférieur à la Terre moderne (Scotese 2021 paleotemperature).
         '🧲🔬': 0.01,
-        '🔋☀️': 3.638e26, // Gough @ 0.6 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 1.1494e+16, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.38e16 // co2_kg — léger − (bench 🪼)
-        '⚖️🐄': 2.4987e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3e13
+        '⚖️🐄': 1.7042e+12, // CH₄ ≈ 0,697 ppm d'air sec, celui de 🚂 (Law Dome 1750) : règle des époques sans CH₄ mesuré ni simulé (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.3e21,
         '⚖️🫁': 4.3900e+17, // O₂ = 9 % de l'air (milieu de [2 ; 16] % : 2–11 % Cambrien–Ordovicien moyen (Krause et al. 2018, Nat. Commun. 9:4081, GEOCARBSULFOR + proxys), > 16 % dès le Silurien (Glasspool & Gastaldo 2024)) ; avant 1.5e17 (13 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1009,7 +974,6 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 119.6 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 180 → 119.6 (durée 538,8→419,2)
         },
-        '🌱': 0.0, // Avant -420 Ma : végétation terrestre absente/marginale
         // 🧫 : 🪼 Paléozoïque marin (600→420 Ma) — explosion cambrienne, radiation des
         // phytoplanctons modernes (acritarches puis dinoflagellés). Boucle CLAW progressivement
         // active. Falkowski 2004 Science 305:354. ~50% moderne.
@@ -1022,44 +986,34 @@ const timeline = [
         '📅': '🍄', // Paléozoïque terrestre (420–280 Ma) — Prototaxites, forêts Dévonien/Carbonifère, Karoo
         '▶': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
         '◀': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (trapps de Sibérie) (était 280e6)
-        // 🥶 : forêts Dévonien/Carbonifère + glaciation Karoo (Pangée). Gradient méridien fort (proche moderne).
         '🧲🔬': 0.01,
-        '🔋☀️': 3.686e26, // Gough @ 0.42 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.6,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18, '🍰🗻🧊': CALOTTES_SANS },
-        '⚖️🏭': 7.1911e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 0.74e16 // co2_kg — léger − (bench 🍄)
-        '⚖️🐄': 2.9152e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3e13
+        '⚖️🏭': 1.1351e+16, // CO₂ ≈ 1 451 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Pragian/Lochkovian et Pridoli (comme la courbe cyan)
+        '⚖️🐄': 1.0307e+13, // CH₄ ≈ 3,614 ppm d'air sec : Éocène 4 × CO₂ de Beerling et al. 2011, l'expérience la plus proche (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.2511e+18, // O₂ = 22 % de l'air (milieu de [14,5 ; 30] % : minimum dévonien 14,5 %, pic permo-carbonifère 25–30 % (Krause et al. 2018 ; Glasspool & Scott 2010, Nat. Geosci. 3:627, charbon de bois)) ; avant 2.0e17 (17 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
         '⚖️💨': N2_1PAL_KG,
-        // 4 clics de 35 Ma : 420 → 385 → 350 → 315 → 280 Ma. Le pas de 140 Ma (un seul clic) sautait
-        // directement du Silurien à la racine du Permien : le CO₂ MONTAIT (909 → 1830 ppm, +7 °C) et la
-        // glaciation du Karoo — le fait climatique majeur de l'époque — n'existait pas dans le modèle.
+        // 4 clics de 41,75 Ma : 419,2 → 377,45 → 335,7 → 293,95 → 252,2 Ma (💀).
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }, { '🕰': '💫', '🔺⏳': 41.75 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 35 → 41.75 (3 états 🔁 + transition — 167 Ma)
-            // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣.
-            // Le drawdown du Dévonien-Carbonifère : racines profondes → altération des silicates, puis
-            // enfouissement massif du carbone organique (le charbon). Réfs : Berner & Kothavala 2001
-            // (GEOCARB III, Am J Sci 301:182) ; Algeo & Scheckler 1998 (GSA Today 8:1) ; Montañez et al. 2007
-            // (Science 315:87 — CO₂ 180–300 ppm au cœur de la LPIA) ; Foster et al. 2017 (Nat Commun 8:14845).
-            // CH₄ : monde à O₂ élevé (Carbonifère ~30 %), le méthane s'oxyde vite → ordre du ppm, pas de la dizaine.
-            // ⚠️ Le modèle est ici tout près d'une bifurcation glace-albédo : à ~280 ppm, CH₄ 1,8 ppm donne 17 °C
-            //    (branche chaude) et 1,6 ppm donne 6 °C (branche froide) ; 1,0 ppm partirait en snowball.
-            //    Ne pas retoucher le ⚖️🐄 du 3ᵉ état sans relancer le banc.
+            // 🔁 États imposés par tic (index = 📿💫 − 1 ; au-delà, dernier état maintenu), même mécanisme que 🦣 : le CO₂ de PhanDA
+            // à la date où le clic arrive (CO2_50 interpolé en ln entre les âges moyens des étages qui l'encadrent, comme la courbe cyan)
+            // et le CH₄ de la règle de l'encadré « CH₄ DES ÉPOQUES » à ce CO₂ ; masses avec l'air de 🍄. Le drawdown du
+            // Dévonien-Carbonifère (racines profondes, altération des silicates, enfouissement du charbon : Berner & Kothavala 2001 ;
+            // Algeo & Scheckler 1998 ; Montañez et al. 2007 pour la LPIA) est dans PhanDA, qui assimile ces proxys.
             '🔁': [
-                { '⚖️🏭': 4.884e15, '⚖️🐄': 1.187e13 },  // −385 Ma : ~600 ppm / 4 ppm — les forêts s'installent
-                { '⚖️🏭': 2.849e15, '⚖️🐄': 7.417e12 },  // −350 Ma : ~350 ppm / 2,5 ppm — le carbone s'enfouit
-                { '⚖️🏭': 2.279e15, '⚖️🐄': 4.747e12 }   // −315 Ma : ~280 ppm / 1,6 ppm — KAROO (LPIA), glace ~28 %
+                { '⚖️🏭': 7.7403e15, '⚖️🐄': 9.7760e12 },  // 377,45 Ma : 990 ppm (Frasnien / Givétien) / 3,43 ppm
+                { '⚖️🏭': 3.3645e15, '⚖️🐄': 7.3507e12 },  // 335,70 Ma : 430 ppm (Serpukhovien / Viséen) / 2,58 ppm
+                { '⚖️🏭': 3.8275e15, '⚖️🐄': 7.3511e12 }   // 293,95 Ma : 490 ppm (Sakmarien / Assélien) / 2,58 ppm
             ],
         },
-        '🌱': 0.31, // Après -400 Ma : forêt potentielle ~31 % terres
         // 🧫 : 🍄 Paléozoïque terrestre (420→280 Ma) — Dévonien/Carbonifère,
         // diversification marine avancée, coccolithophoridés pas encore installés.
         // Flux DMS élevé mais pas encore saturé. ~70% moderne.
@@ -1074,17 +1028,13 @@ const timeline = [
         '📅': '💀', // Limite P/T (280–250 Ma) — Trapps sibériens, anoxie, hyperthermie
         '▶': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (était 280e6)
         '◀': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
-        // 🥶 : hyperthermie P/T (Trapps sibériens, anoxie). Gradient méridien réduit par CO₂ massif.
-        // Joachimski 2012 : SST tropicales 36°C+ + polaires plus chaudes que Karoo → dT_pol modéré.
         '🧲🔬': 0.01,
-        '🔋☀️': 3.720e26, // Gough @ 0.28 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20, '🍰🗻🧊': CALOTTES_SANS },
-        '⚖️🏭': 6.6930e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 6.709e15 // v-2026-09-23 (était 1.5e16) : CO₂ ≈ 833 ppm air sec = milieu de PhanDA Kungurien [420,1246] (1 862 était HORS) ‖ avant : co2_kg (~2900 ppm, pic PT)
-        '⚖️🐄': 7.9810e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8e13   // CH4 élevé (anoxie, clathrates)
+        '⚖️🏭': 6.0746e+15, // CO₂ ≈ 757 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Induen et Changhsingien (comme la courbe cyan)
+        '⚖️🐄': 8.8613e+12, // CH₄ ≈ 3,03 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.35e21,
         '⚖️🫁': 1.4007e+18, // O₂ = 24 % de l'air (milieu de [18 ; 30] % : > 18 % après le pic permo-carbonifère, ~30 % au Trias (GEOCARBSULFOR), 18,5 % (inertinites) — Krause et al. 2018) ; avant 1.5e17 (13 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — MALGRÉ les Trapps sibériens.
@@ -1098,7 +1048,6 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 0.3 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 30 → 0.3 (durée de la crise)
         },
-        '🌱': 0.25,
         // 🧫 : 💀 Limite P/T (280→250 Ma) — extinction massive marine (~96% espèces),
         // anoxie océanique (Canfield state), effondrement du plancton. ~30% moderne
         // (suppression partielle de CLAW pendant la crise).
@@ -1115,22 +1064,18 @@ const timeline = [
         '⛄': 0,
         '▶': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
         '◀': 66.0e6, // v-2026-09-24 : vraie date — limite K/Pg, ICS 2023 (était 66e6)
-        // 🥶 : serre chaude Crétacé (Hudson 2010, Huber & Caballero 2011), polar T très chaud
-        // → "equability problem" Pierrehumbert : gradient méridien fortement réduit. dT_pol=15K.
         '🧲🔬': 0.1,
-        '🔋☀️': 3.746e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.25/4.57) = 97.9% — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Mésozoïque)
-        '🐚': 1.0, // Facteur relief sous-marin
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20,
             '🍰🗻🧊': CALOTTES_SANS
         },
-        '⚖️🏭': 8.5114e+15, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.566e15 // v-2026-09-23 (était 1.2875e16) : CO₂ ≈ 1 060 ppm air sec = milieu de PhanDA Induen [434,1685] ‖ avant : co2_kg (~2500 ppm)
-        '⚖️🐄': 4.0938e+13, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.12e13
+        '⚖️🏭': 5.9883e+15, // CO₂ ≈ 746 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Induen et Changhsingien (comme la courbe cyan)
+        '⚖️🐄': 8.7992e+12, // CH₄ ≈ 3,01 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.33e21,
         '⚖️🫁': 1.4011e+18, // O₂ = 24 % de l'air (milieu de [18 ; 30] % : > 18 % tout le Mésozoïque, ~30 % au Trias (GEOCARBSULFOR), 18,5 % (inertinites) — Krause et al. 2018 ; pic mi-Crétacé (Glasspool & Scott 2010)) ; avant 0 (0 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1142,12 +1087,20 @@ const timeline = [
             '💫': {
                 '🔺🌡️💫': -2,
             }, // Événement 50 Ma
-            '🎇': { '⏩': '🦤' } // Big impact (K-Pg) → Cénozoïque
+            '🎇': { '⏩': '🦤' }, // Big impact (K-Pg) → Cénozoïque
+            // 🔁 État du 💫 (151,9 Ma, Jurassique supérieur) : 🧫 de 📱, la boucle CLAW moderne — dinoflagellés et coccolithophoridés
+            // apparus au Trias supérieur, dinoflagellés rayonnés au Jurassique inférieur (Falkowski et al. 2004, Science 305:354).
+            '🔁': [
+                { get '🧫'() { return epoqueDe('📱')['🧫']; } }
+            ]
         },
-        '🌱': 0.31,
-        // 🧫 : 🦕 Mésozoïque (250→66 Ma) — radiation coccolithophoridés (Emiliania précurseurs),
-        // dinoflagellés, diatomées émergentes (fin Crétacé). Boucle CLAW pleinement installée.
-        '🧫': 1.0,
+        // 🧫 : celle de la DATE de la ligne, 251,902 Ma — le lendemain de la crise P/T : celle de 💀, lue (🔧 ❔ la valeur de la crise
+        // appliquée à son lendemain). Le phytoplancton eucaryote moderne ne monte qu'à partir du Trias moyen : dinoflagellés et
+        // coccolithophoridés apparaissent au Trias supérieur, les dinoflagellés rayonnent au Jurassique inférieur, et l'anoxie dure
+        // plusieurs Ma après la crise (Falkowski et al. 2004, Science 305:354) ; les écosystèmes marins se reconstruisent par étapes
+        // (Chen & Benton 2012, Nat. Geosci. 5:375) : la boucle CLAW pleine est celle du Jurassique–Crétacé, pas de la base du Trias.
+        // Le 💫 de 151,9 Ma porte la sienne (état 🔁 ci-dessus).
+        get '🧫'() { return epoqueDe('💀')['🧫']; },
         // 🌊🏭 : pompe Urey standard — serre chaude stable, feedback silicate actif mais
         // géographie (Gondwana/Laurasia → Pangée) maintient CO₂ atm élevé ~2500 ppm (Berner 2001).
         '🌊🏭': 1.0
@@ -1157,23 +1110,20 @@ const timeline = [
         '▶': 66.0e6, // v-2026-09-24 : vraie date — limite K/Pg, ICS 2023 (était 66e6)
         '◀': 56.0e6, // v-2026-09-24 : vraie date — PETM / base de l'Éocène, ICS 2023 (était 50e6)
         '⛄': 0,
-        // 🥶 : Paléocène/début Éocène, post K-Pg, plus chaud que moderne, gradient méridien réduit.
         '🧲🔬': 0.1,
-        '🔋☀️': 3.806e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.066/4.57) — NE PAS MODIFIER
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20,
             '🍰🗻🧊': CALOTTES_SANS
         },
-        '⚖️🏭': 6.2083e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 6.447e15 // v-2026-09-23 (était 5.0e15) : CO₂ ≈ 819 ppm air sec = milieu de PhanDA Danien [559,1078] ‖ avant : co2_kg (~650 ppm)
-        '⚖️🐄': 8.2941e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 8.613e12 // v-2026-09-23 (était 3.605e12) : CH₄ ≈ 3 ppm air sec = milieu de [1,5]
+        '⚖️🏭': 6.7699e+15, // CO₂ ≈ 877 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Sélandien/Danien et Maastrichtien (comme la courbe cyan)
+        '⚖️🐄': 9.1435e+12, // CH₄ ≈ 3,25 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.0815e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
@@ -1182,9 +1132,10 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 10 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 16 → 10 (durée 66→56)
         },
-        '🌱': 0.31,
-        // 🧫 : 🦤 Cénozoïque (66→50 Ma) — phytoplancton moderne installé, CLAW active.
-        '🧫': 1.0,
+        // 🧫 : celle de la DATE de la ligne, 66,0 Ma — le lendemain de la crise K-Pg : celle de 💀, lue (🔧 ❔ la valeur de la crise
+        // P/T appliquée au lendemain de K-Pg). Le nannoplancton calcaire (coccolithophoridés) y perd l'essentiel de sa diversité ;
+        // ses survivants sont des espèces néritiques ou opportunistes (Bown 2005, Geology 33:653). 🐊 (56 Ma) a la boucle moderne.
+        get '🧫'() { return epoqueDe('💀')['🧫']; },
         // 🌊🏭 : pompe Urey standard post-K-Pg. Refroidissement progressif → altération accrue
         // aux moyennes latitudes. Pas encore de collision Inde/Asie (début ~50 Ma).
         '🌊🏭': 1.0
@@ -1194,26 +1145,22 @@ const timeline = [
         '▶': 56.0e6, // v-2026-09-24 : vraie date — PETM / base de l'Éocène, ICS 2023 (était 50e6)
         '◀': 34.4e6, // v-2026-09-24 : vraie date — début de la transition Éocène-Oligocène (était 35e6)
         '⛄': 0,
-        // 🥶 : PETM Éocène, pic thermique, gradient méridien faible (Sluijs 2008, polaires 17°C+ été).
         '🧲🔬': 0.1,
-        '🔋☀️': 3.811e26, // 🔒 Gough @ 0.050 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
+        '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20,
             '🍰🗻🧊': CALOTTES_SANS
         },
-        // [v1.4.81] vers 24 °C (milieu T [20,28], bench 20,9 °C) sans sortir de la grille : CH₄ 1,24 → ~3,8 ppm ([1,5]),
-        //   CO₂ 1182 → ~1380 ppm ([800,1500]) ; sonde : 22 °C environ au mieux sans sortir de la grille. Anagnostou et al. 2016 Nature 533:380 (CO₂ Éocène précoce ~1000–1600 ppm) ;
-        //   Beerling et al. 2011 PNAS 108:9770 (CH₄ Éocène élevé, zones humides).
-        '⚖️🏭': 8.7303e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 9.058e15 // v-2026-09-23 (était 1.1e16) : CO₂ ≈ 1 150 ppm air sec = milieu de [800,1500] ‖ avant : co2_kg
-        '⚖️🐄': 1.0602e+13, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.1e13 // ~3,8 ppm
+        '⚖️🏭': 9.5868e+15, // CO₂ ≈ 1 241 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages PETM et Thanétien (comme la courbe cyan)
+        // CH₄ : Beerling et al. 2011 (PNAS 108:9770, tableau 1), modèle du système Terre de l'Éocène précoce (55 Ma) avec ses zones
+        //   humides et sa chimie : 3 614 ppb à 4 × CO₂ (1 120 ppm), l'expérience la plus proche du CO₂ de l'époque (1 241 ppm), 💻.
+        '⚖️🐄': 1.0176e+13, // CH₄ ≈ 3,614 ppm d'air sec (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.0815e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
@@ -1222,7 +1169,6 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 21.6 }],
             '💫': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 15 → 21.6 (durée 56→34,4)
         },
-        '🌱': 0.31,
         // 🧫 : 🐊 Éocène (50→35 Ma) — PETM, CLAW moderne.
         '🧫': 1.0,
         // 🌊🏭 : pompe Urey AMPLIFIÉE à partir de l'Éocène moyen. Collision Inde/Asie (~50 Ma)
@@ -1238,23 +1184,19 @@ const timeline = [
         '▶': 34.4e6, // v-2026-09-24 : vraie date — début de l'EOT (était 35e6)
         '◀': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '⛄': 0.02,
-        // 🥶 : transition Eocène/Oligocène (Oi-1), bascule calotte Antarctique, gradient en cours de renforcement.
         '🧲🔬': 0.08,
-        '🔋☀️': 3.816e26, // 🔒 Gough @ 0.035 Ga
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
         '🗻': {
             '🍰🗻🌊': 0.71,
             '🍰🗻🏔': 0.09,
             '🍰🗻🌍': 0.20,
             '🍰🗻🧊': CALOTTES_SANS
         },
-        '⚖️🏭': 4.9595e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 5.15e15 // co2_kg (~1000 ppm, avant chute Oi-1)
-        '⚖️🐄': 3.4716e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 3.605e12
+        '⚖️🏭': 5.0481e+15, // ≈ 654 ppm d'air sec, sous la fourchette PhanDA Priabonien [711 ; 907] : config frontière, à poser par la dichotomie de naissance de l'Antarctique
+        '⚖️🐄': 7.9104e+12, // CH₄ ≈ 2,811 ppm d'air sec : la règle de 🏔 au CO₂ de la frontière (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.0815e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
@@ -1263,7 +1205,6 @@ const timeline = [
             'order': [{ '🕰': '⛰', '🔺⏳': 0.5 }],
             '⛰': { '🔺🌡️💫': 0 }, // v-2026-09-24 : 🔺⏳ 2 → 0.5 (durée 34,4→33,9)
         },
-        '🌱': 0.31,
         // 🧫 : 🐧 hysteresis 2 (Eocène–Oligocène, Oi-1 ~34 Ma) — bascule calotte Antarctique,
         // phytoplancton pleinement installé.
         '🧫': 1.0,
@@ -1278,20 +1219,14 @@ const timeline = [
         '⛄': 0.085,
         '▶': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '◀': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
-        // Rampe voile SW : début = 🔺🍰⚽ racine, fin = 🕰.◀.📜 (0) ; 🔀 par le temps écoulé → ~17 Ma ≈ mi-parcours 33→2 Ma.
-        '🔺🍰⚽': 0.00196,
-        // 🥶 : refroidissement Cénozoïque, calotte Antarctique consolidée, gradient méridien moderne.
         '🧲🔬': 0.05,
-        '🔋☀️': 3.817e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.033/4.57) = 99.7% — NE PAS MODIFIER
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_OLIGOCENE },
-        '⚖️🏭': 4.7317e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.822e15 // v-2026-09-23 (était 4.513e15) : CO₂ ≈ 624 ppm air sec = milieu de PhanDA Rupélien [552,696]
-        '⚖️🐄': 4.2195e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.3e12 // [v1.4.81] 0,92 ppm → ~1,5 ppm (milieu grille [1,2])
+        '⚖️🏭': 5.6531e+15, // CO₂ ≈ 732 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Rupélien et Priabonien (comme la courbe cyan)
+        '⚖️🐄': 8.3859e+12, // CH₄ ≈ 2,98 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.08e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
@@ -1299,13 +1234,12 @@ const timeline = [
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 16 }, { '🕰': '💫', '🔺⏳': 16 }],
             '💫': { '🔺🌡️💫': 0 },
-            '🔀': ['📅', '📜'],
+            '🔀': ['📜'],
             '◀': {
-                '📅': {},   // 🌡️🧮 : la courbe cyan à ◀ (accesseur en fin de fichier)
-                '📜': { '🔺🍰⚽': 0 },
+                // 🌡️🧮 : graine du clic, la courbe cyan à ◀ (accesseur en fin de fichier).
+                '📜': { '🌡️🧮': null },
             },
         },
-        '🌱': 0.31,
         // 🧫 : 🏔 Grande Coupure / Miocène–Pliocène — CLAW moderne active.
         '🧫': 1.0,
         // 🌊🏭 : pompe Urey amplifiée (Miocene Climate Optimum puis refroidissement).
@@ -1315,23 +1249,18 @@ const timeline = [
     {// Quaternaire 🦣
         '📅': '🦣',
         '⛄': 0.11,
-        '▶': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
-        '◀': 11.7e3, // v-2026-09-24 : vraie date — base de l'Holocène, 11 700 ans b2k, ICS 2023 (était 10e3)
-        // 🥶 : Quaternaire glaciations, gradient méridien moderne (calottes nord+sud).
+        '▶': BASE_QUATERNAIRE_AGE, // base du Quaternaire, ICS 2023
+        '◀': window.AN_PRESENT - BASE_HOLOCENE_AN, // base de l'Holocène, ▶ de 🛖 en âge : 11 725 ans avant 2025 (11 700 b2k)
         '🧲🔬': 0.04,
-        '🔋☀️': 3.827e26, // 🔒 Gough (1981) : L☉/(1+0.4×0.002/4.57) — NE PAS MODIFIER
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ état actuel posé : pas de reconstruction d'aire à 2,58 Ma trouvée (Antarctique depuis 34 Ma, Groenland depuis ≥ 2,7 Ma)
         //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
-        // Racine (2,58 Ma, avant la première carotte) : valeurs HAUTES de la grille CO₂ [180,300] ppm, CH₄ [0,4 ; 0,8] ppm
-        //   (Lüthi et al. 2008 Nature 453:379 ; Loulergue et al. 2008 Nature 453:383) — un monde encore pliocène.
-        '⚖️🏭': 2.2668e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.31e15 // ~298 ppm
-        '⚖️🐄': 2.2079e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.25e12 // ~0,80 ppm
+        // Racine (2,58 Ma, avant la première carotte) : le CO₂ de PhanDA, comme la courbe cyan à cette date.
+        '⚖️🏭': 2.1742e+15, // CO₂ ≈ 282 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Gélasien et Plaisancien (comme la courbe cyan)
+        '⚖️🐄': 1.9550e+12, // CH₄ ≈ 0,695 ppm d'air sec : préindustriel moderne de Beerling et al. 2011 (encadré « CH₄ DES ÉPOQUES »)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.0815e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
         //   époque n'existe (voir l'encadré « MASSES DE SULFATE » en tête de fichier).
         '⚖️✈': 4.0e8,
@@ -1340,8 +1269,8 @@ const timeline = [
             // DEUX CHEMINS (🕰.🛤), au choix du premier clic, du même départ (frise de 🦣, 2,58 Ma) à la même arrivée (11,7 ka, passage
             // à 🛖) :
             //   🐾 pas à pas — un pas de 2,58 Ma à 800 ka (avant les carottes de glace, aucune mesure continue du CO₂), puis des pas de
-            //      20 ka le long des carottes antarctiques (un cycle de précession, une demi-période d'obliquité) jusqu'à 20 ka, puis
-            //      l'entrée dans l'Holocène : 41 clics. La courbe orange peut suivre les cycles de la courbe cyan (Snyder 2016) ;
+            //      5 ka le long des carottes antarctiques (obliquité et précession échantillonnées au-dessus de Nyquist) jusqu'à 15 ka,
+            //      puis l'entrée dans l'Holocène : 159 clics. La courbe orange peut suivre les cycles de la courbe cyan (Snyder 2016) ;
             //   🦘 le saut — de 2,58 Ma au dernier maximum glaciaire (21 ka) en un clic, puis la déglaciation : 2 clics. L'Holocène
             //      arrive par la physique, calottes portées depuis un état glaciaire, sans la graine de 🛖.
             // Chaque chemin porte sa séquence (order) et ses états (🔁) ; 🕰.order, 🔁 et 🖼 sont des accesseurs vers le chemin joué
@@ -1349,72 +1278,190 @@ const timeline = [
             // 🔁 : les masses de CO₂ et de CH₄ MESURÉES à la date où le clic arrive (→ 📜🔁⚖️, lues par getMasses), moyenne des mesures
             // à ± 1 ka, interpolation linéaire entre les deux mesures voisines quand il n'y en a aucune. CO₂ : composite antarctique de
             // Bereiter et al. 2015 (GRL 42:542, chronologie AICC2012) ; CH₄ : EPICA Dome C, Loulergue et al. 2008 (Nature 453:383,
-            // EDC3) — fichiers NOAA NCEI antarctica2015co2composite.txt et edc-ch4-2008.txt. Âges des fichiers « avant 1950 » + 75 =
-            // avant 2025. Masses : ppm d'air sec avec N₂ 1 PAL et O₂ de l'époque. L'obliquité n'est PAS posée ici : elle vient de
+            // EDC3) — fichiers NOAA NCEI antarctica2015co2composite.txt et edc-ch4-2008.txt. Âges des fichiers « avant 1950 » +
+            // (AN_PRESENT − 1950). Masses : ppm d'air sec avec N₂ 1 PAL et O₂ de l'époque, masses molaires du moteur (CONST.M_*) — écrites
+            // par CO2/scripts/quaternaire/epica_etats.py. L'obliquité n'est PAS posée ici : elle vient de
             // l'orbite à la date (physics/orbite.js). AUCUN texte ici : le récit de chaque clic vit dans CO2/static/texts/epochs_alt2sec.js.
             '🛤': {
                 '🐾': {
-                    'order': [{ '🕰': '🐾', '🔺⏳': 1.78 }].concat(Array.from({ length: 39 }, () => ({ '🕰': '🐾', '🔺⏳': 0.02 })),
-                        [{ '🕰': '🐾', '🔺⏳': 0.0083 }]),
+                    'order': CHEMIN_QUATERNAIRE('🐾', [(BASE_QUATERNAIRE_AGE - CAROTTES_AGE) / 1e6]
+                        .concat(Array.from({ length: N_PAS_CAROTTES }, () => PAS_CAROTTES_AN / 1e6))),   // … puis 3,275 ka
                     '🔁': [
-                    { '⚖️🏭': 1.5133e+15, '⚖️🐄': 1.1027e+12 },   // 800 ka : 199,6 ppm / 399 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
-                    { '⚖️🏭': 1.9269e+15, '⚖️🐄': 1.6988e+12 },   // 780 ka : 254,1 ppm / 615 ppb
-                    { '⚖️🏭': 1.7038e+15, '⚖️🐄': 1.2436e+12 },   // 760 ka : 224,7 ppm / 450 ppb
-                    { '⚖️🏭': 1.4010e+15, '⚖️🐄': 1.1303e+12 },   // 740 ka : 184,8 ppm / 409 ppb
-                    { '⚖️🏭': 1.5918e+15, '⚖️🐄': 1.1179e+12 },   // 720 ka : 210,0 ppm / 404 ppb
-                    { '⚖️🏭': 1.8046e+15, '⚖️🐄': 1.6157e+12 },   // 700 ka : 238,0 ppm / 585 ppb
-                    { '⚖️🏭': 1.7600e+15, '⚖️🐄': 1.3385e+12 },   // 680 ka : 232,1 ppm / 484 ppb
-                    { '⚖️🏭': 1.4189e+15, '⚖️🐄': 9.9211e+11 },   // 660 ka : 187,2 ppm / 359 ppb
-                    { '⚖️🏭': 1.4368e+15, '⚖️🐄': 1.0308e+12 },   // 640 ka : 189,5 ppm / 373 ppb
-                    { '⚖️🏭': 1.8734e+15, '⚖️🐄': 1.6638e+12 },   // 620 ka : 247,1 ppm / 602 ppb
-                    { '⚖️🏭': 1.7261e+15, '⚖️🐄': 1.4758e+12 },   // 600 ka : 227,7 ppm / 534 ppb
-                    { '⚖️🏭': 1.8628e+15, '⚖️🐄': 1.5567e+12 },   // 580 ka : 245,7 ppm / 563 ppb
-                    { '⚖️🏭': 1.7527e+15, '⚖️🐄': 1.3730e+12 },   // 560 ka : 231,2 ppm / 497 ppb
-                    { '⚖️🏭': 1.5894e+15, '⚖️🐄': 1.1110e+12 },   // 540 ka : 209,7 ppm / 402 ppb
-                    { '⚖️🏭': 1.8664e+15, '⚖️🐄': 1.4482e+12 },   // 520 ka : 246,2 ppm / 524 ppb
-                    { '⚖️🏭': 1.7491e+15, '⚖️🐄': 1.3883e+12 },   // 500 ka : 230,7 ppm / 502 ppb
-                    { '⚖️🏭': 1.7199e+15, '⚖️🐄': 1.4067e+12 },   // 480 ka : 226,9 ppm / 509 ppb
-                    { '⚖️🏭': 1.5568e+15, '⚖️🐄': 1.1510e+12 },   // 460 ka : 205,4 ppm / 416 ppb
-                    { '⚖️🏭': 1.5239e+15, '⚖️🐄': 1.1123e+12 },   // 440 ka : 201,0 ppm / 402 ppb
-                    { '⚖️🏭': 2.0691e+15, '⚖️🐄': 1.8877e+12 },   // 420 ka : 272,9 ppm / 683 ppb
-                    { '⚖️🏭': 2.1241e+15, '⚖️🐄': 1.6854e+12 },   // 400 ka : 280,1 ppm / 610 ppb
-                    { '⚖️🏭': 1.7352e+15, '⚖️🐄': 1.4309e+12 },   // 380 ka : 228,9 ppm / 518 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
-                    { '⚖️🏭': 1.4370e+15, '⚖️🐄': 1.1874e+12 },   // 360 ka : 189,6 ppm / 430 ppb
-                    { '⚖️🏭': 1.8087e+15, '⚖️🐄': 1.2526e+12 },   // 340 ka : 238,6 ppm / 453 ppb
-                    { '⚖️🏭': 1.8545e+15, '⚖️🐄': 1.3535e+12 },   // 320 ka : 244,6 ppm / 490 ppb
-                    { '⚖️🏭': 1.7263e+15, '⚖️🐄': 1.3879e+12 },   // 300 ka : 227,7 ppm / 502 ppb
-                    { '⚖️🏭': 1.5750e+15, '⚖️🐄': 1.2563e+12 },   // 280 ka : 207,8 ppm / 455 ppb
-                    { '⚖️🏭': 1.5675e+15, '⚖️🐄': 1.2403e+12 },   // 260 ka : 206,8 ppm / 449 ppb
-                    { '⚖️🏭': 1.8795e+15, '⚖️🐄': 1.6240e+12 },   // 240 ka : 247,9 ppm / 588 ppb
-                    { '⚖️🏭': 1.8234e+15, '⚖️🐄': 1.3645e+12 },   // 220 ka : 240,5 ppm / 494 ppb
-                    { '⚖️🏭': 1.8393e+15, '⚖️🐄': 1.5624e+12 },   // 200 ka : 242,6 ppm / 565 ppb
-                    { '⚖️🏭': 1.5747e+15, '⚖️🐄': 1.3017e+12 },   // 180 ka : 207,7 ppm / 471 ppb
-                    { '⚖️🏭': 1.4139e+15, '⚖️🐄': 1.1552e+12 },   // 160 ka : 186,5 ppm / 418 ppb
-                    { '⚖️🏭': 1.4613e+15, '⚖️🐄': 1.0428e+12 },   // 140 ka : 192,8 ppm / 377 ppb
-                    { '⚖️🏭': 2.0621e+15, '⚖️🐄': 1.6085e+12 },   // 120 ka : 272,0 ppm / 582 ppb
-                    { '⚖️🏭': 1.8613e+15, '⚖️🐄': 1.4744e+12 },   // 100 ka : 245,5 ppm / 534 ppb
-                    { '⚖️🏭': 1.7526e+15, '⚖️🐄': 1.4893e+12 },   //  80 ka : 231,2 ppm / 539 ppb
-                    { '⚖️🏭': 1.6697e+15, '⚖️🐄': 1.1899e+12 },   //  60 ka : 220,2 ppm / 431 ppb
-                    { '⚖️🏭': 1.5190e+15, '⚖️🐄': 1.1879e+12 },   //  40 ka : 200,4 ppm / 430 ppb
-                    { '⚖️🏭': 1.4542e+15, '⚖️🐄': 1.0186e+12 }    //  20 ka : 191,8 ppm / 369 ppb
+                    { '⚖️🏭': 1.5405e+15, '⚖️🐄': 1.1223e+12 },   // 800 ka : 199,6 ppm / 399 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.5953e+15, '⚖️🐄': 1.1926e+12 },   // 795 ka : 206,7 ppm / 424 ppb
+                    { '⚖️🏭': 1.8047e+15, '⚖️🐄': 1.4683e+12 },   // 790 ka : 233,8 ppm / 522 ppb
+                    { '⚖️🏭': 1.9975e+15, '⚖️🐄': 1.8547e+12 },   // 785 ka : 258,8 ppm / 659 ppb
+                    { '⚖️🏭': 1.9615e+15, '⚖️🐄': 1.7290e+12 },   // 780 ka : 254,1 ppm / 615 ppb
+                    { '⚖️🏭': 1.8507e+15, '⚖️🐄': 1.6315e+12 },   // 775 ka : 239,8 ppm / 580 ppb
+                    { '⚖️🏭': 1.7446e+15, '⚖️🐄': 1.7144e+12 },   // 770 ka : 226,0 ppm / 610 ppb
+                    { '⚖️🏭': 1.7556e+15, '⚖️🐄': 1.4454e+12 },   // 765 ka : 227,5 ppm / 514 ppb
+                    { '⚖️🏭': 1.7345e+15, '⚖️🐄': 1.2658e+12 },   // 760 ka : 224,7 ppm / 450 ppb
+                    { '⚖️🏭': 1.5596e+15, '⚖️🐄': 1.1884e+12 },   // 755 ka : 202,1 ppm / 422 ppb
+                    { '⚖️🏭': 1.4687e+15, '⚖️🐄': 1.1120e+12 },   // 750 ka : 190,3 ppm / 395 ppb
+                    { '⚖️🏭': 1.4520e+15, '⚖️🐄': 1.1954e+12 },   // 745 ka : 188,1 ppm / 425 ppb
+                    { '⚖️🏭': 1.4262e+15, '⚖️🐄': 1.1504e+12 },   // 740 ka : 184,8 ppm / 409 ppb
+                    { '⚖️🏭': 1.6579e+15, '⚖️🐄': 1.4683e+12 },   // 735 ka : 214,8 ppm / 522 ppb
+                    { '⚖️🏭': 1.6273e+15, '⚖️🐄': 1.5414e+12 },   // 730 ka : 210,9 ppm / 548 ppb
+                    { '⚖️🏭': 1.6361e+15, '⚖️🐄': 1.5189e+12 },   // 725 ka : 212,0 ppm / 540 ppb
+                    { '⚖️🏭': 1.6204e+15, '⚖️🐄': 1.1378e+12 },   // 720 ka : 210,0 ppm / 404 ppb
+                    { '⚖️🏭': 1.7470e+15, '⚖️🐄': 1.5733e+12 },   // 715 ka : 226,4 ppm / 559 ppb
+                    { '⚖️🏭': 1.7825e+15, '⚖️🐄': 1.6268e+12 },   // 710 ka : 231,0 ppm / 578 ppb
+                    { '⚖️🏭': 1.8101e+15, '⚖️🐄': 1.6643e+12 },   // 705 ka : 234,5 ppm / 592 ppb
+                    { '⚖️🏭': 1.8370e+15, '⚖️🐄': 1.6444e+12 },   // 700 ka : 238,0 ppm / 585 ppb
+                    { '⚖️🏭': 1.8457e+15, '⚖️🐄': 1.7824e+12 },   // 695 ka : 239,1 ppm / 634 ppb
+                    { '⚖️🏭': 1.8018e+15, '⚖️🐄': 1.5538e+12 },   // 690 ka : 233,5 ppm / 552 ppb
+                    { '⚖️🏭': 1.7219e+15, '⚖️🐄': 1.4317e+12 },   // 685 ka : 223,1 ppm / 509 ppb
+                    { '⚖️🏭': 1.7917e+15, '⚖️🐄': 1.3624e+12 },   // 680 ka : 232,1 ppm / 484 ppb
+                    { '⚖️🏭': 1.6271e+15, '⚖️🐄': 1.5688e+12 },   // 675 ka : 210,8 ppm / 558 ppb
+                    { '⚖️🏭': 1.4631e+15, '⚖️🐄': 1.2446e+12 },   // 670 ka : 189,6 ppm / 442 ppb
+                    { '⚖️🏭': 1.4386e+15, '⚖️🐄': 1.1645e+12 },   // 665 ka : 186,4 ppm / 414 ppb
+                    { '⚖️🏭': 1.4444e+15, '⚖️🐄': 1.0098e+12 },   // 660 ka : 187,2 ppm / 359 ppb
+                    { '⚖️🏭': 1.5235e+15, '⚖️🐄': 1.1167e+12 },   // 655 ka : 197,4 ppm / 397 ppb
+                    { '⚖️🏭': 1.4873e+15, '⚖️🐄': 1.1645e+12 },   // 650 ka : 192,7 ppm / 414 ppb
+                    { '⚖️🏭': 1.5093e+15, '⚖️🐄': 1.2067e+12 },   // 645 ka : 195,6 ppm / 429 ppb
+                    { '⚖️🏭': 1.4626e+15, '⚖️🐄': 1.0492e+12 },   // 640 ka : 189,5 ppm / 373 ppb
+                    { '⚖️🏭': 1.5021e+15, '⚖️🐄': 1.0154e+12 },   // 635 ka : 194,6 ppm / 361 ppb
+                    { '⚖️🏭': 1.5579e+15, '⚖️🐄': 1.0014e+12 },   // 630 ka : 201,9 ppm / 356 ppb
+                    { '⚖️🏭': 1.8251e+15, '⚖️🐄': 1.5218e+12 },   // 625 ka : 236,5 ppm / 541 ppb
+                    { '⚖️🏭': 1.9070e+15, '⚖️🐄': 1.6934e+12 },   // 620 ka : 247,1 ppm / 602 ppb
+                    { '⚖️🏭': 1.9640e+15, '⚖️🐄': 1.7398e+12 },   // 615 ka : 254,5 ppm / 618 ppb
+                    { '⚖️🏭': 1.9950e+15, '⚖️🐄': 1.6540e+12 },   // 610 ka : 258,5 ppm / 588 ppb
+                    { '⚖️🏭': 1.8665e+15, '⚖️🐄': 1.4571e+12 },   // 605 ka : 241,8 ppm / 518 ppb
+                    { '⚖️🏭': 1.7572e+15, '⚖️🐄': 1.5021e+12 },   // 600 ka : 227,7 ppm / 534 ppb
+                    { '⚖️🏭': 1.8241e+15, '⚖️🐄': 1.3596e+12 },   // 595 ka : 236,3 ppm / 483 ppb
+                    { '⚖️🏭': 1.9067e+15, '⚖️🐄': 1.2771e+12 },   // 590 ka : 247,1 ppm / 454 ppb
+                    { '⚖️🏭': 1.6257e+15, '⚖️🐄': 1.3361e+12 },   // 585 ka : 210,6 ppm / 475 ppb — CH₄ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.8963e+15, '⚖️🐄': 1.5844e+12 },   // 580 ka : 245,7 ppm / 563 ppb
+                    { '⚖️🏭': 1.9383e+15, '⚖️🐄': 1.6920e+12 },   // 575 ka : 251,1 ppm / 602 ppb
+                    { '⚖️🏭': 1.9393e+15, '⚖️🐄': 1.6563e+12 },   // 570 ka : 251,3 ppm / 589 ppb
+                    { '⚖️🏭': 1.9237e+15, '⚖️🐄': 1.6180e+12 },   // 565 ka : 249,2 ppm / 575 ppb
+                    { '⚖️🏭': 1.7842e+15, '⚖️🐄': 1.3974e+12 },   // 560 ka : 231,2 ppm / 497 ppb
+                    { '⚖️🏭': 1.7355e+15, '⚖️🐄': 1.5154e+12 },   // 555 ka : 224,9 ppm / 539 ppb
+                    { '⚖️🏭': 1.6076e+15, '⚖️🐄': 1.3051e+12 },   // 550 ka : 208,3 ppm / 464 ppb
+                    { '⚖️🏭': 1.6145e+15, '⚖️🐄': 1.1884e+12 },   // 545 ka : 209,2 ppm / 422 ppb
+                    { '⚖️🏭': 1.6180e+15, '⚖️🐄': 1.1308e+12 },   // 540 ka : 209,7 ppm / 402 ppb
+                    { '⚖️🏭': 1.5038e+15, '⚖️🐄': 1.2629e+12 },   // 535 ka : 194,8 ppm / 449 ppb
+                    { '⚖️🏭': 1.7130e+15, '⚖️🐄': 1.2531e+12 },   // 530 ka : 221,9 ppm / 446 ppb
+                    { '⚖️🏭': 1.8237e+15, '⚖️🐄': 1.4908e+12 },   // 525 ka : 236,3 ppm / 530 ppb
+                    { '⚖️🏭': 1.8999e+15, '⚖️🐄': 1.4740e+12 },   // 520 ka : 246,2 ppm / 524 ppb
+                    { '⚖️🏭': 1.8495e+15, '⚖️🐄': 1.4100e+12 },   // 515 ka : 239,6 ppm / 501 ppb
+                    { '⚖️🏭': 1.8284e+15, '⚖️🐄': 1.4810e+12 },   // 510 ka : 236,9 ppm / 526 ppb
+                    { '⚖️🏭': 1.8014e+15, '⚖️🐄': 1.5330e+12 },   // 505 ka : 233,4 ppm / 545 ppb
+                    { '⚖️🏭': 1.7805e+15, '⚖️🐄': 1.4130e+12 },   // 500 ka : 230,7 ppm / 502 ppb
+                    { '⚖️🏭': 1.8418e+15, '⚖️🐄': 1.4318e+12 },   // 495 ka : 238,6 ppm / 509 ppb
+                    { '⚖️🏭': 1.8949e+15, '⚖️🐄': 1.6221e+12 },   // 490 ka : 245,5 ppm / 577 ppb
+                    { '⚖️🏭': 1.7854e+15, '⚖️🐄': 1.5527e+12 },   // 485 ka : 231,3 ppm / 552 ppb
+                    { '⚖️🏭': 1.7508e+15, '⚖️🐄': 1.4317e+12 },   // 480 ka : 226,9 ppm / 509 ppb
+                    { '⚖️🏭': 1.8786e+15, '⚖️🐄': 1.3769e+12 },   // 475 ka : 243,4 ppm / 490 ppb
+                    { '⚖️🏭': 1.5898e+15, '⚖️🐄': 1.3009e+12 },   // 470 ka : 206,0 ppm / 462 ppb
+                    { '⚖️🏭': 1.5824e+15, '⚖️🐄': 1.2517e+12 },   // 465 ka : 205,0 ppm / 445 ppb
+                    { '⚖️🏭': 1.5848e+15, '⚖️🐄': 1.1715e+12 },   // 460 ka : 205,4 ppm / 416 ppb
+                    { '⚖️🏭': 1.5312e+15, '⚖️🐄': 1.2686e+12 },   // 455 ka : 198,4 ppm / 451 ppb
+                    { '⚖️🏭': 1.5813e+15, '⚖️🐄': 1.0717e+12 },   // 450 ka : 204,9 ppm / 381 ppb
+                    { '⚖️🏭': 1.5366e+15, '⚖️🐄': 1.2510e+12 },   // 445 ka : 199,1 ppm / 445 ppb
+                    { '⚖️🏭': 1.5512e+15, '⚖️🐄': 1.1321e+12 },   // 440 ka : 201,0 ppm / 402 ppb
+                    { '⚖️🏭': 1.6022e+15, '⚖️🐄': 1.0717e+12 },   // 435 ka : 207,6 ppm / 381 ppb
+                    { '⚖️🏭': 1.8716e+15, '⚖️🐄': 1.0921e+12 },   // 430 ka : 242,5 ppm / 388 ppb
+                    { '⚖️🏭': 2.0757e+15, '⚖️🐄': 1.5886e+12 },   // 425 ka : 268,9 ppm / 565 ppb
+                    { '⚖️🏭': 2.1063e+15, '⚖️🐄': 1.9213e+12 },   // 420 ka : 272,9 ppm / 683 ppb
+                    { '⚖️🏭': 2.0704e+15, '⚖️🐄': 1.8397e+12 },   // 415 ka : 268,2 ppm / 654 ppb
+                    { '⚖️🏭': 2.1507e+15, '⚖️🐄': 1.9899e+12 },   // 410 ka : 278,6 ppm / 707 ppb
+                    { '⚖️🏭': 2.1495e+15, '⚖️🐄': 1.8887e+12 },   // 405 ka : 278,5 ppm / 671 ppb
+                    { '⚖️🏭': 2.1623e+15, '⚖️🐄': 1.7154e+12 },   // 400 ka : 280,1 ppm / 610 ppb
+                    { '⚖️🏭': 2.0619e+15, '⚖️🐄': 1.6400e+12 },   // 395 ka : 267,1 ppm / 583 ppb
+                    { '⚖️🏭': 1.8971e+15, '⚖️🐄': 1.4674e+12 },   // 390 ka : 245,8 ppm / 522 ppb
+                    { '⚖️🏭': 1.8523e+15, '⚖️🐄': 1.5855e+12 },   // 385 ka : 240,0 ppm / 564 ppb
+                    { '⚖️🏭': 1.7664e+15, '⚖️🐄': 1.4564e+12 },   // 380 ka : 228,9 ppm / 518 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.6570e+15, '⚖️🐄': 1.2161e+12 },   // 375 ka : 214,7 ppm / 432 ppb
+                    { '⚖️🏭': 1.5731e+15, '⚖️🐄': 1.3783e+12 },   // 370 ka : 203,8 ppm / 490 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.5528e+15, '⚖️🐄': 1.2423e+12 },   // 365 ka : 201,2 ppm / 442 ppb
+                    { '⚖️🏭': 1.4629e+15, '⚖️🐄': 1.2085e+12 },   // 360 ka : 189,6 ppm / 430 ppb
+                    { '⚖️🏭': 1.6153e+15, '⚖️🐄': 1.1373e+12 },   // 355 ka : 209,3 ppm / 404 ppb
+                    { '⚖️🏭': 1.7002e+15, '⚖️🐄': 1.1673e+12 },   // 350 ka : 220,3 ppm / 415 ppb
+                    { '⚖️🏭': 1.5837e+15, '⚖️🐄': 1.0590e+12 },   // 345 ka : 205,2 ppm / 376 ppb
+                    { '⚖️🏭': 1.8412e+15, '⚖️🐄': 1.2749e+12 },   // 340 ka : 238,6 ppm / 453 ppb
+                    { '⚖️🏭': 2.2176e+15, '⚖️🐄': 1.6613e+12 },   // 335 ka : 287,3 ppm / 591 ppb
+                    { '⚖️🏭': 2.1109e+15, '⚖️🐄': 1.7968e+12 },   // 330 ka : 273,5 ppm / 639 ppb
+                    { '⚖️🏭': 2.0098e+15, '⚖️🐄': 1.7201e+12 },   // 325 ka : 260,4 ppm / 612 ppb
+                    { '⚖️🏭': 1.8878e+15, '⚖️🐄': 1.3776e+12 },   // 320 ka : 244,6 ppm / 490 ppb
+                    { '⚖️🏭': 1.9691e+15, '⚖️🐄': 1.7084e+12 },   // 315 ka : 255,1 ppm / 607 ppb
+                    { '⚖️🏭': 1.7679e+15, '⚖️🐄': 1.3228e+12 },   // 310 ka : 229,1 ppm / 470 ppb
+                    { '⚖️🏭': 1.8809e+15, '⚖️🐄': 1.3699e+12 },   // 305 ka : 243,7 ppm / 487 ppb
+                    { '⚖️🏭': 1.7574e+15, '⚖️🐄': 1.4126e+12 },   // 300 ka : 227,7 ppm / 502 ppb
+                    { '⚖️🏭': 1.6184e+15, '⚖️🐄': 1.4809e+12 },   // 295 ka : 209,7 ppm / 526 ppb
+                    { '⚖️🏭': 1.7570e+15, '⚖️🐄': 1.4993e+12 },   // 290 ka : 227,7 ppm / 533 ppb
+                    { '⚖️🏭': 1.7851e+15, '⚖️🐄': 1.3427e+12 },   // 285 ka : 231,3 ppm / 477 ppb
+                    { '⚖️🏭': 1.6033e+15, '⚖️🐄': 1.2787e+12 },   // 280 ka : 207,8 ppm / 455 ppb
+                    { '⚖️🏭': 1.4972e+15, '⚖️🐄': 1.3158e+12 },   // 275 ka : 194,0 ppm / 468 ppb
+                    { '⚖️🏭': 1.4717e+15, '⚖️🐄': 1.2615e+12 },   // 270 ka : 190,7 ppm / 448 ppb
+                    { '⚖️🏭': 1.7604e+15, '⚖️🐄': 1.1612e+12 },   // 265 ka : 228,1 ppm / 413 ppb
+                    { '⚖️🏭': 1.5956e+15, '⚖️🐄': 1.2624e+12 },   // 260 ka : 206,8 ppm / 449 ppb
+                    { '⚖️🏭': 1.5080e+15, '⚖️🐄': 1.1877e+12 },   // 255 ka : 195,4 ppm / 422 ppb
+                    { '⚖️🏭': 1.6570e+15, '⚖️🐄': 1.1651e+12 },   // 250 ka : 214,7 ppm / 414 ppb
+                    { '⚖️🏭': 1.9345e+15, '⚖️🐄': 1.4318e+12 },   // 245 ka : 250,7 ppm / 509 ppb
+                    { '⚖️🏭': 1.9133e+15, '⚖️🐄': 1.6529e+12 },   // 240 ka : 247,9 ppm / 588 ppb
+                    { '⚖️🏭': 1.8830e+15, '⚖️🐄': 1.3284e+12 },   // 235 ka : 244,0 ppm / 472 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
+                    { '⚖️🏭': 1.7326e+15, '⚖️🐄': 1.3104e+12 },   // 230 ka : 224,5 ppm / 466 ppb
+                    { '⚖️🏭': 1.5868e+15, '⚖️🐄': 1.4373e+12 },   // 225 ka : 205,6 ppm / 511 ppb
+                    { '⚖️🏭': 1.8562e+15, '⚖️🐄': 1.3888e+12 },   // 220 ka : 240,5 ppm / 494 ppb
+                    { '⚖️🏭': 1.8855e+15, '⚖️🐄': 1.5100e+12 },   // 215 ka : 244,3 ppm / 537 ppb
+                    { '⚖️🏭': 1.8807e+15, '⚖️🐄': 1.5651e+12 },   // 210 ka : 243,7 ppm / 556 ppb
+                    { '⚖️🏭': 1.8380e+15, '⚖️🐄': 1.3685e+12 },   // 205 ka : 238,2 ppm / 486 ppb
+                    { '⚖️🏭': 1.8724e+15, '⚖️🐄': 1.5902e+12 },   // 200 ka : 242,6 ppm / 565 ppb
+                    { '⚖️🏭': 1.7230e+15, '⚖️🐄': 1.4552e+12 },   // 195 ka : 223,2 ppm / 517 ppb
+                    { '⚖️🏭': 1.7851e+15, '⚖️🐄': 1.2424e+12 },   // 190 ka : 231,3 ppm / 442 ppb
+                    { '⚖️🏭': 1.5412e+15, '⚖️🐄': 1.3586e+12 },   // 185 ka : 199,7 ppm / 483 ppb
+                    { '⚖️🏭': 1.6030e+15, '⚖️🐄': 1.3248e+12 },   // 180 ka : 207,7 ppm / 471 ppb
+                    { '⚖️🏭': 1.5192e+15, '⚖️🐄': 1.3070e+12 },   // 175 ka : 196,8 ppm / 465 ppb
+                    { '⚖️🏭': 1.5173e+15, '⚖️🐄': 1.3023e+12 },   // 170 ka : 196,6 ppm / 463 ppb
+                    { '⚖️🏭': 1.5165e+15, '⚖️🐄': 1.1490e+12 },   // 165 ka : 196,5 ppm / 408 ppb
+                    { '⚖️🏭': 1.4393e+15, '⚖️🐄': 1.1757e+12 },   // 160 ka : 186,5 ppm / 418 ppb
+                    { '⚖️🏭': 1.5150e+15, '⚖️🐄': 1.1110e+12 },   // 155 ka : 196,3 ppm / 395 ppb
+                    { '⚖️🏭': 1.5601e+15, '⚖️🐄': 1.1800e+12 },   // 150 ka : 202,1 ppm / 420 ppb
+                    { '⚖️🏭': 1.5128e+15, '⚖️🐄': 1.0942e+12 },   // 145 ka : 196,0 ppm / 389 ppb
+                    { '⚖️🏭': 1.4876e+15, '⚖️🐄': 1.0614e+12 },   // 140 ka : 192,8 ppm / 377 ppb
+                    { '⚖️🏭': 1.6395e+15, '⚖️🐄': 1.1617e+12 },   // 135 ka : 212,4 ppm / 413 ppb
+                    { '⚖️🏭': 1.9907e+15, '⚖️🐄': 1.4692e+12 },   // 130 ka : 257,9 ppm / 522 ppb
+                    { '⚖️🏭': 2.1413e+15, '⚖️🐄': 1.7894e+12 },   // 125 ka : 277,4 ppm / 636 ppb
+                    { '⚖️🏭': 2.0991e+15, '⚖️🐄': 1.6372e+12 },   // 120 ka : 272,0 ppm / 582 ppb
+                    { '⚖️🏭': 2.1092e+15, '⚖️🐄': 1.3676e+12 },   // 115 ka : 273,3 ppm / 486 ppb
+                    { '⚖️🏭': 1.8916e+15, '⚖️🐄': 1.4116e+12 },   // 110 ka : 245,1 ppm / 502 ppb
+                    { '⚖️🏭': 1.8866e+15, '⚖️🐄': 1.6606e+12 },   // 105 ka : 244,4 ppm / 590 ppb
+                    { '⚖️🏭': 1.8947e+15, '⚖️🐄': 1.5007e+12 },   // 100 ka : 245,5 ppm / 534 ppb
+                    { '⚖️🏭': 1.8819e+15, '⚖️🐄': 1.2556e+12 },   //  95 ka : 243,8 ppm / 446 ppb
+                    { '⚖️🏭': 1.7704e+15, '⚖️🐄': 1.3061e+12 },   //  90 ka : 229,4 ppm / 464 ppb
+                    { '⚖️🏭': 1.8459e+15, '⚖️🐄': 1.2665e+12 },   //  85 ka : 239,2 ppm / 450 ppb
+                    { '⚖️🏭': 1.7841e+15, '⚖️🐄': 1.5158e+12 },   //  80 ka : 231,2 ppm / 539 ppb
+                    { '⚖️🏭': 1.8759e+15, '⚖️🐄': 1.2449e+12 },   //  75 ka : 243,1 ppm / 443 ppb
+                    { '⚖️🏭': 1.6450e+15, '⚖️🐄': 1.3227e+12 },   //  70 ka : 213,1 ppm / 470 ppb
+                    { '⚖️🏭': 1.5582e+15, '⚖️🐄': 1.2798e+12 },   //  65 ka : 201,9 ppm / 455 ppb
+                    { '⚖️🏭': 1.6997e+15, '⚖️🐄': 1.2111e+12 },   //  60 ka : 220,2 ppm / 431 ppb
+                    { '⚖️🏭': 1.6564e+15, '⚖️🐄': 1.3477e+12 },   //  55 ka : 214,6 ppm / 479 ppb
+                    { '⚖️🏭': 1.5746e+15, '⚖️🐄': 1.3330e+12 },   //  50 ka : 204,0 ppm / 474 ppb
+                    { '⚖️🏭': 1.6260e+15, '⚖️🐄': 1.3122e+12 },   //  45 ka : 210,7 ppm / 466 ppb
+                    { '⚖️🏭': 1.5463e+15, '⚖️🐄': 1.2091e+12 },   //  40 ka : 200,4 ppm / 430 ppb
+                    { '⚖️🏭': 1.5427e+15, '⚖️🐄': 1.2940e+12 },   //  35 ka : 199,9 ppm / 460 ppb
+                    { '⚖️🏭': 1.4618e+15, '⚖️🐄': 1.1074e+12 },   //  30 ka : 189,4 ppm / 394 ppb
+                    { '⚖️🏭': 1.4170e+15, '⚖️🐄': 1.0404e+12 },   //  25 ka : 183,6 ppm / 370 ppb
+                    { '⚖️🏭': 1.4804e+15, '⚖️🐄': 1.0368e+12 },   //  20 ka : 191,8 ppm / 369 ppb
+                    { '⚖️🏭': 1.7960e+15, '⚖️🐄': 1.3480e+12 }    //  15 ka : 232,7 ppm / 479 ppb
                     ]
                 },
                 '🦘': {
-                    'order': [{ '🕰': '🦘', '🔺⏳': 2.559 }, { '🕰': '🦘', '🔺⏳': 0.0093 }],
+                    'order': CHEMIN_QUATERNAIRE('🦘', [2.559]),   // … puis 9,275 ka
                     '🔁': [
-                        { '⚖️🏭': 1.4399e+15, '⚖️🐄': 1.0167e+12 }    //  21 ka : 189,9 ppm / 368 ppb
+                        { '⚖️🏭': 1.4658e+15, '⚖️🐄': 1.0348e+12 }    //  21 ka : 189,9 ppm / 368 ppb
                     ]
                 }
             },
             '🐾': { '🔺🌡️💫': 0 },
             '🦘': { '🔺🌡️💫': 0 },
-            // Interpolation linéaire 🌡️🧮 (graine solveur) de ▶ vers ◀ de 🦣, deux points de la courbe cyan.
-            '🔀': ['📅'],
+            // Interpolation linéaire 🌡️🧮 (graine solveur, 📜) de ▶ vers ◀ de 🦣, deux points de la courbe cyan.
+            '🔀': ['📜'],
             '◀': {
-                '📅': {},   // 🌡️🧮 : la courbe cyan à ◀ (accesseur en fin de fichier)
+                '📜': { '🌡️🧮': null },   // la courbe cyan à ◀ (accesseur en fin de fichier)
             },
         },
-        '🌱': 0.31,
         // 🧫 : 🦣 Quaternaire — CLAW moderne, cycles Milankovitch.
         '🧫': 1.0,
         // 🌊🏭 : pompe Urey moderne. Cycles glaciaires cf. Sigman & Boyle 2000 Nature 407:859
@@ -1425,20 +1472,19 @@ const timeline = [
     {// Holocène 🛖
         '📅': '🛖',
         '⛄': 0.105,
-        '▶': -9700, // v-2026-09-24 : vraie date — base de l'Holocène (11 700 b2k = −9700), ICS 2023 (était -10000)
+        '▶': BASE_HOLOCENE_AN, // base de l'Holocène (11 700 b2k = −9700), ICS 2023
         '◀': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
-        // 🥶 : Holocène, valeurs Terre-moderne (référence calibration ERA5/Peixoto&Oort 1992).
         '🧲🔬': 0.03,
-        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) ≈ 100% — NE PAS MODIFIER
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
         //'🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
         //'🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17 },
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.14, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ PROVISOIRE : à 11,7 ka les calottes nord-américaines + Groenland couvraient ~9,9e6 km² (Dalton et al. 2020, QSR 234:106223, tableau 1) — partage par bande à calculer des isochrones
-        '⚖️🏭': 2.1507e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.191e15 // ~280 ppm CO2 pré-industriel (Marcott 2013)
-        '⚖️🐄': 1.9691e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.006e12 // v-2026-09-23 (était 2.28e12) : CH₄ ≈ 0,70 ppm air sec = milieu de [0,6 ; 0,8] ‖ avant : ~800 ppb CH4 pré-industriel
+        // CO₂ et CH₄ mesurés dans les carottes antarctiques à ▶ (11 725 ans avant 2025), comme les états 🔁 de 🦣 : moyenne des mesures
+        //   à ± 1 ka (CO2/scripts/quaternaire/epica_etats.py, sa fonction mesure) — CO₂ : composite de Bereiter et al. 2015 (GRL 42:542),
+        //   73 mesures ; CH₄ : EPICA Dome C, Loulergue et al. 2008 (Nature 453:383), 27 mesures, à cheval sur le saut du Dryas récent.
+        '⚖️🏭': 1.9781e+15, // CO₂ ≈ 256,3 ppm d'air sec
+        '⚖️🐄': 1.6428e+12, // CH₄ ≈ 0,584 ppm d'air sec
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1449,42 +1495,36 @@ const timeline = [
             'order': [{ '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }, { '🕰': '💫', '🔺⏳': 0.0039 }],
             '💫': { '🔺🌡️💫': 0 }, // 4 ka/tic : −10000 → −6000 → −2000 → fin (1800, borné) → 🚂 // v-2026-09-24 : 🔺⏳ 0.004 → 0.0039 (2 clics + transition — 11 450 ans)
         },
-        '🌱': 0.31,
         // 🧫 : 🛖 Holocène — CLAW moderne, pré-industriel.
         '🧫': 1.0,
         // 🌊🏭 : pompe Urey moderne pré-industrielle (équilibre stationnaire 280 ppm).
         '🌊🏭': 1.0
     },
-    // Industriel (1800 → 2000) : révolution industrielle, CO₂ 280 → 370 ppm, début signal anthropique
+    // Industriel (1750 → 2000) : révolution industrielle, CO₂ 277 → 370 ppm, début signal anthropique
     {// Industriel 🚂
         '📅': '🚂',
         '▶': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
         '◀': 2000,
-        // 🥶 : Industrielle, valeurs Terre-moderne.
         '🧲🔬': 0.01,
-        '🔋☀️': 3.828e26,
         '📐': 6371,
         '🍎': 9.81,
-        '📏🌊': 3.7,
-        '🐚': 1.0,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_ACTUELLES },
         //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
-        '⚖️🏭': 2.0990e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.139e15 // v-2026-09-24 : ≈ 276,8 ppm air sec = Law Dome 1750 (MacFarling Meure 2006) ‖ avant : 2.191e15
-        '⚖️🐄': 1.9341e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.971e12 // v-2026-09-24 : ≈ 0,697 ppm air sec = Law Dome 1750 ‖ avant : 2.056e12
+        '⚖️🏭': 2.1365e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.139e15 // v-2026-09-24 : ≈ 276,8 ppm air sec = Law Dome 1750 (MacFarling Meure 2006) ‖ avant : 2.191e15
+        '⚖️🐄': 1.9607e+12, // CH₄ ≈ 0,697 ppm d'air sec = Law Dome 1750 (MacFarling Meure et al. 2006)
         '⚖️💧': 1.4e21,
-        '⚖️🫁': 1.0815e18,
+        '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : 4,0e8 kg SO₄ = charge PRÉINDUSTRIELLE simulée (Tsigaridis et al. 2006 ACP 6:5143,
         //   Table 5 : nss-sulfate 0,40 Tg ; dispersion inter-modèles publiée 0,10–0,58 Tg).
         //   Leur « préindustriel » utilise les émissions anthropiques EDGAR-HYDE de 1860 ; cette
-        //   fiche est datée 1800, où l'anthropique était encore plus faible — l'écart est très
+        //   fiche est datée 1750, où l'anthropique était encore plus faible — l'écart est très
         //   inférieur à la dispersion inter-modèles. Le sulfate industriel n'arrive qu'après 1850.
         '⚖️✈': 4.0e8,
         '⚖️💨': N2_1PAL_KG,
         '🕰': {
             'order': [{ '🕰': '💫', '🔺⏳': 0.000125 }, { '🕰': '💫', '🔺⏳': 0.000125 }],
-            '💫': { '🔺🌡️💫': 0 }, // 100 ans/tic ≈ 2 tics pour 1800 → 2000 // v-2026-09-24 : 🔺⏳ 0.0001 → 0.000125 (1 clic + transition — 250 ans)
+            '💫': { '🔺🌡️💫': 0 }, // 125 ans par tic : 2 tics de 1750 à 2000
         },
-        '🌱': 0.31,
         // 🧫 : 🚂 Industriel — CLAW moderne + début SO₂ anthropique (le vrai boost sulfate arrive via anthro_factor).
         '🧫': 1.0,
         // 🌊🏭 : pompe Urey moderne. Absorption océan ~25-30 % anthro (Le Quéré et al. 2018 ESSD 10:2141).
@@ -1494,22 +1534,18 @@ const timeline = [
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
-        // 🥶 : Aujourd'hui, valeurs Terre-moderne (calibration target 15°C).
         '🧲🔬': 0.010,
-        '🔋☀️': 3.828e26, // 🔒 Gough (1981) : L☉/(1+0.4×0/4.57) = 100% (IAU 2015) — NE PAS MODIFIER
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
-        '📏🌊': 3.7, // Profondeur moyenne océans en km (Terre moderne)
-        '🐚': 1.0, // Facteur relief sous-marin (1.0 = pas de modification)
         // Surfaces géologiques (Couche A - géologie/relief)
         '🗻': {
-            '🍰🗻🌊': 0.71, // Surface océanique potentielle (71% - distribution moderne)
+            '🍰🗻🌊': 0.71, // Mer : après 540 Ma, la valeur sert au contrôle de somme ; la mer est celle de la carte (PaleoDEM)
             '🍰🗻🏔': 0.09, // Hautes terres (9% - relief moderne)
             '🍰🗻🌍': 0.20, // Terres basses (20% - continents modernes)
             '🍰🗻🧊': CALOTTES_ACTUELLES
         },
         // Note: molar_mass_air sera calculé depuis les composants (n2_kg, o2_kg, co2_kg, ch4_kg) via calculations.js
-        // Note: 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 sont maintenant calculés dynamiquement dans calculateAlbedo()
+        // 🍰🪩🏜️, 🍰🪩🌳, 🍰🪩🌍 : calculés par calculateAlbedo (désert, forêt sous la ligne des arbres, sol).
         // Simulation parameters - Quantités en kg
         // ⚠️ 369 ppm = fraction molaire d'air SEC (NOAA). Le modèle affiche de l'air HUMIDE (365 ppm) :
         //    ppm_sec = ppm_humide / (1 − x_H2O). Détail et vérif : atmosphere/calculations_atm.js,
@@ -1592,9 +1628,6 @@ const timeline = [
                 '⚖️': { '⚖️💧': 1.4e21, '⚖️🐄': 8.4419e+12, '⚖️🫁': 1.18e18, '⚖️✈': 1.05e9, '⚖️💨': 3.8780e+18 }
             }
         },
-        // 🌱 : 📱 Aujourd'hui — biosphère terrestre moderne (forêts potentielles ~31% des terres).
-        // Réfs : Bonan 2008 Science 320:1444, AR6 WG1 Ch.5 (Carbon Sinks), FAO FRA 2020.
-        '🌱': 0.31,
         // 🧫 : 📱 Aujourd'hui — CLAW moderne + sulfate anthropique (SO₂ industriel → CCN).
         // Réfs : Charlson 1987 (CLAW), Twomey 1977, Quinn & Bates 2011, Woodhouse 2010.
         '🧫': 1.0,
@@ -1715,12 +1748,27 @@ window.epochIndex = function () {
 //     ⚠️  non sourcée : un ordre de grandeur hérité, à ne pas prendre pour une cible
 //     🔀  hystérésis : repère de l'épisode, PAS une cible (voir l'encadré « ÉPOQUES D'HYSTÉRÉSIS »)
 //
-//   CO₂ — PhanDA donne aussi le CO₂ (mêmes 5–95 %, même étage à ▶ que tC). Appliqué le 2026-09-23 ;
-//   hysteresis 2 [711, 907] en venait déjà. Écarts avec l'ancien tableau : 💀 [1500,4000]→[420,1246],
-//   🦕 [1000,2500]→[434,1685], 🦤 [400,1000]→[559,1078], 🐊 [800,1500]→[1052,1326],
-//   🏔 [400,700]→[552,696], 🦣 [180,300]→[273,321], 🍄 [500,3000]→[430,4031], 🛖 [260,285]→[256,298].
-//   🚂 : la fourchette couvrait tout 1800–2000 ([280,370], CH₄ [0,7 ; 1,9]) ; elle est ramenée à ▶ =
-//   1800 (Law Dome) — ce qui a révélé un CH₄ de config à 1,28 ppm quand la mesure dit 0,727.
+//   CO₂ DES ÉPOQUES DE PhanDA (racines de 🍄 💀 🦕 🦤 🐊 🏔 🦣, états 🔁 de 🍄) — une seule convention, celle de la courbe cyan :
+//   la colonne CO2_50 de PhanDA_GMSTandCO2_percentiles.csv, interpolée en ln CO₂ entre les âges moyens (AverageAge) des deux
+//   étages qui encadrent la date ; les fourchettes co2 du banc sont les colonnes CO2_05 et CO2_95 interpolées de même. Les bornes
+//   d'étage de PhanDA ne sont pas celles de l'ICS (Pridoli 419,0–422,73 Ma) : « l'étage à ▶ » n'était pas défini à une borne.
+//   hysteresis 2 garde son CO₂ (config frontière). Plus jeune que 800 ka, les carottes (🛖, états de 🦣) ; 🚂 et 📱, les mesures.
+//
+// ─── CH₄ DES ÉPOQUES ──────────────────────────────────────────────────────────────────────
+//   Règle : la mesure à la date quand elle existe (carottes : 🛖 et les états de 🦣 ; Law Dome : 🚂 ; NOAA : 📱). Sinon, la
+//   simulation publiée la plus proche : Beerling et al. 2011 (PNAS 108:9770, tableau 1) simulent des ÉTATS séparés, chacun avec
+//   sa géographie et ses zones humides — préindustriel moderne 695 ppb ; Éocène précoce (55 Ma) 2 580 ppb à 2 × CO₂ (560 ppm) et
+//   3 614 ppb à 4 × CO₂ (1 120 ppm) ; Crétacé supérieur (90 Ma) 3 304 ppb à 4 × CO₂. La source ne donne pas de loi CH₄(CO₂) ;
+//   on n'en garde que ce qu'elle dit : de 🍄 à 🏔 (états 🔁 de 🍄 et hysteresis 2 compris), géographie de l'Éocène, interpolée
+//   en ln CO₂ entre ses deux expériences et tenue à la plus proche hors de [560 ; 1 120] ppm (🍄 et 🐊 : 3,614 ppm ; états 🔁 2–3
+//   de 🍄 : 2,58 ppm) — 💻, ❔ hors de la géographie et du CO₂ simulés ; 🦣 (géographie moderne) : 695 ppb. Le segment 1 × → 2 ×
+//   change de géographie : ce n'est pas un effet du CO₂, il ne sert pas. hysteresis 2 suit la règle de 🏔 (une config frontière ne
+//   change que son CO₂). Le modèle de boîte de Bartdorff et al. 2008 (Global Biogeochem. Cycles 22:GB1008) monte jusqu'à ~10 ppm
+//   dans les marécages à charbon du Carbonifère — 📖, sa série par date n'est pas dans le dépôt. Le Précambrien (🔥 🦠 🪸, air
+//   sans oxygène), 🪼 (avant les plantes terrestres : 0,697 ppm de 1750 ⚠️) et les configs frontières 1a, ⛄, 1b, 1c gardent
+//   leur CH₄ ⚠️.
+//   Fourchettes ch4 du banc de 🍄 à 🏔 : aucune mesure du CH₄ — la règle ci-dessus aux CO₂ 5 % et 95 % de PhanDA, 📖 : elles ne
+//   contrôlent pas la config, qui en sort. 🚂 : fourchettes à ▶ = 1750 (Law Dome, MacFarling Meure et al. 2006).
 //
 //   h2oVap — AUCUNE mesure paléo n'existe. La littérature mesure le présent : humidité relative de
 //   surface 75–80 % sur les océans, 70–80 % sur les terres, et q de surface +4,9 %/°C à l'échelle
@@ -1800,45 +1848,45 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "⚠️ non sourcée",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🍄': { tCRepere: [26, 39], co2: [430, 4031], ch4: [5, 20], h2oVap: [2.36, 5.6],
+    '🍄': { tCRepere: [26, 39], co2: [472, 3991], ch4: [2.58, 3.614], h2oVap: [2.36, 5.6],
         src: { tCRepere: "✅ PhanDA GMST Pridoli",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Pridoli",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Pragian/Lochkovian et Pridoli",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '💀': { tCRepere: [14.3, 20.7], co2: [484, 1546], ch4: [20, 100], h2oVap: [1.14, 1.95],
+    '💀': { tCRepere: [14.3, 20.7], co2: [463, 1600], ch4: [2.58, 3.614], h2oVap: [1.14, 1.95],
         src: { tCRepere: "✅ PhanDA GMST Changhsingien (▶ = 252,2 Ma)",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Changhsingien",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Induen et Changhsingien",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🦕': { tCRepere: [24, 32], co2: [434, 1685], ch4: [10, 30], h2oVap: [2.08, 3.79],
+    '🦕': { tCRepere: [24, 32], co2: [456, 1619], ch4: [2.58, 3.614], h2oVap: [2.08, 3.79],
         src: { tCRepere: "✅ PhanDA GMST Induen",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Induen",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Induen et Changhsingien",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🦤': { tCRepere: [25, 32], co2: [559, 1078], ch4: [1, 5], h2oVap: [2.22, 3.81],
+    '🦤': { tCRepere: [25, 32], co2: [687, 1072], ch4: [2.88, 3.55], h2oVap: [2.22, 3.81],
         src: { tCRepere: "✅ PhanDA GMST Danien",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Danien",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Sélandien/Danien et Maastrichtien",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🐊': { tCRepere: [30.3, 39.2], co2: [1074, 1530], ch4: [1, 5], h2oVap: [3.02, 5.66],
+    '🐊': { tCRepere: [30.3, 39.2], co2: [1049, 1491], ch4: [3.52, 3.614], h2oVap: [3.02, 5.66],
         src: { tCRepere: "✅ PhanDA GMST étage PETM (▶ = 56,0 Ma)",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage PETM",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre PETM et Thanétien",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🏔': { tCRepere: [21, 25], co2: [552, 696], ch4: [1, 2], h2oVap: [1.78, 2.59],
+    '🏔': { tCRepere: [21, 25], co2: [648, 823], ch4: [2.80, 3.15], h2oVap: [1.78, 2.59],
         src: { tCRepere: "✅ PhanDA GMST Rupélien",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Rupélien",
-               ch4: "⚠️ non sourcée",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Rupélien et Priabonien",
+               ch4: "📖 aucune mesure du CH₄ : la règle de l'encadré « CH₄ DES ÉPOQUES » (Beerling et al. 2011, PNAS 108:9770, tableau 1 : interpolée en ln CO₂ entre 560 et 1 120 ppm, tenue à la plus proche au-delà) aux CO₂ 5 % et 95 % de PhanDA, ne contrôle pas la config",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🦣': { tCRepere: [13, 16], co2: [273, 321], ch4: [0.4, 0.8], h2oVap: [1.07, 1.49],
+    '🦣': { tCRepere: [13, 16], co2: [259, 306], ch4: [0.4, 0.8], h2oVap: [1.07, 1.49],
         src: { tCRepere: "✅ PhanDA GMST Gélasien",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Gélasien",
+               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 %, interpolés en ln à ▶ entre Gélasien et Plaisancien",
                ch4: "✅ EPICA Dome C 350–800 ppb sur les cycles (Loulergue 2008, Nature 453:383) — couvre les états 🔁",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
-    '🛖': { tCRepere: [13, 15], co2: [256, 298], ch4: [0.6, 0.8], h2oVap: [1.05, 1.37],
+    '🛖': { tCRepere: [13, 15], co2: [243, 270], ch4: [0.46, 0.70], h2oVap: [1.05, 1.37],
         src: { tCRepere: "✅ PhanDA GMST Holocène",
-               co2: "✅ PhanDA (Judd 2024) CO₂ 5–95 % à ▶, étage Holocène",
-               ch4: "⚠️ non sourcée (plage holocène plausible, non vérifiée à 10 ka)",
+               co2: "✅ carottes antarctiques à ▶ ± 1 ka (composite de Bereiter et al. 2015) : étendue des mesures",
+               ch4: "✅ EPICA Dome C à ▶ ± 1 ka (Loulergue et al. 2008) : étendue des mesures, à cheval sur le saut du Dryas récent",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     '🚂': { tCRepere: [13, 14], co2: [272, 282], ch4: [0.67, 0.73], h2oVap: [1.07, 1.31],
         src: { tCRepere: "✅ Copernicus ESOTC 2024 (préindustriel 13,5 °C) ± 0,5 absolu (Jones 1999)",
@@ -1863,9 +1911,9 @@ window.CONFIG_COMPUTE = window.CONFIG_COMPUTE || {};
 // (obsolète — remplacé par EPOCH['🌊🏭'] facteur par époque ∈ [0, +∞[ ; 0 = Urey éteint).
 // L'équilibre à l'init est garanti par initForConfig (seed ⚖️🌊🏭 = ratio_ref × ⚖️🏭).
 //
-// co2OceanRatioRef : rapport Masse CO2_océan / Masse_CO2_atm de RÉFÉRENCE (T = T_ref époque).
-// 50 ≈ Terre moderne (Sarmiento & Gruber 2006, Ocean Biogeochemical Dynamics, Tab. 10.2.1 :
-//   ~38 000 GtC océan / ~760 GtC atm pré-industriel → ratio ≈ 50). Crash-first (lu sans fallback).
+// co2OceanRatioRef : rapport Masse CO2_océan / Masse_CO2_atm de RÉFÉRENCE, à T_ref = T̄ de la Terre actuelle
+// (INTERIEUR.CONST.T_S0, lue par co2/calculations_co2.js). 50 ≈ Terre moderne (Sarmiento & Gruber 2006, Ocean Biogeochemical
+//   Dynamics, Tab. 10.2.1 : ~38 000 GtC océan / ~760 GtC atm des années 1990 → ratio ≈ 50). Crash-first (lu sans fallback).
 window.CONFIG_COMPUTE.co2OceanRatioRef = 50;
 // Flag de test pompe CO₂ océan : 1 = actif, 0 = coupé (seed océan inclus), >1 = amplification volontaire.
 // ⚠️ [v1.4.83] Mesuré inerte : bench identique au centième avec 0 (initForConfig re-seed l'océan à chaque calcul,
@@ -1963,39 +2011,32 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
     landRegrowthTauYears: 66
 };
 // Voile SW additionnel (0–1) depuis jauge hystérésis ⚽ ; s’ajoute à EPOCH[‘🍰⚽’] + 📜[‘🔺🍰⚽’] → DATA[‘🪩’][‘🍰⚽’] obstruction, DATA[‘🪩’][‘🍰🪩⚽’]=1−🍰⚽
-// ─── Amplification polaire 3 zones EBM 0D (Budyko-Sellers) — v1.4.51 ────────────
-// dT_* : CALCULÉS par le bilan méridien (physics/meridien.js, North 1981) — les EPOCH['🥶'] posés par époque sont retirés (2026-10-13).
-// Lue par EARTH.computeIceTempFactor(opts) via les 3 call-sites albedo/flux/h2o (crash si absent).
-// CONFIG_COMPUTE.polarAmplificationK / midlatAmplificationK SUPPRIMÉS v1.4.51 — dead code après
-// migration vers EPOCH['🥶'] (cf. albedo v1.2.51, flux v1.2.93, h2o v1.0.23).
-// Géométrie sphérique conservée ici (POLAR/MIDLAT/TROPICAL_ZONE_FRAC) car non per-époque.
-// polarZoneFraction (0,13) / midlatZoneFraction (0,37) retirés le 2026-10-13 : arrondis de la géométrie, qui
-// est calculée une fois dans physics.js (EARTH.POLAR_ZONE_FRAC = 1 − sin 60° = 0,134 ; EARTH.MIDLAT_ZONE_FRAC = 0,366).
-// ⚾ OBLIQUITÉ AXIALE ε (degrés). Défaut Terre 2025 = 23.44° (= EARTH.OBLIQUITY_DEG_REF).
-// Priorité : l'orbite à la date (La2004, −51 Ma → aujourd'hui, physics/orbite.js → 📜⚾) ; avant −51 Ma, la clé '⚾' de l'époque
-// (ex. Archéen ε ~ 45–70°, hyp. Williams 1993) ; sinon ce défaut.
-// Effet : amp_z_eff = SEASONAL_AMP_z_K × sin(ε)/sin(23.44°) dans EARTH.computeIceTempFactor.
+// ─── Écarts des zones ────────────
+// dT_* : CALCULÉS par le bilan méridien (physics/meridien.js, North 1981), lus par MERIDIEN.ecarts ; zones : EARTH.ZONES
+// (physics/physics.js), la seule définition.
+// ⚾ OBLIQUITÉ AXIALE ε (degrés), 📜⚾ : l'orbite à la date (La2004, −51 Ma → aujourd'hui, physics/orbite.js) ; avant −51 Ma, la
+// clé '⚾' que chaque époque DÉCLARE (window.OBLIQUITE_ACTUELLE_DEG faute de reconstruction ; Archéen ε ~ 45–70°, hyp. Williams
+// 1993) — convergence/compute.js crashe si elle manque.
+// Effet : insolation journalière de chaque latitude, intégrée sur l'année, du bilan méridien (physics/meridien.js) et forçage des
+// boîtes saisonnières (physics/saisons.js), d'où le cycle annuel de chaque bande et sa glace saisonnière.
 //
 // ─── BORNES PHYSIQUES ACCEPTABLES (et pourquoi pas ! — libre au dialogue avec le modèle) ───
-//   ε = 0°   → aucune saison, pas de solstice ⇒ amp_eff = 0  (limite mathématique)
+//   ε = 0°   → aucune saison, pas de solstice (limite mathématique)
 //   ε ≈ 23.44° → Terre actuelle (IAU 2009). Laskar 1993 : Lune stabilise à ±1.3° sur 5 Ga.
 //   ε ∈ [22.0°, 24.5°]  → cycle Milankovitch moderne (41 ka, obliquity signal en δ¹⁸O marin).
 //   ε ∈ [0°, 60°]        → plage "sans Lune" (Laskar, Joutel & Robutel 1993, Nature 361:615) :
 //                           sans satellite stabilisateur l'axe terrestre diffuse chaotiquement.
 //   ε ∈ [45°, 70°]        → hypothèse Williams 1993 (EPSL 117:377) pour expliquer glaciations
 //                           basse-latitude du Néoprotérozoïque/Archéen SANS Snowball global.
-//                           Facteur sin(ε)/sin(23.44°) : 45°→1.78  54°→2.04  70°→1.18 (repasse < 90°).
 //                           Argument de Williams : si ε > 54°, l'équateur reçoit MOINS d'insolation
 //                           annuelle que les pôles → glaciations tropicales sans refroidir les hautes lat.
-//                           NB : notre formule sin() monotone jusqu'à 90°, ne modélise pas l'inversion
-//                           d'insolation annuelle — à raffiner si on pousse ε > 54°.
+//                           L'insolation intégrée jour par jour rend cette inversion d'elle-même.
 //   ε = 90°               → "planète couchée" (Uranus-like, 97.8°) ; saison extrême, un pôle en nuit
-//                           permanente 6 mois. Limite haute de sin(ε) = 1.
-//   ε > 90°               → rotation rétrograde (sin(ε) redescend, sin(180°)=0) — hors cadre ici.
+//                           permanente 6 mois.
+//   ε > 90°               → rotation rétrograde — hors cadre ici.
 // --- POURQUOI PAS ! --- Tester ε = 54° (seuil Williams), ε = 35° (intermédiaire), ε = 0° (neutre
 // saison) pour isoler l'effet de la saisonnalité vs moyennes annuelles. Combinable avec CO₂/CH₄
 // pour voir si la saisonnalité "suffit" ou si la physique radiative reste le vrai goulot.
-window.CONFIG_COMPUTE.obliquityDeg = 23.44;           // 🏷️ OBS/CALIB (IAU 2009) — plage acceptée [0°, 90°] (voir bloc ci-dessus)
 
 // Valeurs par défaut des jauges fine-tuning (% ) : source unique window.DEFAULT.TUNING.baryByGroup (initDATA.js v1.3.1
 // copie ici dans CONFIG_COMPUTE.baryByGroupDefault après DATA['🎚️']). Ne pas dupliquer de littéraux dans ce fichier.
@@ -2020,8 +2061,7 @@ window.CONFIG_COMPUTE.spectralMaxMB = Infinity;                     // [OBS/CALI
 window.CONFIG_COMPUTE.maxWorkers = Infinity;   // [OBS/CALIB] Infinity = nCPU − 1 ; ex. 4 pour limiter
 // Limite RAM (calculations.js) : plafond couches convergence + résolution stockée en DATA['📊'] (évite 1–4 Go heap).
 window.CONFIG_COMPUTE.maxLayersConvergence = 800;                   // [OBS/CALIB] max couches atmosphère pour le calcul (z_range écrêté)
-window.CONFIG_COMPUTE.maxStoredSpectralLayers = 400;                // [OBS/CALIB] max couches gardées en DATA pour affichage (sous-échant.)
-window.CONFIG_COMPUTE.maxStoredSpectralBins = 600;                 // [OBS/CALIB] max bins λ gardés en DATA pour affichage (sous-échant.)
+
 window.CONFIG_COMPUTE.spectralBinsMinFromHITRAN = 0;               // [OBS/CALIB] 0 = pas de plancher HITRAN
 // true = répartition homogène (poids ∝ largeur région → même densité bins/μm partout) ; false = grille d'origine (converge bien).
 window.CONFIG_COMPUTE.spectralGridHomogeneous = true;             // [OBS/CALIB]
@@ -2029,23 +2069,13 @@ window.CONFIG_COMPUTE.spectralGridHomogeneous = true;             // [OBS/CALIB]
 
 window.CONFIG_COMPUTE.climateSpinupAtmMassRefKg = 1e18; // [OBS/CALIB]
 window.CONFIG_COMPUTE.climateSpinupWaterMassRefKg = 1e20; // [OBS/CALIB]
-// Temps caractéristique fonte calotte pour l'héritage glaciaire (ans)
-window.CONFIG_COMPUTE.tauGlaceAns = 50000;                         // [OBS/CALIB]
-// Facteur d'inertie glace (multiplieur du temps caractéristique, applicable au blend dt — calculations_albedo.js).
-// Forme exponentielle (v1.4.28) : tau_eff = tauGlaceAns × iceInertiaFactor01
-//                                  fraction_fonte = 1 − exp(−duree_ans / tau_eff)
-//   • 1.0 = tau_eff = tauGlaceAns (temporalité géologique standard)
-//   • >1 = plus d'inertie (fonte/formation plus lente, tau_eff rallongé)
-//   • <1 = moins d'inertie (converge plus vite vers glace_equilibre(T))
-//   • 0.0 = tau_eff = 0 → fraction_fonte = 1 (équilibre instantané, blend désactivé)
-// Introduit en v1.2.53 (lin) puis v1.4.28 (exp) — suppression du verrou STATE.iceEpochFixedWaterState,
-// permet de calibrer l'inertie sans brutalement retirer le couplage dt. Renommé depuis iceBlendRelaxation01.
-window.CONFIG_COMPUTE.iceInertiaFactor01 = 1.0;                    // [EQ/NUM]
-// Pressure broadening (spectroscopie) : σ_eff = σ × √(P/P_ref), utile à P>1 bar.
+// Inertie de la glace : celle des calottes seules, τ calculé (physics/calottes.js) ; la glace saisonnière est à l'équilibre.
+// Élargissement par la pression : sections efficaces des raies HITRAN à la (T, P) de chaque couche, tables σ(λ, T, P)
+// (radiative/calculations.js, tablesSigma, coucheWorker) ; false : tables de 1 atm à toutes les couches.
 window.CONFIG_COMPUTE.pressureBroadening = true;                   // [OBS/CALIB]
 // factorTropopause (1,0261, [CALIB] « 1,03 + (1,0 − 1,03) × 0,13 ») retiré le 2026-10-13 : il ne réglait plus que la limite
 // de la grille verticale fine (ATM.calculateTropopauseHeight = RT/Mg) ; la tropopause sort du profil.
-window.CONFIG_COMPUTE.troposphericLapseRateKPerM = 0.0065;           // [OBS/CALIB] atmosphère standard, gradient thermique utilisé sous la coupure effective.
+// Gradient thermique : la loi adiabatique du profil (RADIATIVE.loiAdiabatique), aucune constante posée.
 // Masse totale eau terrestre (kg), ref pour % météorites de glace (events.js)
 window.CONFIG_COMPUTE.earthTotalWaterMassKg = OCEAN_KG;            // [OBS] un océan actuel (en tête de fichier)
 // Sans atmosphère (⚫) : stock glace didactique 🍰💧🧊 = min(cap, (⚖️💧/earth)×perPAL) — pas 100 % d’un coup.
@@ -2084,9 +2114,7 @@ window.CONFIG_COMPUTE.maxSearchStepK = 20;               // [K] [EQ/NUM]
 window.CONFIG_COMPUTE.deltaTAccelerationDays = 10;       // [EQ/NUM] 🔺⏳ = 1 jour × this (si acceleration)
 // v1.4.17 : firstSearchStepCapK supprimé (patch SB linéarisé historique, désormais obsolète).
 // Le 1er pas Search est désormais pris tel quel depuis computeSearchIncrement().
-window.CONFIG_COMPUTE.bornesMinK = 250;                  // [EQ/NUM]
-window.CONFIG_COMPUTE.bornesMaxK = 4000;                 // [EQ/NUM]
-window.CONFIG_COMPUTE.searchStepScaleMax = 200;          // [EQ/NUM]
+
 
 // ===================== [OUTIL/DEBUG/UI] =====================
 // Log diagnostic EDS (h2o_eds_scale, bins, delta_z, n_layers, earth_flux, OLR, EDS)
@@ -2107,7 +2135,7 @@ window.CONFIG_COMPUTE.spectralBandLogoImgPxByEmoji = {};
 window.CONFIG_COMPUTE.logIceFractionDiagnostic = false;
 window.CONFIG_COMPUTE.logCo2RadiativeDiagnostic = false;
 window.CONFIG_COMPUTE.logCloudProxyDiagnostic = false;
-window.CONFIG_COMPUTE.logIceFactorDiagnostic = false;   // [iceTF] calculations_albedo.js (remplace DEBUG.topic 'iceFactor' de CO2/static/debug.js)
+
 window.CONFIG_COMPUTE.logIrisDiagnostic = false;
 // pdTrace Henry (CO₂ océan-atmosphère) : load / NO-OP / APPLY
 window.CONFIG_COMPUTE.logCo2PartitionDiagnostic = false;
@@ -2129,22 +2157,24 @@ window.CONFIG_COMPUTE.logIceSnapshotDiagnostic = false;
 window.CONFIG_COMPUTE.logBenchPerEpoch = true;
 // Notes R&D libres écrites par l'agent (window.logRnD). Reset à chaque F5 (wipeAll). _logs/rnd.txt.
 window.CONFIG_COMPUTE.logRnDNotes = true;
-// Instantané JSON [REPRO] (masses, atmos, surfaces, 🎚️, ligne TIMELINE, hyst) — miroir hyst + epoch, diff entre parcours
-window.CONFIG_COMPUTE.logReproComparableState = true;
+
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GRAINE 🌡️🧮 ET FOURCHETTE tC = LA COURBE CYAN (encadré « LA GRAINE … » plus haut)
 // window.HISTOIRE.litterature (CO2/static/histoire/litterature.js, chargé après ce fichier) : lue à l'accès, jamais
-// recopiée. Âge : ▶ / ◀ géologiques sont déjà « avant le présent » (▶ > ◀) ; calendaires, L.AN − l'année.
+// recopiée. Âge : ▶ / ◀ géologiques sont déjà « avant le présent » (▶ > ◀) ; calendaires, AN_PRESENT − l'année. Graine de ◀ :
+// là où l'époque l'interpole (🕰.◀.📜.🌡️🧮, 🏔 et 🦣).
 // ═══════════════════════════════════════════════════════════════════════════
 (function () {
-    const age = (EP, an) => EP['▶'] > EP['◀'] ? an : window.HISTOIRE.litterature.AN - an;
+    const age = (EP, an) => EP['▶'] > EP['◀'] ? an : window.AN_PRESENT - an;
     const cyan = (EP, an) => window.HISTOIRE.litterature.a(age(EP, an));
     for (const EP of window.TIMELINE) {
         Object.defineProperty(EP, '🌡️🧮', { enumerable: true, get: () => cyan(EP, EP['▶'])[2] + 273.15 });
         const W = EP['🕰'];
-        if ('◀' in W && '📅' in W['◀']) Object.defineProperty(W['◀']['📅'], '🌡️🧮', { enumerable: true, get: () => cyan(EP, EP['◀'])[2] + 273.15 });
+        if ('◀' in W && '📜' in W['◀'] && '🌡️🧮' in W['◀']['📜']) {
+            Object.defineProperty(W['◀']['📜'], '🌡️🧮', { enumerable: true, get: () => cyan(EP, EP['◀'])[2] + 273.15 });
+        }
         const B = window.BENCH_LIT_BY_EPOCH_ID[EP['📅']];
         Object.defineProperty(B, 'tC', { enumerable: true, get: () => { const c = cyan(EP, EP['▶']); return [c[1], c[3]]; } });
         Object.defineProperty(B.src, 'tC', { enumerable: true, get: () => '📈 courbe cyan d\'Histoire à ▶ (± 1σ) : ' + cyan(EP, EP['▶'])[4] });
@@ -2152,8 +2182,9 @@ window.CONFIG_COMPUTE.logReproComparableState = true;
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CHEMINS (🦣) : une époque dont 🕰 porte 🛤 = { clé : { order, 🔁 } } offre au premier clic un bouton par chemin ; le chemin joué
-// est la clé du dernier clic (📜🔘🕰), le premier de 🛤 avant tout clic (celui des bancs et des courbes d'Histoire). 🕰.order et
+// CHEMINS (🦣) : une époque dont 🕰 porte 🛤 = { clé : { order, 🔁 } } offre au premier clic un bouton par chemin ; chaque clic
+// qui reste dans l'époque a son état 🔁 (le dernier passe à la suivante). Le chemin joué est la clé du dernier clic (📜🔘🕰), le
+// premier de 🛤 avant tout clic (celui des bancs et des courbes d'Histoire). 🕰.order et
 // 🕰.🔁 sont des accesseurs vers lui (une seule référence, non énumérables), et 🕰.🖼 en tire ses images : glaciaire quand la
 // courbe cyan est sous 11 °C à la date où le clic arrive — le milieu entre le dernier maximum glaciaire (7,9 °C) et l'Holocène
 // (14,0 °C) de Snyder 2016 —, interglaciaire sinon (index = 📿💫, l'image 0 étant celle de la frise).
@@ -2162,6 +2193,10 @@ window.CONFIG_COMPUTE.logReproComparableState = true;
     for (const EP of window.TIMELINE) {
         const W = EP['🕰'];
         if (!('🛤' in W)) continue;
+        for (const [cle, S] of Object.entries(W['🛤'])) {
+            if (S['🔁'].length !== S.order.length - 1) throw new Error('[TIMELINE] ' + EP['📅'] + ' chemin ' + cle + ' : ' + S['🔁'].length
+                + ' états 🔁 pour ' + S.order.length + ' clics (un état par clic qui reste dans l\'époque : CO2/scripts/quaternaire/epica_etats.py)');
+        }
         const chemin = () => W['🛤'][window.DATA['📜']['🔘🕰'] in W['🛤'] ? window.DATA['📜']['🔘🕰'] : Object.keys(W['🛤'])[0]];
         Object.defineProperty(W, 'order', { enumerable: false, get: () => chemin().order });
         Object.defineProperty(W, '🔁', { enumerable: false, get: () => chemin()['🔁'] });

@@ -3,16 +3,11 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.5.0
-// - v2.5.0 (2026-10-26): 🐾 et 🦘, les deux chemins du Quaternaire.
-// - v2.4.0 (2026-10-25): usage 📖 = contexte (cité, n'entre pas dans le calcul, n'est pas une cible).
-// - v2.3.2 (2026-10-15): 👁 = vu d'en haut par un satellite passif (simulateur ISCCP).
-// Date: [October 14, 2026]
-// logs :
-//   - v2.3.1: ☃ = Pré-sturtienne ; tictimes nommés 🫠 🌨 🫗 (pré-sortie sturtienne, pré-snowball et pré-sortie marinoens).
-//   - v2.3.0: axes épistémiques 🧭 (⚛ 📡 🦴 💻 ❔ ⚠️) et 🛠 (📌 🎚️ 🔧 🔢 🎯), window.EPISTEME (liens : data/episteme.js).
-//   - v2.2.1: 📅 = date en ANNÉES (était « Ma », faux : 📜📅, ▶ et ◀ sont en années) ; 📅🌕 / 📅🧊🌕 = âges de l'intérieur.
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 2.6.2
+// - v2.6.2 (2026-10-31): 🧫, biosphère marine (part de la boucle CLAW moderne).
+// - v2.6.1 (2026-10-30): 🐾 : 5 000 ans par clic.
+// Date: [October 31, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -154,6 +149,11 @@ const CHARS = {
 //     🍰🧪…  proportion MOLAIRE                    (mol/mol) ex. 🍰🧪🌧
 //     🍰🌧…  proportion de la SATURATION (q/q_sat)  (kg/kg ÷ kg/kg) ex. 🍰🌧💧 = humidité relative
 //            (v-2026-09-23 : ex-🍰🫧☔, dont le 🫧 la faisait passer pour une fraction massique de l'air)
+//     🍰📅…  proportion du TEMPS (de l'année)       (s/s)     ex. 🍰📅🧊 = part de l'année sous la glace
+//     🍰☀️…  proportion de l'ÉNERGIE SOLAIRE reçue  (J/J)     ex. 🍰☀️🧊 = part de l'insolation annuelle reçue sous la glace
+//
+// 📛 et ☀️ disent tous deux une proportion d'énergie, mais pas du même tout — l'effet de serre, l'insolation —, comme 🫧 et 💧
+// pour la masse et 🪩 et 🗻 pour la surface : le 2ᵉ caractère nomme le TOUT dont on prend la part.
 //
 // ⚠️ v-2026-09-23 : deux clés violaient la règle, et ce sont exactement les deux qui ont produit
 // des bugs répétés (voir doc/DIAGNOSTIC_RETROACTION_VAPEUR.md) :
@@ -176,7 +176,7 @@ const CHARS = {
 const CHARS_DESC = {
     // Unités
     '📿': 'Cardinal (#)',
-    '🍰': 'Proportion sans dimension [0,1] — le 2ᵉ caractère dit de quoi : 🫧💧 massique, 🪩🗻 surfacique, 📛 énergétique, 🧪 molaire, 🌧 de la saturation',
+    '🍰': 'Proportion sans dimension [0,1] — le 2ᵉ caractère dit de quoi : 🫧💧 massique, 🪩🗻 surfacique, 📛 énergétique (effet de serre), ☀️ énergétique (insolation reçue), 📅 temporelle (de l\'année), 🧪 molaire, 🌧 de la saturation',
     '📏': 'Longueur (km)',
     '⚖️': 'Masse (kg)',
     '🎈': 'Pression (atm)',
@@ -223,7 +223,7 @@ const CHARS_DESC = {
     // Événements
     '⚗': 'Affiche les concentrations (action d\'interface — ce n\'est PAS une unité)',
     '💫': 'TicTime',
-    '🐾': 'Pas à pas — suivre les carottes de glace, 20 000 ans par clic',
+    '🐾': 'Pas à pas — suivre les carottes de glace, 5 000 ans par clic',
     '🦘': 'Le saut — jusqu\'au dernier maximum glaciaire, puis l\'Holocène',
     '🛢': 'Scénario émissions',
     '🪾': 'Scénario émissions — double du bidon',
@@ -278,6 +278,7 @@ const CHARS_DESC = {
     '🖼': 'Texture planète (suite)',
     '🌙': 'Carte de nuit (superposée)',
     '⚾': 'Obliquité ε (°)',
+    '🧫': 'Biosphère marine : part de la boucle CLAW moderne [0,1] (1 = 📱), porte sa propre unité comme ⚾',
     '⏩': 'Transition',
     '📅': 'Date (années : avant 2025 pour une époque géologique, calendaires pour 🛖 🚂 📱)',
     '📐': 'Rayon planète',

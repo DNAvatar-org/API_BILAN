@@ -2,9 +2,10 @@
 // Desc: L'AFFICHAGE DE LA CONFIGURATION : je transforme les objets de config en tableaux lisibles (json2html) et
 //       je développe les formules d'albédo et de flux. Je ne fais que MONTRER — c'est ce découpage qui permet
 //       à API_BILAN d'en dériver une version où les champs deviennent éditables.
-// Version 1.0.2
+// Version 1.0.3
+// - v1.0.3 (2026-10-30): plus de picto pour la rampe de la mer gelée (jauge HYSTERESIS retirée).
 // - v1.0.2 (2026-10-13): picto par clé (jauges séparées) ; curseurs retirés du panneau bibliographie.
-// Date: [September 19, 2026]
+// Date: [October 30, 2026]
 //   - copie API (2026-09-20) de la page scientifique de CO2. La page de CO2 reste la reference
 //     pour l'affichage ; cette copie-ci vit dans demo/ pour que le depot API se teste seul, et
 //     c'est elle qui gagne la frise horizontale et les champs de configuration modifiables.
@@ -263,7 +264,7 @@ function getTuningLineLogo(groupKey, key) {
     }
     // Un picto par clé de fine-tuning (même table que l'organigramme).
     const PICTO = { CDNC_OCEAN_CM3: '💧', R_EFF_PLUIE: '☔', F_BAS: '☁️', F_HAUT: '🌥', SULFATE_CCN_EXPONENT: '✈',
-        H2O_SURFACE_RH_01: '💦', seaIceTransitionRangeK: '🌊❄' };
+        H2O_SURFACE_RH_01: '💦' };
     return PICTO[key];
 }
 

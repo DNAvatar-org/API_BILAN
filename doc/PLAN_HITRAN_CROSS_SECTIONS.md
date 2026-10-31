@@ -8,7 +8,7 @@
 
 ## 1. Compréhension de la demande
 
-- **Actuel** : `API_BILAN/physics/physics.js` définit des constantes ; `API_BILAN/radiative/calculations.js` expose `crossSectionCO2(λ)`, `crossSectionH2O(λ)`, `crossSectionCH4(λ)` — formules gaussiennes en λ, **sans** dépendance T/P dans la forme (un simple `pressureBroadening = √(P/P_ref)` est appliqué côté κ).
+- **Point de départ du plan** : formules gaussiennes en λ (`crossSectionCO2(λ)`, `crossSectionH2O(λ)`, `crossSectionCH4(λ)`), sans dépendance T/P dans la forme. **Aujourd’hui** : σ(λ, T, P) des raies HITRAN (`spectroscopy/hitran.js`, crossSectionsFromLines), en tables lues à la (T, P) de chaque couche (`radiative/calculations.js`, tablesSigma) — `doc/equation.html#eq-elargissement-par-pression`.
 - **Cible** : Sections efficaces **σ(λ, T, P)** dérivées des **lignes HITRAN** : pour chaque ligne, intensité S(T), largeur γ(T,P), lineshape (Voigt), somme sur les lignes proches de λ. Pas d’interpolation empirique ; utilisation des équations du fichier HITRAN.txt.
 
 ---
@@ -55,7 +55,7 @@
 
 7. **Ordre recommandé** : CO₂ (moins de lignes, bande 15 µm) → CH₄ → H₂O (plus complexe, continuum optionnel plus tard).
 8. **Validation** : Comparer σ(λ) intégré sur une bande (ex. 500–800 cm⁻¹ CO₂) à des valeurs littérature / PNNL / HAPI cross-sections précalculées.
-9. **Performance** : Si le calcul “sum over lines” par (λ, T, P) est trop coûteux, envisager des **tables précalculées** σ(λ, T, P) sur une grille (T, P) réduite, générées par le script Python (HAPI + LBL), puis chargées et interpolées en JS.
+9. **Performance** : tables σ(λ, T, P) sur une grille (T, P), calculées en JS une fois par grille spectrale (un passage sur les raies pour toutes les pressions) et interpolées à chaque couche.
 
 ---
 
@@ -76,7 +76,7 @@
 
 - [x] **HITRAN-1** : Script Python `CO2/scripts/hitran_fetch_lines.py` (hitran-api) : fetch lignes CO₂, H₂O, CH₄, livrées aujourd'hui en `API_BILAN/data/hitran_lines_{CO2,H2O,CH4}.js` (ν, sw, elower, gamma_air, gamma_self, n_air, delta_air).
 - [ ] **HITRAN-2** : Implémenter en JS : Q(T), S(T), γ(T,P), γ_D, Voigt (réf. HITRAN.txt).
-- [x] **HITRAN-3** : `crossSectionCO2/H2O/CH4FromLines(λ, T, P)` dans hitran.js, chargement via `hitran_lines_*.js` (window.HITRAN_LINES_*), `crossSectionCO2/H2O/CH4` dans calculations.js utilisent HITRAN à T_ref/P_ref.
+- [x] **HITRAN-3** : `crossSectionCO2/H2O/CH4FromLines(λ, T, P)` dans hitran.js, chargement via `hitran_lines_*.js` (window.HITRAN_LINES_*) ; calculations.js en tire des tables σ(λ, T, P) (12 T × 19 P), lues à la (T, P) de chaque couche.
 - [ ] **HITRAN-4** : Idem CH₄ (lignes + export + JS).
 - [ ] **HITRAN-5** : Idem H₂O (lignes + export + JS ; continuum MT_CKD optionnel).
 - [ ] **HITRAN-6** : Validation (comparaison σ intégré vs littérature / HAPI) et vérif perf (nombre de lignes, temps par pas radiatif).

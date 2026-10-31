@@ -1,14 +1,13 @@
 // File: API_BILAN/tuning.js - Interpolation barycentre fine-tuning
 // Desc: Logique autonome d'interpolation [0-100 %] entre bornes min/max pour chaque paramètre
-//       incertain. Applique le barycentre (DATA['🎚️'].baryByGroup) aux paramètres CLOUD_SW, SCIENCE, HYSTERESIS, RADIATIVE.
+//       incertain. Applique les jauges (DATA['🎚️'].baryByGroup : FROID, CHAUD, SUBTIL) aux paramètres CLOUD_SW et H2O de DATA['🎚️'].
 //       Aucune dépendance DOM — utilisable API seule.
 //       ⚠️ Groupe SOLVER retiré : calibration statique via window.TUNING.SOLVER (source unique lue par calculations_flux.js).
-// Version 1.4.0
+// Version 1.4.1
+// - v1.4.1 (2026-10-30): commentaires : jauges FROID / CHAUD / SUBTIL.
 // - v1.4.0 (2026-10-13): TUNING.sensJauge / sensCible — 🔺 monter la jauge réchauffe, 🔻 refroidit, ↕️ ambigu (lu sur effect + min/max).
-// - v1.3.0 (2026-10-13): jauges séparées FROID / CHAUD / SUBTIL / HYSTERESIS ; chaque cible lit target.baryGroup.
-// - v1.2.1 (2026-10-13): syncRadiativeConfig retiré avec H2O_EDS_SCALE (plus de groupe RADIATIVE).
-// Date: 2026-10-10
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 
@@ -32,7 +31,7 @@
 
     /**
      * Remplissage complet de DATA['🎚️'] depuis baryByGroup : chaque cible lit SA jauge (target.baryGroup,
-     * FINE_TUNING_BOUNDS.jauges). Plus de jauge unique ATM (v1.3.0).
+     * FINE_TUNING_BOUNDS.jauges).
      */
     function fillDataTuningFromBary() {
         const T = window.DATA['🎚️'];
@@ -46,7 +45,7 @@
     }
 
     /**
-     * Point d'entrée : { baryByGroup: { ATM: %, HYSTERESIS: %, … } } — seuls les groupes présents changent,
+     * Point d'entrée : { baryByGroup: { FROID: %, CHAUD: %, SUBTIL: % } } — seules les jauges présentes changent,
      * puis tout DATA['🎚️'] est réinterpolé.
      */
     function applyTuningPayload(payload) {

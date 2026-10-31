@@ -3,9 +3,11 @@
 // Desc: Les trois réservoirs océaniques (couche de mélange, thermocline, profond) et leur relaxation.
 //       Rien d'autre : la partition Henry de fond vit dans co2/calculations_co2.js, le puits
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
-// Version 1.2.2
-// - v1.2.2 (2026-10-13): écarts de zone du bilan méridien (STATE.dTzones) au lieu d'EPOCH['🥶'] posés.
-// Date: 2026-09-20
+// Version 1.2.4
+// - v1.2.4 (2026-10-29): T_réf de Van 't Hoff = T̄ de la Terre actuelle, où les ratio_i sont mesurés (INTERIEUR.CONST.T_S0).
+// - v1.2.3 (2026-10-29): écarts de zone lus par MERIDIEN.ecarts, zones par EARTH.ZONES (moyenneGlobe) : leur seule source.
+// - v1.2.2 (2026-10-13): écarts de zone du bilan méridien au lieu d'EPOCH['🥶'] posés.
+// Date: [October 29, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // ============================================================================
@@ -61,13 +63,15 @@ function assertOceanCapacity(boxes) {
  *
  * exp(2400/T) est CONVEXE : la moyenne des exponentielles n'est pas l'exponentielle de la moyenne.
  * Prendre la T moyenne sous-estime donc structurellement la dissolution, quelle que soit la planète.
- * Terre moderne : ×1,075 pondéré par aire contre ×0,993 à la moyenne, soit +8 % d'absorption.
+ * Terre moderne (clic frise 📱, T̄ = 15,42 °C, T₂ = −24,1 °C) : ×1,013 pondéré par aire contre ×0,971 à la moyenne, soit +4,4 %
+ * d'absorption (la zone polaire, à −4,1 °C, prise au plancher du gel de l'eau de mer).
  *
- * Zones et écarts de température : ceux du bilan méridien (window.STATE.dTzones, physics/meridien.js) et les
- * fractions géométriques EARTH.*_ZONE_FRAC — les mêmes que pour l'albédo de glace, pas une seconde source.
+ * Zones et écarts de température : ceux du bilan méridien (MERIDIEN.ecarts, physics/meridien.js) et les zones
+ * EARTH.ZONES (moyenne sur le globe, EARTH.moyenneGlobe) — les mêmes que pour l'albédo de glace, pas une seconde source.
  * Unités : facteur de Van 't Hoff exp[2400 K · (1/T − 1/T_réf)], sans dimension, T en KELVINS (T_zone = T̄ − dT ;
  * dT est une différence de température, identique en K et en °C). Plancher à la température de gel de l'eau de mer :
- * sous la banquise il n'y a plus d'échange gazeux.
+ * sous la banquise il n'y a plus d'échange gazeux. T_réf = la T̄ où les capacités ratio_i et le facteur de Revelle sont
+ * mesurés, la Terre actuelle (INTERIEUR.CONST.T_S0, la même que pour le partage de fond) — pas la T de l'époque.
  *
  * ⚠️ Pondération par AIRE, faute de mieux : l'absorption se concentre en réalité sur les sites de
  * formation d'eau profonde (Atlantique Nord, océan Austral), plus étroits que la zone polaire entière.
@@ -75,18 +79,14 @@ function assertOceanCapacity(boxes) {
  */
 function zonalSolubilityFactor() {
     const DATA = window.DATA;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const ice = window.STATE.dTzones;   // { pol, mid, trop } [K], dT = T̄ − T_zone
+    const ecart = window.MERIDIEN.ecarts();   // { pol, mid, trop } [K], dT = T̄ − T_zone
     const T_glob = DATA['🧮']['🧮🌡️'];
-    const T_ref = EPOCH['🌡️🧮'];
+    const T_ref = window.INTERIEUR.CONST.T_S0;
     const freeze = window.EARTH.T_FREEZE_SEAWATER_K;
-    const fPol = window.EARTH.POLAR_ZONE_FRAC;
-    const fMid = window.EARTH.MIDLAT_ZONE_FRAC;
-    const fTrop = window.EARTH.TROPICAL_ZONE_FRAC;
     const vh = function (dT) {
         return Math.exp(2400.0 * (1.0 / Math.max(freeze, T_glob - dT) - 1.0 / T_ref));
     };
-    return fPol * vh(ice.pol) + fMid * vh(ice.mid) + fTrop * vh(ice.trop);
+    return window.EARTH.moyenneGlobe({ pol: vh(ecart.pol), mid: vh(ecart.mid), trop: vh(ecart.trop) });
 }
 
 /**
@@ -102,7 +102,7 @@ function zonalSolubilityFactor() {
 function advanceOceanSinkStep(dtYears, airExcess, ppm_mid) {
     const DATA = window.DATA;
     const CS = window.CONFIG_COMPUTE.CARBON_SINKS;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const EPOCH = DATA['📅'];
     const R = CS.oceanRevelleRef + CS.oceanRevelleSlopePerPpm * (ppm_mid - CS.oceanRevelleRefPpm);
     const vantHoff = zonalSolubilityFactor();
     let newTotal = 0;

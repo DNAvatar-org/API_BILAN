@@ -1,12 +1,12 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.6.3
-// - v1.6.3 (2026-10-28): socle porté des calottes (🔺📏🗻🧊) passé au bilan méridien ; socle du pas (🧮🔺📏🗻🧊) posé.
-// - v1.6.2 (2026-10-22): albédos d'une calotte qui fond (neige mouillée, glace nue) passés au bilan méridien.
-// - v1.6.1 (2026-10-14): calottes = état porté d'un clic à l'autre (config au clic frise), plus de graine sans glace.
-// Date: [October 28, 2026]
-//   DESCEND en dessous partout ailleurs — l'ancien boost, toujours ≥ 1, faisait l'inverse.
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.17.1
+// - v1.17.1 (2026-10-31): poserForet crashe sans poids de terre ; albédo d'une terre libre d'aire nulle défini ; 🧫 du clic
+//   (📜🧫).
+// - v1.17.0 (2026-10-30): la terre libre de chaque bande a sa forêt (terresLibres par bande) ; forêt sous la neige des terres la même
+//   à toutes les latitudes (foretSousNeige) ; la forêt des bandes part de celle du calcul précédent.
+// Date: [October 31, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -16,17 +16,24 @@
 // - 🧲⚖️💦 : formule P = W/τ (litt. 8–10 j), ⏳☔ = 1/τ_global ; rampe (RH−💭☔)/0,2 ; ref. Nature Rev. Earth Env. 2021, HESS 2017, GPCP ~2,7 mm/j.
 //
 // FORMULES ALBEDO :
-// A_geo = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️,🧊} + contribution_glace + contribution_nuages
-//   où contribution_glace = (🪩🍰🧊 - albedo_base) × min(🍰💧🧊 × support_hydrique, 🍰🪩🧊) × 0.5
-//   et contribution_nuages = albedo × (1 - 🍰🪩⛅) + α_nuageux × 🍰🪩⛅, α_nuageux = r + (1−r)²·albedo/(1 − r·albedo), r = 🪩🍰⛅ (addition 2 couches, v1.2.64)
+// A_surf = Σ(🍰🪩❀ × 🪩🍰❀) pour ❀ ∈ {🎾,🌊,🌳,🌍,🏜️} (surface libre) + glace saisonnière (bande par bande, 🪩.🍰☀️🪩🧊) + calottes
+//   × leur albédo annuel (🗻.🧮🪩🗻🧊, bilan de calotte, bande par bande), albédos des matériaux 🪩🍰❀ dans DATA['🪩🍰'] : moyenne par
+//   la surface, égale à Σ_z f_z Rg_z des zones du bilan méridien (contrôlé, erreur sinon).
+// A_geo = Σ_z w_z A_z(Rg_z) : albédo au sommet de chaque zone (transfert solaire de la colonne aux angles solaires de la zone :
+//   nuages, vapeur, Rayleigh), pondéré par la part w_z de l'insolation du globe qu'elle reçoit — MERIDIEN.resoudre (meridien.A).
 // 🍰🪩📿 (DATA) = 1 − (1−A_geo)(1−🍰⚽) après blackbody_factor sur A_geo
-// 🍰🪩🎾 = volcano_coverage = fraction fondue de la péridotite à T_surface (solidus → liquidus, Katz 2003)
-// 🍰🪩🌊 = ocean_coverage = (ocean_volume_m3 / (📏🌊 × 1000)) × 🐚 / (4π × 📐²)
-//   où ocean_volume_m3 = (⚖️💧 × 🍰💧🌊) / 1000
-// 🍰🪩🌳 = forest_coverage = f(T, ocean_coverage) : si T<30°C et ocean>0.1 alors min(0.5, ocean × (1-T/30))
-// 🍰🪩🌍 = land_coverage = max(0, 1.0 - ocean - ice - forest) (continents, prairies, sols humides, albedo ~0.18)
-// 🍰🪩🏜️ = desert_coverage = 1.0 - (🎾 + 🌊 + 🌳 + 🌍 + 🧊) (zones arides, albedo ~0.30)
-// 🍰🪩🧊 = ice_coverage = min(0.9, 🍰💧🧊 × 0.9)
+// 🍰🪩🎾 = volcano_coverage = partLave() : fraction fondue de la péridotite à T_surface (solidus → liquidus, Katz 2003)
+// 🍰🪩🌊 = ocean_coverage = bassin rempli × (1 − 🎾), bassin rempli = 🍰🗻🌊 (la mer de la carte : sous son niveau de la mer) dans un
+//   monde à océan (H2O.mondeOcean), 0 hors de lui (bassin à sec)
+// terres disponibles = (1 − bassin rempli)(1 − 🎾) : lave + océan + terres = 1
+// 🍰🪩🌳 = forest_coverage = Σ_bandes forêt de la bande (poserForet : part préagricole sous la ligne des arbres) × ses terres ;
+//   0 hors d'un monde à océan et avant les premiers arbres
+// 🍰🪩🏜️ = desert_coverage = Σ_bandes min(terres − forêt, aridité × terres) de chaque bande
+// 🍰🪩🌍 = land_coverage = terres − forêt − désert (continents, prairies, sols humides, albedo ~0.18)
+// Calottes et glace saisonnière sont prises sur ces surfaces : la somme vaut 1 par construction (erreur sinon).
+// 🍰🪩🧊 = calottes du pas + glace saisonnière pondérée par l'énergie : océan × ⟨e_b,mer⟩ + terres libres × ⟨e_b,terre⟩, moyennes des
+//   bandes pondérées par leur mer et leur terre libres (e = part de l'énergie solaire sous le gel, 🪩.🍰☀️🧊) — la glace des bandes du
+//   bilan méridien à son état convergé ; sa lumière réfléchie : même moyenne de r = 🪩.🍰☀️🪩🧊 (EARTH.glaceSaisonniere)
 // 🍰🪩⛅ = cloud_coverage = C_max × ☁️ où C_max ≈ 0.7 et ☁️ = CloudFormationIndex
 // 🍰⚽ ∈ [0,0.95] : obstruction voile SW sur le faisceau déjà modulé par A_geo (EPOCH+📜+CONFIG)
 // 🍰🪩⚽ = 1 − 🍰⚽ : transmission de ce faisceau ; 🍰🪩📿 (DATA) = 1 − (1−A_geo)(1−🍰⚽) = albédo planétaire effectif
@@ -46,7 +53,8 @@ function applyVeilToPlanetaryAlbedo01(A_geom) {
 // Voile = 📜🔺🍰⚽ (impulsion d'époque / rampe / action, compute.js + events.js).
 // (Retirés : terme « racine EPOCH['🍰⚽'] », déclaré par aucune époque, et jauge hystStratosphericVeilExtra01
 // de la page hystérésis supprimée — tous deux valaient toujours 0.)
-function syncStratosphericVeil01(DATA) {
+function syncStratosphericVeil01() {
+    const DATA = window.DATA;
     const obs = Math.min(0.95, Math.max(0, DATA['📜']['🔺🍰⚽']));
     DATA['🪩']['🍰⚽'] = obs;
     DATA['🪩']['🍰🪩⚽'] = 1 - obs;
@@ -63,26 +71,24 @@ function syncStratosphericVeil01(DATA) {
 // FONCTION : CALCULER LES SURFACES GÉOLOGIQUES (COUCHE A)
 // ============================================================================
 // 🔒 NOUVEAU PIPELINE : Géologie → Surfaces → Stocks → Climat → Albedo
-// Cette fonction fixe les surfaces à partir de la géologie/relief (quasi constants)
-// Les surfaces déterminent ensuite les stocks d'eau, pas l'inverse
-
+// Parts de SURFACE de la géologie à la date, DATA['🗻'] : la mer 🍰🗻🌊 est le complément de la terre ÉMERGÉE de chaque bande de
+// latitude (CALOTTES.parts : PALEOGEO à la date, la source du bilan méridien et des calottes ; avant la première carte, la terre
+// de l'époque), moyennée sur le globe ; hautes terres 🍰🗻🏔 posées par l'époque, terres basses 🍰🗻🌍 le reste de la terre
+// émergée. Les parts de l'époque doivent faire 1 : sinon, c'est une erreur de la config.
 function calculateGeologySurfaces() {
     const DATA = window.DATA;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    
-    const total = EPOCH['🗻']['🍰🗻🌊'] + EPOCH['🗻']['🍰🗻🏔'] + EPOCH['🗻']['🍰🗻🌍'];
-    if (total > 1.0) {
-        console.warn(`⚠️ [calculateGeologySurfaces] Somme > 1.0 (${total}), normalisation...`);
-        const scale = 1.0 / total;
-        DATA['🗻']['🍰🗻🌊'] = EPOCH['🗻']['🍰🗻🌊'] * scale;
-        DATA['🗻']['🍰🗻🏔'] = EPOCH['🗻']['🍰🗻🏔'] * scale;
-        DATA['🗻']['🍰🗻🌍'] = EPOCH['🗻']['🍰🗻🌍'] * scale;
-    } else {
-        DATA['🗻']['🍰🗻🌊'] = EPOCH['🗻']['🍰🗻🌊'];
-        DATA['🗻']['🍰🗻🏔'] = EPOCH['🗻']['🍰🗻🏔'];
-        DATA['🗻']['🍰🗻🌍'] = EPOCH['🗻']['🍰🗻🌍'];
-    }
-    
+    const EPOCH = DATA['📅'];
+    const cfg = EPOCH['🗻'];
+    const total = cfg['🍰🗻🌊'] + cfg['🍰🗻🏔'] + cfg['🍰🗻🌍'];
+    if (Math.abs(total - 1) > 1e-9) throw new Error('[calculateGeologySurfaces] ' + EPOCH['📅'] + " : 🗻 🍰🗻🌊 + 🍰🗻🏔 + 🍰🗻🌍 = " + total + ' (1 attendu)');
+    const P = window.CALOTTES.parts(), terre = { pol: 0, mid: 0, trop: 0 };
+    for (const b of window.CALOTTES.BANDES) terre[b.zone] += P[b.cle].emerge / 2;      // deux bandes de même aire par zone
+    const terres = EARTH.moyenneGlobe(terre);
+    if (terres < cfg['🍰🗻🏔']) throw new Error('[calculateGeologySurfaces] ' + EPOCH['📅'] + ' : hautes terres posées (' + cfg['🍰🗻🏔'] + ') > terre émergée de la carte (' + terres.toFixed(4) + ')');
+    if (!(terres <= 1 + 1e-9)) throw new Error('[calculateGeologySurfaces] ' + EPOCH['📅'] + ' : terre émergée du globe ' + terres + ' > 1 (mer 🍰🗻🌊 négative)');
+    DATA['🗻']['🍰🗻🌊'] = 1 - terres;
+    DATA['🗻']['🍰🗻🏔'] = cfg['🍰🗻🏔'];
+    DATA['🗻']['🍰🗻🌍'] = terres - cfg['🍰🗻🏔'];
     return true;
 }
 
@@ -103,7 +109,7 @@ function calculateGeologySurfaces() {
 function calculateCloudFormationIndex() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const EPOCH = DATA['📅'];
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
     // 🔒 CALCUL DE 🍰🌧💧 (Humidité relative moyenne globale)
@@ -155,7 +161,7 @@ function calculateCloudFormationIndex() {
     // par 🧲⚖️💦 ci-dessous : P = W/τ (temps de résidence ~8–10 j, Nature Rev. Earth Env. 2021 ; HESS 2017).
     
     // 🔒 INITIALISATION DE 🔺⏳ (1 jour). En phase eau, tuning SOLVER.DELTA_T_ACCELERATION_DAYS (8–10 j) peut l’augmenter.
-    DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY;
+    DATA['💧']['🔺⏳💦'] = CONV.SECONDS_PER_DAY;
     
     // 🔒 CALCUL DE 🧲⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
     const rh_excess = DATA['💧']['🍰🌧💧'] - DATA['💧']['💭☔'];
@@ -169,40 +175,127 @@ function calculateCloudFormationIndex() {
 // FONCTION : CALCULER L'ALBEDO DYNAMIQUE
 // ============================================================================
 
-// Fonction pour calculer l'albedo dynamique basé sur la glace et les nuages
-// Modélisation créative inspirée de :
-// - "Ice-Albedo Feedback in Climate Models" (approximation simplifiée)
-// - Modèles de rétroaction glace-albedo (Budyko, 1969; Sellers, 1969)
-// - Paramétrisation nuageuse simplifiée pour visualisation pédagogique
-// [EQ] Briegleb mature (NCAR/TN-463) — état établi : aging + melt-pond selon T_locale.
-function brieglebIceAlbedoMature(T_local_K, alphaSnowDeep, albedo_coeff) {
-    const alphaCold = albedo_coeff['🪩🍰🧊'];
-    const alphaMelt = albedo_coeff['🪩🍰🏊'];
-    if (T_local_K <= 263.15) return alphaSnowDeep;
-    if (T_local_K <= 268.15) {
-        const t = (T_local_K - 263.15) / 5.0;
-        return alphaSnowDeep + (alphaCold - alphaSnowDeep) * t;
-    }
-    if (T_local_K < 273.15) {
-        const t = (T_local_K - 268.15) / 5.0;
-        return alphaCold + (alphaMelt - alphaCold) * t;
-    }
-    return alphaMelt;
+/** Albédo de la glace saisonnière HORS FONTE dans la zone cle ('pol' | 'mid' | 'trop'), à l'état de DATA : la neige sèche 🪩🍰❄️
+ *  (neige propre, Warren & Wiscombe 1980) sur la glace d'hiver et de printemps — celle de la mer comme celle des terres. Pendant la
+ *  fonte, l'albédo de chaque nœud de l'arc gelé suit la neige de l'année (EARTH.glaceSaisonniere : neige mouillée, puis glace nue à
+ *  mares ou sol). Aux tropiques, une glace n'existe que dans une boule de neige : fraîchement gelée (entrée 1a), elle est neigeuse
+ *  comme aux pôles ; ÉTABLIE, elle est nue, sublimée et poussiéreuse (Pierrehumbert 2005 ; Abbot & Pierrehumbert 2010) — ce n'est pas
+ *  une banquise saisonnière : sa glace sèche va de 🪩🍰❄️ à 🪩🍰🧊 avec l'étendue de la glace sur le globe (MERIDIEN.etendueGlace, à
+ *  l'état de DATA : l'itération courante du point fixe). */
+function albedoGlaceSeche(cle) {
+    const M = window.DATA['🪩🍰'];
+    return cle === 'trop' ? M['🪩🍰❄️'] - (M['🪩🍰❄️'] - M['🪩🍰🧊']) * window.MERIDIEN.etendueGlace() : M['🪩🍰❄️'];
 }
 
-// Albédo glace zonale : neige fraîche (α_snow_deep) tant que le snowball n'est pas établi ;
-// interpolation vers Briegleb mature quand f_global_ice → 1 (sublimation, melt-pond, glace nue).
-function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establishment01) {
-    // [v1.2.64] gate d'établissement v1.2.63 RETIRÉ : il plaquait 0.85 (neige fraîche) sur la glace polaire
-    // moderne (T_pol ≈ −5 °C → Briegleb 0.70) → toutes les époques modernes −2 à −10 K hors fourchettes bench
-    // (📱 13.2 °C, 🍄 10.8 °C…). La glace suit Briegleb (T_locale) ; establishment01 conservé en signature.
-    // [v1.2.64] T_locale = moyenne ANNUELLE de zone ; la glace d'une zone plus chaude que −5 °C est SAISONNIÈRE
-    // (présente l'hiver, froide). Son albédo pondéré par l'ensoleillement est celui de la glace établie
-    // 🪩🍰🧊 (0.70, annuel Arctique 0.6–0.7), pas α_melt 0.50 d'une moyenne annuelle > 0 °C. Plafond T à
-    // 268.15 K ⇒ α(T) MONOTONE et CONTINUE (plus froid ⇒ jamais plus sombre) : pas de racine parasite.
-    return brieglebIceAlbedoMature(Math.min(T_local_K, 268.15), alphaSnowDeep, albedo_coeff);
+// ─── FORÊT POTENTIELLE, LATITUDE PAR LATITUDE ─────────────────────────────────────────────────────────────────────────────
+// La forêt d'avant l'agriculture, là où la saison de croissance permet l'arbre. Ligne des arbres de Paulsen & Körner 2014 (Alp.
+// Bot. 124:1, seuils en température de l'air tirés de la zone des racines mesurée aux lignes des arbres du globe, Körner & Paulsen
+// 2004, J. Biogeogr. 31:713) : un jour de la saison de croissance a une moyenne ≥ 0,9 °C ; l'arbre demande au moins 94 de ces jours
+// et 6,4 °C en moyenne sur eux. Sous cette ligne, la part des terres sous la forêt est celle d'avant le défrichement : la forêt de
+// 2020, 31 % des terres (4,06 Gha, FAO 2020), × 6,0/4,06 (~6 Gha au début de l'agriculture, Williams 2006) — la même à toutes les
+// époques qui ont des arbres (❔ aucune carte de la forêt passée). Avant les premiers arbres (forêt fossile de Gilboa, Dévonien
+// moyen, ~385 Ma : Stein et al. 2007, 2012), la flore basse (Rhynie, 407 Ma : Kenrick & Crane 1997) ne masque pas la neige. Une plante
+// demande de l'eau liquide et une atmosphère : pas de forêt hors d'un monde à océan (H2O.mondeOcean). Forêt boréale qui masque la neige
+// (Bonan 2008) et forêts polaires des climats chauds (Otto-Bliesner & Upchurch 1997) : la même loi, sur la saison de chaque latitude,
+// pour l'albédo de la terre libre hors de la neige. La forêt qui masque la neige est foretSousNeige (plus bas).
+const FORET = {
+    PART_2020: 0.31,                       // [m²/m²] forêt de 2020 : 31 % des terres (4,06 Gha, FAO 2020)
+    MASQUE_T0_K: 268.15,                   // [K] 🔧 forêt sous la neige : T̄ où elle s'annule (sans source)
+    MASQUE_DT_K: 25,                       // [K] 🔧 … écart de T̄ sur lequel elle atteint PART_2020 (sans source)
+    MASQUE_MIN: 0.4,                       // [-] 🔧 … sa part minimale de PART_2020 (sans source)
+    AGE_PREMIERS_ARBRES: 385e6,            // [an]
+    T_JOUR_C: 0.9,                         // [°C] moyenne journalière d'un jour de la saison de croissance
+    SAISON_JOURS: 94,                      // [jour] saison de croissance minimale
+    T_SAISON_C: 6.4                        // [°C] moyenne minimale de la saison de croissance
+};
+// [m²/m²] Part des terres sous la ligne des arbres couverte de forêt (0,458) : la forêt de 2020 × 6,0/4,06. ⚠️ FAO 2020 la rapporte à
+// TOUTES les terres hors Antarctique — toundras, étage alpin et Groenland compris : sous la ligne, la forêt est plus dense (sous-estimée).
+FORET.PART_PREAGRICOLE = FORET.PART_2020 * 6.0 / 4.06;
+
+/** Part ≥ 0 d'un segment où la valeur va linéairement de a à b : { p part du segment, s moyenne de max(0, valeur) sur le segment }. */
+function dessus(a, b) {
+    if (a >= 0 && b >= 0) return { p: 1, s: (a + b) / 2 };
+    if (a < 0 && b < 0) return { p: 0, s: 0 };
+    const h = Math.max(a, b), p = h / (h - Math.min(a, b));
+    return { p: p, s: p * h / 2 };
 }
 
+/** [m²/m²] Part de la cellule de chaque latitude de terre de la bande sous la ligne des arbres (tableau, un nombre par point), à son
+ *  arc de l'année (SAISONS.cycles : T aux nœuds de l'année, linéaire entre deux nœuds). Pour chaque point, saison de croissance
+ *  L = durée où T ≥ 0,9 °C, et marges L − 94 jours et ∫(T − 0,9 °C) dt − (6,4 − 0,9) L (du signe de la moyenne de la saison moins
+ *  6,4 °C). Une marge est linéaire entre deux points voisins (prolongée au bord de la bande) : la part de la cellule de chaque point
+ *  où elle est ≥ 0 ; sous la ligne, les deux à la fois (la plus petite des deux parts : dans une bande, les points ne diffèrent que
+ *  par leur moyenne annuelle). Les cellules ont la même aire (points uniformes en sin φ). */
+function partSousLigneArbres(arcs) {
+    const n = arcs[0].T.length, demi = window.CONST.AN_TROPIQUE_JOURS / (2 * n), Tj = window.CONST.T0_WATER + FORET.T_JOUR_C;
+    const mL = [], mT = [];
+    for (const pt of arcs) {
+        let L = 0, I = 0;
+        for (let k = 0; k < n; k++) {
+            const v = pt.T[k] - Tj, g = dessus((pt.T[(k + n - 1) % n] - Tj + v) / 2, v), d = dessus(v, (v + pt.T[(k + 1) % n] - Tj) / 2);
+            L += demi * (g.p + d.p);   // [jour]
+            I += demi * (g.s + d.s);   // [K·jour]
+        }
+        mL.push(L - FORET.SAISON_JOURS);
+        mT.push(I - (FORET.T_SAISON_C - FORET.T_JOUR_C) * L);
+    }
+    const N = arcs.length;
+    const cellule = (m, i) => {
+        const g = i === 0 ? (3 * m[0] - m[1]) / 2 : (m[i - 1] + m[i]) / 2, d = i === N - 1 ? (3 * m[N - 1] - m[N - 2]) / 2 : (m[i] + m[i + 1]) / 2;
+        return (dessus(g, m[i]).p + dessus(m[i], d).p) / 2;
+    };
+    return arcs.map((pt, i) => Math.min(cellule(mL, i), cellule(mT, i)));
+}
+
+/** [m²/m²] Forêt de chaque latitude de terre de la bande b (tableau, un nombre par point de ses arcs) : FORET.PART_PREAGRICOLE × part de
+ *  sa cellule sous la ligne des arbres, dans un monde à océan depuis les premiers arbres, 0 sinon. Appelée par la glace saisonnière à
+ *  chaque itération du bilan méridien (EARTH.glaceSaisonniere) ; la forêt de la bande, moyenne de ses points pondérée par leur part de
+ *  terre (poids des arcs, SAISONS.cycles), est posée dans DATA['🗻']['🍰🗻🌳'][b.cle] : celle de sa terre libre hors de la neige
+ *  (terresLibres). Les poids d'une bande somment à sa terre (SAISONS.cycles : N_X × E, ou N_X pour une bande toute mer ou toute
+ *  terre) : une somme nulle est une terre perdue entre la carte et les points, crash. */
+function poserForet(b, arcs) {
+    const f = window.H2O.mondeOcean() && window.INTERIEUR.ageCourant() <= FORET.AGE_PREMIERS_ARBRES
+        ? partSousLigneArbres(arcs).map((p) => FORET.PART_PREAGRICOLE * p) : arcs.map(() => 0);
+    const poids = arcs.reduce((s, a) => s + a.poids, 0);
+    if (poids === 0) throw new Error('[ALBEDO] poserForet ' + b.cle + ' : aucun point de la bande ne porte sa terre (Σ poids = 0, SAISONS.cycles)');
+    window.DATA['🗻']['🍰🗻🌳'][b.cle] = arcs.reduce((s, a, i) => s + a.poids * f[i], 0) / poids;
+    return f;
+}
+
+/** [m²/m²] Part des terres dont la canopée masque la neige (forêt enneigée 🪩🍰🌳❄️, EARTH.glaceSaisonniere), la même à toutes les
+ *  latitudes : FORET.PART_2020 × clamp((🧮🌡️ − MASQUE_T0_K)/MASQUE_DT_K, MASQUE_MIN, 1), dans un monde à océan depuis les premiers
+ *  arbres, 0 sinon. 🔧 ❔ Forme sans source (moins de forêt quand T̄ baisse), qui ne sait pas où passe la ligne des arbres. La forêt
+ *  de chaque latitude (poserForet) ne masque pas la neige : sa ligne des arbres est vers 73° N à 📱 et ne recule pas au dernier
+ *  maximum glaciaire (🎯 67–72° N et ~5 Mkm² de toundra, Walker et al. 2005 : ~2 Mkm² dans le modèle), l'été de 61–68° N du
+ *  modèle étant trop chaud (moyenne annuelle de la zone polaire du bilan méridien) ; c'est la forêt qui masque la neige qui pèse sur
+ *  l'albédo (forêt enneigée 0,25 contre neige ~0,8 ; forêt 0,17 contre sol 0,18 hors de la neige). */
+function foretSousNeige() {
+    return window.H2O.mondeOcean() && window.INTERIEUR.ageCourant() <= FORET.AGE_PREMIERS_ARBRES
+        ? FORET.PART_2020 * Math.max(FORET.MASQUE_MIN, Math.min(1, (window.DATA['🧮']['🧮🌡️'] - FORET.MASQUE_T0_K) / FORET.MASQUE_DT_K)) : 0;
+}
+
+/** [m²/m²] Part de la surface en fusion : fraction fondue de la péridotite à la température de surface COURANTE (🧮🌡️), entre son
+ *  solidus et son liquidus à 0 GPa (Katz, Spiegelman & Langmuir 2003, G³ 4:1073), la même loi que l'intérieur (geology/interieur.js).
+ *  La seule : l'albédo planétaire et le bilan méridien la lisent (la lave couvre les terres et la mer de chaque bande). */
+function partLave() {
+    const LAVE = window.INTERIEUR.CONST;
+    return Math.max(0, Math.min(1, (window.DATA['🧮']['🧮🌡️'] - LAVE.T_SOLIDUS) / (LAVE.T_LIQUIDUS - LAVE.T_SOLIDUS)));
+}
+
+/** Albédos des MATÉRIAUX de l'époque, écrits une fois par calcul dans DATA['🪩🍰'] et lus là (albédo planétaire, bilan méridien,
+ *  fonte des calottes) : EARTH['🪩🍰'], surchargés par EPOCH['🪩🍰'] quand l'époque en déclare (⚫). Sortie de boule de neige
+ *  (mudball) : la poussière volcanique et éolienne concentrée par la sublimation sur des Ma (Abbot & Pierrehumbert 2010, JGR
+ *  115:D03104) assombrit TOUTE la glace — neige profonde 🪩🍰❄️ ET glace 🪩🍰🧊 plafonnées par EPOCH['🌫️❄️'], l'albédo de la glace
+ *  sale ; une époque sans cette clé garde une glace propre. */
+function poserAlbedosMateriaux() {
+    const DATA = window.DATA, EPOCH = DATA['📅'], M = DATA['🪩🍰'];
+    Object.assign(M, EARTH['🪩🍰']);
+    if ('🪩🍰' in EPOCH) Object.assign(M, EPOCH['🪩🍰']);
+    if ('🌫️❄️' in EPOCH) {
+        M['🪩🍰❄️'] = Math.min(M['🪩🍰❄️'], EPOCH['🌫️❄️']);
+        M['🪩🍰🧊'] = Math.min(M['🪩🍰🧊'], EPOCH['🌫️❄️']);
+    }
+}
 // ============================================================================
 // RAPPORT DE CCN DE L'ÉPOQUE (sans dimension, 1 = Terre actuelle)
 // ============================================================================
@@ -211,9 +304,11 @@ function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establis
 // Une seule loi, MESURÉE : CDNC / CDNC_ref = (m_SO₄ / m_ref)^a (forme de Boucher & Lohmann 1995, Tellus B 47:281 ;
 // exposant a de McCoy et al. 2018, ACP 18:2035, Table 1 — CDNC MODIS, sulfate MERRA2, 19 régions, quartiles
 // [0,11 ; 0,29], jauge SUBTIL). m_ref = charge moderne 1,05e9 kg SO₄ (Tsigaridis et al. 2006) : le rapport vaut 1 sur 📱.
-// Sulfate efficace = part volcanique + part DMS modulée par la biosphère marine 🧫 de l'époque. Partage MESURÉ des deux
+// Sulfate efficace = part volcanique + part DMS modulée par la biosphère marine 🧫 du clic (📜🧫 : celle de l'époque, ou de son
+// état 🔁 daté). Partage MESURÉ des deux
 // sources naturelles : volcanisme 11,5 Tg S/an (Carn et al. 2017, Sci. Rep. 7:44095), DMS 28,1 Tg S/an (Lana et al. 2011,
-// Glob. Biogeochem. Cycles 25:GB1004) → 0,29 / 0,71. ⚠️ 🧫 est posée par époque (paléo-abondance du plancton, sans mesure).
+// Glob. Biogeochem. Cycles 25:GB1004) → 0,29 / 0,71. ⚠️ 🧫 est posée par époque ou par clic (paléo-abondance du plancton, sans
+// mesure).
 // Retiré le 2026-10-13 : le « proxy » (CCN_BASE + CCN_O2_WEIGHT·🍰🫧🫁·(1 + BIOMASS_GAIN·🍰🪩🌳)·anthro) / référence
 // moderne, qui multipliait cette loi. L'O₂ n'est pas un noyau de condensation (activation de Köhler, κ-Köhler : Petters &
 // Kreidenweis 2007, ACP 7:1961) ; les 0,15 / 0,85 / 4,0 étaient « calibrés », et la rampe anthropique 1900–1980 comparait
@@ -222,9 +317,8 @@ function brieglebIceAlbedoLocal(T_local_K, alphaSnowDeep, albedo_coeff, establis
 // leurs exposants, il manque leurs masses par époque.
 function rapportCCN() {
     const DATA = window.DATA;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
-    const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * EPOCH['🧫']);
+    const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * DATA['📜']['🧫']);
     const ccn_ratio = window.AEROSOL.sulfateCcnRatio(
         sulfate_kg_effective,
         CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
@@ -254,519 +348,238 @@ function nombreGouttesCm3() {
     return nombreGouttesActuelCm3() * rapportCCN();
 }
 
+/**
+ * [m²/m²] Surfaces de la planète SANS GLACE, à l'état de DATA — la seule source, lue par l'albédo planétaire (calculateAlbedo) et par
+ * le bilan méridien (physics/meridien.js) : { lave, rempli, sec, ocean, terres, aride }.
+ *   · lave = partLave() ;
+ *   · rempli = part du globe sous l'eau : le bassin (🗻.🍰🗻🌊, posé par calculateGeologySurfaces : la terre émergée de la carte est
+ *     au-dessus du niveau de la mer de sa reconstruction, le reste est la mer) dans un monde à océan (H2O.mondeOcean) — la profondeur
+ *     moyenne suit l'eau (V/S), elle n'est pas posée ; hors de lui — eau au-dessus de son point critique, jusqu'au liquidus compris,
+ *     ou sans air — le bassin est à sec ; sec = part du bassin restée à sec (0 sans bassin) ;
+ *   · ocean = rempli (1 − lave) ; terres = (1 − rempli)(1 − lave) : lave + océan + terres = 1 (la part à sec du bassin est une terre) ;
+ *   · aride = part des terres que l'aridité fait désert (précipitations P_ann et humidité relative 🍰🌧💧, posée par
+ *     calculateCloudFormationIndex) ; la forêt, le désert (au plus ce que laisse la forêt) et le sol sont partagés par terresLibres,
+ *     sur la forêt des bandes de l'itération du bilan méridien.
+ */
+function surfacesSansGlace() {
+    const DATA = window.DATA, CONST = window.CONST;
+    const lave = partLave();
+    const bassin = DATA['🗻']['🍰🗻🌊'];
+    const rempli = window.H2O.mondeOcean() ? bassin : 0;
+    const ocean = rempli * (1 - lave);
+    const terres = (1 - rempli) * (1 - lave);
+    // Précipitations annuelles P_ann (mm/an) ∝ 🍰🧪🌧 × océan × F_conv × CONV.P_ANN_SCALE_MM_AN (facteur d'échelle : H ≈ 1 à 15 °C,
+    // P_ann ≈ 2 117 mm/an) ; F_conv = facteur de convection (T optimal ~15 °C).
+    const F_conv = Math.max(0.1, Math.min(2.0, 1.0 + (DATA['🧮']['🧮🌡️'] - (CONST.T0_WATER + 15)) / 50));
+    const P_ann = DATA['💧']['🍰🧪🌧'] * ocean * F_conv * CONV.P_ANN_SCALE_MM_AN;
+    // Désert : aridité moyenne (P_ann < 1000 mm/an, 🍰🌧💧 < 0,6) + variabilité régionale (~20 % de déserts même sous une moyenne
+    // humide : Sahara, Gobi).
+    const relative_humidity = DATA['💧']['🍰🌧💧'];
+    const precip_factor_desert = Math.max(0, 1 - Math.min(1, P_ann / 1000));
+    const humidity_factor_desert = Math.max(0, 1 - Math.min(1, relative_humidity / 0.6));
+    const desert_base = precip_factor_desert * humidity_factor_desert;
+    const temp_variability = Math.max(0.5, Math.min(1, (DATA['🧮']['🧮🌡️'] - (CONST.KELVIN_TO_CELSIUS + 5)) / 10));
+    const humidity_variability = Math.max(0.5, 1 - relative_humidity * 0.6);
+    const VARIABILITY_FACTOR = 0.6; // 60% des terres disponibles peuvent être arides (pondéré par les facteurs)
+    return { lave: lave, rempli: rempli, sec: bassin > 0 ? 1 - rempli / bassin : 0, ocean: ocean, terres: terres,
+        aride: desert_base + VARIABILITY_FACTOR * temp_variability * humidity_variability };
+}
+
+/**
+ * [m²/m²] Terres libres de chaque bande une fois posées les calottes qu'elles portent, et leur partage forêt / désert / sol — la seule
+ * loi : la terre libre de chaque bande du bilan méridien (son albédo) et l'albédo planétaire (somme des bandes). SG = surfacesSansGlace,
+ * S = MERIDIEN.surfacesBandes (calotte c, sa part sur la terre émergée c_T). Par bande, en part de la bande avant la lave : terres
+ * Λ = E + sec (1 − E) (terre émergée E de CALOTTES.parts, part à sec du bassin) ; forêt = 🗻.🍰🗻🌳 × Λ (la forêt de la bande,
+ * poserForet ; ❔ la même part de sa terre libre que de sa terre émergée), désert = min(Λ − forêt, aride × Λ) (⚠️ la part aride des
+ * terres du globe dans chaque bande), sol = le reste (steppes, prairies, toundras, montagnes) ; calottes posées sur ses terres
+ * c_T + sec (c − c_T) : prises sur le sol, puis le désert, puis la forêt. Renvoie { cle: { foret, desert, sol, albedo } } — albedo =
+ * albédo moyen d'un m² de terre libre de la bande (albédos des matériaux DATA['🪩🍰']). Sans terre libre (la calotte couvre toute la
+ * terre de la bande, ou la bande n'en a pas), un m² de terre libre est un m² de la terre de la bande hors calotte, à sa composition
+ * par m² de terre : forêt 🍰🗻🌳, désert min(1 − forêt, aride), sol le reste — l'albédo de sa terre libre quand aucune calotte n'y
+ * est posée ; d'aire nulle, il ne pèse rien dans l'albédo de la bande.
+ */
+function terresLibres(SG, S) {
+    const M = window.DATA['🪩🍰'], F = window.DATA['🗻']['🍰🗻🌳'], P = window.CALOTTES.parts(), out = {};
+    for (const b of window.CALOTTES.BANDES) {
+        const E = P[b.cle].emerge, sb = S[b.cle], L = E + SG.sec * (1 - E), ct = sb.calotteTerre + SG.sec * (sb.calotte - sb.calotteTerre);
+        const foret0 = F[b.cle] * L, desert0 = Math.min(L - foret0, SG.aride * L), sol0 = L - foret0 - desert0;
+        const sol = Math.max(0, sol0 - ct), r1 = ct - (sol0 - sol);
+        const desert = Math.max(0, desert0 - r1), r2 = r1 - (desert0 - desert);
+        const foret = Math.max(0, foret0 - r2);
+        const total = foret + desert + sol, fF = F[b.cle], fD = Math.min(1 - fF, SG.aride);
+        out[b.cle] = { foret: foret, desert: desert, sol: sol,
+            albedo: total === 0 ? fF * M['🪩🍰🌳'] + fD * M['🪩🍰🏜️'] + (1 - fF - fD) * M['🪩🍰🌍']
+                : (foret * M['🪩🍰🌳'] + desert * M['🪩🍰🏜️'] + sol * M['🪩🍰🌍']) / total };
+    }
+    return out;
+}
+
 function calculateAlbedo() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const EPOCH = DATA['📅'];
     const ALBEDO = window.ALBEDO;
-    const STATE = window.STATE;
     const CONFIG_COMPUTE = window.CONFIG_COMPUTE;
 
-    syncStratosphericVeil01(DATA);
-    // 🔒 ALBEDO BASE : Calculer depuis les surfaces SECHES uniquement
-    // Fusionner les coefficients : EPOCH peut override certains coefficients (ex: Corps noir)
-    const albedo_coeff = ('🪩🍰' in EPOCH) ? { ...EARTH['🪩🍰'], ...EPOCH['🪩🍰'] } : { ...EARTH['🪩🍰'] };
-
-    // [MUDBALL v1.2.64] Déglaciation 1b : la poussière volcanique/éolienne concentrée par sublimation sur des Ma
-    // (Abbot & Pierrehumbert 2010, JGR 115:D03104) assombrit TOUTE la glace — neige profonde 🪩🍰❄️ ET glace nue 🪩🍰🧊.
-    // Piloté par la CONFIG d'époque : EPOCH['🌫️❄️'] = albédo de la glace sale (nombre). Époque sans clé → glace propre.
-    // La jauge du test hystérésis (CONFIG_COMPUTE.iceMudballAlbedo) ne surcharge QUE les époques qui déclarent la clé
-    // (plus de détection par nom d'époque) → 1a / ⛄ / modernes intacts, bench = test = visu.
-    if ('🌫️❄️' in EPOCH) {
-        const _mudball = EPOCH['🌫️❄️'];
-        if (albedo_coeff['🪩🍰❄️'] > _mudball) albedo_coeff['🪩🍰❄️'] = _mudball;
-        if (albedo_coeff['🪩🍰🧊'] > _mudball) albedo_coeff['🪩🍰🧊'] = _mudball;
-    }
+    syncStratosphericVeil01();
+    // Albédos des matériaux de l'époque (EARTH ⊕ EPOCH ⊕ glace sale) : DATA['🪩🍰'], lus partout ensuite.
+    poserAlbedosMateriaux();
+    const M = DATA['🪩🍰'];
 
     // Colonne nuageuse du profil (vapeur, nuages bas et hauts) : une fois par calcul — bilan méridien et albédo planétaire.
     const colonne = window.RADIATIVE.colonneNuageuse();
 
-    // 🔒 BILAN MÉRIDIEN (physics/meridien.js, North et al. 1981) : écarts de température des zones CALCULÉS, posés dans
-    // window.STATE.dTzones, que lit computeIceTempFactor plus bas. Surface libre de chaque zone = océan + terres de la
-    // géologie ; glace de la zone = Briegleb à la température de la zone (mêmes lois que l'albédo de glace plus bas).
-    const ocGeo = EPOCH['🗻']['🍰🗻🌊'];
-    const albedoLibre = ocGeo * albedo_coeff['🪩🍰🌊'] + (1 - ocGeo) * albedo_coeff['🪩🍰🌍'];
-    const neigeTrop = albedo_coeff['🪩🍰❄️'] - (albedo_coeff['🪩🍰❄️'] - albedo_coeff['🪩🍰🧊']) * Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
-    const albedoGlaceZone = (cle, T_zone_K) => brieglebIceAlbedoLocal(T_zone_K,
-        cle === 'trop' ? neigeTrop : albedo_coeff['🪩🍰❄️'], albedo_coeff, DATA['🪩']['🍰🪩🧊']);
-    // Calottes continentales (physics/calottes.js) : état porté DATA['🗻']['🍰🗻🧊'] et son socle DATA['🗻']['🔺📏🗻🧊'] (config de
-    // l'époque au clic frise, socle à l'équilibre ; état du clic précédent au clic time), avancés ensemble sur le temps écoulé
-    // depuis leur date. Résultat du pas : DATA['🗻']['🧮🍰🗻🧊'] et ['🧮🔺📏🗻🧊'], engagés en fin de convergence
-    // (calculations_flux.js → CALOTTES.engager).
-    const dureeCalottes = DATA['🗻']['📅🗻🧊'] - window.INTERIEUR.ageCourant(DATA);
-    // Calotte qui fond : neige mouillée (🪩🍰🧊, glace saisonnière) puis glace nue (🪩🍰🏊) — anomalie d'insolation de l'orbite.
-    const meridien = window.MERIDIEN.resoudre(DATA['🧮']['🧮🌡️'], EPOCH, colonne, albedoLibre, albedoGlaceZone,
-        albedo_coeff['🪩🍰❄️'], { neige: albedo_coeff['🪩🍰🧊'], glace: albedo_coeff['🪩🍰🏊'] }, DATA['🗻']['🍰🗻🧊'], DATA['🗻']['🔺📏🗻🧊'], dureeCalottes);
-    window._hystDiag.meridien = meridien;
-    const calottesPas = {}, soclePas = {};
-    for (const b of window.CALOTTES.BANDES) {
-        calottesPas[b.cle] = meridien.calottes[b.cle].a;
-        soclePas[b.cle] = meridien.calottes[b.cle].socle;
-    }
-    DATA['🗻']['🧮🍰🗻🧊'] = calottesPas;
-    DATA['🗻']['🧮🔺📏🗻🧊'] = soclePas;
-    // Part du globe sous calotte permanente : Σ zones f_z × fraction moyenne des deux hémisphères.
-    const calotte_surface = EARTH.POLAR_ZONE_FRAC * meridien.calottes.parZone.pol + EARTH.MIDLAT_ZONE_FRAC * meridien.calottes.parZone.mid
-        + EARTH.TROPICAL_ZONE_FRAC * meridien.calottes.parZone.trop;
-
-    // Héritage glaciaire vs réinitialisation géologique :
-    // époques courtes → forte inertie (glace héritée), époques longues → proche équilibre à T_config.
-    function calcGlaceEquilibre(T_K) {
-        // Même logique que ice_temp_factor ci-dessous, mais utilisée pour blend héritage glaciaire (pas l'albédo instantané).
-        // Régime 1 (T_K >= T_freeze) : calottes polaires ; max ~10% surface (highlands).
-        //   Rampe linéaire pondérée par l'amplification polaire → seuil global T_thresh_pol = T_FREEZE + dT_pol.
-        //   dT_pol du bilan méridien (window.STATE.dTzones, physics/meridien.js).
-        // Régime 2 (T_K <  T_freeze) : océan gèle → jusqu'à 90% surface en glace de mer, rampe sur 20 K.
-        if (T_K >= EARTH.T_FREEZE_SEAWATER_K) {
-            const T_thresh_pol = EARTH.T_FREEZE_SEAWATER_K + window.STATE.dTzones.pol;   // bilan méridien
-            const stock_factor = Math.max(0, Math.min(1, (T_thresh_pol - T_K) / EARTH.T_NO_POLAR_ICE_RANGE_K));
-            return Math.max(0, Math.min(1, 0.1 * stock_factor));
-        }
-        // [v1.2.64] CONTINUITÉ au gel : sous T_freeze les calottes (0.1, stock_factor=1 puisque
-        // T < T_thresh_pol) NE DISPARAISSENT PAS — la mer gelée s'y AJOUTE. Avant : 0.1 → 0.009 en passant
-        // −2.0 → −2.2 °C = la glace fondait en refroidissant (albédo ↓ de 3 %, Δ +10 W/m²) → faux puits
-        // qui piégeait la visu ⛄ à −2 °C et fabriquait la « surfusion » 1a pile à T_freeze.
-        const ocean_freeze_fraction = Math.min(1, Math.max(0, (EARTH.T_FREEZE_SEAWATER_K - T_K) / 20));
-        return Math.max(0.1, Math.min(0.9, ocean_freeze_fraction * 0.9));
-    }
-    // v1.2.54 — Blend dt réévalué à CHAQUE pas (verrou iceEpochFixedWaterState supprimé).
-    // Forme exponentielle : tau_eff = tauGlaceAns × iceInertiaFactor01
-    //                       fraction_fonte = 1 − exp(−duree_ans / tau_eff), naturellement ∈ [0,1).
-    //   • factor=1.0 → tau_eff = tauGlaceAns (temporalité géologique standard)
-    //   • factor>1   → plus d'inertie (fonte/formation plus lente, tau_eff rallongé)
-    //   • factor<1   → moins d'inertie (converge plus vite vers glace_equilibre)
-    //   • factor=0   → tau_eff = 0 → fraction_fonte = 1 (équilibre instantané)
-    // T source = T courante solver (permet feedback T→glace dans scan hystérésis).
-    const duree_ans = Math.abs(EPOCH['▶'] - EPOCH['◀']);
-    const tau_eff = CONFIG_COMPUTE.tauGlaceAns * Math.max(0, CONFIG_COMPUTE.iceInertiaFactor01);
-    // factor = 0 → tau_eff = 0 → équilibre instantané (vraie branche de la jauge, pas une garde).
-    const fraction_fonte = (tau_eff > 0) ? (1 - Math.exp(-duree_ans / tau_eff)) : 1;
-    const glace_equilibre = calcGlaceEquilibre(DATA['🧮']['🧮🌡️']);
-    // calcGlaceEquilibre modélise mer/océan gelé (→ ~0,72 à T≈255 K). Sans atmosphère ou sans eau, ou en ⚫,
-    // la partition vapeur/glace/liquide est portée par calculations_h2o.calculateWaterPartition uniquement.
-    const applyIceStockBlend =
-        DATA['📜']['🗿'] !== '⚫' &&
-        DATA['⚖️']['⚖️🫧'] > 0 &&
-        DATA['⚖️']['⚖️💧'] > 0;
-    // v1.2.59 — Snapshot pré-Search ANCRÉ SUR LA T SEED DE L'ÉPOQUE (EPOCH['🌡️🧮']), pas sur l'état leaké
-    // de DATA (qui dépend de l'ordre d'arrivée : clic timeline vs bench séquentiel → calibration cassée).
-    // Le snapshot représente "état glace que l'époque hériterait si elle démarrait à sa T config" — repère
-    // calibration-stable, indépendant du parcours utilisateur. Le blend lit FROM snapshot pendant Search/
-    // Dicho ; N appels successifs donnent le MÊME résultat à T courante donnée. Donc fraction_fonte =
-    // 1 - exp(-duree_ans/tau_eff) représente bien le pas géologique (◀-▶ ans), pas un pas numérique.
-    // Pour le scan hystérésis ⛄, chaque pas CO₂ remet 🧮⚧='Init' → snapshot reste = glace_eq(T_seed) ;
-    // le feedback T→glace dans la branche froide (Pierrehumbert 2005 JGR 110:D01111) opère via la cible
-    // glace_equilibre(T_courant) dans le terme de droite du blend.
-    const phaseAlb = DATA['🧮']['🧮⚧'];
-    // Logger glace : appelé en phase Init (snapshot frais) + à chaque Search/Dicho (suivi convergence).
-    // Activé via CONFIG_COMPUTE.logIceSnapshotDiagnostic → _logs/iceSnapshot.txt.
-    function _logIceSnap(tag) {
-        if (!CONFIG_COMPUTE.logIceSnapshotDiagnostic) return;
-        const line = '[iceSnap] ' + tag
-            + ' ep=' + DATA['📜']['🗿']
-            + ' phase=' + phaseAlb
-            + ' T_C=' + (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(3)
-            + ' T_seed_C=' + (EPOCH['🌡️🧮'] - 273.15).toFixed(3)
-            + ' duree_ans=' + duree_ans.toFixed(0)
-            + ' tau_eff=' + tau_eff.toFixed(0)
-            + ' frac_fonte=' + fraction_fonte.toFixed(6)
-            + ' iceMassSnap=' + STATE._iceMassSnapshotPreSearch01
-            + ' iceSurfSnap=' + STATE._iceSurfSnapshotPreSearch01
-            + ' iceMassNow=' + DATA['💧']['🍰💧🧊']
-            + ' iceSurfNow=' + DATA['🪩']['🍰🪩🧊']
-            + ' glaceEqCur=' + glace_equilibre
-            + ' vapMass=' + DATA['💧']['🍰🫧💧']
-            + ' alb=' + DATA['🪩']['🍰🪩📿']
-            + ' cloud=' + DATA['🪩']['🍰🪩⛅']
-            + ' trapTot=' + DATA['📛']['🧲📛']
-            + ' trapH2O=' + DATA['📛']['🧲📛💧']
-            + ' trapCO2=' + DATA['📛']['🧲📛🏭']
-            + ' fluxDelta=' + DATA['🧲']['🔺🧲'];
-        console.log(line);
-        window.debugMirrorConfigLogToFile('logIceSnapshotDiagnostic', line);
-    }
-    if (phaseAlb === 'Init') {
-        const T_seed_K = EPOCH['🌡️🧮'];
-        STATE._iceMassSnapshotPreSearch01 = calcGlaceEquilibre(T_seed_K);
-        // Pour 🍰🪩🧊 : recalcule l'équilibre surface à T_seed via la même formule que ligne ~411
-        // (EARTH.ICE_FORMULA_MAX_FRACTION × ice_temp_factor at T_seed), capé par ice_cap_surface
-        // calculé localement (highlands ∪ hydrosphère). Évalué ici parce que ice_cap_surface n'est
-        // pas encore connu — recalcul léger inline.
-        const _surfArea = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
-        const _hydroSupportSeed = Math.max(0, Math.min(0.9, ((DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / _surfArea) / 10));
-        const _iceCapSeed = Math.max(DATA['🗻']['🍰🗻🏔'], _hydroSupportSeed);
-        const _iceTfSeed = EARTH.computeIceTempFactor(T_seed_K, EPOCH);
-        STATE._iceSurfSnapshotPreSearch01 = Math.min(_iceCapSeed, EARTH.ICE_FORMULA_MAX_FRACTION * _iceTfSeed.ice_tf);
-        _logIceSnap('SNAPSHOT_RESET');
-    }
-    // Snapshot posé à la phase Init de ce run (calculateT0 → initForConfig → ici) : toujours présent ensuite.
-    if (applyIceStockBlend) {
-        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1, STATE._iceMassSnapshotPreSearch01 * (1 - fraction_fonte) + glace_equilibre * fraction_fonte));
-    }
-    if (phaseAlb !== 'Init') _logIceSnap('BLEND_APPLY');
-    // 🔒 ÉTAPE 1 : Calculer les surfaces géologiques (fixes, déterminées par la géologie)
+    // Surfaces géologiques de la date (bassin 🍰🗻🌊 = 1 − terre émergée de la carte) et humidité relative 🍰🌧💧 (☁️, Sundqvist) :
+    // ce que lisent les surfaces sans glace (surfacesSansGlace), avant le bilan méridien qui les lit aussi.
     ALBEDO.calculateGeologySurfaces();
-    
-    // 🔒 ÉTAPE 1.5 : surface en fusion = fraction fondue de la péridotite à la température de surface COURANTE, entre son
-    // solidus et son liquidus à 0 GPa (Katz, Spiegelman & Langmuir 2003, G³ 4:1073) — la même loi que l'intérieur
-    // (geology/interieur.js). Avant le 2026-10-13 : rampe 1000 K → 2373 K (CONST.T_LAVA_*, sans source ; 2100 °C n'est le
-    // liquidus d'aucune roche terrestre), évaluée sur la T de GRAINE de l'époque (📅🌡️🧮) au lieu de l'état.
-    const LAVE = window.INTERIEUR.CONST;
-    const volcano_coverage = Math.max(0, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - LAVE.T_SOLIDUS) / (LAVE.T_LIQUIDUS - LAVE.T_SOLIDUS)));
-    
-    // 🔒 ÉTAPE 2 : Calculer la couverture océanique réelle depuis la géologie + stocks d'eau
-    // La surface océanique est limitée par la géologie ET par la quantité d'eau disponible
-    // Si volcano_coverage = 1.0, alors ocean_coverage = 0 (pas de mer possible)
-    const planet_surface_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
-    
-    // Volume maximum que peut contenir le bassin océanique
-    const ocean_basin_surface_m2 = DATA['🗻']['🍰🗻🌊'] * planet_surface_m2;
-    const ocean_volume_max_m3 = (ocean_basin_surface_m2 / EPOCH['🐚']) * (EPOCH['📏🌊'] * 1000);
-    const ocean_mass_max_kg = ocean_volume_max_m3 * CONST.RHO_WATER;
-    
-    // Masse d'eau océanique réelle = min(stock_total, capacité_bassin)
-    const ocean_mass_actual_kg = Math.min(DATA['⚖️']['⚖️💧'], ocean_mass_max_kg);
-    
-    // Surface océanique réelle (peut être < bassin si pas assez d'eau)
-    const ocean_volume_actual_m3 = ocean_mass_actual_kg / CONST.RHO_WATER;
-    const ocean_depth_m = EPOCH['📏🌊'] * 1000;
-    // 📏🌊=0 ⇒ pas de profondeur océanique définie (ex. ⚫) : ne pas faire volume/0 ni 0/0
-    const ocean_surface_actual_m2 = ocean_depth_m > 0
-        ? (ocean_volume_actual_m3 / ocean_depth_m) * EPOCH['🐚']
-        : 0;
-    const ocean_coverage_base = Math.min(DATA['🗻']['🍰🗻🌊'], Math.max(0.0, ocean_surface_actual_m2 / planet_surface_m2));
-    
-    // Réduire ocean_coverage proportionnellement à volcano_coverage
-    let ocean_coverage = ocean_coverage_base * (1.0 - volcano_coverage);
-
-    // Gel océan lissé (pas de bascule brutale) :
-    // Quand T passe sous T_freeze, une fraction croissante de l'océan devient "mer gelée" (glace de mer).
-    // On ne supprime pas instantanément l'océan, on le convertit progressivement en glace optique.
-    const T_K = DATA['🧮']['🧮🌡️'];
-    const hasOcean = (DATA['⚖️']['⚖️💧'] > 0);
-    const T_freeze = EARTH.T_FREEZE_SEAWATER_K;
-    // 🏷️ Source unique : DATA['🎚️'].HYSTERESIS (initDATA.js → interpolé depuis FINE_TUNING_BOUNDS).
-    // Règle regle-data-territoire : lecture directe, pas de Number.isFinite/fallback. Si invalide, crash.
-    const seaIceRangeK = DATA['🎚️'].HYSTERESIS.seaIceTransitionRangeK;
-    const seaIceFrac = seaIceRangeK > 0 ? Math.max(0, Math.min(1, (T_freeze - T_K) / seaIceRangeK)) : (T_K < T_freeze ? 1 : 0);
-    // Part d'océan encore libre:
-    if (hasOcean && seaIceFrac > 0) {
-        ocean_coverage = ocean_coverage * (1.0 - seaIceFrac);
-    }
-    
-    // 🔒 Stocker ocean_coverage dans DATA AVANT calculateCloudFormationIndex()
-    // calculateCloudFormationIndex() a besoin de DATA['🪩']['🍰🪩🌊'] pour calculer ☁️
-    DATA['🪩']['🍰🪩🌊'] = ocean_coverage;
-    
-    let albedo_base = 0.0;
-    
-    // 🔒 ÉTAPE 3 : Calculer la couverture de glace depuis les hautes terres + climat
-    // 🍰🪩🧊 est borné par le support physique disponible :
-    // - hautes terres géologiques
-    // - ou couche d'eau globale équivalente si l'astre a peu/pas de relief mais assez d'eau pour geler en surface
-    //
-    // ─── Amplification polaire 3 zones (EBM 0D) ─────────────────────────────────
-    // Appel à la FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob_K) — définie dans physics.js.
-    // Même source dans calculations_flux.js et calculations_h2o.js. Pas de duplication.
-    // Écarts de zone dT CALCULÉS par le bilan méridien (window.STATE.dTzones, physics/meridien.js) ; l'obliquité règle
-    // l'amplitude saisonnière (∝ sin ε, physics.js).
-    // ─────────────────────────────────────────────────────────────────────────────
-    // Les écarts de zone et l'obliquité sont lus par computeIceTempFactor lui-même.
-    const _iceTF = EARTH.computeIceTempFactor(DATA['🧮']['🧮🌡️'], EPOCH);
-    const ice_temp_factor = _iceTF.ice_tf;
-    const ice_tf_pol = _iceTF.tf_pol;
-    const ice_tf_mid = _iceTF.tf_mid;
-    const ice_tf_trop = _iceTF.tf_trop;  // v2.0.15 : 3e zone (physics.js)
-    const T_thresh_pol = _iceTF.T_thresh_pol;
-    const T_thresh_mid = _iceTF.T_thresh_mid;
-    const T_thresh_trop = _iceTF.T_thresh_trop_high;
-    if (CONFIG_COMPUTE.logIceFactorDiagnostic) {
-        const mIce = '[iceTF] epoch=' + DATA['📜']['🗿'] +
-            ' T=' + (DATA['🧮']['🧮🌡️'] - 273.15).toFixed(2) + '°C' +
-            ' ε=' + _iceTF.obliquity_deg.toFixed(2) + '° (×' + _iceTF.obliquity_factor.toFixed(3) + ')' +
-            ' dT_pol=' + _iceTF.dT_pol + ' amp_pol=' + _iceTF.amp_pol.toFixed(2) +
-            ' dT_mid=' + _iceTF.dT_mid + ' amp_mid=' + _iceTF.amp_mid.toFixed(2) +
-            ' dT_trop=' + _iceTF.dT_trop + ' amp_trop=' + _iceTF.amp_trop.toFixed(2) +
-            ' | tf_pol=' + _iceTF.tf_pol.toFixed(3) +
-            ' tf_mid=' + _iceTF.tf_mid.toFixed(3) +
-            ' tf_trop=' + _iceTF.tf_trop.toFixed(3) +
-            ' -> ice_tf=' + _iceTF.ice_tf.toFixed(3);
-        console.log(mIce);
-        window.debugMirrorConfigLogToFile('logIceFactorDiagnostic', mIce);
-    }
-    const planet_surface_area_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
-    const global_water_layer_m = (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_area_m2;
-    let hydrosphere_surface_support = Math.max(0, Math.min(0.9, global_water_layer_m / 10));
-    let ice_cap_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydrosphere_surface_support);
-    // v1.2.59 — équilibre asymptotique de la surface optique à T courante (formule pure-en-T inchangée),
-    // mais on blend depuis snapshot pré-Search (cf. plus haut). Couplage masse↔surface : la surface ne peut
-    // reculer plus vite que la masse fond (chaleur latente de fusion ~3.34×10⁵ J/kg).
-    // Réf : Hansen et al. 2013 PTRSA 371:20120294 — séparation feedbacks rapides (vapeur, clouds) vs lents
-    // (calottes), avec τ_calotte ~ 10⁴–10⁵ ans (Marshall & Clark 2002 GRL 29(24):2214). En l'absence de
-    // snapshot (premier appel ou hors blend), on retombe sur l'équilibre instantané (rétro-compat).
-    const ice_fraction_equilibre = Math.min(ice_cap_surface, EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor);
-    // Snapshot posé à la phase Init de ce run : toujours présent ici.
-    let ice_fraction_target = applyIceStockBlend
-        ? Math.max(0, Math.min(ice_cap_surface, STATE._iceSurfSnapshotPreSearch01 * (1 - fraction_fonte) + ice_fraction_equilibre * fraction_fonte))
-        : ice_fraction_equilibre;
-    const icePolarFormulaTarget = ice_fraction_target;
-
-    // Mer gelée (lissé) : augmente le support/target de glace de manière progressive en fonction de seaIceFrac.
-    // L'idée: quand l'océan gèle, la glace "optique" peut couvrir une large fraction sans tout convertir instantanément.
-    if (hasOcean && seaIceFrac > 0) {
-        hydrosphere_surface_support = Math.max(hydrosphere_surface_support, seaIceFrac);
-        ice_cap_surface = Math.max(ice_cap_surface, seaIceFrac);
-        ice_fraction_target = Math.max(ice_fraction_target, seaIceFrac);
-    }
-    const iceAfterSeaIceMerge = ice_fraction_target;
-
-    DATA['🪩']['🍰🪩🧊'] = ice_fraction_target;
-    const iceAfterDynamicFeedback = DATA['🪩']['🍰🪩🧊'];
-    
-    // 🔒 volcano_coverage déjà calculé plus haut (ligne ~200)
-    
-    // 🔒 ÉTAPE 4 : Calculer forêts/déserts/terres depuis l'indice d'humidité climatique (H)
-    // NOUVEAU SYSTÈME : Répartition automatique 🌳 / 🏜️ / 🌍 basée sur température et précipitations
-    // Les biomes dépendent uniquement de température et pluie, robuste pour d'autres planètes
-    //
-    // 1. Calculer précipitations annuelles P_ann (mm/an)
-    // P_ann ∝ 🍰🧪🌧 × 🍰🪩🌊 × F_conv × facteur_échelle
-    // Où 🍰🧪🌧 = max vapor fraction (potentiel de précipitation)
-    //    🍰🪩🌊 = couverture océanique (source d'évaporation)
-    //    F_conv = facteur de convection (fonction de température)
-    // 🔒 CORRECTION : Le facteur d'échelle était trop faible
-    // Sur Terre : 🍰🧪🌧 ≈ 0.017, 🍰🪩🌊 ≈ 0.71, F_conv ≈ 1.0
-    // P_ann_base = 0.017 × 0.71 × 1.0 = 0.01207
-    // Pour obtenir H ≈ 1.0 à 15°C : H = P_ann / (1000 × exp(0.05 × 15)) = P_ann / 2117
-    // Donc P_ann ≈ 2117 mm/an pour H = 1.0
-    // Facteur d'échelle : 2117 / 0.01207 ≈ 175000
-    const F_conv = Math.max(0.1, Math.min(2.0, 1.0 + (DATA['🧮']['🧮🌡️'] - 288.15) / 50));  // Facteur convection (T optimal ~15°C = 288.15 K)
-    const P_ann = DATA['💧']['🍰🧪🌧'] * ocean_coverage * F_conv * CONV.P_ANN_SCALE_MM_AN;  // mm/an (tuning CONV.P_ANN_SCALE_MM_AN)
-
-    // 🔒 ÉTAPE 4 : Calculer ☁️ (index de formation nuageuse) AVANT de calculer les biomes
-    // calculateCloudFormationIndex() calcule aussi 🍰🌧💧 (humidité relative) nécessaire pour les biomes
     ALBEDO.calculateCloudFormationIndex();
-    
-    // 🔒 ÉTAPE 5 : Calculer les terres disponibles (🍰🪩🌍_)
-    // FORMULE : 🍰🪩🌍_ = 1 - ocean_coverage_réel - 🍰🪩🧊
-    // Utiliser ocean_coverage (surface réelle) au lieu du bassin géologique (🍰🗻🌊)
-    // Si le bassin n'est pas rempli, la portion sèche revient aux terres (sinon trou dans la somme → normalisation abusive)
-    const land_available = Math.max(0, 1.0 - ocean_coverage - DATA['🪩']['🍰🪩🧊']);
-    
-    // 🔒 ÉTAPE 6 : Calculer forêts 🌳
-    // === FORÊT - VERSION RÉALISTE (pas de if d'époque) ===
-    // Réf : FAO Global Forest Resources Assessment 2020 ~31% des terres émergées. Formule en K : (T_K - 268.15) / 25 = (°C + 5) / 25.
-    // Corps noir (⚫) : pas de CO2/atmosphère pour plantes → forêt = 0 (à reprendre pour époques tardives)
-    // 🌱 = facteur biosphère terrestre par époque (fraction max des terres pouvant porter végétation) :
-    //   - Hadéen / Archéen / Protéro / ⛄ / 🪼 / Cambrien : ≈ 0 (pas de plantes terrestres avant Ordovicien ~−470 Ma)
-    //   - Ordovicien / Silurien : rampe 0 → 0.1 → 0.3 (bryophytes, ptéridophytes)
-    //   - Dévonien → moderne : 0.31 (forêts établies, cf. FAO 2020)
-    // Réf paléobotanique : Kenrick & Crane 1997 (Nature), Gensel 2008 (Ann Rev E E&S),
-    //                     Stein et al. 2012 (Gilboa, PNAS — Archaeopteris).
-    const relative_humidity = DATA['💧']['🍰🌧💧'];
-    const temp_suitability = Math.max(0.4, Math.min(1.0, (DATA['🧮']['🧮🌡️'] - 268.15) / 25));
-    const forest_potential = EPOCH['🌱'] * land_available * temp_suitability;
-    const forest_coverage = (DATA['📜']['🗿'] === '⚫') ? 0 : Math.min(land_available, forest_potential);
-    
-    // 🔒 ÉTAPE 7 : Calculer déserts 🏜️
-    // FORMULE CORRIGÉE : 🍰🪩🏜️ = 🍰🪩🌍_ × (base_aridité + variabilité_régionale)
-    // Les déserts sont des zones régionales avec conditions locales très différentes de la moyenne globale
-    // En 2025 : Sahara a P_ann < 200 mm/an et RH < 0.3, mais moyenne globale P_ann ≈ 2600 mm/an et RH ≈ 0.83
-    // Correction : Utiliser un facteur de variabilité régionale pour avoir ~20% de déserts même si moyenne globale est humide
-    // Base : déserts si conditions moyennes sont arides
-    const precip_factor_desert = Math.max(0, 1 - Math.min(1, P_ann / 1000)); // P_ann < 1000 mm/an → désert
-    const humidity_factor_desert = Math.max(0, 1 - Math.min(1, relative_humidity / 0.6)); // RH < 0.6 → désert
-    const desert_base = land_available * precip_factor_desert * humidity_factor_desert;
-    
-    // Variabilité régionale : même si moyenne globale est humide, il y a toujours des zones arides
-    // Facteur basé sur la température (plus chaud → plus de variabilité) et l'inverse de l'humidité
-    // En 2025 : ~20% de déserts sur les terres (Sahara, Gobi, etc.) même si moyenne globale est humide
-    // Sur les terres disponibles (0.20), on veut ~0.06 de déserts (30% des terres)
-    const temp_variability = Math.max(0.5, Math.min(1, (DATA['🧮']['🧮🌡️'] - (CONST.KELVIN_TO_CELSIUS + 5)) / 10)); // Plus de variabilité si T > 5°C, minimum 0.5
-    const humidity_variability = Math.max(0.5, 1 - relative_humidity * 0.6); // Plus de variabilité si RH faible, minimum 0.5
-    const VARIABILITY_FACTOR = 0.6; // 60% des terres disponibles peuvent être arides (pondéré par les facteurs)
-    const variability_term = land_available * VARIABILITY_FACTOR * temp_variability * humidity_variability;
-    
-    // Si EPOCH['🍰🪩🏜️'] est défini (même si = 0.0), l'utiliser directement (override pour cas particuliers comme Corps noir)
-    // Utiliser ?? au lieu de || car 0.0 est falsy mais est une valeur valide qu'on veut utiliser
-    const desert_coverage = EPOCH['🍰🪩🏜️'] ?? Math.min(land_available, desert_base + variability_term);
-    
-    // 🔒 ÉTAPE 8 : Calculer terres restantes 🌍
-    // FORMULE : 🍰🪩🌍 = 🍰🪩🌍_ - 🍰🪩🌳 - 🍰🪩🏜️
-    // 🌍 absorbe automatiquement : steppes, prairies, toundras, montagnes
-    const total_land_coverage = Math.max(0, land_available - forest_coverage - desert_coverage);
-    
-    // 🔒 VÉRIFICATION + NORMALISATION : les surfaces au sol doivent sommer à 1 (sans nuages)
-    // Les nuages ⛅ sont traités comme un voile optique indépendant, pas comme une surface additionnelle.
-    let volcano_surface = volcano_coverage;
-    let ocean_surface = ocean_coverage;
-    let forest_surface = forest_coverage;
-    let ice_surface = DATA['🪩']['🍰🪩🧊'];
-    let land_surface = total_land_coverage;
-    let desert_surface = desert_coverage;
 
-    // Mer gelée (lissé) : réduire progressivement les biomes au profit de la glace,
-    // sans écraser brutalement toutes les surfaces.
-    if (hasOcean && seaIceFrac > 0) {
-        const keep = Math.max(0, 1.0 - seaIceFrac);
-        forest_surface = forest_surface * keep;
-        land_surface = land_surface * keep;
-        desert_surface = desert_surface * keep;
-        // La part "gelée" s'ajoute en glace optique (bornée par surface hors volcan).
-        const seaIceSurface = Math.max(0, Math.min(1.0 - volcano_surface, seaIceFrac * (1.0 - volcano_surface)));
-        ice_surface = Math.max(ice_surface, seaIceSurface);
-        // IMPORTANT: le blend ci-dessus peut réduire la somme des surfaces (on retire de l'océan et des biomes),
-        // sans pour autant réassigner toute la fraction à une surface. Physiquement, cette fraction devient de la glace de mer.
-        // On la réinjecte ici pour garder une somme = 1 sans normalisation artificielle.
-        const sumAfterBlend = volcano_surface + ocean_surface + forest_surface + ice_surface + land_surface + desert_surface;
-        if (sumAfterBlend < 1.0) {
-            const missing = Math.min(1.0 - volcano_surface, 1.0 - sumAfterBlend);
-            if (missing > 0) {
-                ice_surface = Math.max(0, Math.min(1.0 - volcano_surface, ice_surface + missing));
-            }
-        }
-        if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
-            const mSea = 'SEA_ICE_BLEND f=' + seaIceFrac.toFixed(3)
-                + ' rangeK=' + seaIceRangeK
-                + ' ep=' + DATA['📜']['🗿']
-                + ' phase=' + DATA['🧮']['🧮⚧']
-                + ' T_K=' + T_K.toFixed(2);
-            console.log(mSea);
-            window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', mSea);
-        }
+    // 🔒 BILAN MÉRIDIEN (physics/meridien.js, North et al. 1981) : T₂ (DATA['🧮']['🌡️🎱']) et, à ce T₂, la glace saisonnière des bandes
+    // (DATA['🪩']['🍰📅🧊'] et ['🍰☀️🧊'], EARTH.glaceSaisonniere) et les calottes du pas (DATA['🗻']['🧮🍰🗻🧊'] et ['🧮🔺📏🗻🧊']) :
+    // c'est cette glace que l'albédo planétaire lit plus bas. Calottes : état porté DATA['🗻']['🍰🗻🧊'] et son socle
+    // DATA['🗻']['🔺📏🗻🧊'] (config de l'époque au clic frise, socle à l'équilibre ; état du clic précédent au clic time), avancés
+    // ensemble sur le temps écoulé depuis leur date (📅🗻🧊), engagés en fin de convergence (calculations_flux.js → CALOTTES.engager).
+    // Le bilan méridien lit tout cela dans DATA ; seule la colonne nuageuse de ce calcul lui est passée. Il rend aussi l'albédo
+    // planétaire au sommet (meridien.A) : la lumière réfléchie par chaque zone, pondérée par l'insolation qu'elle reçoit.
+    // Forêt des bandes (DATA['🗻']['🍰🗻🌳']) : posée par la glace saisonnière à chaque itération du point fixe (ALBEDO.poserForet) ; le
+    // pas part de celle du calcul précédent (0 au clic frise, MERIDIEN.depuisConfig).
+    const meridien = window.MERIDIEN.resoudre(colonne);
+    window._hystDiag.meridien = meridien;
+
+    // Partage de l'eau totale (h2o/calculations_h2o.js) sur un monde à océan : sa glace est celle de la mer de l'état convergé
+    // (épaisseur de Stefan, physics/saisons.js) et celle des calottes du pas (🧮⚖️🗻🧊, posée par le bilan méridien). Les autres
+    // régimes sont posés par calculateWaterPartition.
+    if (window.H2O.mondeOcean()) {
+        window.H2O.partagerEau(window.H2O.masseGlaceMer(meridien.saisons) + DATA['🗻']['🧮⚖️🗻🧊'], DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']);
     }
-    // Calottes permanentes : la glace totale est au moins leur surface ; ce qui dépasse la glace déjà comptée est pris sur les
-    // terres libres, puis le désert, puis la forêt. ice_surface ne garde que la glace SAISONNIÈRE (pondérée par l'ensoleillement).
-    let calotte_manque = Math.max(0, calotte_surface - ice_surface);
-    for (const prendre of ['land', 'desert', 'forest']) {
-        const dispo = prendre === 'land' ? land_surface : (prendre === 'desert' ? desert_surface : forest_surface);
-        const pris = Math.min(dispo, calotte_manque);
-        if (prendre === 'land') land_surface -= pris; else if (prendre === 'desert') desert_surface -= pris; else forest_surface -= pris;
-        calotte_manque -= pris;
+
+    // Surfaces sans glace (surfacesSansGlace, les mêmes que celles du bilan méridien) : lave (fraction fondue de la péridotite à la
+    // température de surface COURANTE, Katz, Spiegelman & Langmuir 2003), océan, terres disponibles et leur aridité ; leur partage
+    // forêt / désert / sol (terresLibres) lit la forêt des bandes de la dernière itération du bilan méridien.
+    const SG = surfacesSansGlace();
+    const volcano_coverage = SG.lave;
+    const ocean_coverage_base = SG.rempli;
+    const sec = SG.sec;
+
+    let albedo_base = 0.0;
+
+    // 🔒 GLACE, celle du bilan méridien à son état convergé — la même que celle de ses co-albédos de zone.
+    // Les nuages ⛅ sont traités comme un voile optique indépendant, pas comme une surface additionnelle.
+    const volcano_surface = volcano_coverage;
+    // Calottes permanentes, celles du bilan méridien (MERIDIEN.surfacesZones) : posées sur la terre émergée, elles sont prises sur
+    // les terres libres de leur bande (ALBEDO.terresLibres : le sol, puis le désert, puis la forêt) ; posées sur le plateau continental, sur le
+    // bassin : sa part en eau sur l'océan, sa part à sec sur les terres. Une surface en fusion les couvre comme elle couvre l'océan
+    // (× (1 − volcano_coverage)). Hors d'un monde à océan il n'y a pas de calotte (aire et albédo nuls, physics/calottes.js). Une seule
+    // aire de calotte : si les surfaces de l'albédo ne peuvent pas la porter, c'est une incohérence entre la géologie et l'eau (erreur),
+    // pas un second plafond.
+    const zones = window.MERIDIEN.surfacesZones();
+    const Z = (f) => ({ pol: f('pol'), mid: f('mid'), trop: f('trop') });
+    const calotte_visible = 1.0 - volcano_coverage;   // part des calottes qui est une surface de glace
+    const calotte_surface = EARTH.moyenneGlobe(Z((z) => zones[z].calotte)) * calotte_visible;
+    const calotte_terre = EARTH.moyenneGlobe(Z((z) => zones[z].calotteTerre)) * calotte_visible;
+    const calotte_plateau = calotte_surface - calotte_terre;
+    const bandes = window.MERIDIEN.surfacesBandes(), libres = terresLibres(SG, bandes);
+    let ocean_surface = SG.ocean - (1 - sec) * calotte_plateau;
+    if (ocean_surface < -1e-9) {
+        throw new Error('[calculateAlbedo] ' + DATA['📅']['📅'] + ' : calottes sur le plateau en eau ' + ((1 - sec) * calotte_plateau).toFixed(6)
+            + ' pour un océan de ' + SG.ocean.toFixed(6) + ' : les surfaces de l\'albédo ne portent pas les calottes du bilan méridien');
     }
-    let calotte_effective = calotte_surface - calotte_manque;          // ce que les terres ont pu porter
-    ice_surface = Math.max(0, Math.max(ice_surface, calotte_effective) - calotte_effective);
-    const surface_sum = volcano_surface + ocean_surface + forest_surface + ice_surface + calotte_effective + land_surface + desert_surface;
-    if (Math.abs(surface_sum - 1.0) > 0.03) {
-        console.warn(`⚠️ [calculateAlbedo] Somme surfaces=${surface_sum.toFixed(4)} -> normalisation`);
-        console.warn(`   RAW: volcan=${volcano_surface.toFixed(4)} ocean=${ocean_surface.toFixed(4)} foret=${forest_surface.toFixed(4)} glace=${ice_surface.toFixed(4)} terre=${land_surface.toFixed(4)} desert=${desert_surface.toFixed(4)}`);
-        console.warn(`   GEOL: 🍰🗻🌊=${DATA['🗻']['🍰🗻🌊'].toFixed(4)} 🍰🗻🏔=${DATA['🗻']['🍰🗻🏔'].toFixed(4)} 🍰🗻🌍=${DATA['🗻']['🍰🗻🌍'].toFixed(4)} ice_cap_surface=${ice_cap_surface.toFixed(4)} hydrosphere=${hydrosphere_surface_support.toFixed(4)}`);
-        const scale = 1.0 / surface_sum;
-        volcano_surface = volcano_surface * scale;
-        ocean_surface = ocean_surface * scale;
-        forest_surface = forest_surface * scale;
-        ice_surface = ice_surface * scale;
-        calotte_effective = calotte_effective * scale;
-        land_surface = land_surface * scale;
-        desert_surface = desert_surface * scale;
+    const calotte_effective = calotte_surface;
+    // Lumière réfléchie par les calottes : l'albédo annuel de la calotte de chaque bande (DATA['🗻']['🧮🪩🗻🧊'], bilan de calotte
+    // pondéré par l'insolation : neige sèche hors fonte, neige mouillée puis glace nue pendant la fonte), pondéré par sa calotte
+    // (surfacesBandes) — la pondération du co-albédo de zone du méridien : une seule source de l'albédo des calottes.
+    const albedoCalotte = DATA['🗻']['🧮🪩🗻🧊'];
+    const refletCalotteZone = { pol: 0, mid: 0, trop: 0 };
+    for (const b of window.CALOTTES.BANDES) refletCalotteZone[b.zone] += bandes[b.cle].calotte * albedoCalotte[b.cle] / 2;
+    const reflet_calotte = EARTH.moyenneGlobe(refletCalotteZone) * calotte_visible;
+    // Glace SAISONNIÈRE (EARTH.glaceSaisonniere, état convergé du bilan méridien), pondérée par l'ÉNERGIE solaire qu'elle reçoit — la
+    // pondération du co-albédo de bande du méridien : dans chaque bande, la mer gelée couvre sa mer libre et la neige sa terre libre
+    // (surfacesBandes), chacune pendant sa part e de l'énergie solaire annuelle ; sur le globe, la part gelée de l'océan libre est la
+    // moyenne des bandes pondérée par leur mer libre, la part enneigée des terres libres (terres, forêt, désert, bassin à sec) la
+    // moyenne pondérée par leur terre libre ; le reste de l'année la surface est libre. La lumière que la glace de chaque bande
+    // réfléchit est sa part r de l'énergie solaire annuelle (🍰☀️🪩🧊 : albédo qui suit la saison, EARTH.glaceSaisonniere).
+    const e = DATA['🪩']['🍰☀️🧊'], r = DATA['🪩']['🍰☀️🪩🧊'];
+    // Moyenne de v sur les bandes pondérée par poids × surface de la bande ; sans cette surface nulle part (pas de mer, ou pas de
+    // terre libre), rien n'y gèle.
+    const moyenneSur = (poids, v) => {
+        const p = window.MERIDIEN.moyenneBandes(poids);
+        return p > 0 ? window.MERIDIEN.moyenneBandes((b) => poids(b) * v(b)) / p : 0;
+    };
+    // Part du bassin océanique restée à sec faute d'eau (sec, surfacesSansGlace) : un sol, compté avec les terres libres (il prend la
+    // neige des terres de sa bande).
+    const merLibre = (b) => bandes[b.cle].mer, terreLibre = (b) => bandes[b.cle].terre + sec * bandes[b.cle].mer;
+    const merGelee = moyenneSur(merLibre, (b) => e[b.cle].mer);
+    const terreEnneigee = moyenneSur(terreLibre, (b) => e[b.cle].terre);
+    // Forêt, désert et sol des terres libres de chaque bande (terresLibres), sous la lave, chacun hors de la neige de sa bande.
+    const libre = (k, neige) => calotte_visible * window.MERIDIEN.moyenneBandes((b) => libres[b.cle][k] * (neige ? 1 - e[b.cle].terre : 1));
+    const terres_libres = libre('foret', false) + libre('desert', false) + libre('sol', false);
+    const ice_surface = ocean_surface * merGelee + terres_libres * terreEnneigee;
+    const reflet_glace = ocean_surface * moyenneSur(merLibre, (b) => r[b.cle].mer) + terres_libres * moyenneSur(terreLibre, (b) => r[b.cle].terre);
+    ocean_surface *= 1 - merGelee;
+    const forest_surface = libre('foret', true), land_surface = libre('sol', true), desert_surface = libre('desert', true);
+    // Albédo moyen de la glace saisonnière (affiché) ; sans glace saisonnière, il n'y a rien à moyenner.
+    const iceAlbedoEff = ice_surface > 0 ? reflet_glace / ice_surface : null;
+    // Les surfaces partagent la planète par construction (lave, bassin rempli, terres ; calottes et glace saisonnière prises sur
+    // elles) : leur somme vaut 1, chacune est positive. Sinon, c'est une erreur, pas une remise à l'échelle.
+    const surfaces = { volcan: volcano_surface, ocean: ocean_surface, foret: forest_surface, glace: ice_surface, calottes: calotte_effective,
+        terre: land_surface, desert: desert_surface };
+    const surface_sum = Object.values(surfaces).reduce((s, v) => s + v, 0);
+    if (!(Math.abs(surface_sum - 1.0) <= 1e-9) || Object.values(surfaces).some((v) => !(v >= 0))) {
+        throw new Error('[calculateAlbedo] ' + DATA['📅']['📅'] + ' : surfaces ' + JSON.stringify(surfaces) + ', somme ' + surface_sum
+            + ' (1 attendu, chacune ≥ 0) à T̄ = ' + DATA['🧮']['🧮🌡️'] + ' K — bassin rempli ' + ocean_coverage_base + ', lave ' + volcano_coverage);
     }
     
     // Stocker toutes les surfaces dans DATA['🪩'] (SURFACES SECHES, sans H2O)
     DATA['🪩']['🍰🪩🎾'] = volcano_surface;
     DATA['🪩']['🍰🪩🌊'] = ocean_surface;
     DATA['🪩']['🍰🪩🌳'] = forest_surface;
-    DATA['🪩']['🍰🪩🧊'] = ice_surface + calotte_effective;   // toute la glace : saisonnière + calottes permanentes
+    DATA['🪩']['🍰🪩🧊'] = ice_surface + calotte_effective;   // toute la glace : saisonnière (pondérée par l'énergie) + calottes
     DATA['🪩']['🍰🪩🌍'] = land_surface;
     DATA['🪩']['🍰🪩🏜️'] = desert_surface;
 
+    const dT = window.MERIDIEN.ecarts();
     if (CONFIG_COMPUTE.logIceFractionDiagnostic) {
-        const solI = DATA['🧮']['🧮🔄☀️'];
-        const iceProdBare = EARTH.ICE_FORMULA_MAX_FRACTION * ice_temp_factor;
-        const msg = '[calculateAlbedo][calculations_albedo.js] 🧊 ep=' + DATA['📜']['🗿']
+        const t = DATA['🪩']['🍰📅🧊'];
+        const msg = '[calculateAlbedo][calculations_albedo.js] 🧊 ep=' + DATA['📅']['📅']
             + ' phase=' + DATA['🧮']['🧮⚧']
-            + ' T=' + T_K.toFixed(2) + 'K (' + (T_K - CONST.KELVIN_TO_CELSIUS).toFixed(2) + '°C)'
-            + ' | T_freeze=' + T_freeze.toFixed(2) + ' seaRangeK=' + seaIceRangeK.toFixed(3)
-            + ' seaF=' + seaIceFrac.toFixed(4)
-            + ' | ice_temp_factor=' + ice_temp_factor.toFixed(4)
-            + ' (tf_pol=' + ice_tf_pol.toFixed(3) + ' tf_mid=' + ice_tf_mid.toFixed(3) + ' tf_trop=' + ice_tf_trop.toFixed(3) + ')'
-            + ' T_thresh_pol=' + T_thresh_pol.toFixed(2) + ' T_thresh_mid=' + T_thresh_mid.toFixed(2) + ' T_thresh_trop=' + T_thresh_trop.toFixed(2)
-            + ' dTRange=' + EARTH.T_NO_POLAR_ICE_RANGE_K
-            + ' ICEmax*factor=' + iceProdBare.toFixed(4)
-            + ' | cap=' + ice_cap_surface.toFixed(4) + ' hydro=' + hydrosphere_surface_support.toFixed(4) + ' highland=' + DATA['🗻']['🍰🗻🏔'].toFixed(4)
-            + ' | polarTarget=' + icePolarFormulaTarget.toFixed(4) + ' mergeSea=' + iceAfterSeaIceMerge.toFixed(4)
-            + ' | iceDynamic=' + iceAfterDynamicFeedback.toFixed(4) + ' iceSurfFinal=' + ice_surface.toFixed(4)
-            + ' | feedback=common solI=' + solI;
+            + ' T=' + DATA['🧮']['🧮🌡️'].toFixed(2) + 'K (' + (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(2) + '°C)'
+            + ' | dT pol/mid/trop=' + dT.pol.toFixed(2) + '/' + dT.mid.toFixed(2) + '/' + dT.trop.toFixed(2)
+            + ' | année gelée terre/mer ' + window.CALOTTES.BANDES.map((b) => b.cle + ' ' + t[b.cle].terre.toFixed(3) + '/' + t[b.cle].mer.toFixed(3)).join(' ')
+            + ' | énergie gelée terre/mer ' + window.CALOTTES.BANDES.map((b) => b.cle + ' ' + e[b.cle].terre.toFixed(3) + '/' + e[b.cle].mer.toFixed(3)).join(' ')
+            + ' | énergie réfléchie terre/mer ' + window.CALOTTES.BANDES.map((b) => b.cle + ' ' + r[b.cle].terre.toFixed(3) + '/' + r[b.cle].mer.toFixed(3)).join(' ')
+            + ' | calottes=' + zones.pol.calotte.toFixed(3) + '/' + zones.mid.calotte.toFixed(3) + '/' + zones.trop.calotte.toFixed(3)
+            + ' | glace saisonnière=' + ice_surface.toFixed(4) + ' calottes=' + calotte_effective.toFixed(4)
+            + ' étendue=' + window.MERIDIEN.etendueGlace().toFixed(4);
         console.log(msg);
         window.debugMirrorConfigLogToFile('logIceFractionDiagnostic', msg);
     }
 
-    // [EQ] Albédo glace zonale — EBM 0D 3 zones × Briegleb (2004) NCAR/TN-463 §5.
-    // T_local_z = T_glob − dT_z (Budyko-Sellers ; dT_z du bilan méridien, via computeIceTempFactor).
-    // α_glace = Σ_z (f_z·tf_z·α_Briegleb(T_z, α_snow_deep_z)) / Σ_z (f_z·tf_z).
-    // Pol + mi-lat : α_snow_deep = 🪩🍰❄️ (accumulation neige propre, Gardner & Sharp 2010).
-    // Tropiques : α_snow_deep = 🪩🍰🧊 (sublimation → glace nue / saisonnière, pas de neige pristine ;
-    //   Pierrehumbert 2005 JGR ; Abbot & Pierrehumbert 2010 J. Climate — mudball sans tuning f_ice).
-    const T_glob_K = DATA['🧮']['🧮🌡️'];
-    const T_polar_K = T_glob_K - _iceTF.dT_pol;
-    const T_midlat_K = T_glob_K - _iceTF.dT_mid;
-    const T_tropical_K = T_glob_K - _iceTF.dT_trop;
-    const iceAlbedoCold = albedo_coeff['🪩🍰🧊'];
-    const iceAlbedoSnowDeepPolMid = albedo_coeff['🪩🍰❄️'];
-    // [FIX v1.2.62] La glace tropicale n'est NUE/sombre que dans un snowball ÉTABLI (sublimation + poussière
-    // sur des Ma). Fraîchement gelée (front d'avancée = entrée 1a), elle est NEIGEUSE comme aux pôles (0.85).
-    // → on interpole le plateau tropical de la neige propre (0.85, glace neuve) vers la glace nue 🪩🍰🧊
-    // (établie) selon la fraction de glace GLOBALE. C'est « la glace ajoutée reste à 0.85 un temps avant
-    // de s'assombrir » : l'assombrissement suit l'ÉTABLISSEMENT du snowball, pas la T° locale (qui donnait
-    // une glace neuve fausse-sombre « melt-pond » et tuait la bifurcation d'entrée).
-    const f_global_ice = Math.max(0, Math.min(1, DATA['🪩']['🍰🪩🧊']));
-    const iceAlbedoSnowDeepTrop = iceAlbedoSnowDeepPolMid - (iceAlbedoSnowDeepPolMid - albedo_coeff['🪩🍰🧊']) * f_global_ice;
-    const iceAlbedoMelt = albedo_coeff['🪩🍰🏊'];
-    // [FIX v1.2.61] Garde : une zone ne vote dans la moyenne d'albédo glace QUE si elle porte réellement
-    // de la glace (T locale < gel). Sinon brieglebIceAlbedoLocal renvoie α_melt (0.50) pour une glace
-    // INEXISTANTE → ça diluait l'albédo de la glace polaire réelle (0.85 → 0.65), réchauffait la branche
-    // chaude de +11 K et tuait la bifurcation 1a. On ne moyenne que la glace PRÉSENTE :
-    //   branche chaude → seule la zone polaire vote (0.85 neige, littérature) ;
-    //   snowball → les 3 zones votent, la tropicale nue (grande surface, plateau bas) fait émerger le ~0.6.
-    // (T_freeze déjà défini plus haut = EARTH.T_FREEZE_SEAWATER_K)
-    const w_pol = _iceTF.f_pol * _iceTF.tf_pol;
-    const w_mid = _iceTF.f_mid * _iceTF.tf_mid;
-    const w_trop = _iceTF.f_trop * _iceTF.tf_trop;
-    const w_sum = w_pol + w_mid + w_trop;
-    const iceAlbedoPol = brieglebIceAlbedoLocal(T_polar_K, iceAlbedoSnowDeepPolMid, albedo_coeff, f_global_ice);
-    const iceAlbedoMid = brieglebIceAlbedoLocal(T_midlat_K, iceAlbedoSnowDeepPolMid, albedo_coeff, f_global_ice);
-    const iceAlbedoTrop = brieglebIceAlbedoLocal(T_tropical_K, iceAlbedoSnowDeepTrop, albedo_coeff, f_global_ice);
-    let iceAlbedoEff;
-    if (w_sum > 0) {
-        iceAlbedoEff = (w_pol * iceAlbedoPol + w_mid * iceAlbedoMid + w_trop * iceAlbedoTrop) / w_sum;
-    } else {
-        iceAlbedoEff = iceAlbedoPol;
-    }
-    const iceAlbedoSnowDeep = (w_sum > 0)
-        ? (w_pol * iceAlbedoSnowDeepPolMid + w_mid * iceAlbedoSnowDeepPolMid + w_trop * iceAlbedoSnowDeepTrop) / w_sum
-        : iceAlbedoSnowDeepPolMid;
-    const iceAlbedoMeltProgress01 = Math.max(0, Math.min(1, (T_polar_K - 263.15) / 10.0));
-    window._hystDiag.T_polar_C = T_polar_K - 273.15;
-    window._hystDiag.T_midlat_C = T_midlat_K - 273.15;
-    window._hystDiag.T_tropical_C = T_tropical_K - 273.15;
-    window._hystDiag.iceAlbedoCold = iceAlbedoCold;
-    window._hystDiag.iceAlbedoSnowDeep = iceAlbedoSnowDeep;
-    window._hystDiag.iceAlbedoPol = iceAlbedoPol;
-    window._hystDiag.iceAlbedoMid = iceAlbedoMid;
-    window._hystDiag.iceAlbedoTrop = iceAlbedoTrop;
-    window._hystDiag.iceAlbedoMelt = iceAlbedoMelt;
-    window._hystDiag.f_global_ice = f_global_ice;
-    window._hystDiag.iceAlbedoMeltProgress01 = iceAlbedoMeltProgress01;
+    window._hystDiag.T_polar_C = DATA['🧮']['🧮🌡️'] - dT.pol - CONST.T0_WATER;
+    window._hystDiag.T_midlat_C = DATA['🧮']['🧮🌡️'] - dT.mid - CONST.T0_WATER;
+    window._hystDiag.T_tropical_C = DATA['🧮']['🧮🌡️'] - dT.trop - CONST.T0_WATER;
+    window._hystDiag.f_global_ice = window.MERIDIEN.etendueGlace();
     window._hystDiag.iceAlbedoEff = iceAlbedoEff;
 
     let weighted_albedo = 0;
-
-    if (albedo_coeff) {
-        weighted_albedo += volcano_surface * albedo_coeff['🪩🍰🎾'];
-        weighted_albedo += ocean_surface * albedo_coeff['🪩🍰🌊'];
-        weighted_albedo += forest_surface * albedo_coeff['🪩🍰🌳'];
-        weighted_albedo += land_surface * albedo_coeff['🪩🍰🌍'];
-        weighted_albedo += desert_surface * albedo_coeff['🪩🍰🏜️'];
-        // Glace pondérée par l'ensoleillement (EARTH.fractionGelee) : la part r de la glace présente quand le soleil
-        // brille réfléchit à iceAlbedoEff ; le reste de l'année la surface est libre — surtout de la mer (glace de mer
-        // saisonnière), d'où l'albédo de l'océan (approximation déclarée : la neige sur continent découvre la terre, 0,18).
-        const r_ens = _iceTF.rapport_ensoleillement;
-        weighted_albedo += ice_surface * (r_ens * iceAlbedoEff + (1 - r_ens) * albedo_coeff['🪩🍰🌊']);
-        weighted_albedo += calotte_effective * albedo_coeff['🪩🍰❄️'];   // calottes permanentes : neige toute l'année
-        window._hystDiag.calotteSurface = calotte_effective;
-        window._hystDiag.rapportEnsoleillementGlace = r_ens;
-    }
+    weighted_albedo += volcano_surface * M['🪩🍰🎾'];
+    weighted_albedo += ocean_surface * M['🪩🍰🌊'];
+    weighted_albedo += forest_surface * M['🪩🍰🌳'];
+    weighted_albedo += land_surface * M['🪩🍰🌍'];
+    weighted_albedo += desert_surface * M['🪩🍰🏜️'];
+    weighted_albedo += reflet_glace;                                   // glace saisonnière, zone par zone
+    weighted_albedo += reflet_calotte;                                 // calottes permanentes, bande par bande
+    window._hystDiag.calotteSurface = calotte_effective;
+    window._hystDiag.bassinSec = sec;
 
     albedo_base = weighted_albedo;
+    // Une seule loi de surface : la moyenne sur le globe (par la surface) des albédos de surface des zones du bilan méridien est
+    // celle de ces surfaces-ci. Sinon, les deux bilans ne décrivent pas la même planète : erreur.
+    const RgGlobe = EARTH.moyenneGlobe(meridien.Rg);
+    if (!(Math.abs(RgGlobe - albedo_base) <= 1e-9)) {
+        throw new Error('[calculateAlbedo] ' + DATA['📅']['📅'] + ' : albédo de surface du globe ' + albedo_base + ' (surfaces ' + JSON.stringify({
+            lave: volcano_surface, ocean: ocean_surface, foret: forest_surface, sol: land_surface, desert: desert_surface, glace: ice_surface,
+            calottes: calotte_effective }) + ') ≠ moyenne des zones du bilan méridien ' + RgGlobe + ' (Rg ' + JSON.stringify(meridien.Rg) + ')');
+    }
 
     let albedo = albedo_base;
 
@@ -775,7 +588,6 @@ function calculateAlbedo() {
     // mélange des surfaces ci-dessus — la glace comptait deux fois (la seconde sans pondération par l'ensoleillement).
     // Nulle en snowball (surface déjà toute en glace), elle amplifiait la bascule aux états intermédiaires : sur 🦣,
     // rétroaction glace–albédo ~1,9 W/m²/K entre 16 et 8 °C, et plus aucun équilibre tempéré.
-
     // ── NUAGES (2026-10-13) : fraction MESURÉE, réflectance CALCULÉE (nuage adiabatique limité par la pluie) ─────────
     // Remplace : 🍰🪩⛅ = (CLOUD_FRACTION_BASE + CLOUD_FRACTION_INDEX_GAIN·☁️) × OPTICAL_EFF_BASE × Twomey × pression ×
     // oxydation × température, plafonnée à 0,75, avec une réflectance FIXE r_c = 0,42 — une « fraction optique » réglée.
@@ -788,12 +600,17 @@ function calculateAlbedo() {
     //     pression / oxydation / température. ☁️ (Sundqvist) ne pilote plus la couverture.
     // Colonne : vapeur, nuages bas (population de la base au rayon de pluie) et hauts (enclumes), fractions mesurées
     // (physics.js EARTH.NUAGES), puis transfert SOLAIRE (radiative/solaire.js : Lacis & Hansen pour Rayleigh, ozone et nuages,
-    // Chou & Suarez 1999 pour la vapeur) et surface. L'albédo de surface `albedo` devient l'albédo au sommet de l'atmosphère.
-    // Remplace l'addition à 2 couches sans atmosphère (v1.2.64).
-    const sol = window.SOLAIRE.albedo(albedo, colonne);
+    // Chou & Suarez 1999 pour la vapeur) et surface.
+    // ALBÉDO AU SOMMET : celui du bilan méridien (meridien.A), la lumière réfléchie par chaque zone — son albédo de surface, ses
+    // angles solaires — pondérée par l'insolation qu'elle reçoit. Un albédo de surface moyenné sur les AIRES puis passé au
+    // transfert global compterait une glace polaire, qui reçoit 0,59 fois l'insolation moyenne, comme si elle recevait la
+    // moyenne. Le transfert global (SOLAIRE.albedo, ∫ A(μ₀) 2μ₀ dμ₀) ne donne plus que les ciels du diagnostic, à l'albédo de
+    // surface vu par le Soleil (meridien.RgSoleil).
+    const sol = window.SOLAIRE.albedo(meridien.RgSoleil, colonne);
     const cloud_fraction = sol.couverture;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
-    window._hystDiag.preCloudAlbedo = albedo;            // albédo de SURFACE
+    window._hystDiag.preCloudAlbedo = albedo;            // albédo de SURFACE (moyenne par la surface)
+    window._hystDiag.albedoSurfaceSoleil = meridien.RgSoleil;   // albédo de surface pondéré par l'insolation
     window._hystDiag.albedoCielClair = sol.Aclair;       // au sommet, ciel clair
     window._hystDiag.albedoCielBas = sol.Abas;           // au sommet, nuages bas seuls (population)
     window._hystDiag.albedoCielHaut = sol.Ahaut;         // au sommet, nuages hauts seuls (population)
@@ -804,7 +621,7 @@ function calculateAlbedo() {
     window._hystDiag.cloudFraction = cloud_fraction;
     window._hystDiag.cloudCoeff = sol.Abas;
     if (CONFIG_COMPUTE.logCloudProxyDiagnostic) {
-        const mCloud = '[nuages] epoch=' + DATA['📜']['🗿']
+        const mCloud = '[nuages] epoch=' + DATA['📅']['📅']
             + ' T_C=' + CONST.K2C(DATA['🧮']['🧮🌡️']).toFixed(2)
             + ' f=' + cloud_fraction.toFixed(3)
             + ' base=' + colonne.base.toFixed(0) + 'm sommet=' + colonne.sommet.toFixed(0) + 'm'
@@ -817,7 +634,7 @@ function calculateAlbedo() {
     }
     // 🪩🍰⛅ : albédo des nuages BAS vus du sommet (population, absorption comprise).
     DATA['🪩']['🪩🍰⛅'] = sol.Abas;
-    albedo = sol.A;
+    albedo = meridien.A;
 
     const final_albedo = Math.max(0.0, Math.min(0.9, albedo));
     
@@ -825,8 +642,9 @@ function calculateAlbedo() {
     // Calculer le volume d'eau disponible (m³)
     const water_volume_m3 = DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER;
     
-    // Surface totale de la planète (m²) - réutiliser celle calculée ligne 217
-    
+    // Surface totale de la planète (m²)
+    const planet_surface_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
+
     // Volume minimal requis pour 10 mètres de profondeur (m³)
     const min_depth_m = 10; // 10 mètres minimum
     const min_volume_required_m3 = planet_surface_m2 * min_depth_m;
@@ -854,9 +672,9 @@ function calculateAlbedo() {
     // Facteur corps-noir exposé : sans lui, le détail affiché (couverture × coefficient) ne peut pas
     // reproduire 🍰🪩📿 — une couche d'eau de 2 m sur une bille de roche ne réfléchit pas comme une banquise.
     DATA['🪩']['🍰🪩💧'] = blackbody_factor;
-    // Albédo de glace EFFECTIF (moyenne zonale Briegleb, cf. iceAlbedoEff) — c'est lui qui entre dans A_geo,
-    // pas le coefficient de config 🪩🍰🧊. Exposé pour que l'affichage montre le nombre réellement utilisé.
-    DATA['🪩']['🪩🍰🧊'] = iceAlbedoEff;
+    // Albédo EFFECTIF de la glace saisonnière (lumière réfléchie / énergie reçue, sommées sur les bandes, 🍰☀️🪩🧊 / 🍰☀️🧊) — c’est lui
+    // qui entre dans A_geo, pas le coefficient du matériau DATA['🪩🍰']['🪩🍰🧊'] ; null sans glace saisonnière.
+    DATA['🪩']['🧮🪩🍰🧊'] = iceAlbedoEff;
     // ── Diagnostic hystérésis (stash) : albédo agrégé
     window._hystDiag.weightedAlbedoBase = weighted_albedo;
     window._hystDiag.finalAlbedo = final_albedo;
@@ -879,7 +697,7 @@ function calculateCloudCoverage() {
     // Cette fonction est conservée pour compatibilité. Calculs en K (DATA officiel).
     const T_K = DATA['🧮']['🧮🌡️'];
     const T_COLD_K = 253.15;   // -20°C
-    const T_0_K = 273.15;     // 0°C
+    const T_0_K = CONST.T0_WATER;     // 0°C
     const T_REF_MAX_K = 303.15;  // 30°C
 
     if (T_K < T_COLD_K) {
@@ -918,6 +736,13 @@ var ALBEDO = window.ALBEDO = {};
 ALBEDO.syncStratosphericVeil01 = syncStratosphericVeil01;
 ALBEDO.applyVeilToPlanetaryAlbedo01 = applyVeilToPlanetaryAlbedo01;
 ALBEDO.calculateAlbedo = calculateAlbedo;
+ALBEDO.albedoGlaceSeche = albedoGlaceSeche;
+ALBEDO.partLave = partLave;
+ALBEDO.FORET = FORET;
+ALBEDO.poserForet = poserForet;
+ALBEDO.foretSousNeige = foretSousNeige;
+ALBEDO.surfacesSansGlace = surfacesSansGlace;
+ALBEDO.terresLibres = terresLibres;
 ALBEDO.rapportCCN = rapportCCN;
 ALBEDO.fractionMaritime = fractionMaritime;
 ALBEDO.nombreGouttesActuelCm3 = nombreGouttesActuelCm3;

@@ -1,16 +1,14 @@
 // File: API_BILAN/data/initDATA.js - Initialisation DATA + window.DEFAULT (defaults uniques)
 // Desc: En français, dans l'architecture, je suis la source unique des valeurs par défaut live interpolées
-//       (window.DEFAULT.TUNING : baryByGroup / CLOUD_SW / HYSTERESIS / RADIATIVE ; window.DEFAULT.BOUNDS.HYSTERESIS
-//       pour les plages UI). Je clone ces defaults dans DATA['🎚️'] au chargement : DATA est ensuite la seule
+//       (window.DEFAULT.TUNING : baryByGroup / CLOUD_SW / H2O). Je clone ces defaults dans DATA['🎚️'] au chargement : DATA est ensuite la seule
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.4.8
-// - v1.4.8 (2026-10-28): socle des calottes, 🔺📏🗻🧊 et 🧮🔺📏🗻🧊, à null jusqu'au clic frise.
-// - v1.4.7 (2026-10-26): barycentres FROID et CHAUD à 50 % (milieu des plages).
-// - v1.4.6 (2026-10-15): barycentre FROID (☁️) 55 → 53 %.
-// Date: [October 28, 2026]
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.10.2
+// - v1.10.2 (2026-10-31): DATA['📜']['🧫'], biosphère marine du clic.
+// - v1.10.1 (2026-10-31): jauge FROID 62 (hauteur de 📱 avec les sections efficaces à la pression de la couche).
+// Date: [October 31, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -52,7 +50,8 @@
         // FROID 50 entre les deux (attendu ≈ 📱 15,0 / 🚂 13,7).
         // FROID 50 / CHAUD 50 : milieu des plages mesurées, point de départ des explorations (2026-10-26, demande utilisateur ;
         // essai dans l'interface : 📱 14,49 °C, 14,4 mesurés).
-        baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70, HYSTERESIS: 70 },
+        // FROID 62 : avec les sections efficaces à la pression de chaque couche, rend 📱 à 14,41 °C (14,40 mesurés).
+        baryByGroup: { FROID: 62, CHAUD: 50, SUBTIL: 70 },
 
         // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
@@ -80,15 +79,6 @@
         // Note : paramètres SOLVER (tolérance, caps, FIRST_SEARCH_STEP_CAP_K, DELTA_T_ACCELERATION_DAYS) →
         // window.CONFIG_COMPUTE dans configTimeline.js. Statiques, pas interpolés → pas dans DATA/DEFAULT.
 
-        // Hystérésis (scalaires live) — interpolés par tuning.js depuis FINE_TUNING_BOUNDS groupe HYSTERESIS ;
-        // lus par calculations_albedo.js (glace de mer, impact glace). co2OceanEffPump01 : voir calculations_co2.js.
-        HYSTERESIS: {
-            // Paramètres physiques (interpolés depuis FINE_TUNING_BOUNDS)
-            seaIceTransitionRangeK: 2.2
-            // dT_pol / dT_mid / dT_trop : SOURCE UNIQUE = configTimeline.js EPOCH['🥶'] (per-époque).
-            // Migration v1.4.51 (depuis CONFIG_COMPUTE.polarAmplificationK global, supprimé).
-            // Modulation supplémentaire par obliquité ⚾ (Laskar/Williams 1993) sur les amp_*.
-        },
         // RADIATIVE (H2O_EDS_SCALE) retiré le 2026-10-13 : le multiplicateur de κ_H₂O n'a plus d'objet (fine_tuning_bounds v1.5.1).
         // Humidité relative de surface (ex-EARTH.H2O_SURFACE_RH_01) — jauge SUBTIL ; interpolée par tuning.js.
         H2O: {
@@ -119,12 +109,42 @@
         }
     }
 
+    // DATA['📅'] = l'ÉPOQUE courante, TIMELINE[DATA['📜']['👉']] : un accesseur, ni copie ni groupe de clés ; non énumérable,
+    // JSON.stringify(DATA) ne l'emporte pas. Personne ne l'écrit (l'époque se pose par 📜👉, CLICS) : toute écriture crashe, que
+    // l'écrivain soit en mode strict ou non.
+    Object.defineProperty(DATA, '📅', {
+        enumerable: false,
+        get: function () {
+            var E = window.TIMELINE[DATA['📜']['👉']];
+            if (E === undefined) throw new Error("[DATA] DATA['📅'] : aucune époque à DATA['📜']['👉'] = " + DATA['📜']['👉'] + ' (clic frise ou CLICS.passer d\'abord)');
+            return E;
+        },
+        set: function () {
+            throw new Error("[DATA] DATA['📅'] est l'époque TIMELINE[📜👉] (accesseur) : on ne l'écrit pas, on pose 📜👉");
+        }
+    });
+
     // Calottes : posées par CLICS.frise depuis la config de l'époque (physics/calottes.js). null d'ici là : un calcul lancé
     // sans clic frise crashe à la lecture au lieu de partir d'un état inventé.
     DATA['🗻']['🍰🗻🧊'] = null;
-    DATA['🗻']['🧮🍰🗻🧊'] = null;   // posé par calculateAlbedo à chaque pas
+    DATA['🗻']['🧮🍰🗻🧊'] = null;   // posé par MERIDIEN.resoudre à chaque itération
     DATA['🗻']['🔺📏🗻🧊'] = null;   // socle des calottes, posé avec elles (CALOTTES.depuisConfig)
-    DATA['🗻']['🧮🔺📏🗻🧊'] = null;   // posé par calculateAlbedo à chaque pas
+    DATA['🗻']['🧮🔺📏🗻🧊'] = null;   // posé par MERIDIEN.resoudre à chaque itération
+    DATA['🗻']['📿🗻🧊'] = null;       // sommets des calottes, posés avec elles (CALOTTES.depuisConfig)
+    DATA['🗻']['🧮📿🗻🧊'] = null;     // posé par MERIDIEN.resoudre à chaque itération
+    DATA['🗻']['⚖️🗻🧊'] = null;       // masse des calottes portées, posée avec elles
+    DATA['🗻']['🧮⚖️🗻🧊'] = null;     // masse des calottes du pas
+    DATA['🗻']['🧮🪩🗻🧊'] = null;     // albédo annuel des calottes du pas, par bande (physics/meridien.js)
+    DATA['🗻']['🍰🗻🌳'] = null;       // forêt des bandes, posée à chaque itération du bilan méridien (ALBEDO.poserForet)
+    DATA['🧮']['🌡️🎱'] = null;         // T₂ du profil méridien, posé au clic frise (physics/meridien.js)
+    DATA['📜']['🧫'] = null;           // biosphère marine du clic, posée à chaque calcul (getEpochDateConfig, convergence/compute.js)
+    // Glace saisonnière des bandes ({ N_pol, S_pol, N_mid, S_mid, N_trop, S_trop } × { terre, mer }) et sa part d’énergie réfléchie,
+    // posées par EARTH.glaceSaisonniere à chaque itération du bilan méridien ; son albédo effectif, posé par calculateAlbedo (null
+    // sans glace saisonnière).
+    DATA['🪩']['🍰📅🧊'] = null;
+    DATA['🪩']['🍰☀️🧊'] = null;
+    DATA['🪩']['🍰☀️🪩🧊'] = null;   // part de l'énergie solaire réfléchie par la glace saisonnière, par bande (EARTH.glaceSaisonniere)
+    DATA['🪩']['🧮🪩🍰🧊'] = null;
 
     // DATA['🎚️'] = deep clone de DEFAULT.TUNING (source live de la physique).
     // Copie indépendante : modifier DATA['🎚️'] n'affecte pas DEFAULT (qui reste la graine).

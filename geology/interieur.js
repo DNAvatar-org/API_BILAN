@@ -19,21 +19,22 @@
 //       mesure à T (olrNet), puis l'init de la convergence le recale sur son propre radiatif (calculations_flux.js).
 //
 //       Approximations DÉCLARÉES : manteau et noyau refroidissent ensemble (un seul T) ; la croûte continentale
-//       est dans le même réservoir ; ΔT de la loi de convection pris sur la surface de référence T_s0 (les
-//       écarts de climat, ±50 K, sont petits devant ΔT ≈ 1300 K) ; solidus/liquidus à 0 GPa.
-// Version 1.1.0
-// Date: 2026-10-12
-// Logs: v1.1.0 — rayonKm : le rayon (📜📐) suit la température de l'intérieur (dilatation α_V, gonflement de fusion),
-//       au lieu de −120 km par clic quelle que soit sa durée.
+//       est dans le même réservoir ; ΔT de la loi de convection pris sur T_s0, la surface de l'état où Q₀ est mesuré,
+//       et non sur la T̄ de l'état : d ln Q / dT_s = −(1+β)/ΔT ≈ −0,1 % par K d'écart. La T̄ de l'état n'est connue
+//       qu'après le climat, que l'intérieur précède ; au clic où le magma se fige, celle d'avant est celle du magma,
+//       plus chaude que l'intérieur. Solidus/liquidus à 0 GPa.
+//       Âges : années avant window.AN_PRESENT (config/configTimeline.js, la seule origine) ; année julienne et R : CONST.
+// Version 1.2.1
+// - v1.2.1 (2026-10-29): T_S0 = T̄ de la Terre actuelle, lue aussi par le partage du CO₂ (T_ref de Van 't Hoff).
+// - v1.2.0 (2026-10-29): origine des âges, année julienne et constante des gaz lues à leur seule source ; ageCourant lit DATA.
+// - v1.1.0 (2026-10-12): rayonKm : le rayon (📜📐) suit la température de l'intérieur (dilatation α_V, gonflement de fusion).
+// Date: [October 29, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
     'use strict';
 
     const LN2 = Math.LN2;
     const K = {
-        AN_PRESENT: 2025,              // [an] origine des âges : années avant 2025 (onglet Histoire, banc)
-        SEC_PAR_AN: 3.15576e7,         // [s] année julienne
-        R_GAZ: 8.314462618,            // [J/mol/K] CODATA 2018
         // Masses : Terre 5,9722e24 kg (IAU 2015, GM⊕/G) ; noyau 1,932e24 kg (Yoder 1995, AGU Global Earth
         // Physics, table 2). Terre silicatée (manteau + croûte) = différence : équation, pas un second chiffre.
         M_TERRE: 5.9722e24,            // [kg]
@@ -66,7 +67,8 @@
         // 2014 §6.21). Viscosité d'Arrhenius, E = 300 kJ/mol (fluage diffusion de l'olivine sèche, Karato & Wu
         // 1993, Science 260:771). Point de référence = l'état MESURÉ aujourd'hui : Q₀ = 46 TW (Jaupart et al.
         // 2015, Treatise on Geophysics 7.06 : 46 ± 3 TW) à T₀ = 1350 °C (température potentielle des MORB,
-        // Herzberg et al. 2007, G³ 8:Q02006 : 1280–1400 °C) sous T_s0 = 14,4 °C (GISTEMP, an 2000).
+        // Herzberg et al. 2007, G³ 8:Q02006 : 1280–1400 °C) sous T_s0 = 14,4 °C (GISTEMP, an 2000). T_s0 est la T̄ de la
+        // Terre actuelle, où sont mesurées les grandeurs d'aujourd'hui : Q₀ ici, r = 50 du partage du CO₂ (co2/, ocean/).
         BETA: 1 / 3,                   // [-]
         E_ACTIVATION: 300e3,           // [J/mol]
         Q0: 46e12,                     // [W]
@@ -86,6 +88,8 @@
     K.C_SENSIBLE = K.M_BSE * K.C_MANTEAU + K.M_NOYAU * K.C_NOYAU;     // [J/K]
     K.T_RHEO = K.T_SOLIDUS + K.PHI_RHEO * (K.T_LIQUIDUS - K.T_SOLIDUS); // [K]
     const MASSE_ELEMENT = { U: K.U_BSE * K.M_BSE, Th: K.TH_BSE * K.M_BSE, K: K.K_BSE * K.M_BSE };   // [kg]
+    /** [s] Une année julienne (les âges se comptent en années juliennes). */
+    const secondesAn = () => window.CONST.AN_JULIEN_JOURS * window.CONV.SECONDS_PER_DAY;
 
     /** [W] Chaleur radiogénique à tAgo années avant 2025 (plus d'isotopes dans le passé : exp(+λ t)). */
     function puissanceRadiogenique(tAgo) {
@@ -100,7 +104,7 @@
     function puissanceConvective(T) {
         const dT = T - K.T_S0, dT0 = K.T0 - K.T_S0;
         if (!(dT > 0)) throw new Error('[INTERIEUR] T intérieur ' + T + ' K ≤ surface de référence');
-        return K.Q0 * Math.pow(dT / dT0, 1 + K.BETA) * Math.exp(K.BETA * K.E_ACTIVATION / K.R_GAZ * (1 / K.T0 - 1 / T));
+        return K.Q0 * Math.pow(dT / dT0, 1 + K.BETA) * Math.exp(K.BETA * K.E_ACTIVATION / window.CONST.R_GAS * (1 / K.T0 - 1 / T));
     }
 
     /** [J/K] Capacité thermique effective : sensible + latente dans l'intervalle de fusion. */
@@ -111,7 +115,7 @@
 
     /** Intérieur solide : intègre dT/dt = (H − Q)/C de tAgo0 à tAgo1 (< tAgo0), RK4, pas ≤ 1 Ma et |ΔT| ≲ 1 K. */
     function integrerSolide(T, tAgo0, tAgo1) {
-        const f = (T_, tAgo) => (puissanceRadiogenique(tAgo) - puissanceConvective(T_)) / capacite(T_) * K.SEC_PAR_AN;   // [K/an]
+        const f = (T_, tAgo) => (puissanceRadiogenique(tAgo) - puissanceConvective(T_)) / capacite(T_) * secondesAn();   // [K/an]
         let t = tAgo0;
         while (t > tAgo1) {
             const pente = Math.abs(f(T, t));
@@ -151,21 +155,21 @@
         for (let i = 0; i < PAS; i++) {
             const Tm = T - (i + 0.5) * dT;
             const perte = aireM2 * netA(Tm) - puissanceRadiogenique(tAgo - t);   // [W]
-            const dt = capacite(Tm) * dT / perte / K.SEC_PAR_AN;                  // [an]
+            const dt = capacite(Tm) * dT / perte / secondesAn();                  // [an]
             if (t + dt > dureeMaxAn) return { T: T - i * dT - dT * (dureeMaxAn - t) / dt, dureeAn: dureeMaxAn, solide: false };
             t += dt;
         }
         return { T: K.T_RHEO, dureeAn: t, solide: true };
     }
 
-    /** Âge (années avant 2025) d'une date de l'époque, selon son sens (géologique : âge ; calendaire : année). */
+    /** Âge (années avant AN_PRESENT) d'une date de l'époque, selon son sens (géologique : âge ; calendaire : année). */
     function ageDe(EPOCH, date) {
-        return EPOCH['▶'] > EPOCH['◀'] ? date : K.AN_PRESENT - date;
+        return EPOCH['▶'] > EPOCH['◀'] ? date : window.AN_PRESENT - date;
     }
 
-    /** Âge (années avant 2025) de la date courante (CLICS.date, depuis 📜⏳). */
-    function ageCourant(DATA) {
-        return ageDe(window.TIMELINE[DATA['📜']['👉']], window.CLICS.date());
+    /** Âge (années avant AN_PRESENT) de la date courante (CLICS.date, depuis 📜⏳) : la seule lecture de l'âge du calcul. */
+    function ageCourant() {
+        return ageDe(window.DATA['📅'], window.CLICS.date());
     }
 
     /** L'époque qui porte la condition initiale '🌡️🌕' : l'intérieur commence à son ▶. Exactement une. */
@@ -177,11 +181,12 @@
 
     /** Remplit DATA['🌕'] depuis l'état : flux [W/m²] et puissance [W]. Fondu : c'est le radiatif qui les a posés
      *  (avancer, puis l'init de la convergence) — on n'y touche pas. */
-    function publier(DATA) {
+    function publier() {
+        const DATA = window.DATA;
         const N = DATA['🌕'];
         const aire = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
         if (!(N['🌡️🌕'] > 0)) { N['🔋🌕'] = 0; N['🧲🌕'] = 0; return; }       // avant l'intérieur (⚫) : rien
-        if (estFondu(DATA)) return;
+        if (estFondu()) return;
         N['🔋🌕'] = puissanceConvective(N['🌡️🌕']);
         N['🧲🌕'] = N['🔋🌕'] / aire;
     }
@@ -193,16 +198,18 @@
      * liquidus) tant que le manteau est un océan de magma ; 0 ensuite (manteau solide — le solidus à 0 GPa ne vaut
      * pas pour tout le manteau). Avant l'intérieur (⚫, proto-Terre) : le rayon de la config, tel quel.
      */
-    function rayonKm(DATA) {
-        const R = window.TIMELINE[DATA['📜']['👉']]['📐'];
+    function rayonKm() {
+        const DATA = window.DATA;
+        const R = DATA['📅']['📐'];
         const T = DATA['🌕']['🌡️🌕'];
         if (!(T > 0)) return R;
-        const phi = estFondu(DATA) ? Math.max(0, Math.min(1, (T - K.T_SOLIDUS) / (K.T_LIQUIDUS - K.T_SOLIDUS))) : 0;
+        const phi = estFondu() ? Math.max(0, Math.min(1, (T - K.T_SOLIDUS) / (K.T_LIQUIDUS - K.T_SOLIDUS))) : 0;
         return R * (1 + K.ALPHA_V / 3 * (T - K.T0) + phi * K.DV_FUSION / 3);
     }
 
     /** Fondu tant que la transition rhéologique n'a pas été franchie (📅🧊🌕 = date de solidification, 0 = pas encore). */
-    function estFondu(DATA) {
+    function estFondu() {
+        const DATA = window.DATA;
         return DATA['🌕']['🌡️🌕'] > 0 && !(DATA['🌕']['📅🧊🌕'] > 0);
     }
 
@@ -211,14 +218,15 @@
      * (clic sur une époque plus ancienne) ou sans état : on repart de la condition initiale. Idempotent.
      * olrNet(T) : voir refroidirMagma — appelé seulement si l'intérieur est fondu.
      */
-    async function avancer(DATA, olrNet) {
+    async function avancer(olrNet) {
+        const DATA = window.DATA;
         const N = DATA['🌕'];
-        const tAgo = ageCourant(DATA);
+        const tAgo = ageCourant();
         const E0 = epoqueInitiale(), t0 = E0['▶'];
-        if (tAgo > t0) { N['🌡️🌕'] = 0; N['📅🌕'] = tAgo; N['📅🧊🌕'] = 0; publier(DATA); return; }
+        if (tAgo > t0) { N['🌡️🌕'] = 0; N['📅🌕'] = tAgo; N['📅🧊🌕'] = 0; publier(); return; }
         if (!(N['🌡️🌕'] > 0) || N['📅🌕'] < tAgo) { N['🌡️🌕'] = E0['🌡️🌕']; N['📅🌕'] = t0; N['📅🧊🌕'] = 0; }
         let dureeAn = N['📅🌕'] - tAgo;
-        if (dureeAn > 0 && estFondu(DATA)) {
+        if (dureeAn > 0 && estFondu()) {
             const aire = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
             const r = await refroidirMagma(N['🌡️🌕'], N['📅🌕'], dureeAn, aire, olrNet);
             N['🌡️🌕'] = r.T;
@@ -226,17 +234,17 @@
             dureeAn -= r.dureeAn;
             if (r.solide) N['📅🧊🌕'] = N['📅🌕'];
         }
-        if (dureeAn > 0 && !estFondu(DATA)) {
+        if (dureeAn > 0 && !estFondu()) {
             N['🌡️🌕'] = integrerSolide(N['🌡️🌕'], N['📅🌕'], tAgo);
             N['📅🌕'] = tAgo;
         }
-        DATA['📜']['📐'] = rayonKm(DATA);
-        if (estFondu(DATA)) {   // surface = magma : l'intérieur perd ce qui part vers l'espace moins le solaire absorbé
+        DATA['📜']['📐'] = rayonKm();
+        if (estFondu()) {   // surface = magma : l'intérieur perd ce qui part vers l'espace moins le solaire absorbé
             N['🧲🌕'] = await olrNet(N['🌡️🌕']);
             N['🔋🌕'] = N['🧲🌕'] * 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
             return;
         }
-        publier(DATA);
+        publier();
     }
 
     window.INTERIEUR = { CONST: K, rayonKm, puissanceRadiogenique, puissanceConvective, capacite, integrerSolide, refroidirMagma, avancer, publier, estFondu, ageDe, ageCourant };

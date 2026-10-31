@@ -4,11 +4,12 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.4.0
-  - v2.4.0 (2026-10-28): rebond retardé du socle des calottes ; clic time des calottes par la conservation de leur masse.
-  - v2.3.0 (2026-10-27): degrés-jours stochastiques et regel des calottes ; cycle saisonnier calculé des terres et des mers (diagnostic).
-  - v2.2.2 (2026-10-26): socle des calottes : même croûte pour les deux calottes, glace antarctique fermée sur le volume et l'aire.
-Date: [October 28, 2026]
+Version 2.11.1
+  - v2.11.1 (2026-10-31): terre de chaque latitude au prorata de l'aire, bas du continent, 🧫 par clic.
+  - v2.11.0 (2026-10-31): sections efficaces σ(λ, T, P), arrêt du point fixe par encadrement, marge des calottes par le haut de
+    la cellule ; valeurs de 📱 et forçages remesurés.
+  - v2.10.0 (2026-10-30): terre de chaque latitude, forêt de chaque bande, sommet des calottes, arrêt du point fixe sur T₂.
+Date: [October 31, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
 -->
@@ -34,6 +35,9 @@ Licensed under Apache License 2.0 with Commons Clause.
     littérature quand il n'y a ni l'une ni l'autre. Ce qui reste en <span class="cl C">C</span> ou
     <span class="cl X">⚠️</span> est à remplacer — la liste d'action est dans
     <code>doc/AUDIT_REGLAGES_HERITES.md</code>.
+    Sous chaque carte, ses liens 🧭 / 🛠 : d'où vient chaque nombre et ce que le modèle en fait. 🎯 marque une mesure qui ne
+    sert qu'à vérifier : elle n'est un contrôle que si elle n'a fixé aucune entrée du calcul ; celle qui a servi à ajuster un
+    paramètre ou à choisir une forme, ou qui est l'entrée elle-même, est 📖 ; la forme ainsi choisie est 🔧.
 </p>
 
 <div class="legende">
@@ -55,6 +59,8 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p>Une seule inconnue, la température de surface \(T_s\) : le solveur cherche la racine. L'albédo \(A\), l'OLR et
             la vapeur sont recalculés à chaque \(T_s\). Le profil vertical n'est pas résolu par un bilan couche par couche :
             il est imposé par les adiabatiques (plus bas) — c'est le schéma radiatif-convectif « inverse » standard en 1D.</p>
+        <p>🎯 Sensibilité : CO₂ × 2 sur 📱, même géographie, calottes portées : +2,72 K (14,41 → 17,12 °C ; 🏔 +2,95 K, 🐊 +2,56 K), sous le forçage instantané
+            d'une stratosphère de peau (carte de la stratosphère). Sherwood et al. 2020 : 2,6–3,9 K par doublement (probable).</p>
         <p class="code">convergence/calculations_flux.js → computeRadiativeTransfer</p>
     </div>
     <div class="eq N" id="eq-tolerance-recherche-racine">
@@ -63,8 +69,17 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 20 K, et jamais plus du double du pas
             précédent (ne pas sauter la fenêtre d’une branche chaude : la planète traverse les températures intermédiaires et s’arrête
             au premier équilibre rencontré ; la pente sécante, mesurée entre deux états d'eau et d'albédo différents, peut annoncer
-            un équilibre lointain), ≤ 101 itérations.</p>
-        <p class="code">calculations_flux.js → computeToleranceWm2, computeSearchIncrement ; configTimeline.js → CONFIG_COMPUTE [SOLVER]</p>
+            un équilibre lointain), ≤ 101 itérations. ❔ Au clic frise, la recherche part de la graine 📜🌡️🧮 de l'époque, qui est la
+            courbe cyan d'Histoire à ▶ (sa médiane ; glissée vers ◀ le long de 🏔 et 🦣) : sur les états à deux branches, c'est la
+            cible qui choisit la branche (clé 🌡️🧮 du dictionnaire).</p>
+        <p>Oscillation : deux états évalués à moins de 0,02 K (2 δT) l'un de l'autre, de \(\Delta F\) opposés et tous deux hors
+            tolérance — \(\Delta F\) y saute de plus de deux tolérances, il n'y a pas d'équilibre à cette précision. Une dichotomie qui
+            encadre une racine change de signe par construction et va jusqu'à la tolérance ; les motifs de la trace des pas (période 2,
+            cycle limite, micro-hystérésis) ne décident qu'en Search, quand T stagne. Sortie oscillation ou max_iter : le calcul ne
+            s'arrête pas, il rend la température du dernier état évalué. Les calottes ne sont engagées (portées au clic suivant) que
+            sur un calcul convergé ; sinon elles gardent leur date, et le clic suivant intègre toute la durée depuis elle.</p>
+        <p class="code">calculations_flux.js → computeToleranceWm2, computeSearchIncrement, computeRadiativeTransfer (oscillation,
+            CALOTTES.engager) ; configTimeline.js → CONFIG_COMPUTE [SOLVER]</p>
     </div>
 </div>
 
@@ -75,15 +90,20 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="titre"><span class="cl P">P</span> Luminosité du jeune Soleil (Gough 1981)</div>
         <div class="f" data-tex="L(t) = \frac{L_\odot}{1 + \frac{2}{5}\,t/t_\odot},\qquad L_\odot = 3{,}828\times10^{26}\ \text{W},\ t_\odot = 4{,}57\ \text{Ga}"></div>
         <p>\(t\) = âge avant le présent. Approximation analytique des modèles solaires standard (à quelques % près sur 4 Ga) :
-            Archéen 76 %, Protérozoïque 82 %. \(L_\odot\) : valeur nominale UAI 2015.</p>
+            Archéen 76 %, Protérozoïque 82 %. \(L_\odot\) : valeur nominale UAI 2015 (CONST.L_SOLEIL_W) ; \(t\) : âge courant, années avant
+            window.AN_PRESENT.</p>
         <p class="src">Gough 1981, Solar Phys. 74:21</p>
-        <p class="code">convergence/compute.js → goughLuminosity, getSoleil</p>
+        <p class="code">convergence/compute.js → goughLuminosity, getSoleil ; physics.js → CONST.L_SOLEIL_W</p>
     </div>
     <div class="eq P" id="eq-flux-recu-moyenne-sur">
         <div class="titre"><span class="cl P">P</span> Flux reçu, moyenne sur la sphère</div>
         <div class="f" data-tex="S = \frac{L}{4\pi d^2},\qquad \bar S = \frac{S}{4}"></div>
-        <p>\(d\) = 1 UA (exacte par définition, UAI 2012). Le facteur 4 = surface de la sphère / disque intercepté.</p>
-        <p class="code">compute.js → getSoleil</p>
+        <p>\(d\) = 1 UA, prise à 1,496·10¹¹ m (❔ arrondie : l'UA exacte de l'UAI 2012, 149 597 870 700 m, donnerait
+            1 361,17 W/m²). Le facteur 4 = surface de la sphère / disque intercepté. Soleil actuel :
+            \(S_\odot = L_\odot/(4\pi\,\text{UA}^2)\) = 1 361,1 W/m², l'irradiance mesurée en orbite (Kopp &amp; Lean 2011) dont l'UAI
+            tire \(L_\odot\).</p>
+        <p class="code">compute.js → getSoleil ; physics.js → CONST.SOLAR_CONSTANT ; CO2/static/astronomie.js → L_SOLEIL_W, UA_M,
+            SOLAR_CONSTANT (les mêmes nombres, pour l'insolation journalière)</p>
     </div>
     <div class="eq P" id="eq-orbite-date">
         <div class="titre"><span class="cl P">P</span> Orbite à la date du calcul (Milankovitch)</div>
@@ -94,20 +114,27 @@ Licensed under Apache License 2.0 with Commons Clause.
             de la dissipation de marée et de la forme de la Terre, mal connues dans le passé, devient incertaine vers 20 Ma — leurs
             amplitudes restent celles de la solution. L'obliquité ε règle l'insolation annuelle de chaque latitude (bilan méridien)
             et l'amplitude des saisons ; l'excentricité e, le flux moyen de l'année (loi de Kepler) ; la précession ϖ, la
-            répartition de l'insolation dans l'année, qui fond les calottes.</p>
+            répartition de l'insolation dans l'année, qui force le cycle annuel des boîtes terre et mer et fond les calottes.</p>
         <p>Convention : ϖ de la table (héliocentrique, depuis l'équinoxe mobile) + π = longitude géocentrique du périhélie ;
             anomalie vraie ν = λ − ϖ, λ longitude solaire vraie (π/2 = solstice d'été boréal). Calendrier compté depuis l'équinoxe
-            de printemps, longitude solaire par l'équation de Kepler. Orbite de référence : celle de 1950.0, sous laquelle les
-            degrés-jours de fonte ont été mesurés ; l'anomalie d'insolation des calottes se compte par rapport à elle.</p>
+            de printemps, longitude solaire par l'équation de Kepler ; calendrier et insolation d'une orbite sur ce calendrier n'ont
+            qu'une écriture (ORBITE.longitudes, insolationCumulee). Insolation de la date = celle de l'orbite de 1950.0
+            (ORBITE.REFERENCE) plus l'anomalie de la date : calculée aux lignes de 1 ka de la table, aux seules latitudes demandées,
+            et lue entre les deux lignes qui encadrent la date, interpolée linéairement (≤ 0,5 % de l'amplitude contre un calcul à
+            l'année, sur 9 dates de 0 à 2,58 Ma et 6 latitudes) ; lignes et orbites gardées en mémoire bornée (400 dates). Les
+            boîtes saisonnières, la glace saisonnière (part de l'énergie reçue sous la glace) et les calottes la lisent, ces dernières à
+            la date de chacun de leurs sous-pas.</p>
         <p>❔ Après 2000, la table s'arrête : orbite de 2000 (au rythme de la table, sur 300 ans ϖ tournerait d'environ 5° et
             e baisserait de 1,4·10⁻⁴). ❔ Avant −51 Ma, aucune solution (orbite chaotique) : le calcul de l'orbite refuse la date ;
-            le moteur pose une orbite circulaire, aucune anomalie d'insolation et l'obliquité de l'époque (⚾) — ⚠️ une anomalie
-            nulle, c'est l'orbite de 1950, périhélie en janvier : un été austral plus chaud que la moyenne des orbites.</p>
+            l'obliquité 📜⚾ est celle que déclare l'époque (23,44°, celle d'aujourd'hui, faute de reconstruction ; 45° pour 🦠),
+            l'insolation de référence des boîtes et des calottes celle d'une orbite circulaire à cette obliquité (moyenne sur une
+            précession inconnue), le facteur de Kepler 1.</p>
         <p>🎯 En 2000 : e = 0,016702, ε = 23,439°, ϖ = 282,9° ; insolation du solstice d'été à 65° N 477,9 W/m², à 0,5 W/m² de
             Berger &amp; Loutre 1991 (477,4).</p>
         <p class="src">Laskar et al. 2004, A&amp;A 428:261 ; insolation journalière : Berger 1978, J. Atmos. Sci. 35:2362</p>
         <p class="code">CO2/static/astronomie.js → orbite, insolationJournaliere ; table CO2/static/astronomie_la04.js
-            (CO2/scripts/astronomie/la2004_table.py) ; physics/orbite.js ; compute.js → getEpochDateConfig (📜⚾), getSoleil</p>
+            (CO2/scripts/astronomie/la2004_table.py) ; physics/orbite.js → encadrement, anomalieLigne, insolationCumulee, REFERENCE ;
+            compute.js → getEpochDateConfig (📜⚾), getSoleil</p>
     </div>
 </div>
 
@@ -133,7 +160,11 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="titre"><span class="cl P">P</span> Convection sous couche limite (intérieur solide)</div>
         <div class="f" data-tex="Q(T) = Q_0\left(\frac{T-T_{s0}}{T_0-T_{s0}}\right)^{1+\beta}\exp\!\left[\frac{\beta E}{R}\left(\frac{1}{T_0}-\frac{1}{T}\right)\right]"></div>
         <p>\(\beta = 1/3\) (théorie de la couche limite). Ancrée sur l'état <b>mesuré</b> aujourd'hui : \(Q_0\) = 46 ± 3 TW
-            (Jaupart 2015) à \(T_0\) = 1 350 °C (Herzberg 2007) ; \(E\) = 300 kJ/mol (olivine, Karato &amp; Wu 1993).</p>
+            (Jaupart 2015) à \(T_0\) = 1 350 °C (Herzberg 2007) ; \(E\) = 300 kJ/mol (olivine, Karato &amp; Wu 1993).
+            \(T_{s0}\) = 14,4 °C, la T̄ de la Terre actuelle (GISTEMP, an 2000), l'état où \(Q_0\) est mesuré : il va avec \(Q_0\) et
+            \(T_0\), et sert aussi de \(T_{\text{ref}}\) au partage et au puits du CO₂ (INTERIEUR.CONST.T_S0). ❔ ΔT est pris sur
+            \(T_{s0}\) et non sur la T̄ de l'état : −0,1 % du flux par K d'écart (⛄ +9,6 % ; −18 % au clic de 🔥 où le magma se fige,
+            où la seule T̄ connue est encore celle du magma, plus chaude que l'intérieur : la loi n'y serait pas définie).</p>
         <p class="code">interieur.js → puissanceConvective</p>
     </div>
     <div class="eq P" id="eq-ocean-magma-rayonnement-vide">
@@ -172,7 +203,9 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="titre"><span class="cl P">P</span> Hydrostatique et adiabatique sèche</div>
         <div class="f" data-tex="\frac{dp}{dz} = -\rho g,\quad \rho = \frac{p_a M_a + p_c M_c}{RT},\qquad \frac{dT}{dz} = -\frac{g}{(1-w_c)\,c_{p,a}(T) + w_c\,c_{p,c}(T)}"></div>
         <p>Intégrée de la surface vers le haut par pas de 100 m (10 m dans le nuage). \(c_p(T)\) de chaque gaz :
-            tables NIST-JANAF (M, Chase 1998).</p>
+            tables NIST-JANAF (M, Chase 1998). La même loi, sèche puis humide (carte suivante ; RADIATIVE.loiAdiabatique), monte la
+            colonne d'un point de calotte ; son gradient au sol (parcelle de surface sèche, RADIATIVE.gradientSurface) sert aux
+            diagnostics temperatureAtZ et hauteur d'échelle de la vapeur (≈ 1,6 km à 288 K).</p>
         <p class="code">radiative/calculations.js → profilAtmosphere ; physics.js → PHYS.cpMolaire</p>
     </div>
     <div class="eq P" id="eq-adiabatique-humide-non-diluee">
@@ -181,7 +214,7 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p>Tend vers l'adiabatique sèche quand la vapeur est rare, vers la courbe de saturation quand elle domine (atmosphère
             de vapeur post-impact). Le niveau de condensation est trouvé par dichotomie dans le pas.</p>
         <p class="src">Pierrehumbert 2010, Principles of Planetary Climate, éq. 2.33</p>
-        <p class="code">calculations.js → profilAtmosphere</p>
+        <p class="code">calculations.js → profilAtmosphere, loiAdiabatique, ascension, gradientSurface</p>
     </div>
     <div class="eq M" id="eq-pression-vapeur-saturante-eau">
         <div class="titre"><span class="cl M">M</span> Pression de vapeur saturante de l'eau</div>
@@ -196,15 +229,36 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="f" data-tex="T_{\text{strato}} = \min\!\left[\left(\frac{\bar S(1-A)}{2\sigma}\right)^{1/4},\ T_s\right]"></div>
         <p>Équilibre radiatif d'une couche grise mince ; isotherme au-dessus de la tropopause, vapeur figée à sa valeur de la
             tropopause (piège froid). Approximation grise déclarée.</p>
+        <p>❔ Conséquence : la stratosphère ne dépend pas du CO₂, et le forçage que le modèle équilibre est le forçage INSTANTANÉ au
+            sommet : 2,93 W/m² pour un doublement sur 📱 (3,27 sur 🏔, 3,66 sur 🐊 ; état figé). Le forçage AJUSTÉ — stratosphère ramenée à
+            son équilibre radiatif (Fels et al. 1980 ; Forster, Freckleton &amp; Shine 1997 ; Hansen, Sato &amp; Ruedy 1997) : tranche
+            isotherme au-dessus de la tropopause, chauffage solaire de l'ozone compris (Lacis &amp; Hansen 1974), même transfert, hors
+            moteur — vaut 3,62 W/m² sur 📱 (3,97 sur 🏔, 4,44 sur 🐊), 1,21 à 1,24 fois l'instantané. 🎯 Forçage ajusté publié du doublement : 3,71 W/m² (Myhre et al. 1998), 3,80 (Etminan et
+            al. 2016).</p>
+        <p class="src">Fels et al. 1980, J. Atmos. Sci. 37:2265 ; Forster, Freckleton &amp; Shine 1997, Clim. Dyn. 13:547 ; Hansen, Sato
+            &amp; Ruedy 1997, JGR 102:6831 ; contrôle : Myhre et al. 1998, GRL 25:2715 ; Etminan et al. 2016, GRL 43:12614</p>
         <p class="code">calculations.js → profilAtmosphere</p>
     </div>
     <div class="eq M" id="eq-humidite-moyenne-altitude">
         <div class="titre"><span class="cl M">M</span> Humidité moyenne en altitude (Manabe &amp; Wetherald 1967)</div>
-        <div class="f" data-tex="\bar x_v(p) = \min\!\left[x_{\text{parcelle}},\ RH_s\,\frac{p/p_s - 0{,}02}{1-0{,}02}\,\frac{p_{\text{sat,liq}}(T)}{p}\right]"></div>
+        <div class="f" data-tex="\bar x_v(p) = \min\!\left[x_{\text{parcelle}},\ RH_s\,\frac{\sigma^* - 0{,}02}{1-0{,}02}\,\frac{p_{\text{sat,liq}}(T)}{p}\right],\qquad \sigma^* = 1 - \Big(1 - \frac{p}{p_s}\Big)\frac{1-\sigma_{t,\text{réf}}}{1-\sigma_t},\quad \sigma_{t,\text{réf}} = \frac{226{,}32}{1\,013{,}25}"></div>
         <p>Forme <b>tirée des observations</b>, pas une équation de la physique ; standard des modèles radiatifs-convectifs 1D.
-            La parcelle fixe la température, l'air moyen n'est pas saturé.</p>
-        <p class="src">Manabe &amp; Wetherald 1967, J. Atmos. Sci. 24:241</p>
-        <p class="code">calculations.js → profilAtmosphere (vapeurMoyenne) ; EARTH.NUAGES.MW_P_RESIDU</p>
+            La parcelle fixe la température, l'air moyen n'est pas saturé. La forme est mesurée sous une tropopause à
+            \(\sigma_{t,\text{réf}}\) = 0,2234 (atmosphère standard US 1976, 11 km) ; dans un autre climat, elle se déplace avec la
+            troposphère : étirée entre la surface et la tropopause du profil, \(\sigma_t\), là où la parcelle, montée seule, atteint la
+            température de la stratosphère. L'humidité relative de surface et celle de la tropopause restent celles de la mesure ;
+            entre les deux, la forme suit. Les modèles de climat gardent l'humidité relative presque invariante à pression fixée dans
+            la basse troposphère et décalent la haute troposphère vers le haut avec la tropopause (Sherwood et al. 2010 ; Singh &amp;
+            O'Gorman 2012) ; tenue à \(\sigma\) fixé, la forme ferait tendre l'humidité relative vers zéro aux niveaux d'émission de la
+            vapeur d'un climat chaud. Sans troposphère (\(T_s \le T_{\text{strato}}\)), la loi ne sert pas.</p>
+        <p>❔ 🔧 L'étirement linéaire en \(\sigma\) a été retenu après comparaison de la rétroaction de ciel clair d'une colonne à
+            celle de Kluft et al. 2021 (raie par raie, humidité relative fixe : −2,1 W m⁻² K⁻¹ à 280 K, −1,3 à 300 K), qui n'en est plus
+            un contrôle (📖). ❔ \(\sigma_t\) (parcelle) et \(\sigma_{t,\text{réf}}\) (tropopause de 11 km) ne suivent pas le même
+            critère : la colonne de 📱 est déjà étirée de 1,05.</p>
+        <p class="src">Manabe &amp; Wetherald 1967, J. Atmos. Sci. 24:241 ; Sherwood et al. 2010, JGR 115:D09104 ; Singh &amp;
+            O'Gorman 2012, J. Climate 25:8259 ; U.S. Standard Atmosphere 1976 (NOAA-S/T 76-1562)</p>
+        <p class="code">calculations.js → profilAtmosphere (σ_t : montée de la parcelle seule ; vapeurMoyenne) ; EARTH.NUAGES.MW_P_RESIDU,
+            MW_SIGMA_TROPOPAUSE</p>
     </div>
     <div class="eq F" id="eq-vapeur-surface">
         <div class="titre"><span class="cl F">F</span> Vapeur à la surface</div>
@@ -248,33 +302,46 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="f" data-tex="\begin{gathered}\gamma_L = P\left[x_s\gamma_{\text{self}} + (1-x_s)\gamma_{\text{air}}\right]\left(\frac{296}{T}\right)^{n_{\text{air}}},\qquad \gamma_D = \frac{\nu}{c}\sqrt{\frac{2RT}{M}}\\ f_V(\Delta\nu) = \frac{\operatorname{Re} w(x+iy)}{\gamma_D\sqrt{\pi}},\quad x = \frac{\Delta\nu}{\gamma_D},\ y = \frac{\gamma_L}{\gamma_D},\qquad \operatorname{Re} w(x+iy) = \frac{y}{\pi}\int_{-\infty}^{\infty}\frac{e^{-t^2}\,dt}{(x-t)^2+y^2}\end{gathered}"></div>
         <p>Coefficients d'élargissement HITRAN (M) ; Doppler (P). Fonction de Faddeeva w par l'algorithme W4 de Humlíček (P) :
             quatre fractions rationnelles en t = y − ix, dont deux quadratures de Gauss–Hermite (2 et 4 nœuds) ; écart relatif
-            à l'intégrale ci-dessus &lt; 10⁻⁴ (9,6·10⁻⁵ au pire sur x ≤ 10⁶, 10⁻⁴ ≤ y ≤ 10⁴, contrôle numérique). Fenêtre ±5 cm⁻¹,
-            ailes coupées à 100 largeurs (N). γ_D est la demi-largeur à 1/e du profil gaussien (M en kg/mol) ; la demi-largeur à
+            à l'intégrale ci-dessus &lt; 10⁻⁴ (9,6·10⁻⁵ au pire sur x ≤ 10⁶, 10⁻⁴ ≤ y ≤ 10⁴, contrôle numérique). Raies comptées à
+            moins de 5 cm⁻¹ de leur centre, à toute pression (⚠️ largeur sans source, N) : loin du centre l'aile cesse d'être
+            lorentzienne, et l'écart se compte en fréquence, pas en nombre de largeurs (ailes du CO₂ sous-lorentziennes au-delà de
+            quelques cm⁻¹, Perrin &amp; Hartmann 1989). γ_D est la demi-largeur à 1/e du profil gaussien (M en kg/mol) ; la demi-largeur à
             mi-hauteur vaut γ_D√ln 2. À 1 atm, y ≈ 100 pour le CO₂ à 667 cm⁻¹ : les raies sont lorentziennes.</p>
-        <p class="src">Humlíček 1982, JQSRT 27:437</p>
-        <p class="code">hitran.js → gammaLorentzTotal, gammaDoppler, faddeevaRe, voigtNormalized, crossSectionFromLines</p>
+        <p class="src">Humlíček 1982, JQSRT 27:437 ; Perrin &amp; Hartmann 1989, JQSRT 42:311</p>
+        <p class="code">hitran.js → gammaLorentzTotal, gammaDoppler, faddeevaRe, voigtNormalized, crossSectionsFromLines</p>
     </div>
     <div class="eq N" id="eq-tables-grille-spectrale">
-        <div class="titre"><span class="cl N">N</span> Tables σ(λ, T) et grille spectrale</div>
-        <div class="f" data-tex="\sigma(\lambda_j, T) = \sum_i S_i(T)\,f_V(\nu_j-\nu_i)\ \ \text{à } P = 1\ \text{atm},\quad T \in \{20, 50, \dots, 3000\ \text{K}\}"></div>
-        <p>Interpolées linéairement à la T de chaque couche. Grille : 0,1–100 µm, jusqu'à 2 000 points. ⚠️ Un intervalle de
+        <div class="titre"><span class="cl N">N</span> Tables σ(λ, T, P) et grille spectrale</div>
+        <div class="f" data-tex="\sigma(\lambda_j, T, P) = \sum_i S_i(T)\,f_V\big(\nu_j-\nu_i;\ \gamma_{L,i}(T, P),\ \gamma_{D,i}(T)\big),\quad T \in \{20, 50, \dots, 3000\ \text{K}\},\quad P \in \{10^{-5}, 10^{-4{,}5}, \dots, 10^{4}\ \text{atm}\}"></div>
+        <p>12 températures × 19 pressions (demi-décades), calculées une fois par grille spectrale : un passage sur les raies pour
+            toutes les pressions (S(T), γ(T) et γ_D une fois, le profil de Voigt à chaque P). Interpolées à la (T, P) de chaque couche :
+            linéairement en T, en ln σ linéaire en ln P (carte suivante). Grille : 0,1–100 µm, jusqu'à 2 000 points. ⚠️ Un intervalle de
             plusieurs cm⁻¹ est représenté par σ en <b>un seul point</b> : c'est ce que corrige la distribution de k corrélée.</p>
-        <p class="code">calculations.js → tablesSigma, indexTemperatureSigma, buildAdaptiveLambdaGrid</p>
+        <p class="code">calculations.js → tablesSigma, indexTemperatureSigma, indexPressionSigma, buildAdaptiveLambdaGrid ; hitran.js → crossSectionsInAir, crossSectionsFromLines</p>
     </div>
-    <div class="eq C" id="eq-elargissement-par-pression">
-        <div class="titre"><span class="cl C">C</span> Élargissement par la pression</div>
-        <div class="f" data-tex="\kappa_{\text{gaz}}(\lambda, z) = \sigma(\lambda, T)\,\sqrt{\frac{P}{P_0}}\;n_{\text{gaz}}"></div>
-        <p>Limite des raies <b>fortes et saturées</b>, appliquée à toutes les raies (fausse pour les raies faibles de la fenêtre)
-            et posée par-dessus des tables déjà calculées à 1 atm. Marquée [OBS/CALIB] dans la config. Mesuré le 13 octobre :
-            sans elle tout est <b>plus chaud</b> (📱 23,8 °C) — elle réduit surtout l'absorption en altitude (P &lt; 1 atm), bien
-            plus qu'elle ne l'augmente sous 2 atm. La vérité est entre les deux limites ; remède : k corrélé.</p>
-        <p class="code">calculations.js → coucheWorker ; CONFIG_COMPUTE.pressureBroadening</p>
+    <div class="eq P" id="eq-elargissement-par-pression">
+        <div class="titre"><span class="cl P">P</span> Élargissement par la pression</div>
+        <div class="f" data-tex="\kappa_{\text{gaz}}(\lambda, z) = \sigma\big(\lambda, T(z), P(z)\big)\,n_{\text{gaz}}(z),\qquad \gamma_L \propto P,\qquad \ln\sigma(P) = \ln\sigma(P_k) + \frac{\ln (P/P_k)}{\ln (P_{k+1}/P_k)}\,\ln\frac{\sigma(P_{k+1})}{\sigma(P_k)}"></div>
+        <p>La section efficace est celle de la pression de la couche : la largeur de Lorentz de chaque raie est proportionnelle à P
+            (coefficients HITRAN, carte du profil de Voigt). Entre deux pressions de la grille, ln σ est linéaire en ln P : exact pour
+            \(\sigma \propto P^a\) — aile de Lorentz a = 1, centre d'une raie de Lorentz a = −1, raie gaussienne a = 0. Un point de la
+            grille spectrale (espacés de 2 à 8 cm⁻¹, raies larges de 0,07 cm⁻¹ à 1 atm) tombe presque toujours dans les AILES, où
+            \(\sigma \propto \gamma_L \propto P\). Sous 10⁻⁵ atm, γ_L/γ_D &lt; 10⁻³ : raies gaussiennes, la table de 10⁻⁵ atm vaut ;
+            au-dessus de 10⁴ atm, le calcul s'arrête. La loi σ(1 atm)·√(P/P₀) est la limite des raies fortes de la largeur
+            équivalente d'une BANDE, pas celle d'une section efficace en un point : elle doublerait les ailes vers 250 hPa.</p>
+        <p>🎯 PASSE : forçage instantané du CH₄ de 0,7 à 1,8 ppm, au sommet en ciel complet, à état figé : 0,60 W/m² sur 📱 (0,61 sur
+            🏔, 0,60 sur 🐊 ; 0,86 en ciel clair sur 📱), contre 0,575 (Myhre et al. 1998, formule ajustée sur le raie par raie, sans N₂O,
+            ondes longues) et 0,66 (Etminan et al. 2016, ondes courtes comprises). Un raie par raie dense (0,01 cm⁻¹) sur un profil de
+            📱 donne 0,71 : l'écart restant est l'échantillonnage spectral (k corrélé, carte précédente), sans signe fixe. Doublement
+            du CO₂, même mesure : 2,93 W/m² sur 📱.</p>
+        <p class="src">Kochanov et al. 2016, JQSRT 177:15 (raies HITRAN) ; contrôle : Myhre et al. 1998, GRL 25:2715 ; Etminan et al. 2016, GRL 43:12614</p>
+        <p class="code">calculations.js → tablesSigma, indexPressionSigma, coucheWorker ; spectral_slice_worker.js → enPression ; CONFIG_COMPUTE.pressureBroadening (false : tables de 1 atm à toutes les couches)</p>
     </div>
     <div class="eq P" id="eq-auto-elargissement-vapeur">
         <div class="titre"><span class="cl P">P</span> Auto-élargissement de la vapeur</div>
-        <div class="f" data-tex="\sqrt{\frac{P}{P_0}\left[1 + x_v\,(R_{\text{self}}-1)\right]},\qquad R_{\text{self}} = \frac{\sum S_i\gamma_{\text{self},i}}{\sum S_i\gamma_{\text{air},i}}"></div>
+        <div class="f" data-tex="P_{\text{eff}} = P\left[1 + x_v\,(R_{\text{self}}-1)\right],\qquad R_{\text{self}} = \frac{\sum S_i\gamma_{\text{self},i}}{\sum S_i\gamma_{\text{air},i}}"></div>
         <p>Rapport tiré des raies elles-mêmes (≈ 5) ; négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur.
-            Hérite de la limite √(P/P₀) ci-contre.</p>
+            La table de H₂O est lue à la pression effective \(P_{\text{eff}}\) (carte de l'élargissement par la pression).</p>
         <p class="code">calculations.js → rapportAutoElargissementH2O, coucheWorker</p>
     </div>
     <div class="eq M" id="eq-continuum-vapeur-eau">
@@ -349,11 +416,12 @@ Licensed under Apache License 2.0 with Commons Clause.
 <div class="grille">
     <div class="eq F" id="eq-fractions-nuages-bas-hauts">
         <div class="titre"><span class="cl F">F</span> Fractions de nuages bas et hauts</div>
-        <div class="f" data-tex="f_{\text{bas}} \in [0{,}36\ ;\ 0{,}46],\qquad f_{\text{haut}} \in [0{,}29\ ;\ 0{,}37]"></div>
-        <p>CloudSat-CALIPSO + ISCCP corrigé. Jauges FROID (bas) et CHAUD (haut). Nuages moyens (0,23) non représentés (déclaré).
-            Sans eau, pas de nuage.</p>
+        <div class="f" data-tex="f_{\text{bas}} \in [0{,}36\ ;\ 0{,}46],\qquad f_{\text{moyen}} = 0{,}23,\qquad f_{\text{haut}} \in [0{,}29\ ;\ 0{,}37]"></div>
+        <p>CloudSat-CALIPSO + ISCCP corrigé. Jauges FROID (bas) et CHAUD (haut). Nuages moyens : 0,23 en colonne, nuages masqués
+            compris (CAMcol, ISCCP-CVL), au niveau σ = 560/1 013,25 (carte des nuages hauts), avec les épaisseurs optiques des nuages
+            bas (⚠️ pas de microphysique propre à leur phase mixte), en recouvrement aléatoire. Sans eau, pas de nuage.</p>
         <p class="src">Stubenrauch et al. 2024, Surv. Geophys. 45:1999</p>
-        <p class="code">fine_tuning_bounds.js ; calculations.js → profilAtmosphere</p>
+        <p class="code">fine_tuning_bounds.js ; calculations.js → profilAtmosphere ; EARTH.NUAGES.F_MOYEN, SIGMA_MOYEN</p>
     </div>
     <div class="eq P" id="eq-nuage-bas-adiabatique-eau">
         <div class="titre"><span class="cl P">P</span> Nuage bas adiabatique : eau condensée</div>
@@ -385,7 +453,7 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="titre"><span class="cl F">F</span> Noyaux de condensation de l'époque (sulfate)</div>
         <div class="f" data-tex="r_{\text{CCN}} = \left(\frac{m_{\text{SO}_4}\,[0{,}29 + 0{,}71\,b]}{1{,}05\times10^{9}\ \text{kg}}\right)^{a},\qquad a \in [0{,}11\ ;\ 0{,}29]"></div>
         <p>Loi de puissance mesurée sur 19 régions (McCoy 2018) ; forme de Boucher &amp; Lohmann 1995. Partage volcanique / DMS
-            0,29 / 0,71 mesuré (Carn 2017, Lana 2011) ; \(b\) = part de la biosphère marine de l'époque (🧫, ⚠️ posée par époque).
+            0,29 / 0,71 mesuré (Carn 2017, Lana 2011) ; \(b\) = part de la biosphère marine du clic (📜🧫 : celle de l'époque, ou de son état 🔁 daté ; ⚠️ posée, sans mesure).
             Référence : charge moderne (Tsigaridis 2006). Jauge SUBTIL.</p>
         <p class="code">albedo/calculations_albedo.js → rapportCCN ; aerosols/sulfate_ccn.js</p>
     </div>
@@ -396,8 +464,11 @@ Licensed under Apache License 2.0 with Commons Clause.
             Rosenfeld 2012, Braga 2021) : c'est le sommet. Avec le N <b>actuel</b> : l'eau nuageuse ne répond presque pas au
             nombre de gouttes (Toll 2019, M). Jauge FROID. ⚠️ Sous 0 °C le seuil devient \(f_{\text{liq}}\,\text{LWC}_{\text{pluie}}\) :
             la glace précipite dès qu'elle se forme (hypothèse déclarée, limite du processus Wegener–Bergeron–Findeisen) ; sans elle,
-            un nuage froid ne précipitait jamais (jusqu'à 8 kg/m² d'eau sur 🪸).</p>
-        <p class="code">calculations.js → profilAtmosphere ; CLOUD_SW.R_EFF_PLUIE</p>
+            un nuage froid ne précipite jamais (jusqu'à 8 kg/m² d'eau sur 🪸).</p>
+        <p>Le sommet est là où l'écart au seuil, \(e = q_c - f_{\text{liq}}\,\text{LWC}_{\text{pluie}}\), s'annule : dans le pas
+            d'intégration (10 m dans le nuage) où \(e\) change de signe, il est interpolé linéairement — la dernière tranche a
+            l'épaisseur \(h\,\Delta z\), \(h = e_{\text{avant}}/(e_{\text{avant}} - e)\), et l'eau du seuil (N).</p>
+        <p class="code">calculations.js → profilAtmosphere (nuage) ; CLOUD_SW.R_EFF_PLUIE</p>
     </div>
     <div class="eq P" id="eq-epaisseurs-optiques-nuage">
         <div class="titre"><span class="cl P">P</span> Épaisseurs optiques du nuage</div>
@@ -434,33 +505,42 @@ Licensed under Apache License 2.0 with Commons Clause.
             température d'émission des sommets des nuages hauts, ISCCP-H 2010 (tropiques 225,1 K, latitudes moyennes 228,9 K). Distribution
             en ln τ : amincissement exponentiel (P), bornes qui redonnent les parts CALIPSO de τ &lt; 0,3, de 0,3 à 3 et de τ
             &gt; 3 : 0,13, 0,15 et 0,09 sur 0,37 (Stubenrauch 2024).</p>
-        <p class="code">EARTH.NUAGES.T_ENCLUME, TAU_HAUT_* ; solaire.js → moyenneHauts</p>
+        <p>Le niveau T_ENCLUME tombe entre deux couches de la grille : τ y est réparti linéairement en température entre elles, le
+            nuage émet à T_ENCLUME ; à la tropopause s'il fait plus chaud, dans la dernière couche de la troposphère ; une colonne
+            partie sous T_ENCLUME (boule de neige) n'a pas ce niveau, le nuage reste dans sa première couche. Nuages MOYENS (fraction
+            0,23, carte des fractions) au niveau σ = 560/1 013,25, milieu de 440–680 hPa, s'il est sous la tropopause : τ réparti
+            linéairement en σ entre les deux couches qui l'encadrent (N). Recouvrement aléatoire des nuages bas, moyens et hauts.</p>
+        <p class="code">EARTH.NUAGES.T_ENCLUME, TAU_HAUT_*, F_MOYEN, SIGMA_MOYEN ; calculations.js → profilAtmosphere ; solaire.js →
+            moyenneHauts</p>
     </div>
 </div>
 
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
-<h2>🌞 Transfert solaire (Lacis &amp; Hansen 1974 ; vapeur : Chou &amp; Suarez 1999)</h2>
+<h2>🌞 Transfert solaire (Lacis &amp; Hansen 1974 ; nuages : δ-Eddington ; vapeur : Chou &amp; Suarez 1999)</h2>
 <div class="grille">
     <div class="eq M" id="eq-schema">
         <div class="titre"><span class="cl M">M</span> Le schéma</div>
         <div class="f" data-tex="A_{\text{sommet}} = A_{\text{visible}}(\text{Rayleigh, O}_3\text{, H}_2\text{O, sol, nuages}) + \sum_{i=1}^{10} h_i\,R_i(k_i)"></div>
-        <p>Ozone, Rayleigh et nuages : paramétrisation <b>ajustée sur des calculs de diffusion multiple</b> (doubling-adding) de
-            Lacis &amp; Hansen. Partage du spectre de Chou &amp; Suarez : 47,074 % du flux sous 0,70 µm (ultraviolet et visible),
+        <p>Ozone, Rayleigh et surface : paramétrisation <b>ajustée sur des calculs de diffusion multiple</b> (doubling-adding) de
+            Lacis &amp; Hansen ; nuages : chaque couche en δ-Eddington, selon l'angle solaire (carte « Nuages : δ-Eddington »). Partage du spectre de Chou &amp; Suarez : 47,074 % du flux sous 0,70 µm (ultraviolet et visible),
             52,926 % au-delà (proche infrarouge, vapeur en 10 termes \(k_i, h_i\)).</p>
-        <p class="src">Lacis &amp; Hansen 1974, J. Atmos. Sci. 31:118 ; Chou &amp; Suarez 1999, NASA TM-104606 vol. 15</p>
-        <p class="code">radiative/solaire.js → albedo, colonneNuageuse</p>
+        <p class="src">Lacis &amp; Hansen 1974, J. Atmos. Sci. 31:118 ; Joseph, Wiscombe &amp; Weinman 1976, J. Atmos. Sci. 33:2452 ;
+            Chou &amp; Suarez 1999, NASA TM-104606 vol. 15</p>
+        <p class="code">radiative/solaire.js → albedo, albedoMu, colonneNuageuse, nuagesColonne</p>
     </div>
     <div class="eq M" id="eq-vapeur-chou-suarez">
         <div class="titre"><span class="cl M">M</span> Vapeur : k-distribution de Chou &amp; Suarez</div>
         <div class="f" data-tex="T(w) = \sum_{i=1}^{10} h_i\,e^{-k_i w},\quad k_i = 0{,}0010 \ldots 1000\ \text{g}^{-1}\text{cm}^2,\quad \sum h_i = 0{,}52926\,;\qquad T_{\text{PAR}} = e^{-0{,}00075\,w}"></div>
         <p>Proche IR : coefficients et poids de la table 2, calculés raie par raie (HITRAN 1996) à 300 hPa et 240 K ; sous nuage,
             les bandes 9, 10 et 11 séparément (les gouttes y absorbent différemment), leurs poids additionnés en ciel clair. Visible
-            (bande 8, 39,081 % du flux) : k̄ = 0,00075 g⁻¹ cm² (éq. 3.12–3.13), en perturbation du transfert visible. Validation de
+            (bande 8, 39,081 % du flux) : k̄ = 0,00075 g⁻¹ cm² (éq. 3.12–3.13), en perturbation du transfert visible, sur le seul PAR qui fait le trajet : en ciel
+            clair, la part PAR/V du visible qui descend au sol et celle que le sol renvoie au sommet, une fois retirés Rayleigh,
+            l'ozone et l'aérosol (❔ répartition spectrale uniforme dans le visible). Validation de
             l'article : flux à moins de 1 % du raie par raie (table 8). ⚠️ Absents : Rayleigh du proche IR et CO₂ (−3,1 et −3,3 W/m²
             au sol à 60°, table 7), continuum de la vapeur.</p>
-        <p>🎯 📱 : l'atmosphère absorbe 61,6 W/m² en ciel clair (observé 73 : Wild et al. 2019) ; la colonne d'eau du globe
-            pèse 16,8 kg/m² (observé 24,9 : Trenberth &amp; Smith 2005) — une colonne unique à la température moyenne manque la
-            convexité de Clausius-Clapeyron.</p>
+        <p>🎯 Observé : l'atmosphère absorbe 73 W/m² en ciel clair (Wild et al. 2019) ; la colonne d'eau du globe pèse
+            24,9 kg/m² (Trenberth &amp; Smith 2005) — valeurs du modèle (📱) à remesurer ; une colonne unique à la température
+            moyenne manque la convexité de Clausius-Clapeyron.</p>
         <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, tables 2, 3, 7, 8</p>
         <p class="code">solaire.js → CS99, colonneNuageuse, albedoMu</p>
     </div>
@@ -479,10 +559,25 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq M" id="eq-diffusion-rayleigh">
         <div class="titre"><span class="cl M">M</span> Diffusion de Rayleigh</div>
-        <div class="f" data-tex="R_r(\mu_0) = \frac{0{,}28}{1+6{,}43\mu_0},\qquad R(s) = \frac{s\,t_1}{1+s\,t_1},\ t_1 = \frac{R_1}{1-R_1},\qquad s = \frac{P}{1\,\text{atm}}\cdot\frac{g_0}{g}\cdot\frac{M_0}{\bar M}"></div>
-        <p>Albédo de Rayleigh de la Terre actuelle (éq. 41, M), étendu à une autre colonne de molécules par la loi d'une couche
-            conservative \(R = a\tau/(1+a\tau)\) (P).</p>
-        <p class="code">solaire.js → rayleigh, facteurRayleigh</p>
+        <div class="f" data-tex="R_r(\mu_0) = \frac{0{,}28}{1+6{,}43\mu_0},\qquad \rho(s) = \frac{s\,t_1}{1+s\,t_1},\ t_1 = \frac{\rho_1}{1-\rho_1},\ \bar R_r(s) = V\rho(s),\ \rho_1 = \frac{\bar R_r}{V},\qquad s = \frac{\sum_i N_i\,\sigma_i}{N_0\,\sigma_{\text{air}}},\quad N_i = \frac{p_s}{g}\,\frac{w_i}{M_i},\quad N_0 = \frac{1\ \text{atm}}{g_0 M_0},\quad \sigma_i \propto \Big(\frac{n_i^2-1}{n_i^2+2}\Big)^2 F_{K,i}"></div>
+        <p>Albédo de Rayleigh de la Terre actuelle (éq. 41, M), étendu à une autre colonne de molécules par la loi d'une couche conservative en deux
+            flux, \(R = a\tau/(1+a\tau)\) rapportée au flux qui l'éclaire (P ; Sagan &amp; Pollack 1967, limite ω = 1, g = 0) :
+            \(\bar R_r\) est une part du flux TOTAL et seule la part visible V = 0,47074 est diffusée — rapportée à V, elle en
+            sature ; \(\bar R^*_r\), \(\bar R_a\) et \(\bar R^*_a\), rapports au flux qui les éclaire, saturent à 1. ❔ Une seule
+            épaisseur optique pour tout le visible, de 0,175 à 0,70 µm : σ ∝ ν⁴ y varie d'un facteur 256, l'ultraviolet sature
+            avant le rouge. À 🔥 (s ≈ 505), l'absorption au sol reste positive et l'albédo au sommet croît avec celui du sol. Colonne : chaque gaz compte par sa section efficace (théorie de Rayleigh, P),
+            indice de réfraction et dépolarisation mesurés au laboratoire à 532 nm (M), facteur de King
+            \(F_K = (6+3\rho)/(6-7\rho)\) ; rapports à l'air : N₂ 1,029, O₂ 0,900, CO₂ 2,585, CH₄ 2,201, H₂O 0,714 ; fractions
+            massiques \(w_i\) de l'air humide, vapeur comprise. \(g_0\) = 9,80665 m/s², \(M_0\) = 0,02897 kg/mol : état de référence de
+            la paramétrisation (atmosphère standard). ❔ Une seule longueur d'onde pour les rapports (ils varient de quelques % dans
+            le visible).</p>
+        <p>🎯 Sections mesurées à 532 nm en cavité optique (He et al. 2021, table 2) : CO₂ 13,3, O₂ 4,55, CH₄ 11,3·10⁻²⁷ cm² ;
+            le modèle 13,34, 4,64, 11,36 (à 2 %).</p>
+        <p class="src">Lacis &amp; Hansen 1974 (éq. 41) ; Sagan &amp; Pollack 1967 ; indices et dépolarisations : Peck &amp; Khanna 1966, Bates 1984,
+            Bideau-Mehu et al. 1973, Alms et al. 1975, Sneep &amp; Ubachs 2005, Ciddor 1996, Murphy 1977, Peck &amp; Reeder 1972,
+            Bodhaine et al. 1999 (formules réunies par He et al. 2021, table 1)</p>
+        <p class="code">solaire.js → RAYLEIGH, SIGMA_RELATIVE, facteurRayleigh, rayleigh, CS99.PART_VISIBLE ; physics.js → CONV.RAYLEIGH_G_REF,
+            CONV.RAYLEIGH_M_AIR_REF</p>
     </div>
     <div class="eq M" id="eq-eau-precipitable-effective">
         <div class="titre"><span class="cl M">M</span> Eau précipitable effective</div>
@@ -494,9 +589,31 @@ Licensed under Apache License 2.0 with Commons Clause.
     <div class="eq P" id="eq-couche-diffusante-deux-flux">
         <div class="titre"><span class="cl P">P</span> Couche diffusante : deux-flux de Sagan &amp; Pollack</div>
         <div class="f" data-tex="u = \sqrt{\frac{1-g\omega}{1-\omega}},\ t = \sqrt{3(1-\omega)(1-g\omega)}\,\tau,\quad R = \frac{(u^2-1)(1-e^{-2t})}{(u+1)^2-(u-1)^2e^{-2t}},\quad T = \frac{4u\,e^{-t}}{(u+1)^2-(u-1)^2e^{-2t}}"></div>
-        <p>Limite conservative : \(R = \sqrt3(1-g)\tau/(2+\sqrt3(1-g)\tau)\). \(\omega\) et \(g\) des gouttes et des
-            cristaux : carte suivante.</p>
-        <p class="code">solaire.js → couche, nuageVisible</p>
+        <p>Sert à l'aérosol de fond (carte « Aérosol de fond »). Sa limite conservative
+            \(R = \sqrt3(1-g)\tau/(2+\sqrt3(1-g)\tau)\) sert au simulateur ISCCP, qui en inverse τ, et, à g = 0, à la diffusion de
+            Rayleigh d'une autre colonne (carte « Diffusion de Rayleigh ») : les nuages du transfert
+            sont en δ-Eddington (carte suivante).</p>
+        <p class="code">solaire.js → couche (aérosol), nuageVisible (simulateur ISCCP, radiative/nuages_isccp.js)</p>
+    </div>
+    <div class="eq P" id="eq-delta-eddington">
+        <div class="titre"><span class="cl P">P</span> Nuages : δ-Eddington selon l'angle solaire</div>
+        <div class="f" data-tex="f = g^2,\ \ \tau' = (1-\omega f)\,\tau,\ \ \omega' = \frac{(1-f)\,\omega}{1-\omega f},\ \ g' = \frac{g}{1+g}\,;\qquad \lambda = \sqrt{3(1-\omega')(1-\omega' g')},\ \ u = \frac{3(1-\omega' g')}{2\lambda},\ \ x = e^{-\lambda\tau'},\ \ N = (u+1)^2 - (u-1)^2x^2,\ \ R_1 = \frac{(u^2-1)(1-x^2)}{N},\ \ T_1 = \frac{4ux}{N}\,;\qquad \alpha = \frac{3\omega'\mu\,(1+g'(1-\omega'))}{4(1-\lambda^2\mu^2)},\ \ \gamma = \frac{\omega'\,(1+3g'(1-\omega')\mu^2)}{2(1-\lambda^2\mu^2)},\ \ e = e^{-\tau'/\mu}\,;\qquad R(\mu) = (\alpha+\gamma)R_1 + (\alpha-\gamma)(T_1e - 1),\ \ T(\mu) = (\alpha+\gamma)T_1 + \big((\alpha-\gamma)R_1 - (\alpha+\gamma) + 1\big)e\,;\qquad \bar R = \int_0^1 R(\mu)\,2\mu\,d\mu,\ \ \bar T = \int_0^1 T(\mu)\,2\mu\,d\mu"></div>
+        <p>Chaque couche de nuage (τ, ω, g de ses gouttes et cristaux, bande par bande, la vapeur du nuage dans ω) répond au faisceau
+            direct de cosinus μ₀ : réfléchi \(R(\mu_0)\), transmis diffus \(T - e\), transmis direct \(e\) — le pic avant de la fonction
+            de phase reste dans le faisceau direct. Diffusion conservative :
+            \(R(\mu) = [(1-g')\tau' + (\tfrac23-\mu)(1-e)]/[\tfrac43 + (1-g')\tau']\). Le diffus d'une couche est la moyenne de sa
+            réponse au direct sur l'hémisphère (Gauss-Legendre 8 points, comme Briegleb &amp; Light 2007 ; écart à 64 points
+            &lt; 7·10⁻⁵) : le direct et le diffus d'un même nuage viennent du même calcul. Le diffus ne dépend pas de μ₀ : calculé une
+            fois par colonne, il sert à tous les angles solaires (bilan méridien, albédo planétaire).</p>
+        <p>🎯 Contre le doublement-addition exact (hors moteur ; Henyey-Greenstein g = 0,85, 24 angles, troncature δ-M), albédo
+            sphérique d'un nuage conservatif : τ = 2 → 0,219 exact, 0,205 δ-Eddington ; τ = 6 → 0,427 et 0,409 ; τ = 20 → 0,699 et
+            0,692. Par zone à τ = 6 (μ₀ pondéré par l'énergie) : exact 0,397 / 0,452 / 0,539 (tropiques / moyennes latitudes /
+            pôles), δ-Eddington 0,383 / 0,432 / 0,507. ❔ Biais bas du δ-Eddington, connu (King &amp; Harshvardhan 1986) : −1 à −7 %
+            sur l'albédo sphérique, −11 % à μ₀ = 0,09.</p>
+        <p class="src">Joseph, Wiscombe &amp; Weinman 1976, J. Atmos. Sci. 33:2452 ; Briegleb &amp; Light 2007, NCAR/TN-472+STR ;
+            King &amp; Harshvardhan 1986, J. Atmos. Sci. 43:784 ; contrôle : Hansen &amp; Travis 1974, Space Sci. Rev. 16:527 ;
+            Wiscombe 1977, J. Atmos. Sci. 34:1408</p>
+        <p class="code">radiative/solaire.js → deltaEddington, nuageDeColonne, eclairer, nuagesColonne</p>
     </div>
     <div class="eq M" id="eq-optique-gouttes-cristaux">
         <div class="titre"><span class="cl M">M</span> Gouttes et cristaux : co-albédo et asymétrie par bande</div>
@@ -506,18 +623,22 @@ Licensed under Apache License 2.0 with Commons Clause.
             (bande 10) et 0,15 (bande 11), environ 8 fois plus pour la glace. Gouttes : rayon effectif de Martin et al. 1994,
             moyenné sur leur épaisseur optique ; cristaux : taille de Fu \(r_i = (8\sqrt3/9)\,r_e\), même extinction que le
             profil. Sous nuage, les bandes 9, 10 et 11 sont calculées séparément (30 termes de vapeur).</p>
-        <p>🎯 📱 : l'atmosphère absorbe plus par ciel nuageux que par ciel clair, comme observé (64,3 contre 61,6 W/m² ; Wild et
-            al. 2019 : 79 contre 73) ; effet solaire des nuages −49,5 W/m² (CERES −47) ; noyau dA_p/dA_s 0,343
-            (Donohoe &amp; Battisti 2011 : 0,32).</p>
+        <p>🎯 Observé : l'atmosphère absorbe plus par ciel nuageux que par ciel clair (79 contre 73 W/m², Wild et al. 2019) ;
+            effet solaire des nuages −47 W/m² (CERES) ; noyau dA_p/dA_s 0,32 (Donohoe &amp; Battisti 2011) — valeurs du modèle (📱)
+            à remesurer.</p>
         <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, §4.2, tables 5–6, éq. 6.3–6.4</p>
         <p class="code">solaire.js → OPTIQUE, optiqueNuage ; calculations.js → profilAtmosphere (tauLiq, tauRLiq)</p>
     </div>
     <div class="eq P" id="eq-addition-couches-moyenne-sur">
         <div class="titre"><span class="cl P">P</span> Addition des couches et moyenne sur la sphère</div>
-        <div class="f" data-tex="R = R_1 + \frac{T_1^2 R_b}{1-R_1R_b},\qquad \bar A = \int_0^1 A(\mu_0)\,2\mu_0\,d\mu_0"></div>
-        <p>L'hémisphère éclairé est uniformément réparti en \(\mu_0\) : géométrie, pas un angle « effectif » choisi
-            (Gauss-Legendre 4 points). Sous-colonnes clair / bas / haut / bas+haut en recouvrement aléatoire.</p>
-        <p class="code">solaire.js → poser, albedo</p>
+        <div class="f" data-tex="U = e\,R_m + t_d\,R_d,\quad R_m \leftarrow R(\mu_0) + \frac{U\,\bar T}{1-\bar R R_d},\quad S_m \leftarrow e\,S_m + \Big(t_d + \frac{U\bar R}{1-\bar R R_d}\Big)S_d,\quad R_d \leftarrow \bar R + \frac{\bar T^2 R_d}{1-\bar R R_d},\quad S_d \leftarrow \frac{\bar T S_d}{1-\bar R R_d}\,;\qquad \bar A = \int_0^1 A(\mu_0)\,2\mu_0\,d\mu_0"></div>
+        <p>De bas en haut, le faisceau direct (réfléchi au sommet \(R_m\), absorbé au sol \(S_m\)) et le diffus (\(R_d\), \(S_d\)) sont
+            portés séparément ; chaque couche \((R(\mu_0), t_d, e\,;\ \bar R, \bar T)\) se pose sur ce qui est dessous ; vapeur pure entre
+            les couches : faisceau direct sur le chemin M, diffus 5/3. L'hémisphère éclairé est uniformément réparti en \(\mu_0\) :
+            géométrie, pas un angle « effectif » choisi (Gauss-Legendre 4 points). Sous-colonnes clair, bas, moyen, haut et leurs
+            combinaisons en recouvrement aléatoire. ❔ Sol lambertien : le même albédo pour le direct et le diffus — la mer garde
+            0,066 pour tous les μ₀.</p>
+        <p class="code">solaire.js → colonneNuageuse, albedoMu, albedo</p>
     </div>
     <div class="eq M" id="eq-aerosol-de-fond">
         <div class="titre"><span class="cl M">M</span> Aérosol de fond (MACv2)</div>
@@ -533,7 +654,12 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="f" data-tex="\Delta F = 0{,}0633\,\big(1 - e^{-k\sqrt{w/\mu_0}}\big),\quad k = 0{,}000145\ (\text{cm-atm})^{-1/2},\quad w = x_{\text{O}_2}\,N_{\text{STP}}\,\frac{(p_s/300\ \text{hPa})^{0{,}8}}{1{,}8}"></div>
         <p>Bandes A, B et faibles de l'O₂ (6,33 % du flux solaire), ajustées raie par raie ; la quantité d'O₂ suit la même mise à
             l'échelle en pression que la vapeur. Sous les nuages, la réduction du flux au sol est multipliée par le rapport des flux
-            nets nuageux et clair (leur éq. 6.18).</p>
+            nets nuageux et clair (leur éq. 6.18) : sur un sol lambertien le flux net vaut \((1 - R_g)\,F^{\downarrow}\), et ce rapport est
+            celui des flux DESCENDANTS au sol, \(F^{\downarrow}_{\text{nuage}}/F^{\downarrow}_{\text{clair}}\), défini pour tout albédo de
+            surface, \(R_g\) = 1 compris (neige propre) ; le sol en absorbe \(1 - R_g\), il en renvoie \(R_g\). ❔ ΔF est la réduction d'un
+            ciel clair transparent par ailleurs dans les bandes de l'O₂, non proportionnée au flux qui atteint le sol : pour une
+            atmosphère d'environ 1 bar, \(F^{\downarrow}_{\text{clair}}\) ≥ 0,49 et ΔF ≤ 0,015 (sonde de 📱) ; un ciel clair opaque chargé
+            d'O₂ rendrait un flux au sol négatif, et aucune époque de la frise n'y est.</p>
         <p class="src">Chou &amp; Suarez 1999, NASA TM-104606 vol. 15, éq. 3.5, 3.16–3.18, 6.18</p>
         <p class="code">solaire.js → O2, colonneO2, albedoMu</p>
     </div>
@@ -550,144 +676,344 @@ Licensed under Apache License 2.0 with Commons Clause.
 <div class="grille">
     <div class="eq P" id="eq-melange-surfaces">
         <div class="titre"><span class="cl P">P</span> Mélange des surfaces</div>
-        <div class="f" data-tex="A_{\text{sol}} = \sum_i f_i\,\alpha_i,\qquad \sum_i f_i = 1"></div>
-        <p>Surfaces : lave, océan libre, forêt, terres, désert, glace. Normalisées si leur somme s'écarte de 1 de plus de 3 % (N).</p>
-        <p class="code">calculations_albedo.js → calculateAlbedo</p>
+        <div class="f" data-tex="A_{\text{sol}} = \sum_i f_i\,\alpha_i + \sum_b f_b\big(\text{mer}_b\,r_{b,\text{mer}} + \text{terre}_b\,r_{b,\text{terre}}\big) + \sum_b f_b\,c_b\,\alpha_b,\qquad \sum f = 1"></div>
+        <p>Surfaces libres \(i\) : lave, océan, forêt, sol, désert ; glace saisonnière, bande par bande : la part \(r\) de l'énergie
+            solaire annuelle qu'elle réfléchit (🪩.🍰☀️🪩🧊, albédo qui suit la saison) sur la part \(e\) de cette énergie qui tombe sur
+            elle (cartes suivantes), prise sur la mer et la terre libres de la bande ; calottes, bande par bande, à leur albédo annuel
+            \(\alpha_b\) du bilan de calotte (🗻.🧮🪩🗻🧊), pondéré par la calotte \(c_b\) de la bande — la pondération du co-albédo de
+            zone du bilan méridien. Surfaces sans glace, une seule source, lue aussi par le bilan méridien (ALBEDO.surfacesSansGlace) :
+            lave \(f_{\text{lave}}\) ; océan = bassin rempli × \((1 - f_{\text{lave}})\) — le bassin est la mer de la carte,
+            🗻.🍰🗻🌊 = 1 − terre émergée des bandes (socle sous le niveau de la mer de la reconstruction PaleoDEM ; ❔ avant 540 Ma, la
+            mer posée par l'époque), rempli dans un monde à océan, à sec hors de lui ; terres = (1 − bassin rempli)
+            \((1 - f_{\text{lave}})\) — un bassin à sec est une terre —, que la forêt, le désert (l'aride, au plus ce que laisse la
+            forêt) et le sol se partagent bande par bande — la forêt de chaque bande (carte de la forêt) —, à chaque itération du bilan
+            méridien (ALBEDO.terresLibres), chacun hors de la neige de sa bande. Terre et mer des bandes : la terre émergée à la date (PALEOGEO). Une calotte posée sur la terre émergée est prise sur le sol, puis le désert, puis la forêt
+            (ALBEDO.terresLibres, le même partage que la terre libre de chaque bande du bilan méridien) ; une calotte du plateau, sur
+            l'océan pour sa part en eau, sur les terres pour la part à sec du bassin ; une surface en fusion couvre les calottes comme
+            l'océan. Une seule aire de calotte, celle du bilan méridien : des surfaces qui ne la portent pas arrêtent le calcul. Hors
+            d'un monde à océan (eau sans phase condensée, ou sans atmosphère), pas de calotte : aire et albédo nuls (carte des
+            calottes). Les surfaces somment à 1 et chacune est positive ; sinon le calcul s'arrête en les nommant. Contrôle : la moyenne
+            par la surface des albédos de surface des zones du bilan méridien, \(\sum_z f_z R_{g,z}\), vaut cet albédo à 10⁻⁹ près,
+            sinon le calcul s'arrête — une seule loi de surface pour les deux bilans. L'albédo au sommet n'est pas le transfert de cette
+            moyenne par la surface : c'est la lumière réfléchie par chaque zone, pondérée par l'insolation qu'elle reçoit (carte du
+            bilan méridien). Sur 📱 : océan 0,670, forêt 0,103, désert 0,072, sol 0,051, glace saisonnière 0,077, calottes 0,027.</p>
+        <p class="code">calculations_albedo.js → calculateAlbedo, surfacesSansGlace, terresLibres, calculateGeologySurfaces ;
+            physics/meridien.js → surfacesBandes, surfacesZones</p>
     </div>
     <div class="eq M" id="eq-albedos-surfaces">
         <div class="titre"><span class="cl M">M</span> Albédos des surfaces</div>
-        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}066\ (\text{Fresnel})\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50"></div>
+        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}066\ (\text{Fresnel})\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50\quad\text{forêt enneigée } 0{,}25"></div>
         <p>Océan : réflexion de Fresnel d'une mer plane, \(R(\mu) = \tfrac12(r_s^2 + r_p^2)\), moyennée sur le disque éclairé
             \(\int_0^1 R\,2\mu\,d\mu\), indice de l'eau 1,333 (Hale &amp; Querry 1973, laboratoire) ; ⚠️ mer plane (ni vagues, ni
             lumière rétrodiffusée sous la surface), une seule valeur pour tous les \(\mu_0\). 🎯 mesures d'avion : 0,057 sur le
             disque (Taylor et al. 1996), 0,06 en lumière diffuse (Briegleb et al. 1986).
-            Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). ⚠️ lave 0,05 et albédo « boue de neige »
+            Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). Forêt enneigée : ⚠️ 0,25, milieu de la
+            fourchette 0,2–0,3 de la canopée boréale enneigée (Robock 1980 ; Betts &amp; Ball 1997 ; Qu &amp; Hall 2007). ⚠️ lave 0,05 et albédo « boue de neige »
             0,48 des snowballs : sans source.</p>
-        <p class="code">physics.js → EARTH['🪩🍰'] ; configTimeline.js → '🌫️❄️'</p>
+        <p class="code">physics.js → EARTH['🪩🍰'] ; configTimeline.js → '🌫️❄️' ; calculations_albedo.js → poserAlbedosMateriaux
+            (DATA['🪩🍰'], écrit une fois par calcul, lu par l'albédo planétaire, le bilan méridien et les calottes)</p>
     </div>
-    <div class="eq M" id="eq-albedo-glace-selon-temperature">
-        <div class="titre"><span class="cl M">M</span> Albédo de la glace selon sa température (Briegleb)</div>
-        <div class="f" data-tex="\alpha_{\text{glace}}(T) = \begin{cases}\alpha_{\text{neige}} &amp; T \le -10\,^\circ\text{C}\\ \text{rampe vers } 0{,}70 &amp; -10 \to -5\,^\circ\text{C}\end{cases}\qquad T = \min(T_{\text{zone}},\ -5\,^\circ\text{C})"></div>
-        <p>Paramétrisation NCAR (Briegleb et al., TN-463). La glace d'une zone plus chaude que −5 °C est saisonnière.</p>
-        <p class="code">calculations_albedo.js → brieglebIceAlbedoMature, brieglebIceAlbedoLocal</p>
+    <div class="eq P" id="eq-albedo-glace-selon-temperature">
+        <div class="titre"><span class="cl P">P</span> Albédo de la glace saisonnière : il suit la saison</div>
+        <div class="f" data-tex="r_b = \frac{\sum_i \ell_i\sum_k S_{i,k}\,f_{i,k}\,\alpha_{i,k}}{\sum_i \ell_i\sum_k S_{i,k}},\quad \alpha_{i,k} = f_F\,\alpha_{\text{forêt enneigée}} + (1-f_F)\Big[(1-P_{i,k})\,\alpha_{\text{sèche}} + P_{i,k}\big(p_i\,\alpha_{\text{neige mouillée}} + (1-p_i-w_i)\,\alpha_{\text{dessous}}\big)\Big],\quad P = \Phi\Big(\frac{T - T^*_{\text{sec}}}{\sigma}\Big),\quad T = \begin{cases}T_{\text{boîte terre}} & \text{terres}\\ \min(T_{\text{dalle}},\,0\,^\circ\text{C}) & \text{banquise}\end{cases},\quad w_i = \max\Big(0,\ 1 - p_i - \frac{\rho_i h_i}{m_G}\Big)"></div>
+        <p>La glace saisonnière de chaque latitude \(i\) d'une bande réfléchit nœud par nœud de l'année (les 24 nœuds du bilan des
+            calottes), comme une calotte (carte « Fonte des calottes : bilan d'énergie… ») ; \(S\) : insolation du nœud à la latitude du
+            point, à la date ; \(f\) : part gelée du nœud (carte suivante) ; \(\ell_i\) : part de terre de la latitude sur les terres
+            (carte « Cycle saisonnier calculé »), 1 sur la mer. Hors fonte, une neige sèche, 🪩🍰❄️ = 0,85 (Warren &amp;
+            Wiscombe 1980) ; ❔ aux tropiques, une glace n'existe que dans une boule de neige : fraîche, elle est neigeuse ; établie,
+            sublimée et poussiéreuse (Pierrehumbert 2005 ; Abbot &amp; Pierrehumbert 2010), elle va de 🪩🍰❄️ à 🪩🍰🧊 avec l'étendue de
+            la glace du globe (carte « Trois zones de latitude »), évaluée dans le point fixe du bilan méridien. Pendant la fonte, avec la
+            probabilité de fonte \(P\) du nœud — loi normale des températures journalières, σ de Seguinot &amp; Rogozhina 2014, autour du
+            seuil \(T^*_{\text{sec}}\) où une neige SÈCHE, sous son propre albédo, atteint la fusion au niveau de la mer (carte de la
+            fonte des calottes : la même loi, CALOTTES.fonteJour) — la neige de
+            l'année, mouillée, 🪩🍰🧊 = 0,70, couvre la part \(p\) de la saison de fonte (P − E de Siler, Roe &amp; Armour 2018 les jours
+            de gel, contre la fonte possible : elle fond d'abord, Reeh 1991), puis ce qu'elle découvre : sur les terres, le sol 🪩🍰🌍 ;
+            sur la mer, la glace nue à mares 🪩🍰🏊 = 0,50 (Perovich et al. 2002, SHEBA), jusqu'à ce que la fonte possible d'une glace
+            nue \(m_G\) ait fondu sa masse de Stefan \(\rho_i h\) — sur la part \(w\) qui reste, la mer est libre et sort de la glace
+            (son albédo est celui de l'eau, dans le bilan méridien).</p>
+        <p>L'air de la loi de fonte, une définition par surface. Sur les terres, l'air de la terre de la latitude au point, sans
+            palier. Sur la banquise, la surface de la dalle de glace seule (la mer toute gelée, à l'épaisseur \(h\) : carte
+            « Cycle saisonnier calculé » ; la couche de mélange de la mer libre voisine n'amortit pas la surface d'une banquise ; ❔ air
+            de la dalle froide = sa surface, sans inversion), avec son palier de fusion : une surface en fusion reste au point de
+            fusion, l'excès d'énergie fond la glace, et l'air d'été au-dessus d'une banquise qui fond est à ~0 °C (Maykut &amp;
+            Untersteiner 1971) ; σ et les jours de gel lisent la dalle sans palier. ❔ 🔧 Cette lecture de la banquise a été retenue
+            en regardant le co-albédo polaire observé, l'albédo de banquise attendu et les étendues NSIDC : le co-albédo des pôles n'en
+            est plus un contrôle (carte du bilan méridien). Sur les terres, la forêt masque la neige toute la saison : la forêt sous
+            la neige \(f_F\) = 0,31 × clamp((T̄ − 268,15 K)/25 K, 0,4, 1) des terres (ALBEDO.foretSousNeige : la forêt de 2020, FAO
+            2020, au plus), la même à toutes les latitudes, dans un monde à océan depuis les premiers arbres ; 0 sur la mer ; elle est
+            une forêt enneigée, 🪩🍰🌳❄️ = 0,25. ⚠️ 🔧 Forme et trois nombres sans source, qui ne savent pas où passe la ligne des
+            arbres : elle tient lieu, pour le masquage, de la forêt de chaque latitude, dont le 🎯 de la ligne des arbres n'est pas
+            atteint (carte de la forêt) ; deux forêts dans une bande, déclaré (sur 📱 : 0,24 des terres sous la neige). Sans phase liquide (hors d'un
+            monde à océan), la glace ne fond pas, elle se sublime : neige sèche toute l'année. La part \(r_b\) de l'énergie solaire
+            annuelle de la bande que sa glace réfléchit (🪩.🍰☀️🪩🧊) est calculée une fois et lue partout : co-albédos de zone et
+            colonnes des boîtes du bilan méridien, albédo planétaire ; \(r/e\) est l'albédo moyen de la glace.</p>
+        <p>⚠️ Forêt enneigée 0,25 : milieu de la fourchette 0,2–0,3 de la canopée boréale enneigée (Robock 1980 ; Betts &amp; Ball
+            1997 ; Qu &amp; Hall 2007). ⚠️ σ, vent et rugosité du bilan de fonte : ceux du Groenland. ⚠️ \(h\) : une seule année de croissance de Stefan, borne basse
+            d'une glace pérenne. ❔ Neige mouillée à l'albédo de la glace de mer froide de CCSM3 (Briegleb et al. 2004). Sur 📱, l'albédo
+            moyen de la glace saisonnière vaut 0,70 sur les terres (sous la forêt sous la neige), 0,81 sur la banquise.</p>
+        <p class="src">Warren &amp; Wiscombe 1980 ; Briegleb et al. 2004 ; Perovich et al. 2002, JGR 107:8044 ; Seguinot &amp; Rogozhina
+            2014 ; Siler, Roe &amp; Armour 2018 ; Reeh 1991 ; Maykut &amp; Untersteiner 1971, JGR 76:1550 ; Robock 1980, Mon. Weather Rev.
+            108:267 ; Betts &amp; Ball 1997, JGR 102:28901 ; Qu &amp; Hall 2007, J. Climate 20:3971</p>
+        <p class="code">physics.js → EARTH.glaceSaisonniere ; calculations_albedo.js → albedoGlaceSeche, foretSousNeige, FORET ;
+            physics/calottes.js → fonteJour, contexte, normale ; physics/saisons.js → arc, epaisseurStefan ; physics/meridien.js → etendueGlace</p>
     </div>
     <div class="eq P" id="eq-glace-saisonniere-voit-soleil">
         <div class="titre"><span class="cl P">P</span> La glace saisonnière ne voit que le soleil d'hiver</div>
-        <div class="f" data-tex="\alpha_{\text{eff}} = r\,\alpha_{\text{glace}} + (1-r)\,\alpha_{\text{océan}},\qquad r = \frac{\text{fraction de l'énergie solaire tombée sur la glace}}{\text{fraction du temps englacé}}"></div>
-        <p>Insolation journalière exacte (géométrie orbitale) × [T(jour) &lt; T_gel]. Retard des saisons thermiques 30 j
-            (M, borne basse : 1 mois sur continent, 2 sur océan).</p>
-        <p class="code">physics.js → EARTH.fractionGelee, dailyMeanInsolation</p>
+        <div class="f" data-tex="T_i(\theta) = T_{b,i} + T_2\big(P_2(x_i) - \langle P_2\rangle_z\big) + a_{1,i}\sin(\theta - d_{1,i}) + r_{2,i}\cos 2\theta - i_{2,i}\sin 2\theta,\qquad t_b = \frac{\sum_i \ell_i\,\bar f_i}{\sum_i \ell_i},\qquad e_b = \frac{\sum_i \ell_i\sum_k S_{i,k}\,f_{i,k}\,(1 - w_i P_{i,k})}{\sum_i \ell_i\sum_k S_{i,k}}"></div>
+        <p>La glace saisonnière de chaque bande (une zone dans un hémisphère) est celle de ses \(N_X\) = 10 latitudes, uniformes en
+            \(x = \sin\varphi\) (SAISONS.points), chacune à la température d'un point : sa boîte plus le profil méridien dans la bande
+            (SAISONS.temperaturePoint, la seule), au cycle annuel ET semi-annuel de sa boîte — sur les terres, la terre de sa latitude ;
+            sur la mer, la mer de la bande (carte « Cycle saisonnier calculé ») —, recalculées à chaque itération du bilan méridien. Arc gelé d'un point (SAISONS.arc) : sa
+            température aux 24 nœuds de l'année (ceux du bilan des calottes), linéaire entre deux nœuds ; part gelée \(f\) de chaque
+            nœud, croisements interpolés (continue), et degrés-jours de gel de l'interpolant. Terres : la neige reste sous 273,15 K
+            (fusion de la glace) ; \(t_b\) = moyenne des parts gelées des points pondérée par leur part de terre \(\ell_i\) (sur la
+            mer, \(\ell_i\) = 1). Mer : chaque latitude gèle sous 271,15 K au cycle de la
+            boîte de mer ; \(g_b\) = moyenne des parts gelées des latitudes, la seule glace de mer — son aire, son albédo, sa masse et
+            l'impédance de la mer —, \(h_b\) = épaisseur de Stefan de chaque latitude moyennée sur la glace présente (\(g h\) = moyenne
+            des \(t_i h_i\), la masse exacte). \(e_b\) = part de l'énergie solaire annuelle de la bande qui tombe sur la glace :
+            insolation de chaque nœud à la latitude du point, À LA DATE (orbite de 1950 plus l'écart de la date ; hors La2004, orbite
+            circulaire de l'époque) × Soleil de l'époque, sur ses nœuds gelés, moins la fin de la saison de fonte où la banquise a fondu
+            (\(w\), carte précédente) — exactement 0 sans glace et 1 sous une glace de toute l'année. La glace pèse dans l'albédo par
+            l'énergie qu'elle reçoit (\(e\)) et par celle qu'elle réfléchit (\(r\)) : le co-albédo de zone du bilan méridien et l'albédo
+            planétaire lisent la même glace, rangée par bande dans DATA (🪩.🍰📅🧊, 🪩.🍰☀️🧊, 🪩.🍰☀️🪩🧊). Sans mémoire d'un calcul à
+            l'autre : le point fixe du bilan méridien part sans glace saisonnière. Sans eau (⚖️💧 = 0), pas de glace.</p>
+        <p>❔ Neige des terres dès que la surface est sous 0 °C, sans bilan de chute et de fonte pour sa présence (la fonte n'en
+            règle que l'albédo). ⚠️ Une seule dalle de mer par bande, à l'épaisseur moyenne de ses latitudes gelées ; la mer de toutes
+            les latitudes d'une bande au cycle de sa boîte de mer. Sur 📱 (part de l'année / part de l'énergie solaire) : pôle nord,
+            terres 0,63 / 0,31, mer 0,74 / 0,65 ; pôle sud, mer 0,61 / 0,53 (aucune terre libre : la calotte couvre la terre émergée) ;
+            latitudes moyennes, terres 0,43 / 0,24 au nord et 0,05 / 0,03 au sud, mer jamais gelée.</p>
+        <p>🎯 Étendues sur 📱, contre la mesure (❔ valeurs approchées des climatologies 1981–2010, sans script de relevé) : banquise
+            arctique 17,0 Mkm² en mars et 0,45 en septembre (NSIDC Sea Ice Index : ~15 et ~4–6) ; banquise antarctique 21,8 en
+            septembre et 0 en février (~18–19 et ~3) ; neige de l'hémisphère nord 60,9 en janvier et 0 en août (Rutgers Global Snow
+            Lab : ~45–47 et ~2–4). Le cycle est trop ample : trop de glace l'hiver, presque pas de banquise pérenne l'été — la glace de
+            l'arc disparaît dès que la mer passe au-dessus du gel, sans enthalpie de glace d'une année à l'autre.</p>
+        <p class="src">Fetterer et al. 2017 (NSIDC Sea Ice Index, G02135 v3) ; Robinson &amp; Estilow 2012 (NOAA CDR de la neige de
+            l'hémisphère nord) ; Stefan 1891</p>
+        <p class="code">physics.js → EARTH.glaceSaisonniere ; physics/saisons.js → SAISONS.cycles, points, temperaturePoint, arc, noeuds,
+            epaisseurStefan ; physics/meridien.js → resoudre</p>
     </div>
     <div class="eq P" id="eq-trois-zones-latitude">
         <div class="titre"><span class="cl P">P</span> Trois zones de latitude</div>
-        <div class="f" data-tex="f_{\text{pol}} = 1-\sin 60^\circ,\quad f_{\text{mid}} = \sin 60^\circ - \sin 30^\circ,\quad f_{\text{trop}} = \sin 30^\circ,\qquad g = \sum_z f_z\,\text{clamp}\!\left(\frac{T_{\text{gel}} + \Delta T_z + a_z - T}{2a_z}\right)"></div>
-        <p>Fraction englacée : rampe linéaire sur l'amplitude saisonnière \(a_z\) (approximation déclarée).</p>
-        <p class="code">physics.js → EARTH.computeIceTempFactor, EARTH.*_ZONE_FRAC</p>
+        <div class="f" data-tex="f_{\text{pol}} = 1-\sin 60^\circ,\quad f_{\text{mid}} = \sin 60^\circ - \sin 30^\circ,\quad f_{\text{trop}} = \sin 30^\circ,\qquad g = \sum_b f_b\big[c_b + \text{terre}_b\,t_{b,\text{terre}} + \text{mer}_b\,t_{b,\text{mer}}\big],\quad f_b = \tfrac{x_1 - x_0}{2}"></div>
+        <p>Bornes en \(x = \sin\varphi\), une seule table (EARTH.ZONES), lue par le bilan méridien, les bandes des calottes et des
+            boîtes saisonnières, la glace saisonnière et toute moyenne sur le globe. Étendue de la glace du globe \(g\) : calottes du
+            pas \(c_b\), terre et mer libres de chaque bande (\(f_b\) : sa part du globe, la moitié de sa zone), part de l'année sous leur glace saisonnière ; c'est elle qui dit si une
+            boule de neige est établie (neige tropicale assombrie).</p>
+        <p class="code">physics.js → EARTH.ZONES, EARTH.moyenneGlobe ; physics/meridien.js → MERIDIEN.etendueGlace, moyenneBandes, surfacesBandes</p>
     </div>
     <div class="eq P" id="eq-bilan-energie-meridien">
         <div class="titre"><span class="cl P">P</span> Bilan d'énergie méridien : écart de chaque zone</div>
-        <div class="f" data-tex="T(x) = \bar T + T_2 P_2(x),\qquad T_2 = \frac{5\int_0^1 P_2(x)\,I(x)\,a(x)\,dx}{6D + B},\qquad B = 2{,}09,\ D = 0{,}649\ \text{W m}^{-2}\,^\circ\text{C}^{-1}"></div>
+        <div class="f" data-tex="T(x) = \bar T + T_2 P_2(x),\qquad T_2 = \frac{5\int_0^1 P_2(x)\,I(x)\,a(x)\,dx}{6D + B},\qquad B = 2{,}09,\ D = 0{,}649\ \text{W m}^{-2}\,^\circ\text{C}^{-1},\qquad A = \sum_z w_z\,(1 - a_z),\ w_z = \frac{\int_z I\,dx}{\int_0^1 I\,dx}"></div>
         <p>Modèle diffusif de North, Cahalan &amp; Coakley 1981 (éq. 22, solution à deux modes). \(I(x)\) : insolation annuelle exacte
             (obliquité comprise) ; \(a(x)\) : co-albédo de la zone, calculé par le transfert solaire avec les angles solaires de la zone
-            et sa glace ; point fixe glace ↔ gradient. \(\bar T\) vient du transfert radiatif complet. B et D publiés (D calé par North
-            sur le gradient observé, T₂ = −28 °C) ; ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078.</p>
-        <p>⚠️ Moderne calculé T₂ = −21,2 avec les calottes actuelles (co-albédo pol / mid / trop 0,573 / 0,674 / 0,692) : le
-            contraste d'absorption entre tropiques et pôles est faible, les mêmes nuages couvrant les trois zones. Les hautes
-            latitudes sont trop chaudes de plusieurs degrés : c'est ce qui limite les calottes (ci-dessous).</p>
-        <p>🎯 Co-albédo observé (North &amp; Coakley 1979, celui avec lequel D reproduit −28 °C) : 0,681 − 0,202 P₂, soit
-            0,520 / 0,642 / 0,758 par zone au poids solaire ; trois zones uniformes en tirent T₂ = −26,9 °C au mieux (−28,2 en
-            continu). Donner à chaque zone sa colonne (à sa température) et ses fractions de nuages ISCCP-H mène à T₂ = −25,5 et au
-            co-albédo polaire observé (0,519), mais la rétroaction glace–albédo du modèle, trop forte (atmosphère trop transparente
-            en solaire), fait alors basculer l'EOT et le Quaternaire en boule de neige : ces nuages attendent l'absorption solaire
-            de la vapeur.</p>
-        <p class="code">physics/meridien.js → MERIDIEN.resoudre ; physics.js → EARTH.facteurGlaceZones</p>
+            et sa surface — calottes (albédo annuel de chacune, bilan de calotte), glace saisonnière de ses deux bandes (latitude par latitude au cycle de leurs
+            boîtes, la lumière qu'elle réfléchit, 🪩.🍰☀️🪩🧊), terre émergée libre — à l'albédo de ses forêt, désert et sol, bande par
+            bande (ALBEDO.terresLibres : la forêt de la bande), un bassin à sec (hors d'un monde à océan) compté en terre — et mer libre
+            de ses deux bandes, la lave
+            couvrant le tout (ALBEDO.partLave) ; le transfert de chaque zone est tabulé en albédo de surface (six
+            nœuds de 0 à 1 par pas de 0,2, Lagrange cubique ; écart à l'appel direct ≤ 3,7·10⁻⁴ sur l'albédo et ≤ 4,5·10⁻⁴ sur
+            l'absorbé, 📱 ; un albédo de surface hors de [0, 1], NaN compris, arrête le calcul en nommant la zone) ; point fixe glace ↔ gradient. \(\bar T\) vient du transfert radiatif complet. B : régression de l'OLR tous
+            ciels observé (M). 🔧 D : ajusté par North pour que le co-albédo observé donne le T₂ observé (−28 °C) — un calage du
+            modèle à deux modes, repris tel quel ; B et D forment une paire ajustée ensemble. ⟨P₂⟩ = −0,375 / 0,2165 / 0,8080.</p>
+        <p>Albédo planétaire rendu au solveur : \(A = \sum_z w_z\,(1 - a_z)\), la lumière réfléchie par chaque zone — son albédo de
+            surface, ses angles solaires, la colonne nuageuse du calcul — pondérée par la part \(w_z\) de l'insolation du globe qu'elle
+            reçoit (insolation annuelle de l'orbite circulaire de l'obliquité courante, MERIDIEN.poidsInsolation ; 📱 : 0,587 / 0,334 /
+            0,0795 aux tropiques, aux latitudes moyennes et aux pôles, pour des aires de 0,500 / 0,366 / 0,134) : la même lumière que
+            celle dont T₂ prend le mode P₂. Une glace polaire, qui reçoit 0,59 fois l'insolation moyenne, ne compte pas comme si elle
+            recevait la moyenne. Le transfert global d'un albédo de surface (\(\int A(\mu_0)\,2\mu_0\,d\mu_0\)) ne donne que les ciels
+            du diagnostic, à l'albédo de surface vu par le Soleil, \(\sum_z w_z R_{g,z}\). Sur 📱, A = 0,295 (avant le facteur corps
+            noir et le voile, cartes suivantes).</p>
+        <p>Point fixe sur T₂ seul (les écarts de zone en découlent, \(\Delta T_z = -T_2\langle P_2\rangle_z\)) : itération simple
+            tant que la pente \(\hat g\) de G (sécante des deux derniers points) est positive, sans relaxation — la rétroaction
+            glace–albédo est positive, une relaxation ne ferait que ralentir, et une sécante trouverait aussi la racine instable d'une
+            bistabilité. Pente négative (une calotte qui répond par un saut : son bilan intégré n'est pas monotone, elle finit sur une
+            branche ou l'autre, et l'itération simple oscille) : pas de Wegstein (1958), \(T_2 \leftarrow T_2 + (G - T_2)/(1 - \hat g)\) —
+            G décroissante n'a qu'une racine ; sur un saut, la méthode s'arrête au seuil. Arrêt quand l'erreur estimée
+            \(|G(T_2) - T_2|/(1-\max(\hat g, 0))\) passe sous 0,01 K, \(\hat g < 1\) : une pente négative ne réduit pas l'erreur —
+            estimée sur une sécante lointaine, ou à la première itération entre deux applications différentes (colonnes de départ en
+            neige sèche), elle ferait passer \(|G - T_2|\) = 0,15 K pour 0,0008 K à \(\hat g = -179\) ; arrêt aussi quand les deux derniers T₂ (itérations ≥ 1, mêmes
+            colonnes de départ) encadrent la racine — \(G - T_2\) change de signe — à moins de 0,01 K : G saute (une calotte change de
+            branche), le point fixe est à son seuil, connu à la tolérance près ; sans convergence en 100 itérations, le calcul s'arrête en
+            nommant l'époque. Le T₂ posé est celui où glace, co-albédos et calottes ont été évalués : chaque itération calcule, à son T₂, les boîtes
+            saisonnières (forcées par les colonnes de l'itération précédente), leur glace saisonnière, les calottes, puis les co-albédos ;
+            le pas part des calottes portées, en neige sèche, sans glace saisonnière, avec la forêt du calcul précédent (0 au clic
+            frise). Départ : le T₂ du calcul précédent ; au clic
+            frise, −28 °C (condition initiale : elle ne choisit que la branche quand deux branches stables coexistent).</p>
+        <p>Terre et mer de chaque zone : la terre ÉMERGÉE de ses deux bandes (socle &gt; 0, PALEOGEO à la date), moins les calottes ; la
+            mer est le reste. ⚠️ Dans ces surfaces, une calotte couvre d'abord la terre émergée de sa bande, puis le plateau
+            continental, qu'elle prend à la mer (\(\min(c, E)\)) ; or les calottes se placent par le rang du bilan du sol nu depuis leur
+            sommet, qui peut gagner un plateau polaire avant une terre basse. ⚠️ Même part aride des terres dans toutes les bandes
+            (l'aride du globe) : le désert n'a pas de place par bande (le désert réel est subtropical). ❔ Les deux bandes d'une zone ont la même
+            température (profil symétrique) : leurs terres et leurs mers s'y moyennent. ❔ Avant 540 Ma (pas de carte) : la terre de
+            l'époque, 1 − 🍰🗻🌊, à la fois terre émergée et continent. Le continent (socle &gt; −1 000 m, plateaux compris) ne sert
+            qu'à porter les calottes.</p>
+        <p>Sur 📱, T₂ = −25,2 °C. Zone polaire : la mer libre est gelée 0,74 (N) et 0,61 (S) de l'année, pour 0,65 et 0,53 de son
+            énergie solaire ; la terre libre du nord est enneigée 0,63 de l'année, pour 0,31 (carte « La glace saisonnière… ») ; celle du
+            sud est sous la calotte.</p>
+        <p>🎯 Contrôle de ce bilan : le co-albédo par zone observé (North &amp; Coakley 1979), 0,681 − 0,202 P₂, soit 0,758 / 0,642 aux
+            tropiques et aux latitudes moyennes au poids solaire ; le modèle donne 0,737 / 0,701 (📱) : tropiques à 3 % de la mesure, les
+            latitudes moyennes absorbent 9 % de trop. 📖 Le co-albédo observé des pôles, 0,520 (le modèle : 0,482), a servi à choisir la
+            forme de la fonte de la banquise (carte de l'albédo de la glace saisonnière) : il n'en est plus un contrôle indépendant ;
+            restent, non regardés pour ce choix, le minimum de septembre de la banquise arctique (NSIDC). 📖 T₂ observé n'est pas un second test : D est ajusté pour que ce
+            co-albédo donne −28 °C, et T₂ est linéaire en co-albédo ; trois zones uniformes en tirent T₂ = −26,9 °C au mieux (−28,2 en
+            continu).</p>
+        <p class="src">North, Cahalan &amp; Coakley 1981, Rev. Geophys. 19:91 ; North &amp; Coakley 1979 ; Wegstein 1958, Commun. ACM 1(6):9</p>
+        <p class="code">physics/meridien.js → MERIDIEN.resoudre, ecarts, depuisConfig, poidsInsolation, surfacesBandes, surfacesZones,
+            tableColonne ; calculations_albedo.js → surfacesSansGlace, terresLibres, partLave ;
+            DATA['🧮']['🌡️🎱'] ; physics.js → EARTH.glaceSaisonniere ; physics/saisons.js → SAISONS.cycles</p>
     </div>
     <div class="eq P" id="eq-calottes-bilan-integre">
-        <div class="titre"><span class="cl P">P</span> Calottes : bilan de masse intégré (géométrie de Weertman)</div>
-        <div class="f" data-tex="\bar b(a) = \frac{\int_{\varphi_e}^{\varphi_b} b\big(T(\varphi) - \Gamma z,\ z\big)\cos\varphi\,d\varphi}{\int_{\varphi_e}^{\varphi_b}\cos\varphi\,d\varphi},\quad z = z_{\text{socle}} + h_0\sqrt{1 - y/W} - d,\quad h_0 = \sqrt{\frac{2\tau_0 W}{\rho_i g}}"></div>
-        <p>La calotte couvre la terre de sa bande depuis le bout polaire (partage des eaux) jusqu'à une marge vers l'équateur ;
-            profil parfaitement plastique le long du méridien (Nye), τ₀ = 100 kPa. Chaque point a sa latitude et son altitude : le
-            bord bas, tourné vers des latitudes plus chaudes, fond et borne la taille. L'équilibre est \(\bar b(a) = 0\) sur un socle
-            à l'équilibre d'Archimède, \(d = \frac{\rho_i}{\rho_m}h\), cherché depuis l'état porté ; au clic time, la calotte avance
-            par la conservation de sa masse sur un socle en retard (carte suivante). ⚠️ Terre de la bande uniforme en sin φ, plateaux continentaux
-            jusqu'à −1 000 m compris (PaleoDEM).</p>
-        <p>Socle SANS glace : la calotte et sa charge, c'est le moteur qui les pose (\(z\) ci-dessus). Les PaleoDEM portent
-            l'Antarctique au socle actuel chargé par sa glace et le Groenland à la surface de la sienne. Une seule règle pour les
-            deux, MÊME CROÛTE : la table retire la glace de la carte 0 Ma cellule par cellule, puis porte ce socle déchargé sur les
-            cartes qui copient la carte 0 Ma. Retirer une épaisseur posée \(H\) d'un socle chargé \(b\) : rebond d'Airy
-            \(u = b + \frac{\rho_i}{\rho_m}H\) ; un socle resté sous la mer se recharge de l'eau qui remplace la glace,
-            \(z_u = u\,/\,(1 - \rho_{\text{eau}}/\rho_m)\) ; mer libre et plates-formes flottantes portent déjà leur eau.
-            ⚠️ Eau douce du moteur pour la flottaison et la recharge : le moteur n'a pas la densité de l'eau de mer.</p>
-        <p>Antarctique de la carte 0 Ma (continent : socle &gt; −1 000 m relié au pôle, fosses intérieures comprises,
-            16,86·10⁶ km²) : profil plastique \(s(d) = \sqrt{2\tau\,(d - d_0)/(\rho_i g)}\), d distance de grand cercle au bord
-            du continent, d₀ recul de la marge ; \(H = s - b\) là où la glace ne flotte pas (\(\rho_i H &gt; \rho_{\text{eau}}\,(-b)\)).
-            Deux inconnues fermées sur deux mesures de Bedmap2 (tableau 7) : volume posé 26,54·10⁶ km³ et aire posée
-            12,295·10⁶ km² — τ effectif 42,6 kPa, d₀ = 228 km, H̄ = 2 159 m, H max 4 763 m, rebond de 390 m sous le quart le plus
-            haut du socle. Socle moyen du continent : 6 m chargé, 444 m après rebond (exact par conservation du volume), 435 m après
-            recharge (1,74·10⁶ km² de socle sous glace posée restent sous la mer). ❔ L'aire est une entrée, pas un contrôle : on ne sait pas
-            faire autrement — retirer la glace actuelle d'une carte de données demande de savoir où elle est posée, et le seuil de
-            −1 000 m borne aussi le plateau continental libre de glace et les plates-formes flottantes. ❔ τ et d₀ uniformes sur tout
-            le continent ; τ effectif un peu sous les 50–150 kPa mesurés.</p>
+        <div class="titre"><span class="cl P">P</span> Calottes : place par le bilan du sol nu, dôme plastique et bilan de masse intégré</div>
+        <div class="f" data-tex="H = C\sqrt{s},\ C = \sqrt{\frac{2\tau}{\rho_i\,g\,(1-\rho_i/\rho_m)}},\qquad V = \frac{8\pi}{15}\,C\,R^{5/2},\ R = \sqrt{\frac{a\,A_{\text{bande}}}{\pi}},\qquad z = m + w\,(1 - f) + \Big(1 - \frac{\rho_i}{\rho_m}\Big)H - \epsilon,\qquad \bar B(a) = \frac{\sum_k A_k\,B\big(T_k(z_k),\ z_k\big)}{\sum_k A_k}"></div>
+        <p>Le continent de chaque bande (socle &gt; −1 000 m, PaleoDEM ; aire des mailles de 1° par les trapèzes en latitude, nulle au pôle) est découpé en 48 cellules : 6 tranches de latitude de 5° × 8
+            classes de socle (bornes −200, 0, 250, 500, 1 000, 1 500, 2 500 m), avec l'aire, la latitude et le socle déchargé moyens de
+            chacune — les deux variables dont dépend le bilan d'un point. PLACE : chaque cellule reçoit ΔT*, le réchauffement que le
+            bilan de son SOL NU (air libre, au socle de la table, le plateau au niveau de la mer, sous l'orbite de la fin du clic)
+            supporte avant de s'annuler (bissection, 10 pas sur ±40 K) : l'ordre dans lequel un refroidissement uniforme englacerait les
+            cellules, froides (haute latitude, socle haut) et enneigées d'abord. SOMMET : un des candidats de la bande, la cellule de
+            terre émergée la plus robuste de chaque tranche (la neige ne s'accumule pas sur la mer : la calotte gagne le plateau depuis
+            la terre). Une calotte NAÎT (aire nulle) sur le premier candidat, dans l'ordre de robustesse, dont le dôme GRANDIT — son
+            équilibre depuis l'aire nulle couvre les min(2, longueur du rang) premières cellules de son dôme (sa cellule et la suivante, sa seule cellule quand le continent n'en a qu'une) : une neige qui tient sur un sommet dont le dôme ne
+            peut pas grandir ne fait pas de calotte (Weertman 1976) —, sinon sur le plus robuste. ❔ 🔧 « Grandir » est une lecture
+            discrète de la table, retenue après l'échec d'une autre (le plus grand équilibre de la bande mettait une calotte sur le
+            Tibet au dernier maximum glaciaire). Une calotte POSÉE par la config, d'aire sourcée et de place inconnue, a le sommet du
+            meilleur bilan intégré \(\bar B\) à son aire, sur son socle porté, à l'orbite du départ du clic (❔ là où elle se maintient
+            le mieux) ; une calotte qui existe garde le sien, porté d'un clic à l'autre (🗻.📿🗻🧊) tant que sa cellule existe à la date.
+            La calotte de fraction \(a\) couvre, depuis son sommet et dans l'ordre des ΔT* décroissants, les cellules que son DÔME
+            ATTEINT, jusqu'à l'aire
+            \(a\,A_{\text{bande}}\) : un dôme de rayon \(R\) ne couvre que des terres à moins de \(R\) de son sommet — la tranche de la
+            cellule \(k\) est à \(d_k = \max(0, |\varphi_k - \varphi_s| - 2{,}5^\circ)\,R_p\) du sommet, et la cellule n'est gagnée que si
+            le dôme qui la couvre a ce rayon, \(\sqrt{(S + A_k)/\pi} \ge d_k\) ; si aucune n'est atteinte, la plus proche (❔ la calotte
+            franchit la mer qui l'en sépare). Géométrie, aucune constante. ❔ La table ne donne que la latitude des cellules : un même
+            dôme peut encore couvrir des massifs de même latitude séparés en longitude. Le rang est celui du climat du calcul : aucune
+            place n'est posée. Équilibre \(\bar B(a) = 0\), premier zéro sur le chemin de la calotte (croissance ou décroissance), lu aux
+            40 pas de la grille et aux bords des cellules du dôme, puis par bissection — un creux plus étroit qu'un pas, la marge mince
+            d'une cellule tout juste gagnée, arrête la calotte —, plafonné par le continent de la bande ;
+            le bord, la dernière cellule gagnée, la moins favorable et la plus mince, fond et borne la taille. Pas de calotte hors d'un
+            monde à océan (h2o/calculations_h2o.js, mondeOcean : eau sans phase condensée — au-dessus de son point critique,
+            647,096 K, ou toute en vapeur — ou aucune atmosphère qui porte la neige) : aire, masse, accumulation, fonte et albédo nuls,
+            et le socle relaxe sans charge (carte suivante). ❔ Le plateau continental est rangé comme une terre au niveau de la mer ;
+            ⚠️ pas de flottaison : une marge mince sur le plateau est comptée posée ; plateaux continentaux jusqu'à −1 000 m compris.
+            ⚠️ Rang fixé sur un calcul (orbite de la fin du clic). ❔ Avant 540 Ma (pas de carte) : la terre de l'époque dans chaque
+            bande, à la fois continent et terre émergée, répartie par classe de socle comme la terre émergée de toutes les bandes de la
+            carte de 540 Ma, dans la tranche du milieu de la bande. ❔ Pics isolés et éclats des PaleoDEM (7 800 m à 63° S sur la carte de
+            30 Ma, sur 330 km²) : la règle de naissance les écarte quand leur dôme ne grandit pas, ils restent dans le rang et parmi les
+            candidats d'une calotte posée. Sur 📱, le meilleur \(\bar B\) pose l'Antarctique sur un sommet à 64° S (cellule de 719 m),
+            la marge mince sur les cellules polaires froides — un ordre de cellules, pas une géographie (à 🦣 : 86° S, 2 792 m).</p>
+        <p>GÉOMÉTRIE : un dôme parfaitement plastique (Nye 1952) sur un socle à l'équilibre d'Airy : \(\tau = \rho_i g H|\nabla z_s|\),
+            \(z_s\) = socle déchargé + \((1-\rho_i/\rho_m)H\), d'où \(H = C\sqrt{s}\), \(s\) distance à la marge (\(H^2\) proportionnel
+            à \(s\)). Le dôme a l'aire de la calotte : \(V = \frac{8\pi}{15}\,C\,R^{5/2}\), \(V \propto S^{5/4}\) — la loi d'échelle des
+            calottes plastiques (Paterson 1972 ; Bahr, Pfeffer &amp; Kaser 2015, γ = 5/4). Ses anneaux, du sommet à la marge, sont les
+            cellules couvertes dans l'ordre du rang (❔ croissance concentrique) ; épaisseur moyenne exacte de chaque anneau, écrite
+            sans soustraction de grands nombres ; \(\epsilon\) : écart du socle porté à son équilibre (carte suivante). MARGE : le relief est
+            continu, la marge gagne une cellule par son HAUT — la part couverte \(f\) d'une cellule de socle moyen \(m\) a pour socle
+            moyen \(m + w\,(1-f)\), \(w = \min(\text{haut} - m,\ m - \text{bas})\) dans les bornes de sa classe (classe du haut, au-dessus
+            de 2 500 m : \(m - \text{bas}\) ; classe du bas : bas = −1 000 m, la borne du continent de la table (PALEOGEO.socle_continent_m)), \(m\) pour une cellule couverte ; le
+            sommet nu d'une calotte d'aire nulle est au point le plus haut de sa cellule (\(f = 0\)). ❔ Socle uniforme dans la
+            cellule, centré sur \(m\) : la table ne donne que la moyenne. Posée au socle moyen de chaque cellule gagnée, la marge
+            descendrait d'un coup (900 m, ~6 K, entre les deux classes du haut) et \(\bar B(a)\) aurait de faux zéros. ❔ Une calotte
+            par bande et par hémisphère, un seul dôme même sur des terres séparées en longitude. ❔ Relief du socle ignoré dans la loi plastique (il
+            s'ajoute sous la glace).</p>
+        <p>Une seule loi, un seul τ : le script qui décharge le socle ferme τ avec ce même dôme sur le volume (26,54·10⁶ km³) et
+            l'aire (12,295·10⁶ km²) posés de l'Antarctique (Bedmap2, tableau 7) — une équation, une inconnue : τ = 26,9 kPa
+            (PALEOGEO.tau_Pa, lu par le moteur). ❔ L'aire est une entrée, pas un contrôle : retirer la glace actuelle d'une carte de
+            données demande de savoir où elle est posée, et le seuil de −1 000 m borne aussi le plateau libre de glace et les
+            plates-formes flottantes. ❔ τ uniforme sur tout le continent ; τ effectif sous les 50–150 kPa mesurés (fleuves de glace et
+            plates-formes y sont compris). 📖 Le moteur pose donc 26,54·10⁶ km³ à l'aire de Bedmap2, par construction. 🎯 La même loi et
+            le même τ sur l'empreinte réelle de la carte de 0 Ma (marge à 243 km du bord du continent, aire de Bedmap2) donnent
+            24,92·10⁶ km³, −6,1 % : l'écart du dôme à la forme réelle de l'Antarctique. 🎯 Groenland (📱, 0,0502 de sa bande,
+            1,715·10⁶ km²) : volume du dôme 2,26·10⁶ km³ contre 2,99·10⁶ (BedMachine v3), −24 % ; posé, son sommet est le candidat du
+            meilleur \(\bar B\) à son aire, à 72° N (socle 1 720 m) : le rang ne connaît pas la longitude.</p>
+        <p>Température d'un point : la boîte terre de sa bande (carte « Cycle saisonnier calculé » ; ⚠️ pas la terre de la latitude
+            de sa cellule, que lisent la neige et la forêt) — sa moyenne annuelle plus
+            \(T_2\,(P_2(x) - \langle P_2\rangle_z)\) pour la latitude du point, et son cycle annuel à la date de chaque sous-pas : la
+            moyenne et le cycle du même objet (❔ cycle indépendant de l'altitude). Altitude, une seule lecture de la colonne :
+            au-dessus de la couche limite, l'air libre suit la loi adiabatique du profil du modèle (sèche puis humide, Pierrehumbert
+            2010 éq. 2.33). SOUS LA CALOTTE, il monte depuis le sommet de l'inversion au niveau de la mer, et la surface est sous
+            l'inversion de Jouzel &amp; Merlivat, \(T_{\text{inv}} = 0{,}67\,T_s + 88{,}9\) K, mesurée sur la surface enneigée de la
+            calotte antarctique : \(T_s(z) = \min\big(T_{\text{inv}}(z), (T_{\text{inv}}(z) - 88{,}9)/0{,}67\big)\) en moyenne annuelle
+            (gradient de surface Γ/0,67 sous inversion). ❔ 🔧 Relation annuelle : l'inversion propre à l'altitude est répartie sur
+            l'année au poids \((S_{\max} - S)/(S_{\max} - \bar S)\) de l'insolation du point, de moyenne 1, nulle au maximum
+            d'insolation — en été la surface suit l'air libre, en hiver elle s'en découple. Forme sans source, retenue en regardant la
+            chaîne 🐾 (J&amp;M toute l'année la fait basculer en boule de neige), la fonte d'été et le gradient des stations du
+            Groenland ouest (carte de la fonte) : un réglage. Elle ne déplace pas la moyenne annuelle de la surface, seulement sa
+            répartition dans l'année, donc la fonte. SOL SANS GLACE (sommet d'une calotte qui n'est pas née, bande sans calotte) :
+            ❔ sa surface suit l'air libre parti de la boîte terre au niveau de la mer, sans inversion propre à l'altitude —
+            l'inversion de J&amp;M est celle d'une neige très émissive, isolante et réfléchissante, qui ne reçoit presque rien du sol ni
+            du soleil ; un sol nu conduit, stocke la chaleur et absorbe le soleil d'été, hors du domaine de la mesure. La naissance se
+            juge sur ce sol nu, la survie sous J&amp;M. ❔ Air libre convectif : la troposphère polaire réelle est sous-adiabatique
+            (~5–6 K/km contre ~9). Sur 📱, l'Antarctique posé a sa surface à −35,6 °C en moyenne (mesurée ~−37 °C).</p>
+        <p>Socle SANS glace : la calotte et sa charge, c'est le moteur qui les pose. Les PaleoDEM portent l'Antarctique au socle
+            actuel chargé par sa glace et le Groenland à la surface de la sienne. Une seule règle pour les deux, MÊME CROÛTE : la table
+            retire la glace de la carte 0 Ma cellule par cellule, puis porte ce socle déchargé sur les cartes qui copient la carte
+            0 Ma. Retirer une épaisseur posée \(H\) d'un socle chargé \(b\) : rebond d'Airy \(u = b + \frac{\rho_i}{\rho_m}H\) ; un socle
+            resté sous la mer se recharge de l'eau de mer qui remplace la glace, \(z_u = u\,/\,(1 - \rho_{\text{mer}}/\rho_m)\) ; mer
+            libre et plates-formes flottantes portent déjà leur eau. Eau de mer de surface, 1 025 kg/m³ (TEOS-10, CONST.RHO_EAU_MER ;
+            ❔ pour toute la colonne). Antarctique de la carte 0 Ma : continent (socle &gt; −1 000 m relié au pôle, fosses intérieures
+            comprises) de 16,86·10⁶ km² ; glace retirée par le dôme sur l'empreinte réelle : H̄ = 2 027 m, H max 3 674 m ; socle moyen déchargé
+            397 m ; 2,66·10⁶ km² de socle sous glace posée restent sous la mer. ❔ Aire juste par compensation : les cœurs des plates-formes de Ross et de Ronne-Filchner,
+            flottants aujourd'hui, reçoivent de la glace posée, et des terres émergées n'en reçoivent pas.</p>
         <p>Recalage : chaque carte de 0 à 120 Ma est tournée (rotation rigide, recherche par motifs jusqu'à 1/8°) pour superposer
             au mieux le socle antarctique chargé de 0 Ma. Corrélation pondérée par l'aire r ≥ 0,6 : la carte copie ce socle — 0 à
             80 Ma, r de 0,70 à 0,85 — et l'empreinte transportée du continent, fosses comprises, reçoit le socle déchargé transporté ;
             dès 85 Ma, r ≤ 0,50 : reconstruction de Scotese, intacte. Hors de l'empreinte, la carte est intacte. ❔ Le relief propre
             de la carte sous l'empreinte est remplacé (15–25 Ma : basses terres relevées de 300 à 600 m en moyenne par la
             reconstruction) ; recalage imparfait : de 5 à 35 Ma, 0,2 à 0,3·10⁶ km² de continent de la carte bordent l'empreinte, intacts.
-            S_pol de 0 à 80 Ma : socle de 346 à 430 m, hautes terres de 1 271 à 1 330 m (à 0 Ma, 44 et 888 m avec la glace).
             Groenland : inlandsis de la carte 0 Ma = cellules de surface la plus haute jusqu'à 1 716 555 km² (Citterio &amp;
             Ahlstrøm 2013) ; socle chargé \(\bar b = \bar s - V/A\) = 437 m fermé sur BedMachine v3 (V = 2,99·10⁶ km³),
             \(H = s - \bar b\) ; même décharge, et même croûte sur les cartes de 5 et 10 Ma, qui montrent la surface de l'inlandsis
-            (dès 15 Ma, le socle) : à 0 Ma, socle de N_pol 194 m (273 m avec la glace), hautes terres 798 m (1 113 m). ❔ Socle
-            chargé uniforme sous l'inlandsis. Méridien ±180 et latitudes frontières des bandes : règle des trapèzes ; quart le plus
-            haut : les cellules ex-aequo au seuil y entrent à la même fraction.
-            ❔ Aire juste par compensation : les cœurs des plates-formes de Ross et de Ronne-Filchner (0,73·10⁶ km², flottants
-            aujourd'hui) reçoivent de la glace posée, 1,3·10⁶ km² de terres émergées n'en reçoivent pas — rebond des hautes terres
-            sous-estimé de 20 à 40 m. ❔ Marche entre 80 et 85 Ma : les reconstructions de 85 Ma et plus ne copient plus la carte
-            0 Ma (r ≤ 0,50) et restent au niveau du socle chargé, sans règle cellule par cellule pour elles — hautes terres de S_pol
-            1 271 → 699 m, dont environ 270 m dus à la décharge des seules copies. ❔ Groenland de 15 Ma, relevé par Scotese au-dessus
-            du socle déchargé, gardé tel quel (hautes terres de N_pol 803 → 823 → 719 m de 10 à 20 Ma).</p>
-        <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 ; Nye 1952, Nature 169:529 ; Fretwell et al.
+            (dès 15 Ma, le socle). ❔ Socle chargé uniforme sous l'inlandsis. ❔ Marche entre 80 et 85 Ma : les reconstructions de
+            85 Ma et plus ne copient plus la carte 0 Ma (r ≤ 0,50) et restent au niveau du socle chargé. ❔ Groenland de 15 Ma, relevé
+            par Scotese au-dessus du socle déchargé, gardé tel quel. Grille de 1° : méridien ±180 et latitudes frontières des tranches :
+            règle des trapèzes (lignes frontières à demi-poids) ; distance de grand cercle à la mer sur tout le globe, pour la carte de
+            0 Ma seulement (marge de la glace antarctique retirée).</p>
+        <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 ; Nye 1952, Nature 169:529 ; Paterson 1972,
+            Rev. Geophys. Space Phys. 10:885 ; Bahr, Pfeffer &amp; Kaser 2015, Rev. Geophys. 53:95 ; Fretwell et al.
             2013, The Cryosphere 7:375 ; Citterio &amp; Ahlstrøm 2013, The Cryosphere 7:445 ; Morlighem et al. 2017, GRL 44:11051 ;
-            Scotese &amp; Wright 2018</p>
-        <p class="code">physics/calottes.js → bilanCalotte, equilibre, calculer ; data/paleogeo_zones.js
+            Scotese &amp; Wright 2018 ; Pierrehumbert 2010 ; Jouzel &amp; Merlivat 1984, JGR 89:11749 ; IOC et al. 2010 (TEOS-10)</p>
+        <p class="code">physics/calottes.js → geographie, parts, sommets, rangBilan, dome, geometrie, socleCouvert, bilanCalotte, bilanPoint, colonne
+            (lire, libre), equilibre, calculer, engager, sansCalotte ; DATA['🗻']['📿🗻🧊'] ; physics/saisons.js → SAISONS.cycles ; h2o/calculations_h2o.js → mondeOcean ; radiative/calculations.js → loiAdiabatique ; data/paleogeo_zones.js
             (CO2/scripts/paleogeo/paleodem_zones.py)</p>
     </div>
     <div class="eq P" id="eq-calottes-rebond-socle">
         <div class="titre"><span class="cl P">P</span> Calottes : rebond retardé du socle et conservation de la masse</div>
-        <div class="f" data-tex="\frac{d}{dt}\big(a\,A\,\bar H(a)\big) = \frac{a\,A\,\bar b(a, d)}{\rho_i},\qquad \frac{\partial d}{\partial t} = \frac{\frac{\rho_i}{\rho_m}\,h - d}{\tau_b},\qquad \tau_b = \frac{4\pi\eta}{\rho_m\,g\,\lambda},\qquad z = z_{\text{socle}} + h - d"></div>
-        <p>Au clic time, la calotte avance par la conservation de sa masse : son volume \(V = a\,A\,\bar H(a)\) (profil de Nye,
-            \(A\) aire de la bande) gagne ce que son bilan intégré lui apporte. Le socle ne suit pas sa charge sans retard : son
-            enfoncement \(d\), porté aux 61 latitudes de la bande, relaxe vers l'équilibre d'Archimède \(\frac{\rho_i}{\rho_m}h\)
-            en un temps \(\tau_b\) (asthénosphère relaxante locale, Le Meur &amp; Huybrechts 1996, éq. 1 et 4). Une calotte qui
-            recule reste posée sur un socle encore enfoncé par sa charge passée : sa surface est plus basse, plus chaude, et fond
-            davantage (Abe-Ouchi et al. 2013). À l'équilibre \(d = \frac{\rho_i}{\rho_m}h\) : l'équilibre d'une calotte et le clic
-            de frise ne dépendent pas du retard.</p>
+        <div class="f" data-tex="\frac{dV}{dt} = \frac{a\,A\,\bar B(a, d)}{\rho_i},\quad V = \frac{8\pi}{15}\,C\,R^{5/2},\qquad \frac{\partial d}{\partial t} = \frac{\frac{\rho_i}{\rho_m}\,H - d}{\tau_b},\qquad \tau_b = \frac{4\pi\eta}{\rho_m\,g\,\lambda},\quad \lambda = \frac{3\,000}{1\,350}\;2\sqrt{\frac{A_{\text{continent}}}{\pi}}"></div>
+        <p>Au clic time, la calotte avance par la conservation de sa masse : son volume \(V\) (le dôme de son aire ; \(A\) aire de la bande) gagne ce que son bilan intégré lui apporte ; plafond : le continent
+            de la bande, le surplus part à la mer. Le socle ne suit pas sa charge sans retard : son enfoncement \(d\), porté par cellule (48 par bande), relaxe vers l'équilibre d'Archimède \(\frac{\rho_i}{\rho_m}H\) en un temps \(\tau_b\) (asthénosphère
+            relaxante locale, Le Meur &amp; Huybrechts 1996, éq. 1 et 4). Une calotte qui recule reste posée sur un socle encore
+            enfoncé par sa charge passée : sa surface est plus basse, plus chaude, et fond davantage (Abe-Ouchi et al. 2013). À
+            l'équilibre \(d = \frac{\rho_i}{\rho_m}H\) : l'équilibre d'une calotte et le clic de frise ne dépendent pas du retard. La masse
+            des calottes du pas, \(\rho_i \sum V\) (🗻.🧮⚖️🗻🧊), est engagée avec elles (🗻.⚖️🗻🧊) : c'est la glace continentale du
+            partage de l'eau. Sans calotte (hors d'un monde à océan), le socle relaxe sans charge depuis son enfoncement porté,
+            \(d(t) = (L_0 + e_0)\,e^{-t/\tau_b}\) (solution exacte).</p>
         <p>\(\tau_b\) : mode d'un demi-espace visqueux (Haskell ; Schubert, Turcotte &amp; Olson 2001, éq. 5.2.32). ⚠️ η =
             10²¹ Pa·s, mesure posée : viscosité moyenne du manteau jusqu'à ~1 400 km, tirée par cette même équation du soulèvement
-            daté de la Fennoscandie (Haskell 1935 ; Mitrovica 1996 : 0,65–1,1·10²¹). ❔ λ = 2 × largeur de la charge (Schubert et
-            al. prennent 3 000 km pour les 1 350 km de la Fennoscandie) : la calotte qui couvre la terre de sa bande, de largeur
-            W depuis son partage des eaux, ou de diamètre 2W quand le partage est au pôle. Calotte nord pleine : W = 2 282 km,
-            τ_b = 2,70 ka ; Antarctique 1,24 ka ; N_mid 2,00 ka. 🎯 Laurentide (2 500 km de large) : l'équation donne 2,46 ka pour
-            2,6 ka observés ; Fennoscandie (1 350 km) : 4,56 ka pour 4,4 ka (tableau 5.1).</p>
+            daté de la Fennoscandie (Haskell 1935 ; Mitrovica 1996 : 0,65–1,1·10²¹). ❔ λ = (3 000 / 1 350) × largeur de la charge, le
+            rapport de Schubert et al. pour la Fennoscandie, un seul cas ; ❔ largeur = 2 × le rayon du dôme qui couvre le continent de la bande, \(2\sqrt{A_{\text{continent}}/\pi}\) (la déformation garde la largeur de la plus grande
+            charge, celle qui compte quand une calotte fond ; une petite calotte naissante relaxe donc trop vite). τ_b : Antarctique 1,19 ka, N_pol 0,94 ka, N_mid 0,66 ka (carte de 0 Ma). 🎯 Laurentide (2 500 km de large) : l'équation donne 2,21 ka pour
+            2,6 ka observés (tableau 5.1, −15 %) — contrôle indépendant si η n'est pas tiré de ce même tableau (à vérifier).
+            📖 Fennoscandie (1 350 km, 4,4 ka observés) : pas un contrôle, η et le rapport λ / largeur en viennent ; l'équation donne
+            4,10 ka (λ = 3 000 km).</p>
         <p>Négligés : la flexion de la lithosphère (\(D k^4/\rho_m g\) &lt; 0,1 % pour λ ≥ 3 000 km, Bueler et al. 2007, éq. 14),
             la part élastique instantanée, la sphéricité, le manteau inférieur plus visqueux. ❔ Un seul τ_b par bande, celui de la
-            calotte qui couvre sa terre (une petite calotte relaxe en vérité plus lentement) ; η constante dans le temps.</p>
-        <p>Résolution : calotte et socle avancent ensemble en sous-pas de τ_b. Calotte : Heun, taux au départ et à l'état prédit
-            (socle compris) ; naissance (pas de glace, neige qui reste au sommet) : Euler implicite,
-            \(V(a') = h\,a'\,A\,\bar b(a')/\rho_i\). Socle : solution exacte pour une charge qui varie linéairement sur le sous-pas,
-            \(d(h) = L_N + (d - L)\,e^{-x} - (L_N - L)\,\frac{1 - e^{-x}}{x}\), \(x = h/\tau_b\). Arrêt quand plus rien ne se verrait
-            d'ici la fin du clic : écart du socle et épaisseur gagnée ou perdue sous la tolérance du point fixe méridien ramenée en
-            altitude, 0,01 K / Γ ≈ 1,5 m ; le socle finit alors de relaxer exactement. ❔ Seuls les 100 derniers milliers d'années
-            d'un clic sont intégrés : avant, la calotte relaxe vers son équilibre au temps de renouvellement
-            \(\rho_i \bar H / \max(\text{accumulation}, \text{fonte})\) et l'écart du socle s'éteint en τ_b — au bout de plusieurs
-            de ces temps c'est l'équilibre, et le coût d'un clic de plusieurs millions d'années reste borné.</p>
+            calotte qui couvre le continent de sa bande ; η constante dans le temps.</p>
+        <p>Résolution : variable intégrée \(q = V^{1/5}\) : pour le dôme,
+            \(dq/dt = \frac{\pi}{5}\big(\frac{8\pi}{15}C\big)^{-4/5}\bar B/\rho_i\), fini à la naissance et constant à bilan constant ;
+            l'aire d'un volume est en forme close. Sur les 100 derniers milliers d'années du clic : Heun en \(q\),
+            calotte et socle ensemble, en sous-pas bornés par τ_b et par le temps propre
+            \(\rho_i \max(\bar H, h_{\text{tol}}) / \max(\text{accumulation}, \text{fonte})\), \(h_{\text{tol}}\) = la tolérance du point
+            fixe méridien ramenée en altitude, 0,01 K / Γ_s (gradient de surface au sommet) — une calotte plus mince ne se voit pas, et
+            une calotte qui fond disparaît en un nombre fini de sous-pas ; l'orbite est celle de la date de départ puis d'arrivée de
+            chaque sous-pas, jusqu'au bout du clic. Socle : solution exacte pour une charge qui varie linéairement sur le sous-pas,
+            \(d(h) = L_N + (d - L)\,e^{-x} - (L_N - L)\,\frac{1 - e^{-x}}{x}\), \(x = h/\tau_b\). Avant : Euler implicite de la même loi
+            en pas qui doublent, l'état d'arrivée cherché entre l'état courant et l'équilibre sous l'orbite de la date d'arrivée —
+            stable, un clic plus long avance plus loin, et le coût d'un clic de plusieurs millions d'années reste borné.</p>
         <p>📖 Avec une Terre viscoélastique réaliste, les grands reculs qu'un socle amorti localement produit ne sont plus si marqués
             (Deblonde &amp; Peltier 1990) : le retard ne suffit pas à lui seul à déglacer une calotte dont l'équilibre reste englacé.</p>
         <p class="src">Le Meur &amp; Huybrechts 1996, Ann. Glaciol. 23:309 ; Haskell 1935, Physics 6:265 ; Mitrovica 1996, JGR
             101:555 ; Schubert, Turcotte &amp; Olson 2001, Mantle Convection in the Earth and Planets, ch. 5 ; Bueler, Lingle &amp;
             Brown 2007, Ann. Glaciol. 46:97 ; Abe-Ouchi et al. 2013, Nature 500:190 ; Deblonde &amp; Peltier 1990, Ann. Glaciol. 14:47</p>
-        <p class="code">physics/calottes.js → calculer, naissance, bilanCalotte (airy, fige), chargeNoeuds, volume, aireDe ;
+        <p class="code">physics/calottes.js → calculer, bilanCalotte, equilibre, geometrie, charge, engager ;
             physics/meridien.js → MERIDIEN.TOLERANCE_K</p>
     </div>
     <div class="eq P" id="eq-neige-des-calottes">
@@ -695,137 +1021,240 @@ Licensed under Apache License 2.0 with Commons Clause.
         <div class="f" data-tex="F_q(x) = -\frac{2\pi p_s}{g}\,D\,(1-x^2)\,[1-w(x)]\,\frac{dq}{dx},\quad q = \text{HR}\;q^*\big(T(x)\big),\quad P-E = -\frac{1}{2\pi a^2}\,\frac{dF_q}{dx},\quad w = e^{-x^2/0{,}3^2}"></div>
         <p>L'eau qui tombe sur une calotte vient d'ailleurs : transport d'énergie humide vers les pôles en diffusion (Siler, Roe
             &amp; Armour 2018) sur le profil T(x) du bilan de North, D = 1,16·10⁶ m²/s (leur ajustement sur la température zonale
-            d'ERA-Interim), humidité relative de surface du modèle. Sur la glace la sublimation est négligée : la neige d'un point
-            vaut P − E à sa latitude, réduite avec l'altitude comme la vapeur saturante au sommet de l'inversion (Jouzel &amp;
-            Merlivat 1984), sur la part de l'année sous 0 °C seulement.</p>
-        <p>🎯 📱 : 55 à 73 kg m⁻² an⁻¹ sur les calottes (Antarctique mesuré : 143, Arthern et al. 2006) ; temps de réaction
-            15 à 75 ka, assez courts pour suivre l'orbite.</p>
+            de la réanalyse ERA-Interim), humidité relative de surface du modèle, \(q^*\) sur l'eau liquide (Murphy &amp; Koop sous le point triple, IAPWS au-dessus :
+            ❔ une seule phase, celle des modèles d'énergie humide usuels) et \(dq/dx\) analytique. Sur la glace la sublimation est négligée : la neige
+            d'un point vaut P − E à sa latitude, réduite avec l'altitude comme la vapeur saturante au sommet de l'inversion sous la calotte
+            (Jouzel &amp; Merlivat 1984), comme celle de l'air libre sur un sol sans glace, sur la part de l'année sous 0 °C seulement.</p>
+        <p>❔ D ajusté avec l'humidité relative de leur modèle, appliqué à celle du moteur ; transport latent de la cellule de
+            Hadley omis (négligeable au-delà de 40°) ; inversion de Jouzel &amp; Merlivat, mesurée en Antarctique, appliquée sous les calottes de
+            toutes les bandes.</p>
+        <p>🎯 ÉCHEC : accumulation moyenne de l'Antarctique posé, 143 kg m⁻² an⁻¹ mesurés (Arthern et al. 2006) ; le modèle donne 47
+            sur l'Antarctique posé (S_pol au clic frise 📱, surface à −35,6 °C, altitude moyenne 2,06 km), trois fois moins, et 43 sur
+            la calotte nord posée. Cause candidate mesurée, hors du moteur (sonde à état figé) : conserver sur la calotte la
+            convergence d'humidité — la neige que l'altitude retire au plateau tombe sur les marges — donne 160 sur l'Antarctique posé
+            et 213 sur le Groenland ; mais les calottes du nord, trois fois plus nourries, couvrent alors tout leur continent dès
+            T̄ ≈ 13 °C au dernier maximum glaciaire figé : la boucle entre une calotte et la boîte terre de sa bande n'est pas bornée.
+            Autres causes candidates, non tranchées — rien n'est calé : la réduction avec l'altitude, appliquée à un
+            P − E zonal qui ne connaît pas l'ascendance orographique des marges, où tombe l'essentiel de la neige réelle ; le P − E de
+            Siler, proportionnel à l'humidité relative du moteur (0,735 ; −8 % au plus si leur ajustement est à 0,8) et à \(q^*\) du
+            profil de North (T̄, T₂). Décomposition cellule par cellule à remesurer sur le dôme. Temps de renouvellement des calottes de
+            quelques milliers à quelques dizaines de milliers d'années (Antarctique de 📱 : 42,1 ka, 43,4 ka à 🦣 ; calotte nord posée :
+            2,4 ka), assez courts pour suivre l'orbite.</p>
         <p class="src">Siler, Roe &amp; Armour 2018, J. Climate 31:7481, éq. 1, 2, 5, 6</p>
-        <p class="code">physics/calottes.js → calculer (PmoinsE), bilanPoint</p>
+        <p class="code">physics/calottes.js → calculer (PmoinsE), colonne, bilanPoint ; physics.js → PHYS.dLnPSatLiquide</p>
     </div>
-    <div class="eq P" id="eq-degres-jours-stochastiques">
-        <div class="titre"><span class="cl P">P</span> Fonte des calottes : degrés-jours stochastiques et regel</div>
-        <div class="f" data-tex="\text{PDD} = \sum_{k=1}^{24}\Delta t\Big[\frac{\sigma_k}{\sqrt{2\pi}}\,e^{-T_k^2/2\sigma_k^2} + T_k\,\Phi\Big(\frac{T_k}{\sigma_k}\Big)\Big],\quad \sigma_k = 1{,}66 - 0{,}15\,\min(T_k, 0),\quad M = M_n + f_g\Big(\text{PDD} - \frac{M_n}{f_n}\Big) + M_{\text{orbite}},\quad M_n = \min(N,\ f_n\,\text{PDD}),\quad R = \max\Big(0,\ \min\Big(M,\ \frac{c_i}{L_f}\max(0, -\bar T)\,N + \Big(\frac{\rho_e}{\rho_o} - 1\Big)(N - M)\Big)\Big),\quad \text{fonte} = M - R"></div>
-        <p>Chaque jour s'écarte du cycle annuel \(T_k\) de la terre de la bande (24 nœuds de l'année ; amplitude de zone posée et
-            retard posé, carte « Amplitudes saisonnières des zones ») selon une loi normale : degrés-jours positifs en forme
-            semi-analytique (Calov &amp; Greve 2005, éq. 6), Φ = probabilité d'un jour au-dessus de 0 °C (erfc d'Abramowitz &amp;
-            Stegun 7.1.26). σ est l'écart-type MESURÉ des moyennes journalières sur le Groenland (Seguinot &amp; Rogozhina 2014,
-            éq. 3, ERA-40) : ⚠️ σ n'a pas d'équation ; ⚠️ mesuré sur la calotte, il sert aussi aux terres sans glace où les calottes
-            naissent, que l'article exclut ; ❔ au-dessus de 0 °C il garde sa valeur de 0 °C (la régression contient des mois
-            jusqu'à +2 °C et deviendrait négative au-dessus de +11 °C). C'est le
-            σ des moyennes journalières, celui des facteurs de Braithwaite 1995 (neige \(f_n\) = 3, glace \(f_g\) = 8 mm d'eau par
-            °C·jour) : le cycle diurne n'y entre pas une seconde fois. La neige de l'année \(N\) fond d'abord, puis la glace (Reeh
-            1991). Une part de la fonte \(M\) de l'année (degrés-jours et insolation de l'orbite, carte suivante) regèle dans le
-            névé : son froid, \(c_i/L_f \cdot \max(0, -\bar T)\), et l'eau retenue par capillarité dans la neige restante \(N - M\),
-            entre névé sec \(\rho_o\) = 300 et névé saturé \(\rho_e\) = 960 kg/m³ (Pfeffer et al. 1991, sous la forme de Janssens
-            &amp; Huybrechts 2000 écrite par Reijmer et al. 2012, éq. 2 et 5) ; en zone d'ablation (\(M > N\)) la rétention devient
-            négative et le regel s'annule. \(c_i\) = 2 096,78 J kg⁻¹ K⁻¹ (IAPWS). L'écart-type de 4,5–5 K et le
-            plafond de regel de 60 % des modèles de calotte courants sont des calages : ils ne sont pas pris.</p>
-        <p>🎯 À climat figé, la naissance d'une calotte demande 1,0 à 1,3 K de refroidissement de plus qu'avec un cycle sans écart
-            journalier : 🚂 le nord naît après 2,5 K (il doit naître de peu, Ganopolski et al. 2016) ; 📱 l'Antarctique tient à 0,349
-            de sa bande (0,36 posé) ; ⚠️ le Groenland ne tient pas (0,05 posé) — une seule terre par bande : N_pol reçoit le cycle
-            de toute sa terre, Sibérie et Canada compris ; l'Antarctique de l'EOT manque sa naissance de 1,7 K (frise) et de 3,2 K
-            (clic ⛰).</p>
-        <p class="src">Calov &amp; Greve 2005, J. Glaciol. 51:173 (éq. 6) ; Seguinot &amp; Rogozhina 2014, J. Glaciol. 60:603 (éq. 3) ;
-            Janssens &amp; Huybrechts 2000, Ann. Glaciol. 31:133 (éq. 7) ; Reijmer et al. 2012, The Cryosphere 6:743 (éq. 2, 5) ;
-            Pfeffer et al. 1991, JGR 96:22117 ; Reeh 1991 ;
-            Braithwaite 1995 ; Feistel &amp; Wagner 2006 ; Abramowitz &amp; Stegun 1964</p>
-        <p class="code">physics/calottes.js → bilanPoint (K.SIGMA_FONTE_K, K.PENTE_SIGMA, K.RHO_NEIGE_*, K.NOEUDS) ; physics.js →
-            CONST.CP_GLACE, CONST.L_FUSION_GLACE</p>
+    <div class="eq P" id="eq-fonte-bilan-energie">
+        <div class="titre"><span class="cl P">P</span> Fonte des calottes : bilan d'énergie de surface, jours stochastiques et regel</div>
+        <div class="f" data-tex="Q = \tau(1-\alpha)S + \varepsilon\sigma T_a^4 - \sigma T_0^4 + H + LE \simeq A_{\text{sol}}S + c_0 + c_1(T_a - T_0),\quad \varepsilon = 1{,}24\Big(\frac{e_a}{T_a}\Big)^{1/7}(1-n) + n,\quad H + LE = \rho\,C\,U\big[c_p(T_a - T_0) + L_v\big(q_a - q^*(T_0)\big)\big],\quad C = \frac{\kappa^2}{\ln(z_v/z_0)\,\ln(z_T/z_0)}\,;\qquad M_{\text{neige}} = \sum_{k=1}^{24}\frac{\Delta t}{L_f}\,c_1\Big[\sigma_k\,\varphi\Big(\frac{m_{s,k}}{\sigma_k}\Big) + m_{n,k}\,\Phi\Big(\frac{m_{s,k}}{\sigma_k}\Big)\Big],\quad M_{\text{glace}} = \sum_{k=1}^{24}\frac{\Delta t}{L_f}\,c_1\Big[\sigma_k\,\varphi\Big(\frac{m_{g,k}}{\sigma_k}\Big) + m_{g,k}\,\Phi\Big(\frac{m_{g,k}}{\sigma_k}\Big)\Big],\quad m_x = T_k - T^*_x,\quad T^*_x = -\frac{a_x S + c_0}{c_1},\ x \in \{\text{sec}, \text{neige}, \text{glace}\},\quad \sigma_k = 1{,}66 - 0{,}15\min(T_k, 0)\,;\qquad R = \max\Big(0,\ \min\Big(M,\ \frac{c_i}{L_f}\max(0, -\bar T)\,N + \Big(\frac{\rho_e}{\rho_o} - 1\Big)(N - M)\Big)\Big),\quad \text{fonte} = M - R"></div>
+        <p>Une surface qui fond (\(T_0\) = 0 °C) reçoit l'insolation absorbée \(A_{\text{sol}}S\) (carte suivante) et le rayonnement du
+            ciel, et échange chaleur sensible et latente avec l'air : bilan linéarisé autour de \(T_0\) (❔ erreur de l'ordre de 2 W/m² à
+            \(T_a\) = +10 °C). Ciel clair de Brutsaert 1975, \(e_a\) en hPa (⚛ dérivé pour une atmosphère type ; ❔ appliqué à d'autres
+            CO₂ et d'autres vapeurs) ; nuages bas et moyens du modèle, couverture \(n\) de la colonne en recouvrement aléatoire, noirs à
+            \(T_a\) (❔ les moyens sont plus froids, les hauts négligés). Flux turbulents : formule de transfert neutre de Monin–Obukhov,
+            \(C\) = 1,40·10⁻³ (κ = 0,40, Högström 1996 ; \(z_0\) = 10⁻⁴ m, neige de mars ; vent à 10 m, température à 2 m ; ❔ stabilité
+            négligée ; ❔ \(z_h = z_0\), vrai sur une neige lisse) ; vent \(U\) = 6,15 m/s, milieu des 5,0–7,3 m/s mesurés aux stations
+            S5, S6, S9 du Groenland ouest (van den Broeke et al. 2008, table 2 ; ❔ appliqué à toutes les calottes et terres) ; ρ à la
+            pression de la colonne, \(c_p\) et \(L_v\) des courbes du profil, humidité de surface du modèle (\(q_a = \text{HR}\,q^*(T_a)\)).
+            Au niveau de la mer sur 📱 : \(c_0\) ≈ −72 W/m², \(c_1\) ≈ 21 W m⁻² K⁻¹ (5,5 mm d'eau par K·jour par le seul terme en T).</p>
+        <p>Chaque jour s'écarte du cycle annuel \(T_k\) de la boîte terre de la bande (24 nœuds de l'année) selon une loi normale.
+            Une glace nue fond dès que son bilan est positif : fonte attendue \(E[\max(0, Q)]/L_f\) en forme semi-analytique (celle des
+            degrés-jours de Calov &amp; Greve 2005, éq. 6, ici autour du seuil \(T^*_{\text{glace}}\) au lieu de 0 °C ; Φ par l'erfc
+            d'Abramowitz &amp; Stegun 7.1.26). Une NEIGE SÈCHE ne fond que le jour où son propre bilan, sous son albédo 🪩🍰❄️, atteint la
+            fusion, \(T > T^*_{\text{sec}}\) ; elle fond alors mouillée, sous l'albédo de la neige mouillée :
+            \(E[Q\,\mathbb 1(T > T^*_{\text{sec}})]\), la forme ci-dessus (\(m_n \ge m_s\)). \(a_x\) : part de l'insolation absorbée
+            au sol par une neige sèche, une neige mouillée, une glace nue (transfert solaire du modèle, carte suivante). ❔ Chaque jour
+            est tiré seul : la neige d'hier, mouillée, ne garde pas son albédo. Une loi pour toute neige et toute glace
+            (CALOTTES.fonteJour) : calottes, neige des terres et banquise (carte de l'albédo de la glace saisonnière). σ est l'écart-type des moyennes
+            journalières sur le Groenland dans la réanalyse ERA-40 (régression de Seguinot &amp; Rogozhina 2014, éq. 3) : 💻 un modèle
+            assimilé, pas une mesure directe ; σ n'a pas d'équation ; ⚠️ établi sur la calotte, il sert aussi aux terres sans glace où
+            les calottes naissent, que l'article exclut ; ❔ au-dessus de 0 °C il garde sa valeur de 0 °C (la régression contient des
+            mois jusqu'à +2 °C et deviendrait négative au-dessus de +11 °C). C'est le σ des moyennes journalières : le cycle diurne n'y
+            entre pas une seconde fois. La neige de l'année \(N\) fond d'abord, puis la glace (Reeh 1991). Une part de la fonte \(M\) de
+            l'année regèle dans le névé : son froid, \(c_i/L_f \cdot \max(0, -\bar T)\), et l'eau retenue par capillarité dans la neige
+            restante \(N - M\), entre névé sec \(\rho_o\) = 300 et névé saturé \(\rho_e\) = 960 kg/m³ (Pfeffer et al. 1991, sous la
+            forme de Janssens &amp; Huybrechts 2000 écrite par Reijmer et al. 2012, éq. 2 et 5) ; en zone d'ablation (\(M &gt; N\)) la
+            rétention devient négative et le regel s'annule. \(c_i\) = 2 096,78 J kg⁻¹ K⁻¹ (IAPWS). Aucun facteur degrés-jours :
+            l'écart-type de 4,5–5 K et le plafond de regel de 60 % des modèles de calotte courants sont des calages, ils ne sont pas
+            pris.</p>
+        <p>🎯 Braithwaite 1995 (modèle de bilan d'énergie du Groenland) : neige ~3, glace ~8 mm d'eau par °C·jour, comparés au
+            rapport fonte / degrés-jours positifs du modèle — valeur du modèle à remesurer sur 📱. 🎯 Stations S5, S6, S9 du Groenland ouest (67° N ; 490, 1 020, 1 520 m ; van
+            den Broeke et al. 2008, table 2) : température à 2 m en moyenne annuelle 267,7 / 263,4 / 260,6 K, 7,0 K/km — la grandeur de
+            cette table que la forme de l'inversion hivernale (🔧) ne règle pas : en un point, la moyenne annuelle de la surface est celle
+            de J&amp;M quelle que soit la forme (poids de moyenne 1), et la forme, le vent et \(z_0\) pris aux mêmes stations ne
+            l'atteignent que par la fonte, à travers l'albédo des calottes et le climat ; valeur du modèle à remesurer sur 📱. 📖 Leur
+            bilan, −3,6 / −1,5 / ~0 m d'eau par an, n'est pas un contrôle : le choix de la forme de l'inversion regarde leur fonte d'été,
+            et elle dépend du vent et de \(z_0\) de ces mêmes stations.</p>
+        <p>❔ 🎯 Sur 📱, l'équilibre de l'Antarctique posé vaut 0,410 de sa bande (14,0·10⁶ km²) pour 0,3598 posé (12,3·10⁶ ; contrôle
+            en partie dépendant de l'entrée : l'aire posée de Bedmap2 ferme τ), +14 % ; à la frise 🦣, 0,368 (12,5·10⁶) : l'équilibre
+            dépend du sommet que choisit le meilleur \(\bar B\) (64° S à 📱, 86° S à 🦣). 🎯 La calotte nord posée (0,0502 de sa bande,
+            le Groenland ; équilibre 0) — ÉCHEC : accumulation 43 contre fonte 502 kg m⁻² an⁻¹ (frise 📱) ; la fonte vient des anneaux
+            extérieurs, au pic d'été de la boîte terre de 60–90° N.</p>
+        <p class="src">Brutsaert 1975, Water Resour. Res. 11:742 ; Högström 1996, Boundary-Layer Meteorol. 78:215 ; van den Broeke
+            et al. 2008, The Cryosphere 2:179 ; Andreas 1987, Boundary-Layer Meteorol. 38:159 ; Calov &amp; Greve 2005, J. Glaciol.
+            51:173 (éq. 6) ; Seguinot &amp; Rogozhina 2014, J. Glaciol. 60:603 (éq. 3) ; Janssens &amp; Huybrechts 2000, Ann. Glaciol.
+            31:133 (éq. 7) ; Reijmer et al. 2012, The Cryosphere 6:743 (éq. 2, 5) ; Pfeffer et al. 1991, JGR 96:22117 ; Reeh 1991 ;
+            Feistel &amp; Wagner 2006 ; Abramowitz &amp; Stegun 1964 ; contrôle : Braithwaite 1995, J. Glaciol. 41:153</p>
+        <p class="code">physics/calottes.js → contexte (bilan d'énergie de surface), fonteJour, bilanPoint (K.KARMAN, K.Z0_M, K.Z_VENT,
+            K.Z_TEMPERATURE, K.VENT_SURFACE_M_S, K.BRUTSAERT_A, K.BRUTSAERT_N, K.SIGMA_FONTE_K, K.PENTE_SIGMA, K.RHO_NEIGE_*,
+            K.NOEUDS) ; physics.js → CONST.CP_GLACE, CONST.L_FUSION_GLACE</p>
     </div>
     <div class="eq P" id="eq-fonte-insolation-orbite">
-        <div class="titre"><span class="cl P">P</span> Fonte des calottes : degrés-jours + insolation de l'orbite</div>
-        <div class="f" data-tex="M = M_{\text{PDD}} + \frac{A_{\text{sol}}(\alpha)}{L_f}\int \Phi\Big(\frac{T(t)}{\sigma}\Big)\big(S(t) - S_{1950}(t)\big)\,dt"></div>
-        <p>Les facteurs degrés-jours (neige ~3, glace ~8 mm d'eau par °C·jour) sont mesurés sous l'orbite actuelle ; l'écart
-            d'insolation journalière entre l'orbite de la date et celle de 1950 fond en plus les jours de fonte, chacun pondéré par
-            sa probabilité Φ(T/σ) (❔ analogue continu des jours au-dessus de 0 °C ; avant −51 Ma, hors de la solution orbitale :
-            aucun écart).
-            \(A_{\text{sol}}\) : part absorbée au sol par une surface qui fond (neige mouillée, puis glace nue au prorata des
-            degrés-jours), donnée par le transfert solaire du modèle aux angles solaires de la zone. C'est par là qu'entrent la
-            précession et l'insolation d'été à 65° N.</p>
-        <p class="src">Robinson &amp; Goelzer 2014, The Cryosphere 8:1419 (éq. 2) ; Braithwaite 1995, J. Glaciol. 41:153</p>
-        <p class="code">physics/calottes.js → bilanPoint ; physics/orbite.js → anomalie ; physics/meridien.js → absorbe</p>
+        <div class="titre"><span class="cl P">P</span> Fonte des calottes : insolation de la date et énergie absorbée</div>
+        <div class="f" data-tex="S_k(t) = \Big[S_{1950,k} + (1-w)\,\Delta S_{j,k} + w\,\Delta S_{j+1,k}\Big]\,\frac{L(t)}{L_\odot},\qquad A_{\text{sol}} = \tau\,(1-\alpha_{\text{neige mouillée}}\ \text{ou}\ \alpha_{\text{glace nue}}),\qquad \alpha_{\text{calotte}} = \frac{\sum_k S_k\big[(1-p_k)\,\alpha_{\text{sèche}} + p_k\,\alpha_{\text{fonte}}\big]}{\sum_k S_k}"></div>
+        <p>L'insolation journalière de chaque nœud de l'année est celle de la DATE de chaque sous-pas des calottes (âge de fin du clic
+            + temps restant) : orbite de 1950 plus l'écart des deux lignes \(j\), \(j+1\) de la table La2004 qui encadrent la date
+            (carte de l'orbite), à la latitude du point, × Soleil de l'époque. La précession et l'obliquité entrent dans la fonte par
+            deux flux distincts, chacun une fois : l'insolation absorbée \(S(t)\), et le cycle annuel de la boîte terre, forcé lui
+            aussi à la date. Un clic de 20 ka vaut quatre clics de 5 ka (ceux du chemin 🐾). ⚠️ T̄ et T₂ (solveur) restent ceux de la fin du clic.
+            \(A_{\text{sol}}\) : part absorbée au sol par une surface qui fond (neige mouillée, puis glace nue), donnée par le transfert
+            solaire du modèle aux angles solaires de la zone, nuages et vapeur compris ; ❔ albédos de la glace de mer (0,70 froide,
+            0,50 fondante) pris pour la neige mouillée et la glace nue d'une calotte. Albédo annuel de chaque calotte (lu par le
+            co-albédo de sa zone et par l'albédo planétaire) : moyenne pondérée par l'insolation, neige sèche hors fonte, neige
+            mouillée puis glace nue pendant la fonte (\(p_k\) : probabilité de fonte du nœud) — sur 📱, Antarctique 0,830, calotte nord 0,800 : leurs marges fondent.</p>
+        <p class="src">Berger 1978, J. Atmos. Sci. 35:2362 ; Laskar et al. 2004, A&amp;A 428:261</p>
+        <p class="code">physics/calottes.js → bilanPoint, bilanCalotte ; physics/saisons.js → noeuds ; physics/orbite.js →
+            encadrement, anomalieLigne ; physics/meridien.js → absorbe</p>
     </div>
     <div class="eq P" id="eq-cycle-saisonnier-calcule">
-        <div class="titre"><span class="cl P">P</span> Cycle saisonnier calculé des terres et des mers (diagnostic)</div>
-        <div class="f" data-tex="Z_T\hat T_T = F_n + \frac{\nu}{f_T}(\hat T_M - \hat T_T),\quad Z_M\hat T_M = F_n + \frac{\nu}{f_M}(\hat T_T - \hat T_M),\quad Z_T = B + n(n{+}1)D + i n\omega C_{\text{air}} + e_{\text{sol}}\sqrt{i n\omega},\quad Z_M = (1{-}g)\big[B + n(n{+}1)D + i n\omega (C_{\text{mer}} {+} C_{\text{air}})\big] + g\Big[B + n(n{+}1)D + i n\omega C_{\text{air}} + k_i q\coth(q h_i)\Big],\quad q = \sqrt{i n\omega/\kappa_i},\quad \nu = \frac{u\,C_{\text{air}}}{2\pi R\cos\varphi}"></div>
+        <div class="titre"><span class="cl P">P</span> Cycle saisonnier calculé des terres et des mers</div>
+        <div class="f" data-tex="Z_T\hat T_T = F_n + \frac{\nu}{f_T}(\hat T_M - \hat T_T),\quad Z_M\hat T_M = F_n + \frac{\nu}{f_M}(\hat T_T - \hat T_M),\quad Z_T = B + n(n{+}1)D + i n\omega C_{\text{air}} + e_{\text{sol}}\sqrt{i n\omega},\quad Z_M = (1{-}g)\big[B + n(n{+}1)D + i n\omega (C_{\text{mer}} {+} C_{\text{air}})\big] + g\Big[B + n(n{+}1)D + i n\omega C_{\text{air}} + k_i q\coth(q h_i)\Big],\quad q = \sqrt{i n\omega/\kappa_i},\quad \nu = \frac{u\,C_{\text{air}}}{2\pi R\cos\varphi},\qquad f\,Z_T\,\hat T_\varphi + \nu_\varphi\big(\hat T_\varphi - \hat T_M\big) = f\,F_n"></div>
         <p>Mode saisonnier du bilan diffusif de North, Cahalan &amp; Coakley 1981 (éq. 54–58), harmonique par harmonique (n = 1 annuel,
-            n = 2 semi-annuel), une boîte terre (part \(f_T\) de la bande, PaleoDEM) et une boîte mer par bande ; B et D du bilan
-            annuel. Forçage \(F_n\) : harmonique de l'insolation journalière de la bande × co-albédo de la zone (bilan méridien) ×
-            Soleil de l'époque ; \(F_1\) = S ⟨x⟩ sin ε / 2 exactement, \(F_2\) sur l'insolation journalière exacte (l'été pointu et
-            l'hiver sans creux des pôles). Terre : colonne d'air \(c_p p_s/g\) et sol semi-infini. Mer : couche de mélange
-            (eau de mer TEOS-10) ; la part de l'année gelée \(g\) porte une dalle de glace sur l'eau à son point de gel, d'impédance
+            n = 2 semi-annuel), une boîte terre (part \(f_T\) de la bande : sa terre émergée à la date, PALEOGEO) et une boîte mer par
+            bande ; B et D du bilan annuel. Forçage \(F_n\) : harmoniques n = 0, 1, 2 de l'insolation journalière moyennée sur la bande
+            (10 latitudes) À LA DATE — orbite de 1950 plus l'écart de la date : obliquité, excentricité et précession, le terme en
+            \(e\cos(\lambda - \varpi)\) compris — sur le calendrier de Kepler de 73 pas depuis l'équinoxe, × co-albédo de la COLONNE
+            de la boîte (terre ou mer, transfert solaire de la zone) × Soleil de l'époque ; la phase de chaque hémisphère vient de sa
+            latitude. Terre : l'air couplé à la surface et sol semi-infini.
+            Air : \(C_{\text{air}}\) = 0,403 \(c_p p_s/g\), l'atmosphère de 1 m d'eau (4,18·10⁶ J m⁻² K⁻¹) du jeu de McKinnon, Stine
+            &amp; Huybers 2013 (tableau 1, avec leurs u et leur couche de mélange), rapportée à la colonne de 1 atm (1,038·10⁷) — la même
+            valeur dans l'inertie et dans le couplage ν, comme chez eux. Mer : couche de mélange
+            (eau de mer TEOS-10) ; la mer de chaque latitude de la bande gèle sous 271,15 K ; la part de l'année gelée \(g\)
+            (moyenne des latitudes) porte une dalle de glace sur l'eau à son point de gel, d'impédance
             \(k_i q\coth(q h_i)\) (équation de la chaleur, Carslaw &amp; Jaeger 1959 : \(k_i/h_i\) mince, \(e_i\sqrt{i n\omega}\)
             épaisse), d'épaisseur de Stefan
-            \(h_i = \sqrt{2 k_i\,\text{FDD}/(\rho_i L_f)}\), \(k_i\) = 2,24 W m⁻¹ K⁻¹ — \(g\) et les degrés-jours de gel sortent du
-            cycle de la mer (point fixe). Couplage : l'air traverse la bande en \(2\pi R\cos\varphi/u\). Sortie : amplitude, retard
-            sur le soleil et 2ᵉ harmonique de chaque surface, pour l'état convergé du bilan méridien.</p>
-        <p>⚠️ Mesures posées faute d'équation : couche de mélange 75 m et vitesse de l'air u = 6,1 m/s (McKinnon et al. 2013,
-            rétrotrajectoires à 45–50° N), effusivité du sol 1 500 J m⁻² K⁻¹ s^-½ (ordre de grandeur sans source). ❔ Réduction à deux
-            boîtes du couplage advectif de McKinnon et al. (éq. 3) ; n = 2 pour le mode semi-annuel ; glace de mer pondérée par g ;
-            une seule terre par bande (la Sibérie et le Groenland de N_pol ont le même cycle).</p>
-        <p>❔ Premier harmonique des terres mesuré (University of Delaware, 1981–2010 ; valeurs sans script de relevé, version des
-            données non relevée) contre calculé (📱) : N_pol 18,8 / 18,9 K,
-            S_pol 12,1 / 13,8, N_mid 14,3 / 16,5, S_mid 6,5 / 5,7, tropiques 4,0 / 5,5 (N) et 4,9 (S) ; retard des terres 21 à 38 jours
-            (28 mesurés en moyenne, McKinnon et al. 2013) ; mer 79 à 93 jours. Le 2ᵉ harmonique (2,7 K à N_pol) n'a pas encore de
-            contrôle.</p>
-        <p>⚠️ Ni les calottes ni la glace de mer ne le lisent encore (carte suivante). Lu par les calottes, à climat figé : 📱
-            l'Antarctique tient à 0,333 de sa bande, le Groenland ne tient pas ; 🚂 le nord ne naît qu'après 9,2 K de refroidissement,
-            la terre de N_mid dès 2,8 K ; l'Antarctique de l'EOT manque sa naissance de 5,4 K (clic ⛰). En couplé, le 1er clic 🐾
-            bascule alors en boule de neige (−66 °C) : N_mid naît vers 10 °C et sa glace emporte tout. Le pôle du bilan méridien
-            est trop chaud (T₂ ≈ −21,5 contre −28 observé) et les hautes terres de N_mid naissent au bout polaire de leur bande :
-            c'est ce que le cycle mesuré met à nu.</p>
+            \(h_i = \sqrt{2 k_i\,\text{FDD}/(\rho_i L_f)}\), \(k_i\) = 2,24 W m⁻¹ K⁻¹ — chaque latitude a la sienne, moyennée sur la glace présente (⚠️ une seule dalle par bande) ;
+            \(g\) et les degrés-jours de gel sortent du cycle de la mer : épaisseur au point fixe à \(g\) donné (itération simple, puis
+            encadrement et dichotomie quand la pente approche 1), puis \(g\) = la plus petite racine (balayage, puis dichotomie) ; une
+            glace sans épaisseur a une impédance infinie. La surface de la glace a son propre cycle, celui de la dalle seule (la mer
+            toute gelée, à l'épaisseur \(h\)) : sa fonte (carte « Albédo de la glace saisonnière »). Couplage : l'air traverse la bande en \(2\pi R\cos\varphi/u\).
+            TERRE DE CHAQUE LATITUDE : la part de terre \(f_i\) du point \(i\) (notée \(f\) plus bas ; celle de sa cellule \([x_i, x_i + \Delta x]\) en \(x = \sin|\varphi|\), \(\Delta x = (x_1 - x_0)/N_X\) : la terre des tranches de 5° de la carte qu'elle recouvre (CALOTTES.geographie, cellules de socle au-dessus de 0 m), au prorata de l'aire, \(f_i = [\Lambda(x_i + \Delta x) - \Lambda(x_i)]/\Delta x\), \(\Lambda(x)\) la terre de la bande entre \(x_0\) et \(x\), uniforme en \(x\) dans chaque tranche ; d'où \(\sum_i f_i \Delta x = E\,(x_1 - x_0)\), \(E\) la terre de la bande : la moyenne des points est la terre de la bande) règle son couplage à la mer de la bande — l'air qui fait le tour de la latitude, en \(2\pi R\cos\varphi/u\),
+            passe la part \(f\) de son trajet sur la terre : \(f Z_T \hat T_\varphi + \nu_\varphi(\hat T_\varphi - \hat T_M) = f F_n\)
+            (n = 1, 2) et \(f B (T - T_{\text{bande}}) + \nu_\varphi (T - T_{\text{mer}}) = f (a_T - \bar a) S_0\) (n = 0),
+            \(\nu_\varphi = u C_{\text{air}}/(2\pi R\cos\varphi)\) — la réduction à deux boîtes de McKinnon et al., à la part de terre et
+            au cercle de la latitude. Les îles d'une mer gelée ont l'été de la mer, l'intérieur d'un continent le sien ; \(f = f_T\)
+            partout redonne la terre de la bande, \(f = 0\) la mer. La neige et la forêt de chaque latitude sont au cycle de sa terre et
+            pèsent par sa part de terre ; les calottes lisent la boîte terre de la bande.
+            Moyenne annuelle de chaque boîte (n = 0) : la zone du bilan méridien (\(\bar T + T_2\langle P_2\rangle_z\)), plus l'écart de
+            la bande au mode P₁ (impédance B + 2D, forcé par l'écart de son co-albédo à celui de la zone), plus l'écart terre–mer
+            (B + ν/f_T + ν/f_M, forcé par l'écart de leurs co-albédos) ; ❔ troncature au mode P₁, co-albédo de chaque boîte constant
+            sur l'année. Calculé à chaque itération du bilan méridien, forcé par les co-albédos de l'itération précédente ; lu par les calottes (température et cycle d'un point de calotte, à la date de chaque sous-pas) et par la glace saisonnière
+            (neige des terres et glace de mer de chaque latitude ; la part gelée \(g\) de la mer est la seule, pour son aire, son albédo
+            et sa masse dans le partage de l'eau), à la même température d'un point (SAISONS.temperaturePoint, la seule). ❔ Hors de La2004 (avant −51 Ma) : insolation d'une orbite circulaire à l'obliquité de l'époque.</p>
+        <p>❔ Couche de mélange de 75 m : paramètre posé du modèle idéalisé de McKinnon et al. 2013 (tableau 1), ni mesure ni
+            ajustement. 💻 Vitesse de l'air u = 6,1 m/s : moyenne de leurs rétrotrajectoires HYSPLIT à 45–50° N, calculées sur des
+            vents analysés. ❔ Atmosphère de 1 m d'eau : paramètre posé de leur modèle idéalisé (94 % de la variance des climatologies
+            mensuelles à 45–50° N, §4b), ni mesure ni ajustement ; ⚠️ la même part de la colonne à toute époque. ⚠️ Effusivité du sol 1 500 J m⁻² K⁻¹ s^-½ : ordre de grandeur sans source. ❔ Réduction à deux
+            boîtes du couplage advectif de McKinnon et al. (éq. 3), et à la part de terre de chaque latitude ; n = 2 pour le mode
+            semi-annuel ; glace de mer pondérée par g. ⚠️ Part de terre des tranches de 5° que recouvre la cellule du point, uniforme en sin φ dans chaque tranche, sans longitude (un continent et un archipel de même part ont le même été) ; sens unique : la mer de la bande échange avec la terre de la bande, pas avec celle de chaque latitude ; avant 540 Ma (sans carte), la terre
+            de la bande à toutes les latitudes.</p>
+        <p>❔ 🎯 Été de la terre de chaque latitude au nœud le plus chaud de l'année (📱 ; ordres de grandeur observés, sans relevé) :
+            75° N 5,0 °C, 78° N 2,7, 83° N −1,2 — les côtes arctiques sont à 0–5 °C en juillet : passe ; 61–68° N 19,6 à 24,9 °C contre
+            ~16–19 °C en juillet dans l'intérieur des continents : trop chaud (même B pour la terre et la mer, pas d'évaporation propre à
+            la terre). Le reste de l'excès d'été de 60–90° N vient de la moyenne annuelle de la zone polaire (T₂ = −24,7 K ; −28,0 dans
+            les observations de North et al. 1981, 📖 : 3 à 3,5 K à 70–83° N). ❔ Co-albédo constant sur l'année : avec la neige de
+            printemps, le forçage exact rendrait l'été de 70° N plus chaud de 1,5 à 3 K (sans neige, l'été a un co-albédo plus fort que
+            la moyenne annuelle).</p>
+        <p>🎯 Premier harmonique des terres mesuré (University of Delaware, 1981–2010 ; ❔ valeurs sans script de relevé, version des
+            données non relevée) contre calculé (📱) : N_pol 18,8 / 19,6 K, S_pol 12,1 / 9,8, N_mid 14,3 / 18,6, S_mid 6,5 / 7,0,
+            tropiques 4,0 / 5,8 (N) et 8,0 (S) — RMS 2,7 K. N_mid et les tropiques au-dessus : même B pour la terre et la mer (pas
+            d'évaporation propre à la terre), co-albédo constant sur l'année (pas de nuages de mousson), même amplitude pour toute la
+            bande. C'est le contrôle du cycle que lisent les calottes et la glace saisonnière : aucune amplitude n'est posée.
+            🎯 Retard des terres extratropicales 17 à 27 jours (13 et 18 aux tropiques ; 28 mesurés en moyenne, HadCRUT4, McKinnon et
+            al. 2013) ; mers 80 à 93 jours (58 mesurés). Le 2ᵉ harmonique n'a pas de contrôle.</p>
         <p class="src">North, Cahalan &amp; Coakley 1981, Rev. Geophys. 19:91 (éq. 54–58) ; McKinnon, Stine &amp; Huybers 2013, J. Climate
             26:7852 ; Stefan 1891 ; Carslaw &amp; Jaeger 1959 ; Carnahan et al. 2021 ; Feistel &amp; Wagner 2006 ; IOC et al. 2010 (TEOS-10) ; Willmott &amp;
             Matsuura (UDel)</p>
-        <p class="code">physics/saisons.js → SAISONS.cycles ; physics/meridien.js → resoudre (saisons, état convergé)</p>
+        <p class="code">physics/saisons.js → SAISONS.cycles (terre.latitudes), terreLatitudes, terreDe, forcage, noeuds, points,
+            temperaturePoint, arc, epaisseurStefan, K.PART_AIR ; physics/meridien.js → resoudre (colonnes terre et mer, à
+            chaque itération) ; physics/orbite.js → insolationCumulee, REFERENCE</p>
     </div>
-    <div class="eq X" id="eq-amplitudes-saisonnieres">
-        <div class="titre"><span class="cl X">⚠️</span> Amplitudes saisonnières des zones</div>
-        <div class="f" data-tex="a_{\text{pol}} = 15,\ a_{\text{mid,cont}} = 25,\ a_{\text{mid,océan}} = 4,\ a_{\text{trop}} = 3\ \text{K}\ \times\frac{\sin\varepsilon}{\sin 23{,}44^\circ},\qquad \delta = 30\ \text{j}"></div>
-        <p>ERA5 / Peixoto &amp; Oort cités, valeurs non relevées (4 K « de mémoire »). Le facteur \(\sin\varepsilon\) est une
-            approximation (P). Elles règlent la glace saisonnière de zone (largeur des rampes de la glace de mer, glace pondérée par
-            l'ensoleillement) et le cycle annuel des terres des calottes (amplitude de la zone, retard δ, sans 2ᵉ harmonique).
-            ⚠️ On ne sait pas encore recevoir le cycle calculé (carte précédente) : la mer d'une zone n'y a que 1 à 2 K d'amplitude, et
-            une rampe de ZONE aussi étroite devient une marche — 70 % de la zone tropicale gèle en 1,9 K ; la largeur posée tient
-            lieu de l'étalement en latitude de la zone, il faut une glace de mer par latitude. Pour les calottes, il attend un pôle
-            moins chaud et la naissance de N_mid sur ses hautes terres.</p>
-        <p>❔ Terres mesurées (UDel 1981–2010, valeurs sans script de relevé) : pôles 18,8 N / 12,1 S, moyennes latitudes 14,3 N / 6,5 S, tropiques 4,0 K.</p>
-        <p class="code">physics.js → EARTH.SEASONAL_AMP_*, EARTH.RETARD_SAISONS_JOURS, EARTH.facteurGlaceZones, EARTH.fractionGelee ;
-            physics/meridien.js → resoudre (cycle des calottes)</p>
+    <div class="eq P" id="eq-mer-gelee">
+        <div class="titre"><span class="cl P">P</span> Mer gelée : la part mer de la glace saisonnière</div>
+        <div class="f" data-tex="t_{b,\text{mer}} = g_b = \frac{1}{N_X}\sum_i t_i,\qquad (g h)_b = \frac{1}{N_X}\sum_i t_i\,h_i,\qquad f_{\text{mer gelée}} = \frac{\sum_b f_b\,\text{mer}_b\,e_{b,\text{mer}}}{\sum_b f_b\,\text{mer}_b}"></div>
+        <p>La mer libre de chaque bande gèle latitude par latitude au cycle de sa boîte de mer, sous 271,15 K (carte « La glace
+            saisonnière… ») : \(g_b\) est la part de l'année de la glace de Stefan de la bande, la seule glace de mer — la même donne son
+            aire, son albédo, sa masse (🍰💧🧊, avec \((gh)_b\)) et l'impédance de la mer (carte « Cycle saisonnier calculé »). Elle pèse
+            dans l'albédo par sa part \(e_{b,\text{mer}}\) de l'énergie solaire, moins la fin de la saison de fonte où la banquise a fondu
+            sa masse (mer libre, carte « Albédo de la glace saisonnière »), et réfléchit sa part \(r_{b,\text{mer}}\) ; sur le globe,
+            l'océan libre gèle pendant la moyenne des bandes pondérée par leur mer libre. Aucune rampe sur T̄.</p>
+        <p class="code">physics.js → EARTH.glaceSaisonniere ; physics/saisons.js → SAISONS.cycles (glace, h_glace), arc, epaisseurStefan ;
+            calculations_albedo.js → calculateAlbedo ; h2o/calculations_h2o.js → masseGlaceMer</p>
     </div>
-    <div class="eq F" id="eq-mer-gelee">
-        <div class="titre"><span class="cl F">F</span> Mer gelée</div>
-        <div class="f" data-tex="f_{\text{mer gelée}} = \text{clamp}\!\left(\frac{271{,}15 - T}{\Delta T_{\text{mer}}}\right),\qquad \Delta T_{\text{mer}} \in [1\ ;\ 6]\ \text{K}"></div>
-        <p>Point de congélation de l'eau de mer (M). Largeur de rampe : « quelques K en paramétrisation agrégée », source
-            faible. Jauge HYSTERESIS.</p>
-        <p class="code">calculations_albedo.js → calculateAlbedo ; HYSTERESIS.seaIceTransitionRangeK</p>
-    </div>
-    <div class="eq F" id="eq-inertie-calottes">
-        <div class="titre"><span class="cl F">F</span> Inertie des calottes</div>
-        <div class="f" data-tex="f_{\text{fonte}} = 1 - e^{-\text{durée}/\tau},\qquad \tau = 50\,000\ \text{ans}\ \ [10^4\ ;\ 10^5]"></div>
-        <p>Marshall &amp; Clark 2002. Mélange l'état de glace de la graine et l'équilibre à T.</p>
-        <p class="code">calculations_albedo.js → calculateAlbedo ; CONFIG_COMPUTE.tauGlaceAns</p>
-    </div>
-    <div class="eq X" id="eq-glace-equilibre-surface-eau">
-        <div class="titre"><span class="cl X">⚠️</span> Glace d'équilibre et surface que l'eau peut couvrir</div>
-        <div class="f" data-tex="g_{\text{éq}} = \begin{cases} 0{,}1\cdot\text{rampe}_{20\,\text{K}} &amp; T \ge T_{\text{gel}}\\ \max\!\left(0{,}1,\ 0{,}9\,\frac{T_{\text{gel}}-T}{20}\right) &amp; T \lt T_{\text{gel}}\end{cases},\qquad f_{\max} = \min\!\left(0{,}9,\ \frac{h_{\text{eau}}}{10\ \text{m}}\right)"></div>
-        <p>0,1 ; 0,9 ; 20 K ; 10 m : sans source.</p>
-        <p class="code">calculations_albedo.js → calcGlaceEquilibre, calculateAlbedo</p>
+    <div class="eq P" id="eq-inertie-calottes">
+        <div class="titre"><span class="cl P">P</span> Inertie : la glace saisonnière à l'équilibre, la mémoire dans les calottes</div>
+        <div class="f" data-tex="\Delta t = t_{\text{calottes}} - t_{\text{courant}},\qquad \tau = \frac{\rho_i\,\bar H}{\max(\text{accumulation},\ \text{fonte})}"></div>
+        <p>La glace saisonnière est celle du cycle courant des boîtes saisonnières : elle se fait et se défait dans l'année, sans
+            mémoire d'un calcul à l'autre.
+            Seules les calottes portent une mémoire d'un calcul à l'autre : leur état (aire, socle, sommet, masse) est daté (📅🗻🧊), et au
+            calcul suivant il avance par la conservation de sa masse sur le temps écoulé \(\Delta t\) depuis cette date (carte
+            « Calottes : rebond retardé »), au rythme de son temps de renouvellement τ — Antarctique posé de 📱 : 42,1 ka, calotte nord posée : 2,4 ka. 🎯 Marshall
+            &amp; Clark 2002 : temps de réponse des calottes 10⁴–10⁵ ans.</p>
+        <p class="code">physics.js → EARTH.glaceSaisonniere ; physics/calottes.js → calculer (tau), engager</p>
     </div>
     <div class="eq P" id="eq-surface-fusion">
         <div class="titre"><span class="cl P">P</span> Surface en fusion</div>
         <div class="f" data-tex="f_{\text{lave}} = \text{clamp}\!\left(\frac{T_s - T_{\text{solidus}}}{T_{\text{liquidus}} - T_{\text{solidus}}}\right),\quad T_{\text{sol}} = 1\,359\ \text{K},\ T_{\text{liq}} = 2\,053\ \text{K}"></div>
         <p>Fraction fondue de la péridotite à 0 GPa (Katz 2003, M) — la même loi que l'intérieur.</p>
-        <p class="code">calculations_albedo.js → calculateAlbedo ; INTERIEUR.CONST.T_SOLIDUS / T_LIQUIDUS</p>
+        <p class="code">calculations_albedo.js → partLave (la seule : albédo planétaire et bilan méridien) ; INTERIEUR.CONST.T_SOLIDUS /
+            T_LIQUIDUS</p>
+    </div>
+    <div class="eq M" id="eq-foret-ligne-des-arbres">
+        <div class="titre"><span class="cl M">M</span> Forêt : sous la ligne des arbres de la saison de croissance</div>
+        <div class="f" data-tex="f_F(\varphi) = 0{,}458\;\min\big(p_L(\varphi),\ p_T(\varphi)\big),\qquad m_L = L - 94\ \text{j},\quad m_T = \int_{T \ge 0{,}9\,^\circ\text{C}} (T - 0{,}9\,^\circ\text{C})\,dt - 5{,}5\ \text{K}\times L,\qquad 0{,}458 = 0{,}31\times\frac{6{,}0}{4{,}06}"></div>
+        <p>La forêt d'avant l'agriculture, là où la saison de croissance permet l'arbre. Ligne des arbres de Paulsen &amp; Körner 2014,
+            seuils en température de l'air tirés de la zone des racines mesurée aux lignes des arbres du globe (Körner &amp; Paulsen 2004,
+            6,7 ± 0,8 °C) : un jour de la saison de croissance a une moyenne ≥ 0,9 °C ; l'arbre demande au moins 94 de ces jours et
+            6,4 °C en moyenne sur eux. Appliquée à l'arc de l'année de chaque latitude de terre de chaque bande (SAISONS.points, cycle
+            de sa boîte terre, linéaire entre deux nœuds) : saison \(L\) = durée où \(T \ge\) 0,9 °C, marges \(m_L\) et \(m_T\) (du signe
+            de la moyenne de la saison moins 6,4 °C) ; chaque marge est linéaire entre deux latitudes voisines (prolongée au bord de la
+            bande), \(p_X\) la part de la cellule de la latitude où elle est ≥ 0 (N ; coût linéaire, points × 24 nœuds par bande et par
+            itération). Sous la ligne, la part des terres sous la forêt est celle d'avant le défrichement : la forêt de 2020, 31 % des
+            terres (4,06 Gha, FAO 2020), × 6,0/4,06 (~6 Gha au début de l'agriculture, Williams 2006). Avant les premiers arbres (forêt
+            fossile de Gilboa, Dévonien moyen, 385 Ma : Stein et al. 2007, 2012), la flore basse (Rhynie, 407 Ma : Kenrick &amp; Crane
+            1997) ne masque pas la neige ; pas de forêt hors d'un monde à océan (une plante demande de l'eau liquide et une
+            atmosphère). Celle de la bande, moyenne de ses latitudes pondérée par leur part de terre (🗻.🍰🗻🌳), couvre la même part de
+            sa terre libre : avec le désert et le sol, l'albédo de la terre libre de la bande hors de la neige (ALBEDO.terresLibres) ;
+            l'albédo planétaire est la somme des bandes. Les forêts polaires des climats chauds (Otto-Bliesner &amp; Upchurch 1997)
+            sortent de la même loi. Recalculée à chaque itération du bilan méridien ; 0 au clic frise, le point fixe part de celle du
+            calcul précédent. La neige des terres est masquée par la forêt sous la neige (🔧, carte de l'albédo de la glace saisonnière ;
+            forêt boréale : Bonan 2008), pas par celle-ci, tant que le 🎯 de la ligne des arbres n'est pas atteint.</p>
+        <p>❔ Part préagricole la même à toutes les époques qui ont des arbres (aucune carte de la forêt passée). ⚠️ Pas d'usage des
+            terres : forêt préagricole aussi sur 🚂 et 📱 (FAO 2020 : 31 % des terres au lieu de 46 %). ⚠️ Pas de relief dans la ligne des
+            arbres : la terre de la bande est au niveau de la mer (pas de ligne alpine). ❔ 0,458 est la forêt préagricole de TOUTES les
+            terres hors Antarctique (toundras, étage alpin et Groenland au dénominateur de la FAO) ; lue comme part des terres sous la
+            ligne, elle sous-estime la forêt sous la ligne. ❔ La forêt d'une bande couvre la même part de sa terre libre que de sa terre
+            émergée. Sur 📱 : 0,387 des terres de N_pol, 0,458 de N_mid et des tropiques, 0,433 de S_mid, rien à S_pol ; 0,42 des terres
+            émergées du globe.</p>
+        <p>🎯 Au sud la loi passe : la ligne du modèle est vers 54° S, la forêt la plus australe vers 55° S (Terre de Feu). EN LIMITE
+            au nord : la ligne des arbres arctique observée est vers 67–72° N, avec ~5·10⁶ km² de toundra au-delà (Walker et al. 2005) ;
+            celle du modèle est vers 73° N à 📱 (72° N boisé à 85 %, 75° N nu), avec ~2·10⁶ km² de terre au-delà, Groenland compris ; elle
+            ne recule pas au dernier maximum glaciaire (forêt jusqu'à 72° N) : l'été de 61–68° N reste trop chaud (carte « Cycle
+            saisonnier calculé »). D'où la forêt sous la neige pour le masquage.</p>
+        <p class="src">Paulsen &amp; Körner 2014, Alp. Bot. 124:1 ; Körner &amp; Paulsen 2004, J. Biogeogr. 31:713 ; FAO 2020 ; Williams
+            2006 ; Stein et al. 2007, Nature 446:904 ; Stein et al. 2012, Nature 483:78 ; contrôle : Walker et al. 2005, J. Veg. Sci. 16:267</p>
+        <p class="code">calculations_albedo.js → ALBEDO.FORET, poserForet, foretSousNeige, terresLibres ; physics.js → EARTH.glaceSaisonniere ;
+            physics/meridien.js → depuisConfig ; DATA['🗻']['🍰🗻🌳']</p>
     </div>
     <div class="eq C" id="eq-forets-deserts">
-        <div class="titre"><span class="cl C">C</span> Forêts et déserts</div>
-        <div class="f" data-tex="f_{\text{forêt}} = b_{\text{terre}}\,f_{\text{libre}}\,\text{clamp}_{[0,4\,;1]}\!\left(\tfrac{T-268}{25}\right),\quad f_{\text{désert}} = f_{\text{libre}}\left(1-\tfrac{P_{\text{an}}}{1000}\right)\left(1-\tfrac{RH}{0{,}6}\right) + 0{,}6\,f_{\text{libre}}\,v_T\,v_{RH}"></div>
+        <div class="titre"><span class="cl C">C</span> Déserts</div>
+        <div class="f" data-tex="f_{\text{désert}} = \min\!\Big(f_{\text{libre}} - f_{\text{forêt}},\ f_{\text{libre}}\left(1-\tfrac{P_{\text{an}}}{1000}\right)\left(1-\tfrac{RH}{0{,}6}\right) + 0{,}6\,f_{\text{libre}}\,v_T\,v_{RH}\Big)"></div>
         <p>\(P_{\text{an}} = x_{\text{sat}}\,f_{\text{oc}}\,F_{\text{conv}}\cdot 2\times10^5\) mm/an, \(F_{\text{conv}} = 1 + (T-288)/50\) ;
-            0,4 ; 25 K ; 1 000 mm ; 0,6 ; 0,6 ; 2·10⁵ : <b>aucune source</b>. Le désert moderne ne pèse que ~1 % de l'albédo mais
-            ces lois décident de la surface des époques sans plantes.</p>
-        <p class="code">calculations_albedo.js → calculateAlbedo</p>
+            1 000 mm ; 0,6 ; 0,6 ; 2·10⁵ : <b>aucune source</b>. Le désert moderne ne pèse que ~1 % de l'albédo mais cette loi décide
+            de la surface des époques sans plantes. \(f_{\text{libre}}\) : les terres disponibles (carte du mélange des surfaces) ;
+            l'aride est calculé à toute époque (ALBEDO.surfacesSansGlace), le désert de chaque bande en prend au plus ce que laisse
+            sa forêt (ALBEDO.terresLibres, à chaque itération du bilan méridien, la forêt des bandes y changeant) ; ⚠️ la même part aride
+            dans toutes les bandes.</p>
+        <p class="code">calculations_albedo.js → surfacesSansGlace (aride), terresLibres (partage forêt / désert / sol)</p>
     </div>
     <div class="eq X" id="eq-planete-sans-eau-albedo">
         <div class="titre"><span class="cl X">⚠️</span> Planète sans eau : albédo annulé</div>
@@ -840,12 +1269,20 @@ Licensed under Apache License 2.0 with Commons Clause.
 <!-- ═════════════════════════════════════════════════════════════════════════════════════════════════════ -->
 <h2>💧 Cycle de l'eau (stocks)</h2>
 <div class="grille">
-    <div class="eq X" id="eq-partage-glace-liquide-hydrosphere">
-        <div class="titre"><span class="cl X">⚠️</span> Partage glace / liquide de l'hydrosphère</div>
-        <div class="f" data-tex="g_{\text{masse}} = 0{,}10\,t_{\text{pol}}\ \text{ou}\ f_{\max}\,\tfrac{T_{\text{gel}}-T}{20},\qquad T_{\text{gel}} = 271{,}15 - (P-1)\cdot 1\ \text{K/atm}"></div>
-        <p>Rampes et coefficients sans source. N'agit que sur le stock 🍰💧🧊 (affiché) : la surface englacée qui fait l'albédo
-            vient de la carte « trois zones ».</p>
-        <p class="code">h2o/calculations_h2o.js → calculateWaterPartition</p>
+    <div class="eq P" id="eq-partage-glace-liquide-hydrosphere">
+        <div class="titre"><span class="cl P">P</span> Partage glace / liquide de l'hydrosphère</div>
+        <div class="f" data-tex="\frac{m_{\text{glace}}}{W} = \frac{\sum_b \rho_i A_b\,\text{mer}_b\,(g h)_b + \rho_i\sum V_{\text{calottes}}}{W},\qquad \frac{m_{\text{liquide}}}{W} = 1 - \frac{m_{\text{glace}} + m_{\text{vapeur}}}{W},\qquad (g h)_b = \frac{1}{N_X}\sum_i t_i\sqrt{\frac{2k_i\,\text{FDD}_i}{\rho_i L_f}}"></div>
+        <p>Le partage de l'eau totale \(W\) (⚖️💧) se fait par les masses, en une seule écriture (H2O.partagerEau) : sur un monde à
+            océan, glace = glace de mer des boîtes saisonnières (sur la mer libre de chaque bande, épaisseur de Stefan de chaque latitude tenue sur sa
+            part gelée de l'année, \(g_b\) étant la même que pour son aire et son albédo : ❔ borne haute d'une glace saisonnière, borne basse d'une glace pérenne) + masse des calottes du
+            pas (🗻.🧮⚖️🗻🧊) ; liquide = le reste ; avec la vapeur la somme fait 1, et le calcul s'arrête si glace et vapeur dépassent
+            l'eau. Sur 📱 : 0,0189 de l'eau est de la glace, dont 2,64·10¹⁹ kg de calottes ; 📖 ce n'est pas un contrôle : la masse
+            des calottes portées est \(\rho_i V\) de leurs aires posées, et τ est fermé sur le volume de Bedmap2 — elle redonne la masse
+            mesurée par construction. ⚠️ Corps noir et planète sans atmosphère : glace des météorites sous
+            0 °C, plafond et taux par masse d'océan posés, sans source. N'agit que sur le stock 🍰💧🧊 (affiché) : la surface
+            englacée qui fait l'albédo est celle des zones et des calottes.</p>
+        <p class="code">h2o/calculations_h2o.js → partagerEau, masseGlaceMer, mondeOcean, calculateWaterPartition ;
+            calculations_albedo.js → calculateAlbedo</p>
     </div>
     <div class="eq X" id="eq-precipitations">
         <div class="titre"><span class="cl X">⚠️</span> Précipitations</div>
@@ -862,16 +1299,30 @@ Licensed under Apache License 2.0 with Commons Clause.
     <div class="eq M" id="eq-partage-ocean-atmosphere">
         <div class="titre"><span class="cl M">M</span> Partage océan / atmosphère (Henry, Van 't Hoff)</div>
         <div class="f" data-tex="m_{\text{atm}}^{\text{éq}} = \frac{m_{\text{tot}}}{1 + r\,e^{2400\,(1/T - 1/T_{\text{ref}})}},\qquad r = 50"></div>
-        <p>2 400 K : dépendance en T de la solubilité du CO₂ (Sander) ; r = 38 000 / 760 GtC (Sarmiento &amp; Gruber 2006).
-            ⚠️ Pas de relaxation 0,1 sans source — et mesuré inerte (l'océan est réensemencé à chaque calcul).</p>
-        <p class="code">co2/calculations_co2.js → calculateCO2Partition</p>
+        <p>2 400 K : dépendance en T de la solubilité du CO₂, valeur la plus fréquente des mesures compilées par Sander (2 300 à
+            2 700 K), donnée à 298,15 K ; r = 38 000 / 760 GtC (Sarmiento &amp; Gruber 2006 ; ❔ 760 GtC est l'air des années 1990,
+            pas le préindustriel, ≈ 590). \(T_{\text{ref}}\) = 14,4 °C, la T̄ de la Terre actuelle (GISTEMP, an 2000), où r est
+            mesuré — la même que \(T_{s0}\) de l'intérieur (INTERIEUR.CONST.T_S0) : aucune T d'époque n'entre dans le partage. La
+            pente est mesurée vers 25 °C, mais le \(T_{\text{ref}}\) d'une loi de Van 't Hoff est celui de la valeur qu'elle
+            prolonge : r = 50 posé à 298,15 K donnerait r ≈ 67 aujourd'hui. L'océan part à l'équilibre de cette loi à la T de départ
+            du calcul \(T_0\) (graine du clic, ou T courante en tictime) : \(m_{\text{océan}} = r\,e^{2400(1/\max(T_{\text{gel}}, T_0)
+            - 1/T_{\text{ref}})}\,m_{\text{atm}}\), le premier partage ne déplace rien. ⚠️ Pas de relaxation 0,1 sans source
+            (co2OceanEffPump01) — et inerte sur l'air : COMPUTE.getMasses, appelé par calculateH2OParameters juste après le partage,
+            remet ⚖️🏭 à la valeur de l'époque (mesuré sur les époques de la frise).</p>
+        <p class="src">Sander 2015, Atmos. Chem. Phys. 15:4399 ; Sarmiento &amp; Gruber 2006 ; Lenssen et al. 2019</p>
+        <p class="code">co2/calculations_co2.js → calculateCO2Partition ; convergence/calculations_flux.js (graine de l'océan) ;
+            geology/interieur.js → INTERIEUR.CONST.T_S0</p>
     </div>
     <div class="eq M" id="eq-puits-co2-injecte">
         <div class="titre"><span class="cl M">M</span> Puits du CO₂ injecté (perturbation)</div>
         <div class="f" data-tex="\frac{dO_i}{dt} = \frac{k_iA - O_i}{\tau_i},\ \ k_i = \frac{r_i}{R}e^{2400(1/T-1/T_{\text{ref}})},\qquad \Delta\text{NPP} = \text{NPP}_0\,\beta_{\text{eff}}\ln\frac{C}{C_0}"></div>
         <p>Océan en 3 réservoirs (1 / 50 / 350 ans ; Broecker &amp; Peng, Sabine 2004), facteur de Revelle (Egleston 2010) ;
             terres : fertilisation pondérée par l'âge des forêts (Norby 2005, Jiang 2020, GFAD), dépôt d'azote (O'Sullivan 2019),
-            repousse (Pugh 2019). Vérifié sans calage : 1,4 point du total mesuré.</p>
+            repousse (Pugh 2019). Vérifié sans calage : 1,4 point du total mesuré. \(T_{\text{ref}}\) : la même T̄ actuelle (14,4 °C),
+            celle où les capacités et le facteur de Revelle sont mesurés. ❔ Facteur zonal : la moyenne des zones donne ×1,013 (×0,971 à
+            la T̄ seule, +4,4 %) sur 📱 à 15,4 °C — la zone polaire, à −4,1 °C, prise au plancher du gel de l'eau de mer —, et non ×1 à
+            l'état de la mesure — mesurés sur l'océan réel, r et Revelle contiennent déjà
+            la dissolution des hautes latitudes : la convexité est peut-être comptée deux fois.</p>
         <p class="code">ocean/sinks_ocean.js ; land/sinks_land.js ; CONFIG_COMPUTE.CARBON_SINKS</p>
     </div>
 </div>

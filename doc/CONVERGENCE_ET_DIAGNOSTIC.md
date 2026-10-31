@@ -77,7 +77,7 @@ OLR trop élevé à 15°C → trop peu d'absorption IR → EDS ~105 W/m² vs lit
 | **Résolution spectrale** (🔬🌈) | configTimeline.js | Peu de bins → raies étroites manquées → τ intégré trop faible |
 | **Sections efficaces** (HITRAN) | `calculations.js` | σ(λ, T_ref, P_ref) trop faibles |
 | **Pas vertical** (delta_z) | `calculations.js` | Couches trop épaisses → τ par couche sous-estimé |
-| **Pressure broadening** | `calculations.js` | σ × √(P/P_ref), cap 2.0 |
+| **Élargissement par la pression** | `calculations.js` | σ(λ, T, P) à la (T, P) de la couche (tables, ln σ linéaire en ln P) |
 | **Nuages LW** | `calculations.js` | CLOUD_LW_TAU_REF trop faible |
 
 ### Corrections appliquées

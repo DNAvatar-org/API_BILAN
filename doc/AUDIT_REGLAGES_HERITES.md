@@ -51,7 +51,7 @@ changent rien de mesurable, C5 ne touche que 🔥.
 
 Lecture : retirer le proxy refroidit tout ce qui précède l'oxygénation, et 🪸 tombe du bon côté de la frontière
 vers le mauvais. Ce n'est pas un argument pour garder un facteur sans physique : 🪸 était déjà au bord (il
-basculait à FROID 55 %), et l'Archéen reste 21 K trop chaud — l'erreur dominante est ailleurs (√(P/P₀), § 2.1). 🍄 et 💀 en
+basculait à FROID 55 %), et l'Archéen reste 21 K trop chaud — l'erreur dominante est ailleurs (sa config : N₂ à 2,2 atm, § 4). 🍄 et 💀 en
 profitent.
 
 ---
@@ -60,17 +60,18 @@ profitent.
 
 ### 2.1 Spectroscopie — le chantier « distribution de k corrélée » (déjà proposé)
 
-- **√(P/P₀) sur toutes les sections efficaces** (C). Limite des raies fortes saturées, appliquée aussi aux raies
-  faibles de la fenêtre, et posée sur des tables déjà calculées à 1 atm. ⚠️ Ce n'était PAS la cause de l'Archéen trop
-  chaud : mesuré le 13 octobre, sans le facteur tout est plus chaud (📱 23,8 °C, 🦠 56 °C) — il réduit surtout
-  l'absorption en altitude. L'Archéen venait de sa config (N₂ à 2,2 atm, § 4).
+- **Élargissement par la pression** (P) : réglé. La section efficace est celle de la (T, P) de chaque couche (tables
+  σ(λ, T, P), largeur de Lorentz ∝ P, ln σ linéaire en ln P) ; σ(1 atm)·√(P/P₀), limite des raies fortes de la largeur
+  équivalente d'une bande, doublerait les ailes vers 250 hPa. 🎯 Forçage du CH₄ de 0,7 à 1,8 ppm à 📱 : 0,60 W/m² (Myhre
+  et al. 1998 : 0,575). Voir `doc/equation.html#eq-elargissement-par-pression`.
 - **σ échantillonnée en un point par intervalle** (N) : un intervalle de plusieurs cm⁻¹ représenté par sa valeur
   centrale.
 - **Fonctions de partition Q(T)** (⚠️) : rotateur rigide sans vibrations (∝ T pour CO₂, T^1,5 pour H₂O et CH₄).
   À remplacer par les tables TIPS de HITRAN, dans la même passe que les tables k(T, P) (HAPI).
 - **γ_self prend l'exposant n_air** (approximation, faible).
 
-Remède unique : tables k(ν, T, P) précalculées hors ligne avec HAPI (TIPS compris), ~8 termes par intervalle.
+Remède de l'échantillonnage et de Q(T) : tables k(ν, T, P) précalculées hors ligne avec HAPI (TIPS compris), ~8 termes par
+intervalle.
 
 ### 2.2 Transport de chaleur vers les pôles posé par époque (C)
 

@@ -2,31 +2,15 @@
 // File: API_BILAN/co2/calculations_co2.js - Cycle CO2 océan-atmosphère
 // Desc: Partition CO₂ de fond (atmosphère ↔ océan, Henry) + orchestration des puits du CO₂ injecté.
 //       Physique des puits : ocean/sinks_ocean.js (3 réservoirs) et land/sinks_land.js (biosphère).
-// Version 1.4.0
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.4.4
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See LICENSE_HEADER.txt for full terms.
-// Date: [April 25, 2026]
+// Date: [October 30, 2026]
 // Logs:
-// - v1.4.0: PAS DE GARDES. Efficacité de pompe = CONFIG_COMPUTE.co2OceanEffPump01 (déclarée 0,1 dans la config ;
-//   les pages hystérésis / search l'écrivent) : plus de clamp01(x, repli) qui fabriquait 0,1 à partir de deux
-//   jauges absentes. ⚠️ DATA['🎚️'].HYSTERESIS.co2OceanEffPump01 (= 1 après le barycentre) existe aussi et
-//   n'est lu par personne : laquelle est la bonne est à trancher, banc à l'appui. ratio_ref sans repli 50 ;
-//   DATA['🌊'] existe toujours (initDATA). Log de chargement du module retiré.
-//   ⚠️ Partition mesurée INERTE (configTimeline v1.4.83) : getMasses réécrit ⚖️🏭 à chaque pas.
-// - v1.3.0: puits océan → ocean/sinks_ocean.js, puits forêts → land/sinks_land.js. Ce fichier garde la
-//   partition Henry de fond et l'ORCHESTRATION des puits (découpage du temps, CO₂ de milieu de pas).
-//   Deux physiques différentes, deux fichiers — et sinks_land.js va accueillir la structure d'âge.
-// - v1.2.7: océan en 3 réservoirs (CONFIG_COMPUTE.CARBON_SINKS.oceanBoxes) au lieu d'une boîte unique.
-//   Chacun relaxe vers k_i·A avec A = excès resté dans l'air ; Σratio inchangé (capacité totale identique),
-//   seuls les temps diffèrent. Les 3 réservoirs ne vivent PAS dans DATA : neuf points du modèle remettent
-//   📜🔺⚖️🌊🏭 à 0 sans les connaître. Ils sont donc resynchronisés sur ce total à chaque appel.
-// - Doc: CONFIG_COMPUTE co2Ocean* défauts / plages ajustés après tests convergence ; UI = jauges hystérésis search / scie
-// - Add ocean pump factor and conserve CO2 mass from current state
-// - Make pump=0 a strict no-op (no memory side effects)
-// - Add entry/exit debug logs (load + no-op)
-// - Global attenuation scale (default 0.1) for safer tests
-// - Make ratio_ref configurable (CONFIG_COMPUTE.co2OceanRatioRef)
+// - v1.4.4: commentaires : graine de l'océan à l'équilibre de Henry de la T de départ.
+// - v1.4.3: r de référence lu tel quel (plus de plancher à 0,1).
+// - v1.4.2: T_ref de Van 't Hoff = T̄ de la Terre actuelle, où r = 50 est mesuré (INTERIEUR.CONST.T_S0), et non la T de l'époque.
 // ============================================================================
 
 function calculateCO2Partition() {
@@ -34,19 +18,20 @@ function calculateCO2Partition() {
     // Crash-first: DATA['⚖️'] doit exister, sinon ça doit planter.
 
     const CC = window.CONFIG_COMPUTE;
-    // v1.2.0 : POMPE TOUJOURS ACTIVE (user "bench = visu"). Plus de NO-OP global ; les contrôles d'activation
-    // sont maintenant : (1) EPOCH['🌊🏭'] facteur par époque (0 = pas de mer / Urey éteint), (2) hasOceanWater
-    // (pas d'eau liquide ⇒ rien à faire), (3) effPump01 (jauge UI). L'équilibre à l'init est garanti par
-    // initForConfig qui seed ⚖️🌊🏭 = ratio_ref × ⚖️🏭 ⇒ net flux = 0 au pas 0 en l'absence de perturbation.
+    // Pompe toujours active, réglée par : (1) EPOCH['🌊🏭], facteur par époque (0 = pas de mer, Urey éteint), (2) hasOceanWater
+    // (pas d'eau liquide ⇒ rien à faire), (3) effPump01. initForConfig sème ⚖️🌊🏭 à l'équilibre de Henry de la T de départ du
+    // calcul (graine du clic, ou T courante en tictime ; convergence/calculations_flux.js) : le premier partage ne déplace rien.
 
     // On ne s'active que s'il y a de l'eau liquide disponible à l'origine
     const hasOceanWater = DATA['⚖️']['⚖️💧'] > 0;
 
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const EPOCH = DATA['📅'];
     const epochId = DATA['📜']['🗿'];
 
     const T_curr = DATA['🧮']['🧮🌡️'];
-    const T_ref = EPOCH['🌡️🧮'];
+    // T_ref : la T̄ à laquelle r = co2OceanRatioRef est MESURÉ — la Terre actuelle (Sarmiento & Gruber 2006 : 38 000 / 760 GtC),
+    // la même que celle où l'est Q₀ de l'intérieur : une valeur, INTERIEUR.CONST.T_S0 (GISTEMP, an 2000).
+    const T_ref = window.INTERIEUR.CONST.T_S0;
 
     // Facteur pompe par époque ∈ [0, +∞[. Défini pour TOUTES les 19 époques dans configTimeline.js v1.4.30.
     // Crash-first : si EPOCH['🌊🏭'] manque → NaN se propage, plantage visible (pas de fallback silencieux).
@@ -92,9 +77,10 @@ function calculateCO2Partition() {
         const T_ocean = Math.max(271.15, T_curr);
 
         // ----- LOI DE HENRY (Van 't Hoff) -----
-        // Constante thermique typique de la solubilité du CO2: ~2400 K
-        // Rapport d'équilibre Masse CO2_océan / Masse_CO2_atm = 50 (aujourd'hui)
-        const ratio_ref = Math.max(0.1, CC.co2OceanRatioRef);
+        // Pente : d ln H / d(1/T) = 2400 K, solubilité du CO₂ mesurée vers 25 °C (Sander). Le T_ref de la loi n'est pas ces
+        // 25 °C : c'est celui de la valeur qu'elle prolonge, r = 50 mesuré aujourd'hui (r = 50 posé à 298,15 K donnerait
+        // r ≈ 67 à la T̄ actuelle).
+        const ratio_ref = CC.co2OceanRatioRef;
         const delta_inv_T = (1.0 / T_ocean) - (1.0 / T_ref);
         const ratio_T = ratio_ref * Math.exp(2400.0 * delta_inv_T);
 
@@ -166,7 +152,7 @@ function advanceCarbonSinks(dtYears, emittedKg) {
 function advanceCarbonSinksStep(dtYears, E_cum, emitStep) {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    const EPOCH = DATA['📅'];
     const P = DATA['📜'];
     const C0 = EPOCH['⚖️🏭'];                        // équilibre de l'époque (kg)
     // CO₂ atmosphérique au MILIEU du pas (émission étalée sur dt)

@@ -1,36 +1,12 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.5.0
-// - v1.5.0 (2026-10-24): pas de recherche au plus double du précédent : la planète suit les températures intermédiaires.
-// - v1.4.1 (2026-10-15): 🪩👁 (nuages vus d'en haut, simulateur ISCCP) posé en fin de calcul.
-// - v1.4.0 (2026-10-12): pas de recherche = pente MESURÉE (sécante) ; à défaut, et pour la tolérance, rétroaction de
-//   Planck au niveau d'émission 4σT_e³ (T_e = (OLR/σ)^¼) au lieu de 4σT_s³ (surface nue) — sous une atmosphère
-//   épaisse, la tolérance valait ~6 000 W/m² et la recherche avançait de 4 K par pas.
-// Date: [October 10, 2026]
-// Logs:
-// - v1.3.0: PAS DE GARDES. Supprimés : `if (callback)` (callback obligatoire), try/catch autour de
-//   displayConvergence, `typeof debugMirrorConfigLogToFile` (logDiag, appelé seulement sous un drapeau log*),
-//   fallbacks tol 0.1 / 1e-9, tests de finitude des détecteurs, `window.CO2 &&`, `window.IO_LISTENER &&`,
-//   écriture dans window.plotData (objet de l'UI : c'est à l'UI de lire DATA). Code mort retiré :
-//   updateConvergenceBounds, newDate, branche cycleDeLeau(isFirst=true) (jamais appelée, et elle lisait un
-//   `callback` hors de portée), branche 🧮🔄🌊 > 0 à l'entrée (tous les appelants la remettent à 0),
-//   _fromCrossing, verrou de glace « legacy » (STATE.iceEpochFixed*), OVERRIDES et diagnostic logIceFixed,
-//   option renderMode (lue seulement par un log). « Crash algo » LÈVE une erreur au lieu de rendre null (null
-//   = interruption pour les appelants : le crash était avalé). calculateT0 lève sur T0 ≤ 0 / NaN au lieu de
-//   rendre false (initForConfig le lisait comme une interruption). DATA['📛'] n'est plus remis à null.
-//   cycleEauStep() : un seul constructeur de l'instantané CycleEau (il était recopié 5 fois).
-//   UN SEUL CANAL vers l'hôte : le callback. Événements 'convergenceStart' | 'convergenceStep' |
-//   'convergenceRefresh' | 'cycleCalcul' (attendu : l'hôte peut rendre une promesse). Retirés du moteur :
-//   CONVERGE.clearConvergenceTrace / appendConvergenceStep, window.displayConvergence, IO_LISTENER (+ pont
-//   plot:drawn), isVisuPanelActive, ORG.updateFluxLabels, window.parent.postMessage, RUNTIME_STATE.h2oVaporPercent
-//   (copie de DATA calculée pour l'UI), double émission de 'cycleCalcul' par pas.
-// - v1.2.108: INTÉRIEUR (geology/interieur.js) — au 1er passage, l'état thermique de l'intérieur est amené à la
-//   date courante (bilan d'énergie) ; tant qu'il est fondu, la surface EST le magma (T de départ = 🌡️🌕) et le
-//   flux intérieur 🧲🌕 = OLR − solaire absorbé, lu sur le transfert radiatif de l'init. olrNetA(T) : OLR − S à
-//   T imposée, pour intégrer le refroidissement de l'océan de magma.
-// - v1.2.89: expositions regroupées sous nouveau namespace window.CONVERGE (calculateT0, initForConfig, cycleDeLeau, updateConvergenceBounds, computeRadiativeTransfer, newDate, snapshotEdsForConvergence, clearConvergenceTrace, appendConvergenceStep). Doublons window.foo retirés. Consommateurs migrés : sync_panels.js, api.js, CO2/html/*.html. Appels internes H2O/ALBEDO/ATM/GEOLOGY migrés vers namespaces.
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.7.2
+// - v1.7.2 (2026-10-30): CO₂ de l'océan semé à l'équilibre de Henry à la T de départ (et non à T_ref), r lu tel quel.
+// - v1.7.1 (2026-10-29): graine du clic lue dans 📜🌡️🧮 ; pas du cycle de l'eau dans 💧🔺⏳💦 ; époque = DATA['📅'] ; intérieur et
+//   calottes lisent DATA eux-mêmes.
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -243,11 +219,11 @@ function calculateT0() {
         DATA['🧮']['🧮🌡️🚩'] = DATA['🧮']['🧮🌡️']; // anim : garder T0 actuel
     } else {
         // sans anim : T0 = graine de l'époque + 🔺🌡️💫 × 📿💫
-        DATA['🧮']['🧮🌡️🚩'] = DATA['📅']['🌡️🧮'] + DATA['📜']['🔺🌡️💫'] * DATA['📜']['📿💫'];
+        DATA['🧮']['🧮🌡️🚩'] = DATA['📜']['🌡️🧮'] + DATA['📜']['🔺🌡️💫'] * DATA['📜']['📿💫'];
     }
     if (!(DATA['🧮']['🧮🌡️🚩'] > 0)) {
         throw new Error('[calculateT0] T0 = ' + DATA['🧮']['🧮🌡️🚩'] + ' K (époque ' + DATA['📜']['🗿']
-            + ', anim=' + window.SYNC_STATE.animEnabled + ', 📅🌡️🧮=' + DATA['📅']['🌡️🧮'] + ')');
+            + ', anim=' + window.SYNC_STATE.animEnabled + ', 📜🌡️🧮=' + DATA['📜']['🌡️🧮'] + ')');
     }
     DATA['🧮']['🧮⚧'] = 'Init'; // Phase d'initialisation
     DATA['🧮']['🧮☯'] = 0;
@@ -262,7 +238,7 @@ function calculateT0() {
 
     // IMPORTANT: On met toujours à jour DATA['🧮']['🧮🌡️'] avec la valeur calculée
     // Si animation activée : T0_base est lu depuis DATA['🧮']['🧮🌡️'].
-    // Si animation désactivée : T0 = DATA['📅']['🌡️🧮'] + adjustment.
+    // Si animation désactivée : T0 = DATA['📜']['🌡️🧮'] (graine du clic, compute.js) + adjustment.
     // On doit mettre à jour DATA['🧮']['🧮🌡️'] pour que la convergence utilise cette nouvelle valeur
     // Pour la convergence, c'est TOUJOURS DATA['🧮']['🧮🌡️'] qui est utilisé
     DATA['🧮']['🧮🌡️'] = DATA['🧮']['🧮🌡️🚩'];
@@ -291,15 +267,17 @@ function initForConfig() {
     calculateT0();
     ATM.calculateAtmosphereComposition();
     ATM.calculatePressureAtm();
-    // v1.2.96 : SEED OCÉAN CO₂ À L'ÉQUILIBRE HENRY (analytique, T = T_ref ⇒ ratio_T = ratio_ref).
-    // Garantit que calculateCO2Partition donne flux net = 0 au pas 0 du bench (bench = visu).
-    // Produit = 0 si ⚖️💧=0 (⚫ 🔥 : pas de mer) OU si EPOCH['🌊🏭']=0 (⛄ : glace globale coupe Henry).
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    // CO₂ de l'océan : équilibre de Henry (Van 't Hoff) avec le CO₂ de l'air à la T de départ T₀ (calculateT0 vient de la
+    // poser), par la loi du partage (co2/calculations_co2.js) : r = co2OceanRatioRef mesuré à T_ref = INTERIEUR.CONST.T_S0,
+    // pente 2 400 K, eau liquide au plus froid au gel de l'eau de mer. Le premier partage trouve l'océan à l'équilibre : il ne
+    // déplace le CO₂ que de ce que T s'écarte de T₀. Nul sans mer (⚖️💧 = 0 : ⚫ 🔥) ou sans pompe (EPOCH['🌊🏭'] = 0 : ⛄).
+    const EPOCH = DATA['📅'];
     const hasOceanWaterGate = (DATA['⚖️']['⚖️💧'] > 0) ? 1.0 : 0.0;
     const epochPumpGate = (EPOCH['🌊🏭'] > 0) ? 1.0 : 0.0;
-    const ratio_ref_init = Math.max(0.1, CONFIG_COMPUTE.co2OceanRatioRef);
     const oceanPartitionFactor01 = Math.max(0, CONFIG_COMPUTE.co2OceanPartitionFactor01);
-    DATA['🌊']['⚖️🌊🏭'] = hasOceanWaterGate * epochPumpGate * oceanPartitionFactor01 * ratio_ref_init * DATA['⚖️']['⚖️🏭'];
+    const T_ocean0 = Math.max(window.EARTH.T_FREEZE_SEAWATER_K, DATA['🧮']['🧮🌡️']);
+    const ratio_T0 = CONFIG_COMPUTE.co2OceanRatioRef * Math.exp(2400.0 * (1.0 / T_ocean0 - 1.0 / window.INTERIEUR.CONST.T_S0));
+    DATA['🌊']['⚖️🌊🏭'] = hasOceanWaterGate * epochPumpGate * oceanPartitionFactor01 * ratio_T0 * DATA['⚖️']['⚖️🏭'];
     ALBEDO.calculateGeologySurfaces();
     // Partition eau une fois avec T0 de la config (cache invalidé pour forcer le recalcul)
     // 🔒 WORKAROUND : En Init, calculateH2OParametersWithIteration converge vers 🍰🫧💧=0 (précip sans évap).
@@ -468,8 +446,8 @@ async function computeRadiativeTransfer(callback) {
     DATA['🧮']['🧮🔄🪩'] = 0;
     // Intérieur amené à la date courante (bilan d'énergie, geology/interieur.js). Fondu : la surface EST le
     // magma — la T de départ est celle de l'intérieur, et le flux intérieur sortira du radiatif de l'init.
-    await window.INTERIEUR.avancer(DATA, olrNetA);
-    if (window.INTERIEUR.estFondu(DATA)) {
+    await window.INTERIEUR.avancer(olrNetA);
+    if (window.INTERIEUR.estFondu()) {
         const Tm = DATA['🌕']['🌡️🌕'];
         DATA['🧮']['🧮🌡️'] = Tm; DATA['🧮']['🧮🌡️⏮'] = Tm; DATA['🧮']['🧮🌡️🚩'] = Tm;
     }
@@ -515,7 +493,7 @@ async function computeRadiativeTransfer(callback) {
     await window.calculateFluxForT0();
     const spectral_result_init = window.RADIATIVE.getSpectralResultFromDATA();
     // Intérieur fondu : ce qu'il perd est ce qui part vers l'espace moins ce que le Soleil apporte (surface = magma).
-    if (window.INTERIEUR.estFondu(DATA)) {
+    if (window.INTERIEUR.estFondu()) {
         DATA['🌕']['🧲🌕'] = spectral_result_init.total_flux - flux_solaire_absorbe_init;
         DATA['🌕']['🔋🌕'] = DATA['🌕']['🧲🌕'] * 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
     }
@@ -567,7 +545,7 @@ async function computeRadiativeTransfer(callback) {
     // v1.2.84 : pas d'updateConvergenceBounds ici (revert v1.2.80). Bornes posées par la boucle Search lignes 815-823.
     DATA['🧮']['🧮🌡️⏮'] = DATA['🧮']['🧮🌡️'];
     DATA['🧮']['🧲🔺⏮'] = delta_equilibre_init;
-    DATA['📅']['🔺⏳'] = CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays;
+    DATA['💧']['🔺⏳💦'] = CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays;
     DATA['🧮']['🧮🛑'] = ''; // Réinit pour que le snapshot Init n'affiche pas l'ancien 'converged'
 
     const incInit = dT_first_after_init;
@@ -603,6 +581,7 @@ async function computeRadiativeTransfer(callback) {
     DATA['🧮']['🧮🛑'] = null;
     let dichoSameDirCount = 0;
     let lastDichoSign = 0;
+    let T_evalue;   // [K] température du dernier état évalué (eau, albédo, calottes, flux, Δ) : 🧮🌡️ s'en écarte dès le pas suivant
     DATA['🧮']['🧮🌡️Hist'] = [];
     while (DATA['🧮']['🧮🔄☀️'] < maxInnerIters && !innerConverged) {
         if (apiDbg) console.log('[API_BILAN] radiatif step', DATA['🧮']['🧮🔄☀️'], 'phase', DATA['🧮']['🧮⚧'], 'T_C', (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(2), 'Δ', DATA['🧲']['🔺🧲'].toFixed(4));
@@ -638,6 +617,7 @@ async function computeRadiativeTransfer(callback) {
         DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
         // 🔺🧲 = entrant − sortant ; équilibre ⇒ ≈ 0. Si |🔺🧲| > tol mais converged, vérifier tol ou état affiché (doc §2.1).
         DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+        T_evalue = DATA['🧮']['🧮🌡️'];
         const b = DATA['📊'] && DATA['📊'].eds_breakdown;
         DATA['📛'] = buildEdsBreakdown(b);
         if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
@@ -730,6 +710,10 @@ async function computeRadiativeTransfer(callback) {
         if (Math.abs(DATA['🧲']['🔺🧲']) <= DATA['🧮']['🧲🔬']) {
             innerConverged = true;
             DATA['🧮']['🧮🛑'] = 'converged';
+            // Calottes (physics/calottes.js) : le pas qui vient d'être évalué — T, Δ, albédo et 🧮🍰🗻🧊 à la même température —
+            // devient l'état porté, daté de maintenant ; le clic suivant part de là. Ici seulement : une sortie sans
+            // convergence n'engage rien.
+            window.CALOTTES.engager();
             // Sync DATA['📊'] avec 🔬🌈 : si convergence dès la 1re itération, 📊 peut encore être à 100 bins (init)
             const currentBins = DATA['🧮']['🔬🌈'];
             const actualBins = DATA['📊'].lambda_range.length;
@@ -868,6 +852,7 @@ async function computeRadiativeTransfer(callback) {
             DATA['🧲']['🧲🌈🔼'] = window.RADIATIVE.getSpectralResultFromDATA().total_flux;
             DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
             DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+            T_evalue = DATA['🧮']['🧮🌡️'];   // passage du gel ou de l'ébullition : l'état est réévalué au pas atteint
             const bCross = DATA['📊'] && DATA['📊'].eds_breakdown;
             DATA['📛'] = buildEdsBreakdown(bCross);
             if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
@@ -959,7 +944,7 @@ async function computeRadiativeTransfer(callback) {
             continue;
         }
         // Arrêt si T inchangée vs n−1 ou même qu’un retour n−2 / n−3 (🧮🌡️Hist) ; si |Δ|>tol mais motif
-        // d’oscillation (dont Δ≈Δ_{n−2}) → oscillation, sinon élargir le bracket.
+        // d’oscillation → oscillation, sinon élargir le bracket.
         const epsT_K = 0.01;
         const T_currSt = DATA['🧮']['🧮🌡️'];
         const T_inSt = DATA['🧮']['🧮🌡️⏮'];
@@ -971,30 +956,33 @@ async function computeRadiativeTransfer(callback) {
         const histPush = DATA['🧮']['🧮🌡️Hist'];
         histPush.unshift(T_currSt);
         if (histPush.length > 3) histPush.length = 3;
+        // Trace des pas : la température de l'état évalué T_n et SON déséquilibre Δ(T_n) (pas la température du pas d'après).
         (function hystTraceOsc_() {
-            const tC = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
-            const dF = DATA['🧲']['🔺🧲'];
             const T = window._convergenceOscTrace;
-            T.t.push(tC);
-            T.d.push(dF);
+            T.t.push(T_evalue - CONST.KELVIN_TO_CELSIUS);
+            T.d.push(DATA['🧲']['🔺🧲']);
             if (T.t.length > 8) { T.t.shift(); T.d.shift(); }
         })();
-        if (tStagn) {
-            const oscNow = detectOscillationStallOnTrace(window._convergenceOscTrace, twStall);
-            if (Math.abs(DATA['🧲']['🔺🧲']) <= DATA['🧮']['🧲🔬']) innerConverged = true;
-            else if (oscNow) {
-                innerConverged = true;
-                DATA['🧮']['🧮🛑'] = 'oscillation';
-            } else {
-                const mid = (DATA['🧮']['🧮🌡️🔽'] + DATA['🧮']['🧮🌡️🔼']) / 2;
-                const eps = Math.max(0.5, (DATA['🧮']['🧮🌡️🔼'] - DATA['🧮']['🧮🌡️🔽']) * 0.5);
-                if (DATA['🧲']['🔺🧲'] > 0) { DATA['🧮']['🧮🌡️🔽'] = mid; DATA['🧮']['🧮🌡️🔼'] = mid + eps; }
-                else { DATA['🧮']['🧮🌡️🔼'] = mid; DATA['🧮']['🧮🌡️🔽'] = mid - eps; }
-            }
-        }
-        if (!innerConverged && detectOscillationStallOnTrace(window._convergenceOscTrace, twStall)) {
+        // Oscillation (|Δ| ≤ tol est déjà sorti plus haut, même Δ : ici Δ est hors tolérance).
+        //   · Dicho : le crochet encadre un changement de signe de Δ et se divise par deux à chaque pas ; Δ y change de signe par
+        //     construction, sans que ce soit une oscillation. Elle ne se déclare que quand le changement de signe ne peut plus être
+        //     resserré : l'état évalué et un état de la trace, à moins de 2 epsT_K l'un de l'autre (la précision sur T), ont des Δ
+        //     opposés, tous deux hors tolérance — Δ y saute de plus de 2 tol (ou n'est pas une fonction de T), il n'y a pas
+        //     d'équilibre à cette précision. Un crochet qui rétrécit sans encadrer de changement de signe ne déclare rien.
+        //   · Search : un pas mène T à une température nouvelle, dans le sens de Δ (les changements de signe de la trace viennent du
+        //     Dicho d'avant, dont le crochet a rétréci). Les motifs de la trace (detectOscillationStallOnTrace) ne décident que quand
+        //     T stagne ou revient à une température déjà évaluée ; sans motif, le crochet s'élargit autour de son milieu.
+        const enDicho = phaseForStep === 'Dicho';
+        const Tr = window._convergenceOscTrace, n = Tr.t.length;
+        const saut = Tr.t.slice(0, n - 1).some((t, j) => Math.abs(Tr.t[n - 1] - t) < 2 * epsT_K && Tr.d[n - 1] * Tr.d[j] < 0);
+        if (saut || (tStagn && !enDicho && detectOscillationStallOnTrace(Tr, twStall))) {
             innerConverged = true;
             DATA['🧮']['🧮🛑'] = 'oscillation';
+        } else if (tStagn) {
+            const mid = (DATA['🧮']['🧮🌡️🔽'] + DATA['🧮']['🧮🌡️🔼']) / 2;
+            const eps = Math.max(0.5, (DATA['🧮']['🧮🌡️🔼'] - DATA['🧮']['🧮🌡️🔽']) * 0.5);
+            if (DATA['🧲']['🔺🧲'] > 0) { DATA['🧮']['🧮🌡️🔽'] = mid; DATA['🧮']['🧮🌡️🔼'] = mid + eps; }
+            else { DATA['🧮']['🧮🌡️🔼'] = mid; DATA['🧮']['🧮🌡️🔽'] = mid - eps; }
         }
         DATA['🧮']['🧮🔄☀️']++;
 
@@ -1061,8 +1049,11 @@ async function computeRadiativeTransfer(callback) {
         }
     }
     if (apiDbg) console.log('[API_BILAN] compute fin', '🧮🛑=', DATA['🧮']['🧮🛑'], '🧮🔄☀️=', DATA['🧮']['🧮🔄☀️']);
-    // Calottes (physics/calottes.js) : l'état du dernier pas devient celui de la date courante — le clic suivant part de là.
-    window.CALOTTES.engager(DATA);
+    // Oscillation ou max_iter : le pas d'après n'a pas été évalué. T revient à celle du dernier état évalué, où Δ (hors
+    // tolérance, gardé dans 🔺🧲), l'albédo et les calottes du pas ont été calculés : un seul état, statut 🧮🛑 à l'appui. Les
+    // calottes ne sont pas engagées (branche convergée seulement) : 📅🗻🧊 garde sa date, le clic suivant intègre toute la
+    // durée depuis là.
+    if (DATA['🧮']['🧮🛑'] !== 'converged') DATA['🧮']['🧮🌡️'] = T_evalue;
     // Nuages vus d'en haut (simulateur ISCCP, radiative/nuages_isccp.js) : diagnostic de l'état convergé, hors bilan.
     DATA['🪩']['🪩👁'] = window.NUAGES_ISCCP.vusDenHaut(window.RADIATIVE.colonneNuageuse());
     return true;
@@ -1082,7 +1073,7 @@ CONVERGE.computeRadiativeTransfer = computeRadiativeTransfer; // async (RAF yiel
 // l'océan de magma (INTERIEUR.avancer). L'état de DATA est rendu tel qu'il était.
 async function olrNetA(T_K) {
     const DATA = window.DATA;
-    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'] };
+    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'], T2: DATA['🧮']['🌡️🎱'] };
     const pin = (T) => { DATA['🧮']['🧮🌡️'] = T; DATA['🧮']['🧮🌡️⏮'] = T; DATA['🧮']['🧮🌡️🚩'] = T; };
     const preparer = () => {
         window.ATM.calculateAtmosphereComposition();
@@ -1099,6 +1090,7 @@ async function olrNetA(T_K) {
         return OLR - Sabs;
     } finally {
         pin(save.T); DATA['🧮']['🧮🌡️⏮'] = save.Tp; DATA['🧮']['🧮🌡️🚩'] = save.Tf;
+        DATA['🧮']['🌡️🎱'] = save.T2;   // le point fixe méridien repart du T₂ d'avant la sonde
         preparer();
     }
 }
@@ -1123,7 +1115,7 @@ async function probeOLRvsCO2AtFixedT(T_C, co2Grid) {
     const grid = (Array.isArray(co2Grid) && co2Grid.length)
         ? co2Grid.slice()
         : [0.1, 0.3, 1, 3, 10, 30].map(fac => epCo2_0 * fac);
-    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'] };
+    const save = { T: DATA['🧮']['🧮🌡️'], Tp: DATA['🧮']['🧮🌡️⏮'], Tf: DATA['🧮']['🧮🌡️🚩'], T2: DATA['🧮']['🌡️🎱'] };
     const pinT = () => { DATA['🧮']['🧮🌡️'] = T_K; DATA['🧮']['🧮🌡️⏮'] = T_K; DATA['🧮']['🧮🌡️🚩'] = T_K; };
     const f = (v, n) => Number.isFinite(v) ? v.toFixed(n) : '—';
     const rows = [];
@@ -1167,7 +1159,7 @@ async function probeOLRvsCO2AtFixedT(T_C, co2Grid) {
         // Restauration : rendre à la timeline son CO₂ baseline + re-prep pour laisser DATA cohérent
         EP['⚖️🏭'] = epCo2_0;
         window.COMPUTE.getMasses();
-        DATA['🧮']['🧮🌡️'] = save.T; DATA['🧮']['🧮🌡️⏮'] = save.Tp; DATA['🧮']['🧮🌡️🚩'] = save.Tf;
+        DATA['🧮']['🧮🌡️'] = save.T; DATA['🧮']['🧮🌡️⏮'] = save.Tp; DATA['🧮']['🧮🌡️🚩'] = save.Tf; DATA['🧮']['🌡️🎱'] = save.T2;
         window.ATM.calculateAtmosphereComposition();
         window.ATM.updateAtmosphereHeightFromCurrentT();
         window.H2O._lastH2OParamsCache = null;

@@ -1,16 +1,11 @@
 // File: API_BILAN/atmosphere/calculations_atm.js - Calculs composition atmosphérique
 // Desc: En français, dans l'architecture, je suis le module de calculs atmosphériques
-// Version 1.3.2
+// Version 1.3.3
+// - v1.3.3 (2026-10-29): gravité lue par un seul chemin, DATA['📅']['🍎'] (l'époque courante) ; rayon courant 📜📐.
 // - v1.3.2 (2026-10-13): calculateTropopauseHeight = RT/Mg (limite de la grille fine) ; facteur 1,0261 [CALIB] retiré.
 // - v1.3.1 (2026-10-12): facteur de tropopause = CONFIG_COMPUTE.factorTropopause (constante ; plus de drapeau ni de cible fixe).
-// Date: [October 10, 2026]
-// logs :
-// - v1.3.0: PAS DE GARDES. Masses et fractions lues directement (plus de `isFinite(m) ? m : 0` ni `|| 0`) ;
-//   facteur de tropopause = DATA['🎚️'].RADIATIVE.factorTropopause seul (tuning.js l'écrit toujours ; la reprise
-//   sur CONFIG_COMPUTE puis 1 masquait une page sans tuning.js) ; conversions kg → fraction sans M_air de repli.
-//   Restent des branches physiques : sans atmosphère (⚫, ⚖️🫧 = 0), corps massif.
-//   ⚠️ calculatePressureAtm lit le rayon de la racine (EPOCH['📐']) et non le rayon courant 📜📐 (accrétion 🔥).
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Date: [October 29, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -131,7 +126,6 @@ function calculateMolarMassAir() {
 function calculatePressureAtm() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = DATA['📅'];
     const planet_radius_m = DATA['📜']['📐'] * 1000;
     const surface_area = 4 * Math.PI * Math.pow(planet_radius_m, 2);
     const atm_mass_dry = DATA['⚖️']['⚖️🫧'];
@@ -139,7 +133,7 @@ function calculatePressureAtm() {
     const denom = Math.max(1e-10, 1 - frac_vapor);
     const mass_vapor = (frac_vapor > 0 && frac_vapor < 1) ? (atm_mass_dry * frac_vapor / denom) : 0;
     const atm_mass_total = atm_mass_dry + mass_vapor;
-    const gravity = EPOCH['🍎'];
+    const gravity = DATA['📅']['🍎'];
     const pressure_pa = (atm_mass_total * gravity) / surface_area;
 
     DATA['🫧']['🎈'] = pressure_pa / CONV.STANDARD_ATMOSPHERE_PA;
@@ -260,9 +254,8 @@ function updateAtmosphereHeightFromCurrentT() {
 function calculateTropopauseHeight() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (DATA['⚖️']['⚖️🫧'] === 0) return 0;   // sans atmosphère (⚫)
-    const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
+    const scale_height_m = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * DATA['📅']['🍎']);
     // ⚠️ Ce n'est PAS la tropopause : la vraie sort du profil (radiative/calculations.js → profilAtmosphere, iTrop, où T
     // atteint la température de peau). Ce nombre ne fixe que la limite de la grille verticale fine (30 m dessous,
     // 150 m dessus) et un diagnostic d'affichage. Le facteur 1,0261 [CALIB] qui le multipliait est retiré (2026-10-13).
@@ -272,10 +265,9 @@ function calculateTropopauseHeight() {
 function pressureAtZ(z) {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    const EPOCH = window.TIMELINE[DATA['📜']['👉']];
     if (DATA['⚖️']['⚖️🫧'] === 0) return 0;
     const P0_pa = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
-    const H = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * EPOCH['🍎']);
+    const H = (CONST.R_GAS * DATA['🧮']['🧮🌡️']) / (DATA['🫧']['🧪'] * DATA['📅']['🍎']);
     return P0_pa * Math.exp(-z / H);
 }
 

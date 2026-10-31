@@ -9,16 +9,11 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.4.0
+// Version 1.4.2
+// - v1.4.2 (2026-10-29): l'époque se pose par 📜👉 seul (DATA['📅'] en est l'accesseur) ; 🗿 reste écrit pour l'interface.
+// - v1.4.1 (2026-10-29): frise = T₂ du bilan méridien à sa condition initiale (MERIDIEN.depuisConfig).
 // - v1.4.0: chemins (🕰.🛤, 🦣) : au premier clic, un bouton par chemin (🐾 pas à pas, 🦘 le saut) ; chaque chemin sa séquence.
-// - v1.3.6: emettre(kg, ans) — émission libre sur 📱 (une page hôte : les déplacements du joueur de DNA Tamagoshi),
-//   comme une action de tranche mais de masse et de durée données, puits compris.
-// - v1.3.5: tranches de 📱 jusqu'à la borne de la frise (TIMELINE_FUTUR ◀ = 2300), plus jusqu'à ◀ de 📱 (2100).
-// - v1.3.4: 📜🔺⏳ = durée du clic joué (Ma), remise à 0 au changement d'époque.
-// - v1.3.3: ☄️ cumule l'eau de SON entrée de séquence (🔺⚖️💧☄️) dans 📜🔺⚖️💧 — la masse peut changer d'un ☄️ à l'autre.
-// - v1.3.2: frise = calottes de la config de l'époque (CALOTTES.depuisConfig) ; CLICS.date() remplace la copie 📜📅.
-// - v1.3.1: frise = intérieur recalculé depuis la condition initiale (il héritait de l'état des clics précédents).
-// Date: 2026-10-26
+// Date: [October 29, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -33,13 +28,15 @@ window.CLICS = (function () {
     const TICS = ['💫', '🏔', '⛰', '🐾', '🦘'];
 
     function epoque() {
-        return window.TIMELINE[window.DATA['📜']['👉']];
+        return window.DATA['📅'];
     }
 
+    /** L'époque courante est 📜👉 (DATA['📅'] = TIMELINE[👉], accesseur de data/initDATA.js) ; 🗿, son nom, est écrit pour
+     *  l'interface, que le moteur ne lit pas. */
     function poserEpoque(H, epochId) {
-        H['🗿'] = epochId;
         H['👉'] = window.TIMELINE.findIndex(function (e) { return e['📅'] === epochId; });
-        window.DATA['📅'] = window.TIMELINE[H['👉']];
+        if (H['👉'] < 0) throw new Error('[CLICS] époque inconnue : ' + epochId);
+        H['🗿'] = epochId;
         COMPTEURS_EPOQUE.forEach(function (k) { H[k] = 0; });
         H['🔘🕰'] = '';
         H['🔺⏳'] = 0;
@@ -145,7 +142,7 @@ window.CLICS = (function () {
         /** Clic sur la frise : on (re)part de l'époque, sa graine, sans rien hériter (voile, eau des météorites,
          *  ni l'état de l'intérieur : 🌡️🌕 = 0 → INTERIEUR.avancer repart de la condition initiale de la config et
          *  intègre jusqu'à la date de l'époque, au lieu de prolonger l'histoire des clics précédents ; ni les calottes :
-         *  celles de la config de l'époque, datées de ▶). */
+         *  celles de la config de l'époque, datées de ▶ ; ni le gradient méridien : T₂ à sa condition initiale). */
         frise: function (epochId) {
             const H = window.DATA['📜'];
             poserEpoque(H, epochId);
@@ -153,7 +150,8 @@ window.CLICS = (function () {
             H['🔺🍰⚽'] = 0;
             H['_veilTimelinePulseActive'] = false;
             window.DATA['🌕']['🌡️🌕'] = 0;
-            window.CALOTTES.depuisConfig(window.DATA);
+            window.CALOTTES.depuisConfig();
+            window.MERIDIEN.depuisConfig();
         },
 
         /**

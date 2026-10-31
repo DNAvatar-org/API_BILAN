@@ -1,7 +1,7 @@
 // File: API_BILAN/spectroscopy/hitran.js - Formules HITRAN (Q(T), S(T), γ(T,P), Voigt)
 // Desc: En français, module de calcul LBL selon doc/HITRAN.txt (sections efficaces à partir des lignes).
-// Version 1.4.0
-// Date: 2026-10-24
+// Version 1.5.0
+// Date: 2026-10-30
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -12,6 +12,8 @@
 // - v1.3.2: voigtNormalized — Math.max(0, Re(w)) : Voigt est une pdf (≥0) ; HALF_WINDOW_CM=5 peut égaler 100×(γ_L+γ_D) donc la troncature v1.3.1 ne coupait pas la ligne fautive (σ_CH4 négatif bit-identique aux ailes).
 // - v1.4.0 (2026-10-24): faddeevaRe = algorithme W4 de Humlíček 1982 (contrôlé contre l'intégrale) ; Re w > 0, plus de Math.max ;
 //   γ_D = (ν/c)√(2RT/M), demi-largeur à 1/e (M en kg/mol entrait dans une formule en g/mol : ×26).
+// - v1.5.0 (2026-10-30): crossSectionsFromLines — σ à une liste de pressions en un passage sur les raies (tables σ(λ, T, P)) ;
+//   raies coupées à la fenêtre ±5 cm⁻¹ seule, la même à toute pression.
 
 (function (global) {
     'use strict';
@@ -201,10 +203,12 @@
     }
 
     // --- Sections efficaces à partir des lignes (données window.HITRAN_LINES_CO2 / H2O / CH4) ---
+    // Coupure des raies : une raie compte à moins de HALF_WINDOW_CM de son centre, à toute pression. Loin du centre, l'aile
+    // cesse d'être lorentzienne (sous-lorentzienne pour le CO₂ au-delà de quelques cm⁻¹ : Perrin & Hartmann 1989, JQSRT 42:311) ;
+    // l'écart tient à la durée des collisions, un écart en FRÉQUENCE, indépendant de la pression. ⚠️ 5 cm⁻¹ : choix numérique,
+    // sans source. (Une coupure en nombre de largeurs, 100 (γ_L + γ_D), retirait à basse pression des ailes de Lorentz situées à
+    // moins de 5 cm⁻¹ du centre ; à 1 atm elle dépassait déjà la fenêtre.)
     var HALF_WINDOW_CM = 5;
-    // Coupure des ailes (choix numérique, sans source) : une raie ne compte plus au-delà de VOIGT_N_WIDTHS × (γ_L+γ_D)
-    // de son centre, ni hors de la fenêtre ±HALF_WINDOW_CM.
-    var VOIGT_N_WIDTHS = 100;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
     function getSortedLines(key) {
@@ -239,34 +243,44 @@
     }
 
     /**
-     * Section efficace σ(λ, T, P) en m²/molécule à partir des lignes (réf. doc/HITRAN.txt).
-     * lines = tableau de lignes trié par nu. On parcourt [i0, i1[ sans allouer inRange pour limiter la mémoire.
-     * X_self = fraction molaire du gaz (0 pour CO2/CH4 en air, >0 pour H2O humide). n_self non dans JSON → on utilise n_air.
+     * Sections efficaces σ(λ, T, P) en m²/molécule à partir des lignes (réf. doc/HITRAN.txt), pour une LISTE de pressions P_Pa_list,
+     * en un seul passage sur les raies : S(T), γ_air(T), γ_self(T) et γ_D ne dépendent pas de P ; seule la largeur de Lorentz
+     * γ_L = P·[X_self γ_self + (1 − X_self) γ_air], donc la Voigt, est évaluée à chaque pression. Renvoie un Float64Array.
+     * lines = tableau de lignes trié par nu. X_self = fraction molaire du gaz (0 pour CO2/CH4 en air, >0 pour H2O humide).
+     * n_self non dans JSON → on utilise n_air.
      */
-    function crossSectionFromLines(lines, lambda_m, T_K, P_Pa, M_kg_mol, X_self, molecule) {
+    function crossSectionsFromLines(lines, lambda_m, T_K, P_Pa_list, M_kg_mol, X_self, molecule) {
         var nu_cm = wavelengthToWavenumber(lambda_m);
-        var nuMin = nu_cm - HALF_WINDOW_CM;
-        var nuMax = nu_cm + HALF_WINDOW_CM;
-        var i0 = binarySearchGe(lines, nuMin);
-        var i1 = binarySearchGe(lines, nuMax + 1e-9);
+        var i0 = binarySearchGe(lines, nu_cm - HALF_WINDOW_CM);
+        var i1 = binarySearchGe(lines, nu_cm + HALF_WINDOW_CM + 1e-9);
         var Q_ref = partitionFunctionQ(HITRAN_T_REF_K, molecule);
         var Q_T = partitionFunctionQ(T_K, molecule);
-        var P_atm = pressurePaToAtm(P_Pa);
+        var nP = P_Pa_list.length;
+        var P_atm = P_Pa_list.map(pressurePaToAtm);
         var X_air = 1 - X_self;
-        var sum_cm2 = 0;
+        var sum_cm2 = new Float64Array(nP);
         for (var k = i0; k < i1; k++) {
             var line = lines[k];
             var g_air_T = gammaLorentzAir(T_K, line.gamma_air, line.n_air, HITRAN_T_REF_K);
             var g_self_T = gammaLorentzSelf(T_K, line.gamma_self, line.n_air, HITRAN_T_REF_K);
-            var gamma_L = gammaLorentzTotal(P_atm, g_air_T, g_self_T, X_self, X_air);
             var gamma_D = gammaDoppler(line.nu, T_K, M_kg_mol);
             var delta_nu = nu_cm - line.nu;
-            // Coupure des ailes lointaines (VOIGT_N_WIDTHS, plus haut).
-            if (Math.abs(delta_nu) > VOIGT_N_WIDTHS * (gamma_L + gamma_D)) continue;
             var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
-            sum_cm2 += lineCrossSectionCm2(S_T, delta_nu, gamma_L, gamma_D);
+            for (var p = 0; p < nP; p++) {
+                sum_cm2[p] += lineCrossSectionCm2(S_T, delta_nu, gammaLorentzTotal(P_atm[p], g_air_T, g_self_T, X_self, X_air), gamma_D);
+            }
         }
-        return sigmaCm2ToM2(sum_cm2);
+        return sum_cm2.map(sigmaCm2ToM2);
+    }
+
+    /** Section efficace σ(λ, T, P) en m²/molécule à une pression (crossSectionsFromLines). */
+    function crossSectionFromLines(lines, lambda_m, T_K, P_Pa, M_kg_mol, X_self, molecule) {
+        return crossSectionsFromLines(lines, lambda_m, T_K, [P_Pa], M_kg_mol, X_self, molecule)[0];
+    }
+
+    /** σ(λ, T, P) [m²/molécule] du gaz molecule ('CO2' | 'H2O' | 'CH4') dans l'air (X_self = 0) aux pressions P_Pa_list. */
+    function crossSectionsInAir(molecule, lambda_m, T_K, P_Pa_list) {
+        return crossSectionsFromLines(getSortedLines(molecule), lambda_m, T_K, P_Pa_list, CONST['M_' + molecule], 0, molecule);
     }
 
     function crossSectionCO2FromLines(lambda_m, T_K, P_Pa) {
@@ -401,6 +415,8 @@
     global.HITRAN.sigmaCm2ToM2 = sigmaCm2ToM2;
     global.HITRAN.faddeevaRe = faddeevaRe;
     global.HITRAN.crossSectionFromLines = crossSectionFromLines;
+    global.HITRAN.crossSectionsFromLines = crossSectionsFromLines;
+    global.HITRAN.crossSectionsInAir = crossSectionsInAir;
     global.HITRAN.crossSectionCO2FromLines = crossSectionCO2FromLines;
     global.HITRAN.crossSectionH2OFromLines = crossSectionH2OFromLines;
     global.HITRAN.crossSectionCH4FromLines = crossSectionCH4FromLines;

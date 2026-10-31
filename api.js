@@ -1,12 +1,12 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback), utilisée par les bancs (epoch_bench, headless). Aucun DOM.
-// Version 1.2.0
+// Version 1.2.2
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: October 10, 2026
+// Date: October 30, 2026
 // Logs:
-// - v1.2.0: prepare(config) = tout jusqu'à initForConfig (préchargement « config sans calcul » de la scie) ;
-//   run = prepare + convergence, point d'entrée unique de tout calcul (visu, scie, bancs). Callback = le seul canal.
+// - v1.2.2: la T initiale n'est posée que par calculateT0 (graine 📜🌡️🧮 du clic, ou T courante en tictime).
+// - v1.2.1: l'époque se pose par 📜👉 (DATA['📅'] en est l'accesseur) ; snapshot sans la glace 0D retirée (τ, instantanés).
 
 'use strict';
 
@@ -37,13 +37,11 @@ function BilanRadiatifAPI(callback) {
 BilanRadiatifAPI.prototype.prepare = function (config) {
     const DATA = window.DATA;
     const EP = window.TIMELINE.find(function (item) { return item['📅'] === config.epochId; });
-    DATA['📅'] = EP;
-    DATA['📜']['👉'] = window.TIMELINE.indexOf(EP);
-    DATA['📜']['🗿'] = EP['📅'];
+    DATA['📜']['👉'] = window.TIMELINE.indexOf(EP);   // l'époque courante : DATA['📅'] (accesseur)
+    DATA['📜']['🗿'] = EP['📅'];                      // son nom, pour l'interface
     window.SYNC_STATE.animEnabled = config.animEnabled;
     if (config.tuning) window.TUNING.applyTuningPayload(config.tuning);
     window.COMPUTE.getMasses();
-    if (!config.animEnabled) DATA['🧮']['🧮🌡️'] = EP['🌡️🧮'];
     DATA['🧮']['previous'] = [];
     DATA['🧮']['🧮🔄🌊'] = 0;
     DATA['🧮']['🧮🔄🪩'] = 0;
@@ -75,32 +73,22 @@ BilanRadiatifAPI.prototype.run = async function (config) {
 };
 
 /**
- * Instantané plat de l'état de calibration (T, glace, snapshots, déséquilibre radiatif, traps).
- * Lecture pure de DATA / STATE / TIMELINE / CONFIG_COMPUTE, aucun calcul. À appeler après un run.
+ * Instantané plat de l'état de calibration (T, glace, déséquilibre radiatif, traps).
+ * Lecture pure de DATA, aucun calcul. À appeler après un run.
  */
 BilanRadiatifAPI.prototype.snapshot = function () {
     const D = window.DATA;
-    const S = window.STATE;
-    const CC = window.CONFIG_COMPUTE;
-    const idx = D['📜']['👉'];
-    const EP = window.TIMELINE[idx];
-    const duree_ans = Math.abs(EP['▶'] - EP['◀']);
-    const tau_eff = CC.tauGlaceAns * CC.iceInertiaFactor01;
     return {
-        epochId: D['📜']['🗿'],
-        epochIdx: idx,
+        epochId: D['📅']['📅'],
+        epochIdx: D['📜']['👉'],
         phase: D['🧮']['🧮⚧'],
         status: D['🧮']['🧮🛑'],
-        T_C: D['🧮']['🧮🌡️'] - 273.15,
-        T_seed_C: EP['🌡️🧮'] - 273.15,
-        duree_ans,
-        tau_eff,
-        fraction_fonte: 1 - Math.exp(-duree_ans / tau_eff),
+        T_C: D['🧮']['🧮🌡️'] - window.CONST.T0_WATER,
+        T_seed_C: D['📜']['🌡️🧮'] - window.CONST.T0_WATER,
         ice: {
             mass_now: D['💧']['🍰💧🧊'],
             surf_now: D['🪩']['🍰🪩🧊'],
-            mass_snap: S._iceMassSnapshotPreSearch01,
-            surf_snap: S._iceSurfSnapshotPreSearch01
+            calottes_kg: D['🗻']['⚖️🗻🧊']
         },
         albedo: {
             planetary: D['🪩']['🍰🪩📿'],

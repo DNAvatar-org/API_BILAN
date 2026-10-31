@@ -1,12 +1,11 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.13.2
+// Version 0.14.0
+// - v0.14.0 (2026-10-30): σ à la (T, P) de la couche : tables σ[iT·nP + iP], ln σ linéaire en ln P (au lieu de σ·√(P/P₀)).
 // - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
-// - v0.13.1 (2026-10-13): ch4_eds_scale retiré (toujours 1).
-// - v0.13.0 (2026-10-13): CIA CO₂–CO₂ MESURÉE (HITRAN 2024), tables k(λ, T) comme σ.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: [September 18, 2026]
+// Date: [October 30, 2026]
 
 
 /**
@@ -24,6 +23,11 @@ function spectralSliceWorkerMain() {
         return Math.min(term1 / term2, cap);   // même loi que PHYS.planckFunction (le worker n'a pas window)
     }
 
+    /** σ à la pression de la couche entre deux nœuds de pression, chacun déjà interpolé en T. */
+    function enPression(s0, s1, v) {
+        return Math.pow(s0, 1 - v) * Math.pow(s1, v);
+    }
+
     var TAU_EFF_MIN = 0;
     var TAU_EFF_MAX = 700;
     var MAX_FLUX_PER_BAND = 1e15;
@@ -35,7 +39,9 @@ function spectralSliceWorkerMain() {
         var cstUse = p.constants;
         var lambda_range = p.lambda_range;
         var lambda_weights = p.lambda_weights;
-        // Tables σ[iT][j] (m²/molécule) sur la grille de températures ; chaque couche porte iT, wT.
+        // Tables σ[iT·nP + iP][j] (m²/molécule) sur la grille de températures et de pressions ; chaque couche porte iT, wT (linéaire
+        // en T) et iP, wP (ln σ linéaire en ln P : σ = σ₀^(1−wP)·σ₁^wP ; un σ nul, aucune raie dans la fenêtre, reste nul).
+        var nP = p.nP;
         var sigma_CO2 = p.sigma_CO2;
         var sigma_H2O = p.sigma_H2O;
         var sigma_CH4 = p.sigma_CH4;
@@ -68,12 +74,11 @@ function spectralSliceWorkerMain() {
             var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
             var T = L.T;
             var delta_z_real = L.delta_z_real;
-            var sigma_broad = L.pressureBroadening;
-            var sigma_broad_H2O = L.pressureBroadeningH2O;
             var a = L.iT, w = L.wT;
-            var sC0 = sigma_CO2[a], sC1 = sigma_CO2[a + 1];
-            var sH0 = sigma_H2O[a], sH1 = sigma_H2O[a + 1];
-            var sM0 = sigma_CH4[a], sM1 = sigma_CH4[a + 1];
+            var r = a * nP + L.iP, v = L.wP, rH = a * nP + L.iPH2O, vH = L.wPH2O;   // lignes (T bas, P bas) ; T haut : + nP
+            var sC00 = sigma_CO2[r], sC01 = sigma_CO2[r + 1], sC10 = sigma_CO2[r + nP], sC11 = sigma_CO2[r + nP + 1];
+            var sM00 = sigma_CH4[r], sM01 = sigma_CH4[r + 1], sM10 = sigma_CH4[r + nP], sM11 = sigma_CH4[r + nP + 1];
+            var sH00 = sigma_H2O[rH], sH01 = sigma_H2O[rH + 1], sH10 = sigma_H2O[rH + nP], sH11 = sigma_H2O[rH + nP + 1];
             var cC0 = cia_CO2[a], cC1 = cia_CO2[a + 1];
             var nCO2cm3 = n_CO2 * 1e-6;                  // [molécules/cm³]
             var cont_layer = L.continuum;
@@ -82,9 +87,9 @@ function spectralSliceWorkerMain() {
 
             for (var j = 0; j < nL; j++) {
                 var lambda = lambda_range[j];
-                var kappa_CO2 = (sC0[j] + w * (sC1[j] - sC0[j])) * sigma_broad * n_CO2;
-                var kappa_H2O = (sH0[j] + w * (sH1[j] - sH0[j])) * sigma_broad_H2O * n_H2O;
-                var kappa_CH4 = (sM0[j] + w * (sM1[j] - sM0[j])) * sigma_broad * n_CH4;
+                var kappa_CO2 = enPression(sC00[j] + w * (sC10[j] - sC00[j]), sC01[j] + w * (sC11[j] - sC01[j]), v) * n_CO2;
+                var kappa_H2O = enPression(sH00[j] + w * (sH10[j] - sH00[j]), sH01[j] + w * (sH11[j] - sH01[j]), vH) * n_H2O;
+                var kappa_CH4 = enPression(sM00[j] + w * (sM10[j] - sM00[j]), sM01[j] + w * (sM11[j] - sM01[j]), v) * n_CH4;
                 var kappa_cont = continuum_H2O[j] * cont_layer;   // continuum H₂O, m⁻¹
                 // CIA CO₂–CO₂ : κ [cm⁻¹] = k·n², ×100 → m⁻¹. Comptée avec le CO₂ (attribution EDS).
                 var kappa_CIA = (cC0[j] + w * (cC1[j] - cC0[j])) * nCO2cm3 * nCO2cm3 * 100;

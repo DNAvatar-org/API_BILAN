@@ -1,14 +1,12 @@
 // ============================================================================
 // File: API_BILAN/h2o/calculations_h2o.js - Calculs H2O (vapeur et nuages)
 // Desc: Séparation vapeur d'eau (effet de serre) et nuages (albedo)
-// Version 1.2.4
-// - v1.2.4 (2026-10-13): M de l'air sec = Σm/Σ(m/M) (dryMolarMass) au lieu de Σ(m·M)/Σm.
-// - v1.2.3 (2026-10-13): facteur « Iris » (réglage sans source sur la vapeur) retiré.
-// - v1.2.2 (2026-10-13): humidité de surface lue dans DATA['🎚️'].H2O (jauge SUBTIL).
-// Date: [October 10, 2026]
-// logs :
-// - v1.0.19: expositions fonctions regroupées sous window.H2O (plus de window.foo isolés). Clés ajoutées au namespace : calculateH2OGreenhouseForcing, calculateCloudAlbedoContribution, calculateWaterPartition, calculatePrecipitationFeedback, getBoilingPointKFromPressure. Appelants migrés window.foo() → H2O.foo() dans calculations_flux.js, radiative/calculations.js, ui/main.js, CO2/html/*.html.
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 1.4.4
+// - v1.4.4 (2026-10-30): glace de mer latitude par latitude (épaisseur moyenne de la glace présente de chaque bande).
+// - v1.4.3 (2026-10-29): glace de mer à la part gelée de l'année de la glace saisonnière de chaque bande (🪩.🍰📅🧊, celle de
+//   physics/saisons.js), la même que son aire et son albédo.
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -59,8 +57,7 @@ function poserToutVapeur() {
     const m = DATA['⚖️'];
     const w = m['⚖️💧'] / (m['⚖️💧'] + m['⚖️🫧']);
     DATA['💧']['🍰🫧💧'] = w;
-    DATA['💧']['🍰💧🌊'] = 0;
-    DATA['💧']['🍰💧🧊'] = 0;
+    partagerEau(0, m['⚖️💧']);
     DATA['💧']['🧲⚖️💦'] = 0;
     DATA['🫧']['🍰🫧🏭'] = m['⚖️🏭'] / m['⚖️🫧'] * (1 - w);
     DATA['🫧']['🍰🫧🐄'] = m['⚖️🐄'] / m['⚖️🫧'] * (1 - w);
@@ -76,6 +73,51 @@ function poserToutVapeur() {
     DATA['💧']['🍰🌧💧'] = x_v * P / p_sat;                       // humidité relative (0 au-delà du point critique)
     calculateH2OGreenhouseForcing();
     window.H2O._lastH2OParamsCache = null;
+}
+
+/**
+ * Partage de l'eau totale ⚖️💧 entre glace, vapeur et liquide : la SEULE écriture de 🍰💧🧊 et 🍰💧🌊 (parts MASSIQUES de ⚖️💧).
+ * masseGlace, masseVapeur [kg] ; le liquide est le reste : 🍰💧🧊 + 🍰💧🌊 + vapeur/⚖️💧 = 1. Sans eau, il n'y a rien à partager.
+ */
+function partagerEau(masseGlace, masseVapeur) {
+    const DATA = window.DATA, W = DATA['⚖️']['⚖️💧'];
+    if (W === 0) {
+        DATA['💧']['🍰💧🧊'] = 0;
+        DATA['💧']['🍰💧🌊'] = 0;
+        return;
+    }
+    const liquide = 1 - (masseGlace + masseVapeur) / W;
+    if (liquide < -1e-9) throw new Error('[H2O.partagerEau] glace (' + masseGlace.toExponential(3) + ' kg) + vapeur (' + masseVapeur.toExponential(3)
+        + ' kg) > eau totale ⚖️💧 (' + W.toExponential(3) + ' kg)');
+    DATA['💧']['🍰💧🧊'] = masseGlace / W;
+    DATA['💧']['🍰💧🌊'] = Math.max(0, liquide);   // borné à 0 : l'arrondi seul peut le rendre négatif (contrôlé ci-dessus)
+}
+
+/** Monde à océan : de l'eau liquide possible (PHYS.eauSansLiquide faux) et une atmosphère (masse d'air sec ⚖️🫧, masse molaire,
+ *  pression). C'est le régime où calculateWaterPartition ne pose pas la glace : calculateAlbedo la pose, après le bilan méridien qui
+ *  donne la glace de mer et les calottes (masse des calottes du pas, 🗻.🧮⚖️🗻🧊) ; hors de lui, il n'y a ni mer, ni calotte
+ *  (physics/calottes.js), ni forêt (calculateAlbedo), et la glace ne fond pas (EARTH.glaceSaisonniere). La seule définition. */
+function mondeOcean() {
+    const DATA = window.DATA;
+    return !window.PHYS.eauSansLiquide() && DATA['⚖️']['⚖️🫧'] > 0 && DATA['🫧']['🧪'] > 0 && DATA['🫧']['🎈'] > 0;
+}
+
+/**
+ * [kg] Glace de mer de l'état : Σ_bandes ρ_i × (mer libre de la bande) × g × h, g = part de l'année où la mer de la bande est gelée
+ * (DATA['🪩']['🍰📅🧊'][bande].mer, glace saisonnière de l'état : celle de physics/saisons.js, qui donne aussi l'aire et l'albédo de
+ * la glace de mer, moyenne des t_i de ses latitudes) et h = épaisseur de Stefan √(2 k_i FDD_i / (ρ_i L_f)) de chaque latitude,
+ * moyennée sur la glace présente (poids t_i ; saisons : boîtes de l'état, SAISONS.cycles) : g h = moyenne des t_i h_i. Mer libre de la bande : MERIDIEN.surfacesBandes (terre émergée de PALEOGEO à la date, calotte du pas posée sur
+ * le plateau continental prise à la mer) ; aire de la bande : CALOTTES.aireBande.
+ * ⚠️ DÉCLARÉ : l'épaisseur de fin de saison de gel est tenue sur toute la part gelée de l'année (borne haute d'une glace saisonnière) ;
+ * une glace pérenne n'a que l'épaisseur d'une année de Stefan (borne basse : elle s'épaissit d'année en année).
+ */
+function masseGlaceMer(saisons) {
+    const S = window.MERIDIEN.surfacesBandes(), g = window.DATA['🪩']['🍰📅🧊'];
+    let m = 0;
+    for (const b of window.CALOTTES.BANDES) {
+        m += window.CONST.RHO_GLACE * window.CALOTTES.aireBande(b) * S[b.cle].mer * g[b.cle].mer * saisons[b.cle].h_glace;
+    }
+    return m;
 }
 
 //Calcule la fraction volumique maximale de vapeur d'eau à saturation
@@ -120,256 +162,61 @@ function calculateCloudAlbedoContribution() {
 // Les nuages sont maintenant calculés via calculateCloudFormationIndex() dans calculations_albedo.js
 // qui calcule ☁️ (CloudFormationIndex) puis 🍰🪩⛅ (couverture nuageuse pour albedo)
 
-//Calcule la répartition eau vapeur / liquide / glace selon les conditions physiques
-// 🔒 NOUVEAU : Utilise les surfaces géologiques pour contraindre la répartition
+//Calcule la répartition eau vapeur / liquide / glace selon les conditions physiques. Régimes : tout vapeur (pas de liquide possible),
+// monde à océan (mondeOcean : glace et liquide posés par calculateAlbedo), corps noir / sans atmosphère (ici).
 function calculateWaterPartition() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    //const EPOCH = window.TIMELINE[DATA['📜']['👉']];
-    const STATE = window.STATE;
     const ALBEDO = window.ALBEDO;
 
     if (window.PHYS.eauSansLiquide()) { poserToutVapeur(); return true; }
 
-    // ⚫ TIMELINE : pas d’atmosphère. Si ⚖️🫧 n’est pas encore resynchronisé (résidu d’époque précédente),
-    // le test ⚖️🫧==0 seul laissait passer la branche « atmosphère complète » → 🍰💧🧊 ~70–75 % à froid.
-    const epochIdH2o = DATA['📜'] && DATA['📜']['🗿'];
-    const isCorpsNoirTimeline = epochIdH2o === '⚫';
-    const atmMassKg = DATA['⚖️'] && DATA['⚖️']['⚖️🫧'];
-    if (!atmMassKg || atmMassKg === 0 || isCorpsNoirTimeline) {
-        DATA['💧']['🍰🧪🌧'] = 0;
-        DATA['💧']['🍰🫧💧'] = 0;
-        if (DATA['⚖️']['⚖️💧'] <= 0) {
-            DATA['💧']['🍰💧🧊'] = 0;
-            DATA['💧']['🍰💧🌊'] = 0;
-            window.RUNTIME_STATE.h2oIceFractionFromCalculation = DATA['💧']['🍰💧🧊'];
-            return true;
-        } else
-        // Corps noir (ou sans atmosphère) avec eau météorites : glace si T < 0°C, stock borné + lié à ⚖️💧 (didactique)
-        if (DATA['🧮']['🧮🌡️'] < CONST.T0_WATER) {
-            const M_ref = window.CONFIG_COMPUTE.earthTotalWaterMassKg;
-            const cap = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01;
-            const perPAL = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL;
-            const pal = M_ref > 0 ? DATA['⚖️']['⚖️💧'] / M_ref : 0;
-            DATA['💧']['🍰💧🧊'] = Math.min(cap, pal * perPAL);
-            DATA['💧']['🍰💧🌊'] = Math.max(0, 1 - DATA['💧']['🍰💧🧊']);
-        } else {
-            DATA['💧']['🍰💧🧊'] = 0;
-            DATA['💧']['🍰💧🌊'] = 1;
-        }
-        window.RUNTIME_STATE.h2oIceFractionFromCalculation = DATA['💧']['🍰💧🧊'];
-        return true;
-    }
-    
-    // 🔒 h2o_total_fraction = fraction d'eau totale par rapport à la masse atmosphérique
-    // Utilisé uniquement pour les calculs intermédiaires
-    const h2o_total_fraction = DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'];
-    
-    // 🔒 ÉTAPE 1 : Obtenir les surfaces géologiques (doit être calculé avant)
     ALBEDO.calculateGeologySurfaces();
 
-    // Pas d'atmosphère : pas de vapeur, mais on peut avoir de la glace si T < 0°C
-    const hasNoAtmosphere = DATA['🫧']['🧪'] === 0 || DATA['🫧']['🎈'] === 0 || DATA['🫧']['🎈'] <= 0;
-    if (hasNoAtmosphere) {
-        // Sans atmosphère : toute l'eau est soit glace (si T < 0°C) soit liquide (océan)
-        DATA['💧']['🍰🧪🌧'] = 0;  // Pas de vapeur sans atmosphère
-        DATA['💧']['🍰🫧💧'] = 0;
-        if (DATA['🧮']['🧮🌡️'] < CONST.T0_WATER && h2o_total_fraction > 0) {
-            // T < 0°C : toute l'eau est glace
-            DATA['💧']['🍰💧🧊'] = h2o_total_fraction;
-            DATA['💧']['🍰💧🌊'] = 0;
-        } else {
-            // T >= 0°C : toute l'eau est liquide (océan)
-            DATA['💧']['🍰💧🧊'] = 0;
-            DATA['💧']['🍰💧🌊'] = h2o_total_fraction;
-        }
-        return true;
-    }
-    
-    // Avec atmosphère : initialiser les valeurs avant calcul
-    // 🔒 IMPORTANT : Ne PAS réinitialiser 🍰🫧💧 car elle est calculée par calculatePrecipitationFeedback()
-    // ou par calculateH2OParametersWithIteration() et doit être préservée
-    DATA['💧']['🍰💧🧊'] = 0;
-    DATA['💧']['🍰💧🌊'] = 0;
-    DATA['💧']['🍰🧪🌧'] = 0;
-    // 🍰🫧💧 n'est PAS réinitialisée ici, elle est préservée depuis l'appel précédent
-
-    // Calculer la pression de vapeur saturante
-    const P_sat = calculateSaturatedVaporPressure();
-    const P_total = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
-    const max_vapor_fraction = P_total > 0 ? Math.min(P_sat / P_total, 1.0) : 0;
-
-    // Stocker la fraction molaire maximale (🍰🧪🌧)
-    DATA['💧']['🍰🧪🌧'] = max_vapor_fraction;
-
-    // 🔒 ÉTAPE 2 : Déterminer la glace selon la température ET les surfaces disponibles
-    // Deux régimes :
-    //   T_glob >= T_freeze_seawater : glace polaire sur hautes terres (calottes classiques)
-    //   T_glob <  T_freeze_seawater : l'océan gèle → glace = highlands + surface océanique gelée
-    //
-    // v1.0.21 — FONCTION UNIQUE EARTH.computeIceTempFactor(T_glob, opts) — cf. physics.js.
-    // Cap à 10 % (fraction massique d'eau piégée en calottes polaires).
-    const _iceTF_h2o = EARTH.computeIceTempFactor(DATA['🧮']['🧮🌡️'], window.TIMELINE[DATA['📜']['👉']]);
-    const has_polar_ice = _iceTF_h2o.tf_pol > 0;
-    const polar_ice_fraction_climate = 0.10 * _iceTF_h2o.tf_pol;
-
-    let polar_ice_fraction;
-    if (DATA['🧮']['🧮🌡️'] >= EARTH.T_FREEZE_SEAWATER_K) {
-        // Régime classique : calottes polaires limitées aux hautes terres
-        polar_ice_fraction = Math.min(DATA['🗻']['🍰🗻🏔'], polar_ice_fraction_climate);
-    } else {
-        // Régime gel océan : proportion gelée croît linéairement sous T_freeze (~271 K)
-        // À T_freeze - 20 K (~251 K) → 100% de la surface supportable est gelée
-        // Surface supportable = max(highlands, hydrosphère) — hydrosphère = couche eau globale / 10m, cap 0.9
-        const planet_surface_m2 = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
-        const hydro_support = Math.max(0, Math.min(0.9,
-            (DATA['⚖️']['⚖️💧'] > 0 ? (DATA['⚖️']['⚖️💧'] / CONST.RHO_WATER) / planet_surface_m2 : 0) / 10));
-        const max_ice_surface = Math.max(DATA['🗻']['🍰🗻🏔'], hydro_support);
-        polar_ice_fraction = max_ice_surface * Math.max(0, Math.min(1,
-            (EARTH.T_FREEZE_SEAWATER_K - DATA['🧮']['🧮🌡️']) / 20));
-    }
-    
-    // 🔒 CALCUL DE 🍰🫧💧 (fraction massique de vapeur d'eau dans l'atmosphère)
-    // Formule : 🍰🫧💧 = max_vapor_fraction × (M_H2O / M_air)
-    // Où :
-    //   max_vapor_fraction = P_sat / P_total (fraction molaire maximale, ~0.017–0.02)
-    //   M_H2O / M_air ≈ 0.018 / 0.029 ≈ 0.62
-    //   Donc 🍰🫧💧 ≈ 0.017 × 0.62 ≈ 0.0105 (1.05%)
-    // 🔒 VÉRIFICATION : M_air (🧪) doit être raisonnable (entre 0.016 et 0.050 kg/mol)
-    const mass_ratio = CONST.M_H2O / DATA['🫧']['🧪']; // ~0.62 (0.01802 / 0.029 ≈ 0.621)
-    
-    // Calculer la fraction massique maximale (limite physique)
-    // Formule : max_vapor_mass_fraction = max_vapor_fraction × (M_H2O / M_air)
-    // À 288K : max_vapor_fraction ≈ 0.0171, M_H2O/M_air ≈ 0.62
-    // Donc max_vapor_mass_fraction ≈ 0.0171 × 0.62 ≈ 0.0106 (1.06%)
-    const max_vapor_mass_fraction = max_vapor_fraction * mass_ratio;
-    
-    // 🔒 LIMITE PHYSIQUE : La pression de vapeur saturante est TOUJOURS la contrainte principale
-    // Même si l'eau disponible est supérieure, on ne peut pas dépasser la limite physique
-    // available_water_fraction = fraction d'eau disponible par rapport à la masse atmosphérique
-    const available_water_fraction = DATA['⚖️']['⚖️🫧'] > 0 ? DATA['⚖️']['⚖️💧'] / DATA['⚖️']['⚖️🫧'] : 0;
-
-    // 🔒 IMPORTANT : calculateWaterPartition() ne doit PAS recalculer 🍰🫧💧
-    // 🍰🫧💧 est calculée par calculatePrecipitationFeedback() (dans la boucle Init)
-    // ou par calculateH2OParametersWithIteration() (en phase Init)
-    // ou par calculateH2OParameters() (en phase non-Init)
-    // calculateWaterPartition() doit seulement calculer 🍰💧🧊 et 🍰💧🌊 en utilisant la valeur existante de 🍰🫧💧
-    // 🍰🫧💧 est préservée telle quelle (pas de réinitialisation, pas de recalcul)
-    
-    // Calculer la masse de vapeur d'eau (en kg) pour les calculs suivants
-    const h2o_vapor_mass_kg = DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧'];
-    
-    // 🔒 RENORMALISATION : Les fractions de l'air sec doivent être ajustées pour que la somme totale = 1.0
-    // 🔒 IMPORTANT : TOUJOURS recalculer depuis les masses pour éviter l'accumulation d'erreurs
-    // Si 🍰🫧💧 > 0, alors les fractions de l'air sec doivent être multipliées par (1 - 🍰🫧💧)
-    const dry_air_fraction = DATA['💧']['🍰🫧💧'] > 0 && DATA['💧']['🍰🫧💧'] < 1.0 ? (1.0 - DATA['💧']['🍰🫧💧']) : 1.0;
-    
-    // Calculer les fractions de l'air sec depuis les masses, puis multiplier par dry_air_fraction
-    if (DATA['⚖️']['⚖️🫧'] > 0) {
+    if (mondeOcean()) {
+        // La vapeur 🍰🫧💧 est celle de calculatePrecipitationFeedback / calculateH2OParameters(WithIteration), préservée ici ;
+        // glace et liquide (🍰💧🧊, 🍰💧🌊) sont posés par calculateAlbedo (partagerEau), après le bilan méridien qui donne la glace
+        // de mer de l'état. Ici : saturation et parts de l'air sec.
+        const P_sat = calculateSaturatedVaporPressure();
+        const P_total = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
+        DATA['💧']['🍰🧪🌧'] = Math.min(P_sat / P_total, 1.0);   // fraction molaire maximale
+        // 🔒 RENORMALISATION : les fractions de l'air sec, recalculées depuis les masses (pas d'accumulation d'erreurs), sont
+        // multipliées par (1 − 🍰🫧💧) pour que la somme totale fasse 1.
+        const dry_air_fraction = 1.0 - DATA['💧']['🍰🫧💧'];
         DATA['🫧']['🍰🫧🏭'] = (DATA['⚖️']['⚖️🏭'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧🐄'] = (DATA['⚖️']['⚖️🐄'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧🫁'] = (DATA['⚖️']['⚖️🫁'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧✈'] = (DATA['⚖️']['⚖️✈'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
         DATA['🫧']['🍰🫧💨'] = (DATA['⚖️']['⚖️💨'] / DATA['⚖️']['⚖️🫧']) * dry_air_fraction;
-    } else {
-        DATA['🫧']['🍰🫧🏭'] = 0;
-        DATA['🫧']['🍰🫧🐄'] = 0;
-        DATA['🫧']['🍰🫧🫁'] = 0;
-        DATA['🫧']['🍰🫧✈'] = 0;
-        DATA['🫧']['🍰🫧💨'] = 0;
-    }
-    
-    // 🔒 CALCUL DE LA FRACTION DE VAPEUR PAR RAPPORT À LA MASSE TOTALE D'EAU
-    // h2o_vapor_mass_kg est la masse de vapeur d'eau (en kg)
-    // h2o_vapor_mass_fraction_of_total = fraction de vapeur par rapport à la masse totale d'eau (⚖️💧)
-    // Cette fraction doit être entre 0 et 1, et 🍰💧🧊 + 🍰💧🌊 + h2o_vapor_mass_fraction_of_total = 1.0
-    const h2o_vapor_mass_fraction_of_total = DATA['⚖️']['⚖️💧'] > 0 ? (h2o_vapor_mass_kg / DATA['⚖️']['⚖️💧']) : 0;
-    
-    // 🔒 CALCUL DE LA FRACTION RESTANTE (LIQUIDE + GLACE) PAR RAPPORT À LA MASSE TOTALE D'EAU
-    // remaining_after_vapor = 1.0 - h2o_vapor_mass_fraction_of_total
-    // C'est la fraction de la masse totale d'eau qui n'est PAS en vapeur
-    const remaining_after_vapor = Math.max(0, 1.0 - h2o_vapor_mass_fraction_of_total);
-    
-    // CORRECTION: L'eau de mer gèle à ~-2°C (EARTH.T_FREEZE_SEAWATER_K), pas 0°C
-    // Et ça dépend de la pression (plus de pression = point de congélation plus bas)
-    // Pour simplifier, utiliser -2°C comme point de congélation de l'eau de mer (EARTH.T_FREEZE_SEAWATER_K)
-    const pressure_atm = DATA['🫧']['🎈'];
-    // Ajuster selon la pression : plus de pression = point de congélation plus bas
-    // À 1 atm : -2°C, à 2 atm : ~-3°C (approximation linéaire)
-    const T_freeze_adjusted = EARTH.T_FREEZE_SEAWATER_K - (pressure_atm - 1) * 1.0; // -1°C par atm supplémentaire
-    
-    // v1.0.23 : verrou glace d'époque supprimé (user: "virer le verrou tout le temps").
-    //           Plus de lockIceInSolver — la glace suit 🧮🌡️ à chaque pas, comme en Init, ce
-    //           qui permet au feedback T→glace d'opérer dans le scan hystérésis ⛄.
-    //           Le blend dt (échelle millénaire) est géré en amont par calculations_albedo.js
-    //           v1.2.54 via CONFIG_COMPUTE.iceInertiaFactor01 (exp : tau_eff = tau × factor,
-    //           fraction_fonte = 1 − exp(−dt/tau_eff)).
-    const lockIceInSolver = false; // [v1.0.23] conservé pour compat transition v1.0.22
-    if (DATA['🧮']['🧮🌡️'] < T_freeze_adjusted) {
-        // Si température < point de congélation ajusté : toute l'eau restante est glace
-        DATA['💧']['🍰💧🧊'] = remaining_after_vapor;
-        DATA['💧']['🍰💧🌊'] = 0;
-    } else {
-        // Si température >= point de congélation ajusté : glace aux pôles seulement
-        DATA['💧']['🍰💧🧊'] = polar_ice_fraction;
-        DATA['💧']['🍰💧🌊'] = Math.max(0, remaining_after_vapor - polar_ice_fraction);
+        return true;
     }
 
-    // Transition liquide-glace (zone de transition entre -20°C et point de congélation ajusté)
-    // const pressure_atm_transition = DATA['🫧']['🎈']; // inutilisé (nettoyage)
-    // T_freeze_adjusted déjà calculé ligne 206, réutiliser cette valeur
-    if (!lockIceInSolver && DATA['🧮']['🧮🌡️'] > T_freeze_adjusted - EARTH.T_ICE_TRANSITION_RANGE_K && DATA['🧮']['🧮🌡️'] < T_freeze_adjusted) {
-        const transition_factor = (DATA['🧮']['🧮🌡️'] - (CONST.T0_WATER - EARTH.T_ICE_TRANSITION_RANGE_K)) / EARTH.T_ICE_TRANSITION_RANGE_K;
-        const ice_before = DATA['💧']['🍰💧🧊'];
-        const liquid_before = DATA['💧']['🍰💧🌊'];
-        // Convertir une partie de la glace en liquide selon la température
-        const ice_to_liquid = ice_before * (1 - transition_factor);
-        DATA['💧']['🍰💧🌊'] = liquid_before + ice_to_liquid;
-        DATA['💧']['🍰💧🧊'] = ice_before - ice_to_liquid;
+    // Sans atmosphère : pas de vapeur.
+    DATA['💧']['🍰🧪🌧'] = 0;
+    DATA['💧']['🍰🫧💧'] = 0;
+    // Pas d'atmosphère : la masse d'air sec ⚖️🫧, posée depuis les masses de l'époque par COMPUTE.getMasses (appelé en tête de
+    // calculateH2OParameters), est nulle.
+    if (DATA['⚖️']['⚖️🫧'] === 0) {
+        // Corps noir (ou sans atmosphère) avec eau météorites : glace si T < 0°C, stock borné + lié à ⚖️💧 (didactique)
+        if (DATA['⚖️']['⚖️💧'] > 0 && DATA['🧮']['🧮🌡️'] < CONST.T0_WATER) {
+            const M_ref = window.CONFIG_COMPUTE.earthTotalWaterMassKg;
+            const cap = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIceCap01;
+            const perPAL = window.CONFIG_COMPUTE.noAtmosphereMeteoriteIcePerPAL;
+            const pal = M_ref > 0 ? DATA['⚖️']['⚖️💧'] / M_ref : 0;
+            partagerEau(Math.min(cap, pal * perPAL) * DATA['⚖️']['⚖️💧'], 0);
+        } else {
+            partagerEau(0, 0);
+        }
+        window.RUNTIME_STATE.h2oIceFractionFromCalculation = DATA['💧']['🍰💧🧊'];
+        return true;
     }
-
-    // 🔒 NORMALISATION FINALE : 🍰💧🧊 + 🍰💧🌊 + h2o_vapor_mass_fraction_of_total = 1.0
-    // Toutes ces valeurs sont des fractions de la masse totale d'eau (⚖️💧)
-    // h2o_vapor_mass_fraction_of_total est déjà calculé plus haut
-    const total_liquid_ice = DATA['💧']['🍰💧🌊'] + DATA['💧']['🍰💧🧊'];
-    const expected_liquid_ice = Math.max(0, 1.0 - h2o_vapor_mass_fraction_of_total);
-    
-    // 🔒 LOGS DÉSACTIVÉS pour éviter les boucles infinies dans la console
-    // Les logs sont maintenant conditionnels et limités
-    // const phase = DATA['🧮']['🧮⚧'];
-    // if (phase === 'Init') {
-    //     console.log(`\n📊 [calculateWaterPartition] DÉTAILS CALCUL 💧:`);
-    //     console.log(`   🍰🫧💧 = ${DATA['💧']['🍰🫧💧'].toFixed(3)} (fraction massique vapeur / masse atmosphérique)`);
-    //     console.log(`   🍰🫧💧 (fraction / masse totale eau) = ${h2o_vapor_mass_fraction_of_total.toFixed(3)}`);
-    //     console.log(`   🍰💧🧊 = ${DATA['💧']['🍰💧🧊'].toFixed(3)} (fraction glace / masse totale eau)`);
-    //     console.log(`   🍰💧🌊 = ${DATA['💧']['🍰💧🌊'].toFixed(3)} (fraction liquide / masse totale eau)`);
-    //     console.log(`   Total = ${(h2o_vapor_mass_fraction_of_total + DATA['💧']['🍰💧🧊'] + DATA['💧']['🍰💧🌊']).toFixed(3)} (doit être 1.0)`);
-    // }
-    
-    // Normaliser liquide/glace pour que la somme = expected_liquid_ice
-    if (total_liquid_ice > 0 && expected_liquid_ice > 0) {
-        const scale = expected_liquid_ice / total_liquid_ice;
-        DATA['💧']['🍰💧🌊'] = Math.max(0, Math.min(1.0, DATA['💧']['🍰💧🌊'] * scale));
-        DATA['💧']['🍰💧🧊'] = Math.max(0, Math.min(1.0, DATA['💧']['🍰💧🧊'] * scale));
-    } else if (expected_liquid_ice <= 0) {
-        // Toute l'eau est en vapeur
-        DATA['💧']['🍰💧🌊'] = 0;
-        DATA['💧']['🍰💧🧊'] = 0;
-    }
-
-    // 🔒 VÉRIFICATION FINALE : 🍰💧🧊 + 🍰💧🌊 + h2o_vapor_mass_fraction_of_total doit être ≈ 1.0
-    const final_sum = DATA['💧']['🍰💧🌊'] + DATA['💧']['🍰💧🧊'] + h2o_vapor_mass_fraction_of_total;
-    if (Math.abs(final_sum - 1.0) > 0.001) {
-        // Ajuster pour garantir la normalisation exacte
-        const correction = 1.0 / final_sum;
-        DATA['💧']['🍰💧🌊'] *= correction;
-        DATA['💧']['🍰💧🧊'] *= correction;
-    }
+    // Masse d'air sans masse molaire ou sans pression : toute l'eau est glace sous 0 °C, liquide (océan) au-dessus.
+    partagerEau(DATA['🧮']['🧮🌡️'] < CONST.T0_WATER ? DATA['⚖️']['⚖️💧'] : 0, 0);
     return true;
 }
 
 // 🔒 FONCTION : Feedback précipitation (appelée dans la boucle externe)
-// Calcule 🍰🌧💧, 💭☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 et ajoute à 🍰💧🌊 ou 🍰💧🧊
+// Calcule 🍰🌧💧, 💭☔, 🧲⚖️💦, puis met à jour 🍰🫧💧 (la pluie retourne à l'eau de surface : partagerEau la compte dans le reste)
 function calculatePrecipitationFeedback() {
     const DATA = window.DATA;
     const CONST = window.CONST;
@@ -402,28 +249,15 @@ function calculatePrecipitationFeedback() {
     let precipitation_loss_fraction = 0;
     
     // Calculer la perte de précipitation (sans if, crash si valeurs manquantes selon REGLE_JS_CRASH.md)
-    const has_precipitation = precip_rate_enhanced > 0 && DATA['📅']['🔺⏳'] > 0 && atm_mass_total > 0;
+    const has_precipitation = precip_rate_enhanced > 0 && DATA['💧']['🔺⏳💦'] > 0 && atm_mass_total > 0;
     if (has_precipitation) {
-        const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+        const EPOCH = DATA['📅'];
         const planet_radius_km = DATA['📜']['📐'];
         const planet_surface_m2 = 4 * Math.PI * Math.pow(planet_radius_km * 1000, 2);
-        const precipitation_mass_kg = precip_rate_enhanced * planet_surface_m2 * DATA['📅']['🔺⏳'];
+        const precipitation_mass_kg = precip_rate_enhanced * planet_surface_m2 * DATA['💧']['🔺⏳💦'];
         precipitation_loss_fraction = precipitation_mass_kg / atm_mass_total;
         
         DATA['💧']['🍰🫧💧'] = Math.max(0, vapor_before - precipitation_loss_fraction);
-    }
-    
-    // 3. Ajouter la perte à 🍰💧🌊 ou 🍰💧🧊
-    if (precipitation_loss_fraction > 0) {
-        const precipitation_mass_kg_total = precipitation_loss_fraction * atm_mass_total;
-        const precipitation_fraction_of_total_water = DATA['⚖️']['⚖️💧'] > 0 ? precipitation_mass_kg_total / DATA['⚖️']['⚖️💧'] : 0;
-        
-        const temp_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
-        if (temp_C < 0) {
-            DATA['💧']['🍰💧🧊'] = Math.min(1.0, DATA['💧']['🍰💧🧊'] + precipitation_fraction_of_total_water);
-        } else {
-            DATA['💧']['🍰💧🌊'] = Math.min(1.0, DATA['💧']['🍰💧🌊'] + precipitation_fraction_of_total_water);
-        }
     }
 }
 
@@ -438,7 +272,7 @@ function calculatePrecipitationFeedback() {
 function calculateH2OParametersWithIteration() {
     const DATA = window.DATA;
     const CONST = window.CONST;
-    //const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    //const EPOCH = DATA['📅'];
     const ALBEDO = window.ALBEDO;
     const ATM = window.ATM;
     const COMPUTE = window.COMPUTE;
@@ -494,7 +328,7 @@ function calculateH2OParametersWithIteration() {
                 use_acceleration = false; // Passer à 🔺⏳ normal (1 jour)
             }
         }
-        DATA['📅']['🔺⏳'] = use_acceleration ? CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays : CONV.SECONDS_PER_DAY;
+        DATA['💧']['🔺⏳💦'] = use_acceleration ? CONV.SECONDS_PER_DAY * window.CONFIG_COMPUTE.deltaTAccelerationDays : CONV.SECONDS_PER_DAY;
         
         // 🔒 ÉTAPE 1 : Calculer 🍰🌧💧 (RH) depuis la vapeur actuelle
         const q_sat = mass_ratio * max_vapor_fraction;
@@ -517,34 +351,19 @@ function calculateH2OParametersWithIteration() {
         const vapor_before_precipitation = DATA['💧']['🍰🫧💧'];
         let precipitation_loss_fraction = 0;
         // Calculer la perte de précipitation (sans if, crash si valeurs manquantes selon REGLE_JS_CRASH.md)
-        const has_precipitation_inner = precip_rate_enhanced_inner > 0 && DATA['📅']['🔺⏳'] > 0 && DATA['⚖️']['⚖️🫧'] > 0;
+        const has_precipitation_inner = precip_rate_enhanced_inner > 0 && DATA['💧']['🔺⏳💦'] > 0 && DATA['⚖️']['⚖️🫧'] > 0;
         if (has_precipitation_inner) {
-            const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+            const EPOCH = DATA['📅'];
             const planet_radius_km = DATA['📜']['📐'];
             const planet_surface_m2 = 4 * Math.PI * Math.pow(planet_radius_km * 1000, 2); // Surface en m²
-            const precipitation_mass_kg = precip_rate_enhanced_inner * planet_surface_m2 * DATA['📅']['🔺⏳']; // Masse précipitée en kg
+            const precipitation_mass_kg = precip_rate_enhanced_inner * planet_surface_m2 * DATA['💧']['🔺⏳💦']; // Masse précipitée en kg
             precipitation_loss_fraction = precipitation_mass_kg / DATA['⚖️']['⚖️🫧']; // Fraction massique précipitée
             
             DATA['💧']['🍰🫧💧'] = Math.max(0, vapor_before_precipitation - precipitation_loss_fraction);
         }
-        
-        // 🔒 ÉTAPE 4 : Ajouter la perte à 🍰💧🌊 ou 🍰💧🧊
-        if (precipitation_loss_fraction > 0) {
-            const precipitation_mass_kg_total = precipitation_loss_fraction * DATA['⚖️']['⚖️🫧'];
-            const precipitation_fraction_of_total_water = DATA['⚖️']['⚖️💧'] > 0 ? precipitation_mass_kg_total / DATA['⚖️']['⚖️💧'] : 0;
-            
-            // Ajouter à 🌊 ou 🧊 selon la température
-            const temp_C = DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS;
-            if (temp_C < 0) {
-                // T < 0°C : ajouter à la glace
-                DATA['💧']['🍰💧🧊'] = Math.min(1.0, DATA['💧']['🍰💧🧊'] + precipitation_fraction_of_total_water);
-            } else {
-                // T >= 0°C : ajouter à l'océan
-                DATA['💧']['🍰💧🌊'] = Math.min(1.0, DATA['💧']['🍰💧🌊'] + precipitation_fraction_of_total_water);
-            }
-        }
-        
-        // 🔒 ÉTAPE 5 : Recalculer la répartition eau (vapeur/liquide/glace) avec la nouvelle vapeur
+        // La pluie retourne à l'eau de surface : partagerEau la compte dans le reste (glace et liquide posés par calculateAlbedo).
+
+        // 🔒 ÉTAPE 4 : Recalculer la saturation et les parts de l'air sec avec la nouvelle vapeur
         calculateWaterPartition();
         
         // Vérifier la convergence
@@ -592,7 +411,7 @@ var H2O = window.H2O = {};
 //Fonction principale : calcule tous les paramètres H2O
 H2O.calculateH2OParameters = function () {
     const DATA = window.DATA;
-    //const EPOCH = window.TIMELINE[DATA['📜']['👉']];
+    //const EPOCH = DATA['📅'];
     //const ALBEDO = window.ALBEDO;
     const ATM = window.ATM;
     const COMPUTE = window.COMPUTE;
@@ -662,5 +481,8 @@ H2O.calculateH2OParameters = function () {
 H2O.calculateH2OGreenhouseForcing = calculateH2OGreenhouseForcing;
 H2O.calculateCloudAlbedoContribution = calculateCloudAlbedoContribution;
 H2O.calculateWaterPartition = calculateWaterPartition;
+H2O.partagerEau = partagerEau;
+H2O.mondeOcean = mondeOcean;
+H2O.masseGlaceMer = masseGlaceMer;
 H2O.calculatePrecipitationFeedback = calculatePrecipitationFeedback;
 H2O.getBoilingPointKFromPressure = getBoilingPointKFromPressure;

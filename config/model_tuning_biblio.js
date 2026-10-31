@@ -1,9 +1,10 @@
 // File: API_BILAN/config/model_tuning_biblio.js - Bibliographie et impact des reglages
 // Desc: En francais, dans l'architecture, je documente les coefficients de tuning, leurs sources et leur effet thermique signe.
-// Version 1.0.3
+// Version 1.0.4
+// - v1.0.4 (2026-10-30): HYSTERESIS retiré (la rampe de la mer gelée n'a plus de lecteur).
 // - v1.0.3 (2026-10-12): CLOUD_FRACTION_BASE / _INDEX_GAIN / OPTICAL_EFF_BASE → CDNC_OCEAN_CM3 (Bennartz 2007).
-// Date: [October 12, 2026]
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -55,13 +56,6 @@ window.TUNING_BIBLIO = {
             value: 10,
             source: "Seuil de bascule vers cap large du pas Search",
             effect_on_warming_when_increased: "neutral_on_physics"
-        }
-    },
-    HYSTERESIS: {
-        HYST_SEA_ICE_RANGE_K: {
-            value: 2.2,
-            source: "Largeur de transition mer gelée (K) : Budyko (1969), Sellers (1969) ; snowball / hysteresis EBM — Pierrehumbert (2010) ; UI scie 1000–6000 → 1–6 K",
-            effect_on_warming_when_increased: "mixed"
         }
     }
 };

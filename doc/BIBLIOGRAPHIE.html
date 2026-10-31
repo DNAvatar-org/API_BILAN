@@ -5,7 +5,7 @@
     <title>Bibliographie — Bilan Radiatif</title>
     <!--
         ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
-        Copyright 2025 DNAvatar.org - Arnaud Maignan — Apache 2.0 + Commons Clause.
+        Copyright 2026 DNAvatar.org - Arnaud Maignan — Apache 2.0 + Commons Clause.
 
         Convention (façon LaTeX .bib rendu web) :
         - Chaque <article class="ref"> = une entrée bibliographique
@@ -95,7 +95,7 @@
     <div class="title">The effect of solar radiation variations on the climate of the Earth</div>
     <div class="venue">Tellus, 21(5):611–619 (1969)</div>
     <div class="doi"><a href="https://doi.org/10.3402/tellusa.v21i5.10109">10.3402/tellusa.v21i5.10109</a></div>
-    <div class="used-in">Rétroaction glace–albédo des modèles d'équilibre énergétique : largeur de la transition de la mer gelée, jauge <code>seaIceTransitionRangeK</code> (<code>config/fine_tuning_bounds.js</code>, source <code>HYST_SEA_ICE_RANGE_K</code> de <code>config/model_tuning_biblio.js</code>) ; cadre cité en commentaire de <code>API_BILAN/albedo/calculations_albedo.js</code>.</div>
+    <div class="used-in">Rétroaction glace–albédo des modèles d’équilibre énergétique : cadre de la glace saisonnière et du bilan méridien. La jauge <code>seaIceTransitionRangeK</code> (<code>config/fine_tuning_bounds.js</code>) n’est lue par aucun calcul.</div>
 </article>
 
 <article class="ref" id="sellers1969" data-tags="ebm polar-amp">
@@ -106,6 +106,14 @@
     <div class="doi"><a href="https://doi.org/10.1175/1520-0450(1969)008%3C0392:AGCMBO%3E2.0.CO;2">10.1175/1520-0450(1969)008&lt;0392:AGCMBO&gt;2.0.CO;2</a></div>
     <div class="used-in">Pair avec <a href="#budyko1969">[budyko1969]</a> — socle EBM 0D.</div>
 </article>
+<article class="ref" id="wegstein1958" data-tags="numerical fixed-point iteration">
+    <div class="cite-key">[wegstein1958]</div>
+    <div class="authors">Wegstein, J. H.</div>
+    <div class="title">Accelerating convergence of iterative processes</div>
+    <div class="venue">Communications of the ACM, 1(6):9–13 (1958)</div>
+    <div class="doi"><a href="https://doi.org/10.1145/368861.368871">10.1145/368861.368871</a></div>
+    <div class="used-in">Point fixe glace ↔ gradient du bilan méridien (<code>physics/meridien.js</code>, MERIDIEN.resoudre) : sur une pente négative de G (une calotte qui répond par un saut), pas x ← x + (G(x) − x)/(1 − ĝ), ĝ pente de la sécante des deux derniers points ; itération simple sinon.</div>
+</article>
 
 
 <article class="ref" id="ipccAR6WG1" data-tags="polar-amp arctic-amp review">
@@ -115,14 +123,6 @@
     <div class="venue">Cambridge University Press (2021)</div>
     <div class="doi"><a href="https://doi.org/10.1017/9781009157896">10.1017/9781009157896</a></div>
     <div class="used-in">Arctic Amplification 2–4× modern.</div>
-</article>
-
-<article class="ref" id="peixotoOort1992" data-tags="textbook climatology seasonal">
-    <div class="cite-key">[peixotoOort1992]</div>
-    <div class="authors">Peixoto, J. P. &amp; Oort, A. H.</div>
-    <div class="title">Physics of Climate</div>
-    <div class="venue">American Institute of Physics, New York (1992)</div>
-    <div class="used-in">Cité avec ERA5 (<a href="#hersbach2020">[hersbach2020]</a>) pour les amplitudes saisonnières des zones, <code>EARTH.SEASONAL_AMP_*_K</code> (<code>physics/physics.js</code>), largeur des rampes de la glace de mer de zone ; valeurs non relevées dans l’ouvrage (⚠️, carte « Amplitudes saisonnières des zones »). Elles donnent aussi le cycle annuel des terres des calottes (<code>physics/meridien.js</code>) : le cycle calculé de <code>physics/saisons.js</code> n'est pas encore lu.</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -160,7 +160,7 @@
     <div class="title">Scientific description of the sea ice component in the Community Climate System Model, Version Three (CCSM3)</div>
     <div class="venue">NCAR Technical Note NCAR/TN-463+STR, §5 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.5065/D6HH6H1P">10.5065/D6HH6H1P</a></div>
-    <div class="used-in"><code>API_BILAN/albedo/calculations_albedo.js</code> — bloc <em>iceAlbedoMeltProgress01</em></div>
+    <div class="used-in">Albédo de la glace de mer froide du modèle NCAR CCSM3, 🪩🍰🧊 = 0,70 (<code>physics/physics.js</code>, EARTH['🪩🍰']) : neige mouillée de la glace saisonnière et des calottes pendant la fonte, plateau de la glace tropicale d’une boule de neige établie.</div>
 </article>
 
 <article class="ref" id="warrenWiscombe1980" data-tags="snow albedo pristine">
@@ -169,7 +169,7 @@
     <div class="title">A model for the spectral albedo of snow. II: Snow containing atmospheric aerosols</div>
     <div class="venue">Journal of the Atmospheric Sciences, 37(12):2734–2745 (1980)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1980)037%3C2734:AMFTSA%3E2.0.CO;2">10.1175/1520-0469(1980)037&lt;2734:AMFTSA&gt;2.0.CO;2</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/albedo/calculations_albedo.js</code> — justifie le plateau de neige propre 🪩🍰❄️ (α ≈ 0,85) tenu aux pôles et mi-latitudes tant que le snowball n'est pas établi ; les tropiques passent, eux, à la glace nue 🪩🍰🧊.</div>
+    <div class="used-in">Albédo de la neige sèche propre 🪩🍰❄️ (≈ 0,85) : glace saisonnière hors fonte et calottes ; aux tropiques, la glace d’une boule de neige établie va vers 🪩🍰🧊 (<code>albedo/calculations_albedo.js</code>, albedoGlaceSeche).</div>
 </article>
 
 <article class="ref" id="warren1982" data-tags="snow optical-properties review">
@@ -178,7 +178,7 @@
     <div class="title">Optical properties of snow</div>
     <div class="venue">Reviews of Geophysics, 20(1):67–89 (1982)</div>
     <div class="doi"><a href="https://doi.org/10.1029/RG020i001p00067">10.1029/RG020i001p00067</a></div>
-    <div class="used-in">Utilisée dans : <code>API_BILAN/albedo/calculations_albedo.js</code> — propriétés optiques de la neige derrière le α_snow_deep de Briegleb, dont les trois segments (plateau, vieillissement, fonte) découpent la gamme de température.</div>
+    <div class="used-in">Propriétés optiques de la neige derrière l’albédo de la neige sèche 🪩🍰❄️ (≈ 0,85, <code>physics/physics.js</code>, EARTH['🪩🍰']).</div>
 </article>
 
 <article class="ref" id="perovich2002" data-tags="sheba sea-ice albedo field">
@@ -187,7 +187,7 @@
     <div class="title">Seasonal evolution of the albedo of multiyear Arctic sea ice</div>
     <div class="venue">Journal of Geophysical Research Oceans, 107(C10):8044 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2000JC000438">10.1029/2000JC000438</a></div>
-    <div class="used-in">SHEBA — valeur α_melt ≈ 0.50 (bloc Briegleb).</div>
+    <div class="used-in">SHEBA — glace fondante 🪩🍰🏊 = 0,50 : glace nue à mares de la banquise saisonnière que découvre la fonte de sa neige (<code>physics/physics.js</code>, EARTH.glaceSaisonniere) et glace nue d’une calotte qui fond (<code>physics/calottes.js</code>).</div>
 </article>
 
 <article class="ref" id="gardnerSharp2010" data-tags="snow albedo review">
@@ -196,7 +196,7 @@
     <div class="title">A review of snow and ice albedo and the development of a new physically based broadband albedo parameterization</div>
     <div class="venue">Journal of Geophysical Research: Earth Surface, 115(F1):2009JF001444 (2010)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2009JF001444">10.1029/2009JF001444</a></div>
-    <div class="used-in">Plateau d’albédo de la neige profonde propre (🪩🍰❄️) aux pôles et aux moyennes latitudes : <code>albedo/calculations_albedo.js</code>, <code>data/dico.js</code>.</div>
+    <div class="used-in">Albédo de la neige sèche propre (🪩🍰❄️) : glace saisonnière hors fonte et calottes — <code>albedo/calculations_albedo.js</code>, <code>data/dico.js</code>.</div>
 </article>
 
 <article class="ref" id="cuffeyPaterson2010" data-tags="ice albedo textbook glaciology">
@@ -206,6 +206,60 @@
     <div class="venue">Academic Press, Amsterdam (2010)</div>
     <div class="doi">ISBN 978-0-12-369461-4</div>
     <div class="used-in">Albédo de la glace, de 0,34 (glace propre) à 0,98 (neige fraîche sèche), tableau 5.2 : bande de la courbe du corps noir ⚫ de l’onglet Histoire (<code>CO2/static/histoire/litterature.js</code>).</div>
+</article>
+
+<article class="ref" id="robock1980" data-tags="snow albedo forest observation">
+    <div class="cite-key">[robock1980]</div>
+    <div class="authors">Robock, A.</div>
+    <div class="title">The seasonal cycle of snow cover, sea ice and surface albedo</div>
+    <div class="venue">Monthly Weather Review, 108(3):267–285 (1980)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0493(1980)108%3C0267:TSCOSC%3E2.0.CO;2">10.1175/1520-0493(1980)108&lt;0267:TSCOSC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Albédo d’une surface enneigée selon la végétation qui la couvre : forêt enneigée 🪩🍰🌳❄️ = 0,25, ⚠️ milieu de la fourchette 0,2–0,3 (<code>physics/physics.js</code>, EARTH['🪩🍰'] ; lue par EARTH.glaceSaisonniere).</div>
+</article>
+
+<article class="ref" id="bettsBall1997" data-tags="snow albedo forest boreal field">
+    <div class="cite-key">[bettsBall1997]</div>
+    <div class="authors">Betts, A. K. &amp; Ball, J. H.</div>
+    <div class="title">Albedo over the boreal forest</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 102(D24):28901–28909 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/96JD03876">10.1029/96JD03876</a></div>
+    <div class="used-in">Albédo mesuré de la forêt boréale enneigée (BOREAS) : forêt enneigée 🪩🍰🌳❄️ de la glace saisonnière (<code>physics/physics.js</code>).</div>
+</article>
+
+<article class="ref" id="quHall2007" data-tags="snow albedo feedback vegetation models">
+    <div class="cite-key">[quHall2007]</div>
+    <div class="authors">Qu, X. &amp; Hall, A.</div>
+    <div class="title">What controls the strength of snow-albedo feedback?</div>
+    <div class="venue">Journal of Climate, 20(15):3971–3981 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI4186.1">10.1175/JCLI4186.1</a></div>
+    <div class="used-in">Albédo de la surface enneigée fixé par la végétation qui dépasse la neige : forêt enneigée 🪩🍰🌳❄️ de la glace saisonnière (<code>physics/physics.js</code>).</div>
+</article>
+
+<article class="ref" id="maykutUntersteiner1971" data-tags="sea-ice thermodynamics melt">
+    <div class="cite-key">[maykutUntersteiner1971]</div>
+    <div class="authors">Maykut, G. A. &amp; Untersteiner, N.</div>
+    <div class="title">Some results from a time-dependent thermodynamic model of sea ice</div>
+    <div class="venue">Journal of Geophysical Research, 76(6):1550–1575 (1971)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/JC076i006p01550">10.1029/JC076i006p01550</a></div>
+    <div class="used-in">Surface en fusion tenue au point de fusion, l’excès d’énergie fond la glace : l’air de la loi de fonte de la banquise, la surface de la dalle, vaut au plus 0 °C (<code>physics/physics.js</code>, EARTH.glaceSaisonniere) ; sur les terres, l’air de la boîte terre, sans palier.</div>
+</article>
+
+<article class="ref" id="fetterer2017" data-tags="sea-ice extent satellite observation">
+    <div class="cite-key">[fetterer2017]</div>
+    <div class="authors">Fetterer, F., Knowles, K., Meier, W. N., Savoie, M. &amp; Windnagel, A. K.</div>
+    <div class="title">Sea Ice Index, Version 3 (G02135)</div>
+    <div class="venue">National Snow and Ice Data Center, Boulder (2017, mis à jour chaque jour)</div>
+    <div class="doi"><a href="https://doi.org/10.7265/N5K072F8">10.7265/N5K072F8</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée ; ❔ valeurs approchées de la climatologie 1981–2010, sans script de relevé) : étendues mensuelles des banquises arctique et antarctique, face à la glace de mer saisonnière du modèle (<code>physics/physics.js</code>, <code>physics/saisons.js</code>).</div>
+</article>
+
+<article class="ref" id="robinsonEstilow2012" data-tags="snow-cover satellite observation">
+    <div class="cite-key">[robinsonEstilow2012]</div>
+    <div class="authors">Robinson, D. A., Estilow, T. W. &amp; NOAA CDR Program</div>
+    <div class="title">NOAA Climate Data Record (CDR) of Northern Hemisphere (NH) Snow Cover Extent (SCE), Version 1</div>
+    <div class="venue">NOAA National Centers for Environmental Information (2012) — Rutgers Global Snow Lab</div>
+    <div class="doi"><a href="https://doi.org/10.7289/V5N014G9">10.7289/V5N014G9</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée ; ❔ valeurs approchées, sans script de relevé) : étendue mensuelle de la neige de l’hémisphère nord, face à la neige des terres de la glace saisonnière (<code>physics/physics.js</code>).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -409,7 +463,7 @@
     <div class="title">Basal temperature evolution of North American ice sheets and implications for the 100-kyr cycle</div>
     <div class="venue">Geophysical Research Letters, 29(24):2214 (2002)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GL015192">10.1029/2002GL015192</a></div>
-    <div class="used-in">τ continental ice ~10⁴–10⁵ ans (chaleur latente fusion + diffusion thermique base). Calibre <code>tauGlaceAns=50000</code> et justifie blend dt sur 🍰💧🧊 invariant aux itérations Search/Dicho. Cf. <code>calculations_albedo.js</code>.</div>
+    <div class="used-in">Temps de réponse des calottes continentales ~10⁴–10⁵ ans : comparé au temps de renouvellement calculé des calottes (<code>physics/calottes.js</code>, tau ; Antarctique de 📱 : 42,1 ka).</div>
 </article>
 
 <article class="ref" id="hansen2013" data-tags="climate-sensitivity feedback-timescales fast-slow">
@@ -623,7 +677,25 @@
     <div class="title">The evolution of modern eukaryotic phytoplankton</div>
     <div class="venue">Science, 305(5682):354–360 (2004)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.1095964">10.1126/science.1095964</a></div>
-    <div class="used-in">Chronologie émergence dinoflagellés / coccolithophoridés / diatomées → valeurs paléo <code>'🧫'</code> Méso→Cénozoïque.</div>
+    <div class="used-in">Chronologie émergence dinoflagellés / coccolithophoridés / diatomées → valeurs paléo <code>'🧫'</code> : le phytoplancton eucaryote moderne ne monte qu’à partir du Trias moyen (dinoflagellés et coccolithophoridés au Trias supérieur, radiation des dinoflagellés au Jurassique inférieur), d’où 🧫 de 🦕 (ligne datée de 251,902 Ma, le lendemain de la crise P/T) lue chez 💀, celle de son 💫 de 151,9 Ma (Jurassique supérieur) lue chez 📱, et 1 à partir de 🐊 (<code>API_BILAN/config/configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="chenBenton2012" data-tags="mass-extinction permian-triassic marine-recovery paleo">
+    <div class="cite-key">[chenBenton2012]</div>
+    <div class="authors">Chen, Z.-Q. &amp; Benton, M. J.</div>
+    <div class="title">The timing and pattern of biotic recovery following the end-Permian mass extinction</div>
+    <div class="venue">Nature Geoscience, 5(6):375–383 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/ngeo1475">10.1038/ngeo1475</a></div>
+    <div class="used-in">Reconstruction des écosystèmes marins par étapes après la crise P/T : 🧫 de 🦕, à la date de sa ligne (251,902 Ma), lit celle de 💀 (<code>API_BILAN/config/configTimeline.js</code>).</div>
+</article>
+
+<article class="ref" id="bown2005" data-tags="mass-extinction cretaceous-paleogene nannoplankton paleo">
+    <div class="cite-key">[bown2005]</div>
+    <div class="authors">Bown, P.</div>
+    <div class="title">Selective calcareous nannoplankton survivorship at the Cretaceous–Tertiary boundary</div>
+    <div class="venue">Geology, 33(8):653–656 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1130/G21566AR.1">10.1130/G21566AR.1</a></div>
+    <div class="used-in">Le nannoplancton calcaire perd l’essentiel de sa diversité à la limite K-Pg, ses survivants sont néritiques ou opportunistes : 🧫 de 🦤 (ligne datée de 66,0 Ma, le lendemain de la crise) lit celle de 💀 (<code>API_BILAN/config/configTimeline.js</code>).</div>
 </article>
 
 <article class="ref" id="knoll2003" data-tags="paleo life-history evolution marine">
@@ -643,7 +715,7 @@
     <div class="title">The origin and early evolution of plants on land</div>
     <div class="venue">Nature, 389(6646):33–39 (1997)</div>
     <div class="doi"><a href="https://doi.org/10.1038/37918">10.1038/37918</a></div>
-    <div class="used-in">Origine des plantes terrestres : potentiel forestier par époque 🌱 (<code>albedo/calculations_albedo.js</code>).</div>
+    <div class="used-in">Origine des plantes terrestres : la flore basse d’avant les arbres (Rhynie, 407 Ma) ne masque pas la neige — cadre de l’âge des premiers arbres (<code>albedo/calculations_albedo.js</code>, ALBEDO.FORET).</div>
 </article>
 
 <article class="ref" id="gensel2008" data-tags="land-plants paleobotany">
@@ -652,7 +724,7 @@
     <div class="title">The Earliest Land Plants</div>
     <div class="venue">Annual Review of Ecology, Evolution, and Systematics, 39(1):459–477 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1146/annurev.ecolsys.39.110707.173526">10.1146/annurev.ecolsys.39.110707.173526</a></div>
-    <div class="used-in">Premières plantes terrestres (Ordovicien–Dévonien) : potentiel forestier par époque 🌱 (<code>albedo/calculations_albedo.js</code>).</div>
+    <div class="used-in">Premières plantes terrestres (Ordovicien–Dévonien) : cadre de l’âge des premiers arbres (<code>albedo/calculations_albedo.js</code>).</div>
 </article>
 
 <article class="ref" id="stein2012" data-tags="forest devonian paleobotany">
@@ -661,7 +733,55 @@
     <div class="title">Surprisingly complex community discovered in the mid-Devonian fossil forest at Gilboa</div>
     <div class="venue">Nature, 483(7387):78–81 (2012)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature10819">10.1038/nature10819</a></div>
-    <div class="used-in">Forêt fossile de Gilboa, Dévonien moyen : premières forêts (<code>albedo/calculations_albedo.js</code>, qui le place dans PNAS et lui attribue Archaeopteris ; les racines d’Archaeopteris sont celles de Cairo, Stein et al. 2020, Current Biology 30:421).</div>
+    <div class="used-in">Forêt fossile de Gilboa, Dévonien moyen : âge des premiers arbres, ALBEDO.FORET.AGE_PREMIERS_ARBRES = 385 Ma, avec <a href="#stein2007">[stein2007]</a> (<code>albedo/calculations_albedo.js</code>).</div>
+</article>
+<article class="ref" id="stein2007" data-tags="forest devonian paleobotany">
+    <div class="cite-key">[stein2007]</div>
+    <div class="authors">Stein, W. E., Mannolini, F., VanAller Hernick, L., Landing, E. &amp; Berry, C. M.</div>
+    <div class="title">Giant cladoxylopsid trees resolve the enigma of the Earth’s earliest forest stumps at Gilboa</div>
+    <div class="venue">Nature, 446(7138):904–907 (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/nature05705">10.1038/nature05705</a></div>
+    <div class="used-in">Les plus anciennes souches de forêt (Gilboa, Dévonien moyen) : avec <a href="#stein2012">[stein2012]</a>, l’âge des premiers arbres, ALBEDO.FORET.AGE_PREMIERS_ARBRES = 385 Ma (<code>albedo/calculations_albedo.js</code>).</div>
+</article>
+<article class="ref" id="paulsenKorner2014" data-tags="treeline growing-season forest">
+    <div class="cite-key">[paulsenKorner2014]</div>
+    <div class="authors">Paulsen, J. &amp; Körner, C.</div>
+    <div class="title">A climate-based model to predict potential treeline position around the globe</div>
+    <div class="venue">Alpine Botany, 124(1):1–12 (2014)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s00035-014-0124-0">10.1007/s00035-014-0124-0</a></div>
+    <div class="used-in">Ligne des arbres : saison de croissance (jours de moyenne ≥ 0,9 °C) d’au moins 94 jours et de moyenne ≥ 6,4 °C, appliquée à l’arc de l’année de chaque latitude de terre (<code>albedo/calculations_albedo.js</code>, ALBEDO.FORET, poserForet).</div>
+</article>
+<article class="ref" id="kornerPaulsen2004" data-tags="treeline root-zone temperature">
+    <div class="cite-key">[kornerPaulsen2004]</div>
+    <div class="authors">Körner, C. &amp; Paulsen, J.</div>
+    <div class="title">A world-wide study of high altitude treeline temperatures</div>
+    <div class="venue">J. Biogeogr., 31(5):713–732 (2004)</div>
+    <div class="doi"><a href="https://doi.org/10.1111/j.1365-2699.2003.01043.x">10.1111/j.1365-2699.2003.01043.x</a></div>
+    <div class="used-in">Température de la zone des racines mesurée aux lignes des arbres du globe, 6,7 ± 0,8 °C : la mesure sur laquelle reposent les seuils d’air de <a href="#paulsenKorner2014">[paulsenKorner2014]</a>.</div>
+</article>
+<article class="ref" id="williams2006" data-tags="deforestation forest-history">
+    <div class="cite-key">[williams2006]</div>
+    <div class="authors">Williams, M.</div>
+    <div class="title">Deforesting the Earth: From Prehistory to Global Crisis (abridged edition)</div>
+    <div class="venue">University of Chicago Press, Chicago (2006)</div>
+    <div class="doi"><a href="https://doi.org/10.7208/chicago/9780226899053.001.0001">10.7208/chicago/9780226899053.001.0001</a></div>
+    <div class="used-in">~6 Gha de forêt au début de l’agriculture : la part préagricole des terres sous la ligne des arbres, ALBEDO.FORET.PART_PREAGRICOLE = 0,31 × 6,0/4,06 = 0,458 (<code>albedo/calculations_albedo.js</code>, avec <a href="#fao2020">[fao2020]</a>).</div>
+</article>
+<article class="ref" id="ottoBliesnerUpchurch1997" data-tags="cretaceous polar-forest vegetation-feedback">
+    <div class="cite-key">[ottoBliesnerUpchurch1997]</div>
+    <div class="authors">Otto-Bliesner, B. L. &amp; Upchurch, G. R.</div>
+    <div class="title">Vegetation-induced warming of high-latitude regions during the Late Cretaceous period</div>
+    <div class="venue">Nature, 385(6619):804–807 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1038/385804a0">10.1038/385804a0</a></div>
+    <div class="used-in">Forêts polaires des climats chauds : la même ligne des arbres les fait naître quand la saison polaire le permet (<code>albedo/calculations_albedo.js</code>).</div>
+</article>
+<article class="ref" id="walker2005" data-tags="arctic tundra vegetation-map observation">
+    <div class="cite-key">[walker2005]</div>
+    <div class="authors">Walker, D. A., Raynolds, M. K., Daniëls, F. J. A., Einarsson, E., Elvebakk, A., Gould, W. A. <em>et al.</em></div>
+    <div class="title">The Circumpolar Arctic vegetation map</div>
+    <div class="venue">J. Veg. Sci., 16(3):267–282 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1111/j.1654-1103.2005.tb02365.x">10.1111/j.1654-1103.2005.tb02365.x</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : ligne des arbres arctique vers 67–72° N, ~5·10⁶ km² de toundra au nord. EN LIMITE : la forêt des latitudes du modèle s’arrête vers 73° N à 📱 (~2·10⁶ km² de terre au-delà, Groenland compris) et ne recule pas au dernier maximum glaciaire ; au sud elle passe vers 54° S, la forêt la plus australe vers 55° S. Tant qu’elle n’est pas atteinte, la neige des terres est masquée par la forêt sous la neige (<code>ALBEDO.foretSousNeige</code>).</div>
 </article>
 
 <article class="ref" id="bonan2008" data-tags="forest climate biosphere">
@@ -670,7 +790,7 @@
     <div class="title">Forests and Climate Change: Forcings, Feedbacks, and the Climate Benefits of Forests</div>
     <div class="venue">Science, 320(5882):1444–1449 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.1155121">10.1126/science.1155121</a></div>
-    <div class="used-in">Forêts et climat (forçages, rétroactions) : potentiel forestier moderne 🌱 = 0,31 de 📱 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">Forêts et climat (forçages, rétroactions) : la forêt boréale masque la neige — forêt enneigée de la glace saisonnière, latitude par latitude (<code>albedo/calculations_albedo.js</code>, <code>physics/physics.js</code>).</div>
 </article>
 
 <article class="ref" id="fao2020" data-tags="forest inventory observation">
@@ -679,7 +799,7 @@
     <div class="title">Global Forest Resources Assessment 2020: Main report</div>
     <div class="venue">Food and Agriculture Organization of the United Nations, Rome (2020)</div>
     <div class="doi"><a href="https://doi.org/10.4060/ca9825en">10.4060/ca9825en</a></div>
-    <div class="used-in">Forêts ≈ 31 % des terres émergées : 🌱 = 0,31 de 📱 (<code>configTimeline.js</code>) et part forestière de <code>albedo/calculations_albedo.js</code>.</div>
+    <div class="used-in">Forêts ≈ 31 % des terres émergées en 2020 (4,06 Gha) : numérateur de la part préagricole des terres sous la ligne des arbres, ALBEDO.FORET.PART_PREAGRICOLE = 0,31 × 6,0/4,06, avec <a href="#williams2006">[williams2006]</a> (❔ rapportée à TOUTES les terres hors Antarctique, lue comme part des terres sous la ligne) ; plafond de la forêt sous la neige des terres, 0,31 × clamp((T̄ − 268,15 K)/25 K, 0,4, 1) (ALBEDO.foretSousNeige, ⚠️ 🔧 forme sans source) (<code>albedo/calculations_albedo.js</code>).</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -880,7 +1000,16 @@
     <div class="authors">Sarmiento, J. L. &amp; Gruber, N.</div>
     <div class="title">Ocean Biogeochemical Dynamics</div>
     <div class="venue">Princeton University Press (2006)</div>
-    <div class="used-in">Rapport carbone océan/atmosphère ≈ 50 (~38 000 GtC de CID / ~760 GtC atmosphériques) → CONFIG_COMPUTE.co2OceanRatioRef, et somme imposée des trois oceanBoxes (crash-first) : le découpage en réservoirs change les TEMPS, jamais la capacité totale. Fournit aussi les inventaires par couche : ~900 GtC couche de mélange (ratio 1,2), ~7 600 GtC thermocline (ratio 10), le reste en profond (ratio 38,8). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
+    <div class="used-in">Rapport carbone océan/atmosphère ≈ 50 (~38 000 GtC de CID / ~760 GtC atmosphériques), mesuré sur l’océan actuel, à la T̄ actuelle (T_ref = 14,4 °C) → CONFIG_COMPUTE.co2OceanRatioRef, et somme imposée des trois oceanBoxes (crash-first) : le découpage en réservoirs change les TEMPS, jamais la capacité totale. ❔ 760 GtC est l’air des années 1990, pas le préindustriel. Fournit aussi les inventaires par couche : ~900 GtC couche de mélange (ratio 1,2), ~7 600 GtC thermocline (ratio 10), le reste en profond (ratio 38,8). <code>configTimeline.js</code> CONFIG_COMPUTE.CARBON_SINKS.</div>
+</article>
+
+<article class="ref" id="sander2015" data-tags="co2 henry solubility laboratory compilation">
+    <div class="cite-key">[sander2015]</div>
+    <div class="authors">Sander, R.</div>
+    <div class="title">Compilation of Henry's law constants (version 4.0) for water as solvent</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 15:4399–4981 (2015)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-15-4399-2015">10.5194/acp-15-4399-2015</a></div>
+    <div class="used-in">Dépendance en température de la solubilité du CO₂, −d ln H/d(1/T) = 2 400 K, valeur la plus fréquente des mesures compilées (2 300 à 2 700 K), donnée à 298,15 K : pente de Van 't Hoff du partage du CO₂ océan / atmosphère et des capacités du puits océanique (<code>co2/calculations_co2.js</code>, <code>ocean/sinks_ocean.js</code>).</div>
 </article>
 
 <article class="ref" id="broeckerPeng1982" data-tags="co2 ocean mixed-layer air-sea gas-exchange tracers">
@@ -969,7 +1098,47 @@
     <div class="title">New estimates of radiative forcing due to well mixed greenhouse gases</div>
     <div class="venue">Geophysical Research Letters, 25(14):2715–2718 (1998)</div>
     <div class="doi"><a href="https://doi.org/10.1029/98GL01908">10.1029/98GL01908</a></div>
-    <div class="used-in">ΔF = 5,35·ln(C/C₀), soit 3,7 W/m² pour un doublement du CO₂ (ajusté stratosphère). Déclaré dans <code>climate.js</code> comme « affichage uniquement, pas de calcul » : le modèle ne s'est donc jamais comparé à cette valeur. Au banc : 2,04 W/m² au sommet de l'atmosphère (instantané, sans ajustement stratosphérique). ⚠️ ÉCART OUVERT.</div>
+    <div class="used-in">ΔF = 5,35·ln(C/C₀), soit 3,7 W/m² pour un doublement du CO₂ (forçage ajusté). Déclaré dans <code>climate.js</code> comme « affichage uniquement, pas de calcul ». Le modèle équilibre le forçage instantané d’une stratosphère de peau, qui ne dépend pas du CO₂ : 2,93 W/m² pour un doublement à 📱 ; le forçage ajusté du même transfert, stratosphère ramenée à son équilibre radiatif hors moteur, vaut 3,62 W/m². CONTRÔLE : forçage du CH₄ de 0,7 à 1,8 ppm sans N₂O, 0,575 W/m² ; le moteur donne 0,60 W/m² au sommet (sections efficaces à la pression de chaque couche, <a href="equation.html#eq-elargissement-par-pression">élargissement par la pression</a>).</div>
+</article>
+<article class="ref" id="etminan2016" data-tags="radiative-forcing co2 methane line-by-line">
+    <div class="cite-key">[etminan2016]</div>
+    <div class="authors">Etminan, M., Myhre, G., Highwood, E. J. &amp; Shine, K. P.</div>
+    <div class="title">Radiative forcing of carbon dioxide, methane, and nitrous oxide: A significant revision of the methane radiative forcing</div>
+    <div class="venue">Geophys. Res. Lett., 43(24):12614–12623 (2016)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2016GL071930">10.1002/2016GL071930</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : forçage ajusté du doublement du CO₂, 3,80 W/m² — ordre de grandeur du forçage ajusté du transfert du modèle, stratosphère ramenée à son équilibre radiatif hors moteur (3,62 W/m² à 📱) ; forçage du CH₄ de 0,7 à 1,8 ppm, ondes courtes comprises, 0,66 W/m² (le moteur, ondes longues seules : 0,60 W/m²).</div>
+</article>
+<article class="ref" id="fels1980" data-tags="stratosphere fixed-dynamical-heating co2">
+    <div class="cite-key">[fels1980]</div>
+    <div class="authors">Fels, S. B., Mahlman, J. D., Schwarzkopf, M. D. &amp; Sinclair, R. W.</div>
+    <div class="title">Stratospheric sensitivity to perturbations in ozone and carbon dioxide: radiative and dynamical response</div>
+    <div class="venue">J. Atmos. Sci., 37(10):2265–2297 (1980)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1980)037%3C2265:SSTPIO%3E2.0.CO;2">10.1175/1520-0469(1980)037&lt;2265:SSTPIO&gt;2.0.CO;2</a></div>
+    <div class="used-in">Méthode du chauffage dynamique figé : la stratosphère ramenée à son équilibre radiatif quand le CO₂ change. Cadre du forçage ajusté, que le modèle (stratosphère de peau) n’équilibre pas.</div>
+</article>
+<article class="ref" id="forster1997" data-tags="radiative-forcing stratospheric-adjustment">
+    <div class="cite-key">[forster1997]</div>
+    <div class="authors">Forster, P. M. de F., Freckleton, R. S. &amp; Shine, K. P.</div>
+    <div class="title">On aspects of the concept of radiative forcing</div>
+    <div class="venue">Climate Dynamics, 13(7–8):547–560 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s003820050182">10.1007/s003820050182</a></div>
+    <div class="used-in">Forçage ajusté (stratosphère à l’équilibre) : celui qui prédit la réponse de la surface. Le modèle équilibre le forçage instantané, 2,93 W/m² pour un doublement à 📱 contre 3,62 ajusté (carte de la stratosphère).</div>
+</article>
+<article class="ref" id="hansenSatoRuedy1997" data-tags="radiative-forcing efficacy climate-response">
+    <div class="cite-key">[hansenSatoRuedy1997]</div>
+    <div class="authors">Hansen, J., Sato, M. &amp; Ruedy, R.</div>
+    <div class="title">Radiative forcing and climate response</div>
+    <div class="venue">J. Geophys. Res., 102(D6):6831–6864 (1997)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/96JD03436">10.1029/96JD03436</a></div>
+    <div class="used-in">Forçage instantané et forçage ajusté, et la réponse d’un modèle de climat à chacun : cadre de la carte de la stratosphère.</div>
+</article>
+<article class="ref" id="sherwood2020" data-tags="climate-sensitivity assessment">
+    <div class="cite-key">[sherwood2020]</div>
+    <div class="authors">Sherwood, S. C., Webb, M. J., Annan, J. D., Armour, K. C., Forster, P. M., Hargreaves, J. C. <em>et al.</em></div>
+    <div class="title">An assessment of Earth’s climate sensitivity using multiple lines of evidence</div>
+    <div class="venue">Rev. Geophys., 58(4):e2019RG000678 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2019RG000678">10.1029/2019RG000678</a></div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : sensibilité d’équilibre 2,6–3,9 K par doublement du CO₂ (probable). Le modèle à 📱 : +2,72 K (CO₂ × 2, même géographie).</div>
 </article>
 
 <article class="ref" id="dessler2013" data-tags="water-vapor feedback satellite airs observation">
@@ -1045,14 +1214,6 @@
     <div class="used-in">Rythme des émissions en 2024, ~41,6 GtCO₂/an (fossile + usage des sols) → 1 040 GtCO₂ par tranche de 25 ans des scénarios ⛽ de 📱 (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>). Le cumul 2000–2024 vient de l’édition suivante, <a href="#globalCarbonBudget2025">[globalCarbonBudget2025]</a>.</div>
 </article>
 
-<article class="ref" id="canadell2021" data-tags="carbon-cycle ipcc review">
-    <div class="cite-key">[canadell2021]</div>
-    <div class="authors">Canadell, J. G., Monteiro, P. M. S., <em>et al.</em></div>
-    <div class="title">Global Carbon and Other Biogeochemical Cycles and Feedbacks</div>
-    <div class="venue">Climate Change 2021: The Physical Science Basis (GIEC AR6, groupe I, chapitre 5), Cambridge University Press, 673–816 (2021)</div>
-    <div class="doi"><a href="https://doi.org/10.1017/9781009157896.007">10.1017/9781009157896.007</a></div>
-    <div class="used-in">Puits de carbone des terres et des océans : cité avec <a href="#bonan2008">[bonan2008]</a> et <a href="#fao2020">[fao2020]</a> pour 🌱 de 📱 (<code>configTimeline.js</code>). Évaluation du GIEC : comparaison seulement.</div>
-</article>
 
 <article class="ref" id="lentonWatson2011" data-tags="earth-history weathering textbook">
     <div class="cite-key">[lentonWatson2011]</div>
@@ -1069,7 +1230,7 @@
     <div class="title">Terrestrial-marine teleconnections in the Devonian: links between the evolution of land plants, weathering processes, and marine anoxic events</div>
     <div class="venue">Philosophical Transactions of the Royal Society B, 353(1365):113–130 (1998)</div>
     <div class="doi"><a href="https://doi.org/10.1098/rstb.1998.0195">10.1098/rstb.1998.0195</a></div>
-    <div class="used-in">Plantes terrestres, altération et anoxies du Dévonien : drawdown du CO₂ du Dévonien–Carbonifère, 🍄 (<code>configTimeline.js</code>, qui le place dans GSA Today 8:1).</div>
+    <div class="used-in">Plantes terrestres, altération et anoxies du Dévonien : le drawdown du CO₂ du Dévonien–Carbonifère, que PhanDA assimile (états de 🍄, <code>configTimeline.js</code>).</div>
 </article>
 
 <article class="ref" id="montanez2007" data-tags="co2 paleozoic glaciation">
@@ -1078,7 +1239,7 @@
     <div class="title">CO ₂ -Forced Climate and Vegetation Instability During Late Paleozoic Deglaciation</div>
     <div class="venue">Science, 315(5808):87–91 (2007)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.1134207">10.1126/science.1134207</a></div>
-    <div class="used-in">CO₂ de 180–300 ppm au cœur de l’âge glaciaire du Paléozoïque supérieur : 🍄 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">CO₂ de 180–300 ppm au cœur de l’âge glaciaire du Paléozoïque supérieur : des proxys que PhanDA assimile (états de 🍄, <code>configTimeline.js</code>).</div>
 </article>
 
 <article class="ref" id="foster2017" data-tags="co2 phanerozoic compilation">
@@ -1087,7 +1248,7 @@
     <div class="title">Future climate forcing potentially without precedent in the last 420 million years</div>
     <div class="venue">Nature Communications, 8(1):14845 (2017)</div>
     <div class="doi"><a href="https://doi.org/10.1038/ncomms14845">10.1038/ncomms14845</a></div>
-    <div class="used-in">Courbe du CO₂ sur 420 Ma : 🍄 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">Courbe du CO₂ sur 420 Ma : cadre ; le CO₂ des époques vient de PhanDA (<a href="#judd2024">[judd2024]</a>).</div>
 </article>
 
 <article class="ref" id="payneClapham2012" data-tags="permian extinction ocean-acidification">
@@ -1153,7 +1314,7 @@
     <div class="title">Long-term variations of daily insolation and Quaternary climatic changes</div>
     <div class="venue">Journal of the Atmospheric Sciences, 35(12):2362–2367 (1978)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1978)035%3C2362:LTVODI%3E2.0.CO;2">10.1175/1520-0469(1978)035&lt;2362:LTVODI&gt;2.0.CO;2</a></div>
-    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/physics.js</code> : EARTH.zoneAnnualInsolation, dailyMeanInsolation ; <code>CO2/static/astronomie.js</code> : insolationJournaliere, qui donne l'anomalie d'insolation fondant les calottes (<code>API_BILAN/physics/orbite.js</code>) et l'insolation d'été à 65° N de l'onglet Histoire et de la page <code>CO2/html/test_milankovitch.html</code>. Les éléments orbitaux eux-mêmes viennent de <a href="#laskar2004">[laskar2004]</a>.</div>
+    <div class="used-in">Insolation journalière en fonction de ε, e et de la précession — base du calcul d'insolation annuelle par zone. <code>API_BILAN/physics/meridien.js</code> : intégrales J_z et poids d’insolation w_z de l’albédo planétaire ; <code>CO2/static/astronomie.js</code> : insolationJournaliere, qui donne l'anomalie d'insolation fondant les calottes (<code>API_BILAN/physics/orbite.js</code>) et l'insolation d'été à 65° N de l'onglet Histoire et de la page <code>CO2/html/test_milankovitch.html</code>. Les éléments orbitaux eux-mêmes viennent de <a href="#laskar2004">[laskar2004]</a>.</div>
 </article>
 
 <article class="ref" id="bergerLoutre1991" data-tags="orbital insolation milankovitch solution">
@@ -1230,7 +1391,7 @@
     <div class="title">Revision of the EPICA Dome C CO₂ record from 800 to 600 kyr before present</div>
     <div class="venue">Geophysical Research Letters, 42:542–549 (2015)</div>
     <div class="doi"><a href="https://doi.org/10.1002/2014GL061957">10.1002/2014GL061957</a></div>
-    <div class="used-in">Composite antarctique du CO₂ sur 800 ka (fichier NOAA NCEI antarctica2015co2composite.txt, chronologie AICC2012) : CO₂ de chaque état 🔁 de 🦣, moyenne à ± 1 ka de la date du clic (<code>configTimeline.js</code>).</div>
+    <div class="used-in">Composite antarctique du CO₂ sur 800 ka (fichier NOAA NCEI antarctica2015co2composite.txt, chronologie AICC2012) : CO₂ de chaque état 🔁 de 🦣 et de 🛖 (256,3 ppm), moyenne à ± 1 ka de la date (<code>configTimeline.js</code>) ; il remplace <a href="#luthi2008">[luthi2008]</a>, dont il corrige le biais analytique.</div>
 </article>
 
 <article class="ref" id="snyder2016" data-tags="quaternary temperature reconstruction">
@@ -1266,7 +1427,7 @@
     <div class="title">Orbital and millennial-scale features of atmospheric CH₄ over the past 800,000 years</div>
     <div class="venue">Nature, 453:383–386 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature06950">10.1038/nature06950</a></div>
-    <div class="used-in">CH₄ EPICA Dome C (fichier NOAA NCEI edc-ch4-2008.txt, chronologie EDC3) : CH₄ de chaque état 🔁 de 🦣, moyenne à ± 1 ka de la date du clic ; fourchette ch4 ✅ de 🦣 (<code>configTimeline.js</code>, <code>BENCH_LIT_BY_EPOCH_ID</code>).</div>
+    <div class="used-in">CH₄ EPICA Dome C (fichier NOAA NCEI edc-ch4-2008.txt, chronologie EDC3) : CH₄ de chaque état 🔁 de 🦣 et de 🛖 (0,584 ppm), moyenne à ± 1 ka de la date ; fourchettes ch4 ✅ de 🦣 et de 🛖 (<code>configTimeline.js</code>, <code>BENCH_LIT_BY_EPOCH_ID</code>).</div>
 </article>
 
 <article class="ref" id="luthi2008" data-tags="quaternary co2 ice-core epica">
@@ -1275,7 +1436,7 @@
     <div class="title">High-resolution carbon dioxide concentration record 650,000–800,000 years before present</div>
     <div class="venue">Nature, 453:379–382 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature06949">10.1038/nature06949</a></div>
-    <div class="used-in">Carottes EPICA Dome C : CO₂ 180–300 ppm → 🦣 ⚖️🏭 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">Carottes EPICA Dome C : CO₂ 180–300 ppm sur 0–800 ka, cadre de 🦣 — les clics prennent le composite de <a href="#bereiter2015">[bereiter2015]</a>, qui le remplace, la racine (2,58 Ma, avant la carotte) PhanDA.</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1287,7 +1448,7 @@
     <div class="title">Changing atmospheric CO₂ concentration was the primary driver of early Cenozoic climate</div>
     <div class="venue">Nature, 533:380–384 (2016)</div>
     <div class="doi"><a href="https://doi.org/10.1038/nature17423">10.1038/nature17423</a></div>
-    <div class="used-in">CO₂ Éocène précoce ~1000–1600 ppm → 🐊 ⚖️🏭 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">CO₂ de l’Éocène précoce ~1 000–1 600 ppm : cadre de 🐊 ; la valeur vient de PhanDA (<a href="#judd2024">[judd2024]</a>).</div>
 </article>
 
 <article class="ref" id="beerling2011" data-tags="eocene methane chemistry-climate">
@@ -1296,7 +1457,15 @@
     <div class="title">Enhanced chemistry-climate feedbacks in past greenhouse worlds</div>
     <div class="venue">PNAS, 108(24):9770–9775 (2011)</div>
     <div class="doi"><a href="https://doi.org/10.1073/pnas.1102409108">10.1073/pnas.1102409108</a></div>
-    <div class="used-in">CH₄ élevé des mondes chauds (zones humides) → 🐊 ⚖️🐄 (<code>configTimeline.js</code>).</div>
+    <div class="used-in">CH₄ des époques sans mesure, par la simulation la plus proche (tableau 1, chimie–climat, états séparés, chacun avec sa géographie) : de 🍄 à 🏔 (états 🔁 de 🍄 et hysteresis 2 compris), l’Éocène précoce, 2 580 ppb à 2 × CO₂ (560 ppm) et 3 614 ppb à 4 × (1 120 ppm), interpolé en ln CO₂ entre ces deux expériences et tenu à la plus proche hors de [560 ; 1 120] ppm (🍄 et 🐊 : 3,614 ppm) ; racine de 🦣 : le préindustriel moderne, 695 ppb. La source ne donne pas de loi CH₄(CO₂) : le segment 1 × → 2 × change de géographie et ne sert pas. Fourchettes ch4 de ces époques au banc : la même simulation aux CO₂ 5–95 % de PhanDA (pas un contrôle). Le Crétacé supérieur (90 Ma, 4 × CO₂, 3 304 ppb, 9 % sous l’Éocène) donne l’ordre de grandeur de l’écart de géographie (<code>API_BILAN/config/configTimeline.js</code>, encadré « CH₄ DES ÉPOQUES »).</div>
+</article>
+<article class="ref" id="bartdorff2008" data-tags="methane phanerozoic box-model">
+    <div class="cite-key">[bartdorff2008]</div>
+    <div class="authors">Bartdorff, O., Wallmann, K., Latif, M. &amp; Semenov, V.</div>
+    <div class="title">Phanerozoic evolution of atmospheric methane</div>
+    <div class="venue">Global Biogeochem. Cycles, 22(1):GB1008 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2007GB002985">10.1029/2007GB002985</a></div>
+    <div class="used-in">Modèle de boîte du CH₄ sur le Phanérozoïque : jusqu’à ~10 ppm dans les marécages à charbon du Carbonifère (résumé). Sa série par date n’est pas dans le dépôt (article non lu) : elle prendrait la place de la simulation de l’Éocène de 🍄 à 🏔 (<code>configTimeline.js</code>, encadré « CH₄ DES ÉPOQUES »).</div>
 </article>
 
 <article class="ref" id="sleepZahnleNeuhoff2001" data-tags="hadean co2 magma-ocean early-atmosphere">
@@ -1479,7 +1648,7 @@
     <div class="title">A 485-million-year history of Earth's surface temperature (PhanDA)</div>
     <div class="venue">Science, 385:eadk3705 (2024)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.adk3705">10.1126/science.adk3705</a></div>
-    <div class="used-in">Fourchettes du banc <code>API_BILAN/config/configTimeline.js</code> (<code>BENCH_LIT_BY_EPOCH_ID</code>) : tC = GMST 5–95 %, <strong>et co2 = CO2_05–95</strong>, étage contenant ▶. Fichier <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA). Config ⚖️🏭 de 💀 🦤 🦕 🏔 ramenée au milieu. Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>). Sa bande est la précision d'UNE méthode — un seul a priori (le modèle HadCM3L), des températures de mer seules, 420 assimilations qui partagent ces hypothèses : elle est élargie du désaccord entre méthodes mesuré par <a href="#inglis2020">[inglis2020]</a>.</div>
+    <div class="used-in">CO₂ des époques (racines de 🍄 💀 🦕 🦤 🐊 🏔 🦣, états 🔁 de 🍄) : colonne CO2_50 de <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA), interpolée en ln CO₂ entre les âges moyens des deux étages qui encadrent la date, comme la courbe cyan ; fourchettes co2 du banc : CO2_05 et CO2_95 interpolées de même ; tCRepere : GMST 5–95 % de l’étage contenant ▶ (<code>API_BILAN/config/configTimeline.js</code>, encadré « CO₂ DES ÉPOQUES DE PhanDA » et <code>BENCH_LIT_BY_EPOCH_ID</code>). Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>). Sa bande est la précision d'UNE méthode — un seul a priori (le modèle HadCM3L), des températures de mer seules, 420 assimilations qui partagent ces hypothèses : elle est élargie du désaccord entre méthodes mesuré par <a href="#inglis2020">[inglis2020]</a>.</div>
 </article>
 
 <article class="ref" id="inglis2020" data-tags="paleogene eocene gmst methods uncertainty">
@@ -1506,7 +1675,7 @@
     <div class="title">Improvements in the GISTEMP uncertainty model</div>
     <div class="venue">Journal of Geophysical Research: Atmospheres, 124:6307–6326 (2019)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2018JD029522">10.1029/2018JD029522</a></div>
-    <div class="used-in">GISTEMP v4 : anomalie an 2000 = +0,39 °C vs 1951–1980 → 📱 = 14,4 °C <code>API_BILAN/config/configTimeline.js</code>.</div>
+    <div class="used-in">GISTEMP v4 : anomalie an 2000 = +0,39 °C vs 1951–1980 → 📱 = 14,4 °C <code>API_BILAN/config/configTimeline.js</code>. T̄ de la Terre actuelle : T_s0 de l’intérieur et T_ref de Van ’t Hoff du partage et du puits du CO₂ (INTERIEUR.CONST.T_S0).</div>
 </article>
 
 <article class="ref" id="copernicusEsotc2024" data-tags="modern gmst preindustrial">
@@ -1524,7 +1693,7 @@
     <div class="title">Law Dome CO₂, CH₄ and N₂O ice core records extended to 2000 years BP</div>
     <div class="venue">Geophysical Research Letters, 33:L14810 (2006)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2006GL026152">10.1029/2006GL026152</a></div>
-    <div class="used-in">Données lues dans <code>law2006.txt</code> (NOAA/NCEI), splines 20 ans : 1800 = <strong>282,6 ppm CO₂, 0,727 ppm CH₄</strong> → fourchettes 🚂 et ⚖️🐄 de 🚂 corrigé (était 1,28 ppm) <code>API_BILAN/config/configTimeline.js</code>.</div>
+    <div class="used-in">Données lues dans <code>law2006.txt</code> (NOAA/NCEI), splines 20 ans : 1750 = <strong>276,8 ppm CO₂, 0,697 ppm CH₄</strong> → masses et fourchettes de 🚂. Le même CH₄ est celui de 🪼, avant les plantes terrestres (⚠️ sans source à sa date ; <code>API_BILAN/config/configTimeline.js</code>, encadré « CH₄ DES ÉPOQUES »).</div>
 </article>
 
 <article class="ref" id="noaaGml" data-tags="modern co2 ch4 observations">
@@ -1737,7 +1906,15 @@
     <div class="title">HITRAN Application Programming Interface (HAPI): A comprehensive approach to working with spectroscopic data</div>
     <div class="venue">J. Quant. Spectrosc. Radiat. Transfer, 177:15–30 (2016)</div>
     <div class="doi"><a href="https://doi.org/10.1016/j.jqsrt.2016.03.005">10.1016/j.jqsrt.2016.03.005</a></div>
-    <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹.</div>
+    <div class="used-in">Récupération des raies (<code>CO2/scripts/hitran_fetch_lines.py</code>) : H₂O 850–1200 cm⁻¹ (fenêtre) et CO₂ 850–2500 cm⁻¹. Largeur de Lorentz des raies ∝ P : la section efficace est celle de la pression de chaque couche, tables σ(λ, T, P) (<a href="equation.html#eq-elargissement-par-pression">élargissement par la pression</a>) ; dans les ailes, où tombent presque tous les points de la grille, elle est ∝ P.</div>
+</article>
+<article class="ref" id="perrinHartmann1989" data-tags="spectroscopy line-shape co2 far-wings">
+    <div class="cite-key">[perrinHartmann1989]</div>
+    <div class="authors">Perrin, M. Y. &amp; Hartmann, J. M.</div>
+    <div class="title">Temperature-dependent measurements and modeling of absorption by CO₂–N₂ mixtures in the far line-wings of the 4.3 µm CO₂ band</div>
+    <div class="venue">J. Quant. Spectrosc. Radiat. Transfer, 42(4):311–317 (1989)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0022-4073(89)90077-0">10.1016/0022-4073(89)90077-0</a></div>
+    <div class="used-in">Ailes du CO₂ sous-lorentziennes loin du centre des raies : l’écart au profil de Lorentz se compte en écart de fréquence. Cadre de la coupure des raies du moteur, une fenêtre en cm⁻¹ la même à toute pression (<code>API_BILAN/spectroscopy/hitran.js</code>, crossSectionsFromLines ; <a href="equation.html#eq-profil-voigt-largeurs">profil de Voigt</a>).</div>
 </article>
 <article class="ref" id="kollCronin2018" data-tags="olr water-vapor feedback">
     <div class="cite-key">[kollCronin2018]</div>
@@ -1826,7 +2003,7 @@
     <div class="authors">Sagan, C. &amp; Pollack, J. B.</div>
     <div class="title">Anisotropic nonconservative scattering and the clouds of Venus</div>
     <div class="venue">J. Geophys. Res., 72(2):469–477 (1967)</div>
-    <div class="used-in">Deux-flux des couches nuageuses absorbantes (via Lacis &amp; Hansen 1974 éq. 31). <code>API_BILAN/radiative/solaire.js</code>.</div>
+    <div class="used-in">Deux-flux des couches nuageuses absorbantes (via Lacis &amp; Hansen 1974 éq. 31) ; limite conservative (ω = 1, g = 0) : albédo de Rayleigh d’une autre colonne de molécules, rapporté à la part visible du flux (rayleigh). <code>API_BILAN/radiative/solaire.js</code>.</div>
 </article>
 <article class="ref" id="martinJohnsonSpice1994" data-tags="clouds droplets effective-radius">
     <div class="cite-key">[martinJohnsonSpice1994]</div>
@@ -1884,7 +2061,39 @@
     <div class="authors">Manabe, S. &amp; Wetherald, R. T.</div>
     <div class="title">Thermal equilibrium of the atmosphere with a given distribution of relative humidity</div>
     <div class="venue">J. Atmos. Sci., 24:241–259 (1967)</div>
-    <div class="used-in">Humidité relative moyenne r̄ = RH_s (p/p_s − 0,02)/0,98 (vapeur du gaz, pas des nuages) ; RH_s ~0,77. <code>API_BILAN/radiative/calculations.js</code>.</div>
+    <div class="used-in">Humidité relative moyenne r̄ = RH_s (σ* − 0,02)/0,98 (vapeur du gaz, pas des nuages) ; RH_s ~0,77. Forme mesurée sous la tropopause de l’atmosphère standard (<a href="#usStandardAtmosphere1976">[usStandardAtmosphere1976]</a>), lue au niveau σ* étiré entre la surface et la tropopause du profil. <code>API_BILAN/radiative/calculations.js</code>.</div>
+</article>
+<article class="ref" id="usStandardAtmosphere1976" data-tags="atmosphere standard tropopause">
+    <div class="cite-key">[usStandardAtmosphere1976]</div>
+    <div class="authors">NOAA, NASA &amp; USAF</div>
+    <div class="title">U.S. Standard Atmosphere, 1976</div>
+    <div class="venue">U.S. Government Printing Office, Washington D.C., NOAA-S/T 76-1562, NASA-TM-X-74335 (1976)</div>
+    <div class="doi"><a href="https://ntrs.nasa.gov/citations/19770009539">NTRS 19770009539</a></div>
+    <div class="used-in">Tropopause de l’atmosphère où la forme d’humidité de <a href="#manabeWetherald1967">[manabeWetherald1967]</a> est mesurée : 11 km, 226,32 hPa, σ_t,réf = 0,2234 (<code>physics/physics.js</code>, EARTH.NUAGES.MW_SIGMA_TROPOPAUSE ; <code>radiative/calculations.js</code>, profilAtmosphere).</div>
+</article>
+<article class="ref" id="sherwood2010" data-tags="water-vapor relative-humidity climate-models">
+    <div class="cite-key">[sherwood2010]</div>
+    <div class="authors">Sherwood, S. C., Ingram, W., Tsushima, Y., Satoh, M., Roberts, M., Vidale, P. L. &amp; O’Gorman, P. A.</div>
+    <div class="title">Relative humidity changes in a warmer climate</div>
+    <div class="venue">J. Geophys. Res., 115:D09104 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2009JD012585">10.1029/2009JD012585</a></div>
+    <div class="used-in">Humidité relative presque invariante à pression fixée dans la basse troposphère quand le climat se réchauffe : l’humidité de surface et de tropopause de la forme de Manabe &amp; Wetherald restent celles de la mesure, la forme s’étire avec la troposphère (<code>radiative/calculations.js</code>, profilAtmosphere).</div>
+</article>
+<article class="ref" id="singhOGorman2012" data-tags="circulation upward-shift tropopause">
+    <div class="cite-key">[singhOGorman2012]</div>
+    <div class="authors">Singh, M. S. &amp; O’Gorman, P. A.</div>
+    <div class="title">Upward shift of the atmospheric general circulation under global warming: theory and simulations</div>
+    <div class="venue">J. Climate, 25(23):8259–8276 (2012)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-11-00699.1">10.1175/JCLI-D-11-00699.1</a></div>
+    <div class="used-in">Les champs de la haute troposphère se décalent vers le haut avec la tropopause : la forme d’humidité mesurée suit la troposphère du profil, σ* = 1 − (1 − σ)(1 − σ_t,réf)/(1 − σ_t) (<code>radiative/calculations.js</code>, profilAtmosphere).</div>
+</article>
+<article class="ref" id="kluft2021" data-tags="clear-sky feedback radiative-convective line-by-line">
+    <div class="cite-key">[kluft2021]</div>
+    <div class="authors">Kluft, L., Dacie, S., Brath, M., Buehler, S. A. &amp; Stevens, B.</div>
+    <div class="title">Temperature-dependence of the clear-sky feedback in radiative-convective equilibrium</div>
+    <div class="venue">Geophys. Res. Lett., 48(22):e2021GL094649 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2021GL094649">10.1029/2021GL094649</a></div>
+    <div class="used-in">Rétroaction de ciel clair d’une colonne raie par raie à humidité relative fixe (−2,1 W m⁻² K⁻¹ à 280 K, −1,3 à 300 K) : regardée pour choisir la forme de l’étirement de l’humidité avec la troposphère — elle n’en est plus un contrôle.</div>
 </article>
 <article class="ref" id="king2013" data-tags="clouds fraction modis">
     <div class="cite-key">[king2013]</div>
@@ -1982,6 +2191,132 @@
     <div class="used-in">Temps de résidence de la vapeur dans l’atmosphère, 8–10 jours : P = W/τ (<code>albedo/calculations_albedo.js</code>, carte « Précipitations »).</div>
 </article>
 
+<article class="ref" id="alms1975" data-tags="rayleigh depolarization laboratory">
+    <div class="cite-key">[alms1975]</div>
+    <div class="authors">Alms, G. R., Burnham, A. K. &amp; Flygare, W. H.</div>
+    <div class="title">Measurement of the dispersion in polarizability anisotropies</div>
+    <div class="venue">The Journal of Chemical Physics, 63(8):3321–3326 (1975)</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.431821">10.1063/1.431821</a></div>
+    <div class="used-in">Dépolarisation de CO₂ (facteur de King) : section de Rayleigh de CO₂, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="bates1984" data-tags="rayleigh refractive-index king-factor">
+    <div class="cite-key">[bates1984]</div>
+    <div class="authors">Bates, D. R.</div>
+    <div class="title">Rayleigh scattering by air</div>
+    <div class="venue">Planetary and Space Science, 32(6):785–790 (1984)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0032-0633(84)90102-8">10.1016/0032-0633(84)90102-8</a></div>
+    <div class="used-in">Indice de O₂, facteurs de King de N₂, O₂ et de l’air : sections de Rayleigh, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="bideauMehu1973" data-tags="rayleigh refractive-index laboratory">
+    <div class="cite-key">[bideauMehu1973]</div>
+    <div class="authors">Bideau-Mehu, A., Guern, Y., Abjean, R. &amp; Johannin-Gilles, A.</div>
+    <div class="title">Interferometric determination of the refractive index of carbon dioxide in the ultraviolet region</div>
+    <div class="venue">Optics Communications, 9(4):432–434 (1973)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/0030-4018(73)90289-7">10.1016/0030-4018(73)90289-7</a></div>
+    <div class="used-in">Indice de réfraction de CO₂ : section de Rayleigh de CO₂, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="bodhaine1999" data-tags="rayleigh optical-depth king-factor">
+    <div class="cite-key">[bodhaine1999]</div>
+    <div class="authors">Bodhaine, B. A., Wood, N. B., Dutton, E. G. &amp; Slusser, J. R.</div>
+    <div class="title">On Rayleigh optical depth calculations</div>
+    <div class="venue">Journal of Atmospheric and Oceanic Technology, 16(11):1854–1861 (1999)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0426(1999)016%3C1854:ORODC%3E2.0.CO;2">10.1175/1520-0426(1999)016&lt;1854:ORODC&gt;2.0.CO;2</a></div>
+    <div class="used-in">Facteur de King de l’air (éq. 23) : section de l’air, référence des rapports de Rayleigh, <code>radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="brieglebLight2007" data-tags="delta-eddington sea-ice ncar">
+    <div class="cite-key">[brieglebLight2007]</div>
+    <div class="authors">Briegleb, B. P. &amp; Light, B.</div>
+    <div class="title">A Delta-Eddington multiple scattering parameterization for solar radiation in the sea ice component of the Community Climate System Model</div>
+    <div class="venue">NCAR Technical Note NCAR/TN-472+STR, National Center for Atmospheric Research (2007)</div>
+    <div class="doi"><a href="https://doi.org/10.5065/D6B27S71">10.5065/D6B27S71</a></div>
+    <div class="used-in">Diffus d’une couche δ-Eddington = moyenne de sa réponse au faisceau direct sur l’hémisphère, en angles de Gauss : nuages de <code>radiative/solaire.js</code> (carte « Nuages : δ-Eddington »).</div>
+</article>
+
+<article class="ref" id="ciddor1996" data-tags="rayleigh refractive-index water-vapour">
+    <div class="cite-key">[ciddor1996]</div>
+    <div class="authors">Ciddor, P. E.</div>
+    <div class="title">Refractive index of air: new equations for the visible and near infrared</div>
+    <div class="venue">Applied Optics, 35(9):1566 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.1364/AO.35.001566">10.1364/AO.35.001566</a></div>
+    <div class="used-in">Indice de réfraction de la vapeur d’eau : section de Rayleigh de H₂O, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="he2021" data-tags="rayleigh cross-section measurement cavity">
+    <div class="cite-key">[he2021]</div>
+    <div class="authors">He, Q., Fang, Z., Shoshanim, O., Brown, S. S. &amp; Rudich, Y.</div>
+    <div class="title">Scattering and absorption cross sections of atmospheric gases in the ultraviolet–visible wavelength range (307–725 nm)</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 21(19):14927–14940 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-21-14927-2021">10.5194/acp-21-14927-2021</a></div>
+    <div class="used-in">Formules des indices et des facteurs de King réunies (table 1) ; sections MESURÉES à 532 nm (table 2), contrôle 🎯 des sections de Rayleigh de <code>radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="joseph1976" data-tags="delta-eddington radiative-transfer clouds">
+    <div class="cite-key">[joseph1976]</div>
+    <div class="authors">Joseph, J. H., Wiscombe, W. J. &amp; Weinman, J. A.</div>
+    <div class="title">The Delta-Eddington approximation for radiative flux transfer</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 33(12):2452–2459 (1976)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1976)033%3C2452:TDEAFR%3E2.0.CO;2">10.1175/1520-0469(1976)033&lt;2452:TDEAFR&gt;2.0.CO;2</a></div>
+    <div class="used-in">δ-Eddington : chaque couche de nuage selon l’angle solaire, faisceau direct et diffus (<code>radiative/solaire.js</code> → deltaEddington).</div>
+</article>
+
+<article class="ref" id="kingHarshvardhan1986" data-tags="two-stream accuracy delta-eddington">
+    <div class="cite-key">[kingHarshvardhan1986]</div>
+    <div class="authors">King, M. D. &amp; Harshvardhan</div>
+    <div class="title">Comparative accuracy of selected multiple scattering approximations</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 43(8):784–801 (1986)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1986)043%3C0784:CAOSMS%3E2.0.CO;2">10.1175/1520-0469(1986)043&lt;0784:CAOSMS&gt;2.0.CO;2</a></div>
+    <div class="used-in">Précision comparée des approximations à deux flux : le δ-Eddington sous-estime la réflexion aux soleils bas (carte « Nuages : δ-Eddington »).</div>
+</article>
+
+<article class="ref" id="murphy1977" data-tags="rayleigh depolarization water-vapour">
+    <div class="cite-key">[murphy1977]</div>
+    <div class="authors">Murphy, W. F.</div>
+    <div class="title">The Rayleigh depolarization ratio and rotational Raman spectrum of water vapor and the polarizability components for the water molecule</div>
+    <div class="venue">The Journal of Chemical Physics, 67(12):5877–5882 (1977)</div>
+    <div class="doi"><a href="https://doi.org/10.1063/1.434794">10.1063/1.434794</a></div>
+    <div class="used-in">Dépolarisation de la vapeur d’eau, 3,0·10⁻⁴ : section de Rayleigh de H₂O, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="peckKhanna1966" data-tags="rayleigh refractive-index nitrogen">
+    <div class="cite-key">[peckKhanna1966]</div>
+    <div class="authors">Peck, E. R. &amp; Khanna, B. N.</div>
+    <div class="title">Dispersion of nitrogen</div>
+    <div class="venue">Journal of the Optical Society of America, 56(8):1059 (1966)</div>
+    <div class="doi"><a href="https://doi.org/10.1364/JOSA.56.001059">10.1364/JOSA.56.001059</a></div>
+    <div class="used-in">Indice de réfraction de N₂ : section de Rayleigh de N₂, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="peckReeder1972" data-tags="rayleigh refractive-index air">
+    <div class="cite-key">[peckReeder1972]</div>
+    <div class="authors">Peck, E. R. &amp; Reeder, K.</div>
+    <div class="title">Dispersion of air</div>
+    <div class="venue">Journal of the Optical Society of America, 62(8):958 (1972)</div>
+    <div class="doi"><a href="https://doi.org/10.1364/JOSA.62.000958">10.1364/JOSA.62.000958</a></div>
+    <div class="used-in">Indice de réfraction de l’air : section de l’air, référence des rapports de Rayleigh, <code>radiative/solaire.js</code>.</div>
+</article>
+
+<article class="ref" id="sneepUbachs2005" data-tags="rayleigh cross-section methane">
+    <div class="cite-key">[sneepUbachs2005]</div>
+    <div class="authors">Sneep, M. &amp; Ubachs, W.</div>
+    <div class="title">Direct measurement of the Rayleigh scattering cross section in various gases</div>
+    <div class="venue">Journal of Quantitative Spectroscopy and Radiative Transfer, 92(3):293–310 (2005)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.jqsrt.2004.07.025">10.1016/j.jqsrt.2004.07.025</a></div>
+    <div class="used-in">Indice et facteur de King de CH₄ : section de Rayleigh de CH₄, <code>radiative/solaire.js</code> (RAYLEIGH).</div>
+</article>
+
+<article class="ref" id="wiscombe1977" data-tags="delta-m radiative-transfer">
+    <div class="cite-key">[wiscombe1977]</div>
+    <div class="authors">Wiscombe, W. J.</div>
+    <div class="title">The delta–M method: rapid yet accurate radiative flux calculations for strongly asymmetric phase functions</div>
+    <div class="venue">Journal of the Atmospheric Sciences, 34(9):1408–1422 (1977)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1977)034%3C1408:TDMRYA%3E2.0.CO;2">10.1175/1520-0469(1977)034&lt;1408:TDMRYA&gt;2.0.CO;2</a></div>
+    <div class="used-in">Troncature δ-M du calcul de référence (doublement-addition) qui contrôle le δ-Eddington des nuages, hors moteur.</div>
+</article>
+
 <h2 id="sec-composition">13. Composition de l’atmosphère, nuages froids &amp; bilan méridien</h2>
 
 <article class="ref" id="trenberthSmith2005" data-tags="atmosphere mass n2">
@@ -2061,9 +2396,7 @@
     <div class="title">Differences between seasonal and mean annual energy balance model calculations of climate and climate sensitivity</div>
     <div class="venue">J. Atmos. Sci., 36(7):1189–1204 (1979)</div>
     <div class="doi"><a href="https://doi.org/10.1175/1520-0469(1979)036%3C1189:DBSAMA%3E2.0.CO;2">10.1175/1520-0469(1979)036&lt;1189:DBSAMA&gt;2.0.CO;2</a></div>
-    <div class="used-in">Co-albédo annuel OBSERVÉ de l'hémisphère nord (satellites), a(x) = 0,681 − 0,202 P₂(x) (repris par North et al. 1981,
-        éq. 18) : celui avec lequel D = 0,649 reproduit T₂ = −28 °C. Moyenné au poids solaire sur les trois zones : 0,758 / 0,642 / 0,520,
-        cible 🎯 des co-albédos du bilan méridien (trois zones uniformes : T₂ = −26,9 °C au mieux).</div>
+    <div class="used-in">Co-albédo annuel OBSERVÉ de l'hémisphère nord (satellites), a(x) = 0,681 − 0,202 P₂(x) (repris par North et al. 1981, éq. 18) : celui avec lequel D = 0,649 reproduit T₂ = −28 °C. Moyenné au poids solaire sur les trois zones : 0,758 / 0,642 / 0,520 ; tropiques et latitudes moyennes, cible 🎯 des co-albédos du bilan méridien (trois zones uniformes : T₂ = −26,9 °C au mieux) ; les pôles ont servi à choisir la forme de la fonte de la banquise (📖).</div>
 </article>
 <article class="ref" id="mckinnon2013" data-tags="seasonal-cycle land-ocean ebm observation">
     <div class="cite-key">[mckinnon2013]</div>
@@ -2071,7 +2404,7 @@
     <div class="title">The spatial structure of the annual cycle in surface temperature: amplitude, phase, and Lagrangian history</div>
     <div class="venue">J. Climate, 26(20):7852–7862 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-13-00021.1">10.1175/JCLI-D-13-00021.1</a></div>
-    <div class="used-in">Bilan d'énergie terre–océan à atmosphère advectée (éq. 3), réduit dans le modèle à deux boîtes par bande couplées par ν = u C_air / (2π R cos φ) (⚠️ réduction maison) ; vitesse de traversée des masses d'air u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N) et couche de mélange de 75 m (⚠️ valeurs à relire dans l'article). Contrôle : retard moyen des saisons sur les terres, 28 jours. <code>physics/saisons.js</code>.</div>
+    <div class="used-in">Bilan d’énergie terre–océan à atmosphère advectée (éq. 2–3), réduit dans le modèle à deux boîtes par bande couplées par ν = u C_air / (2π R cos φ) (❔ réduction maison), et à la terre de chaque latitude couplée à la mer de la bande à sa part de terre, f Z_n T + ν_φ (T − M_n) = f F_n ; jeu de paramètres de leur tableau 1 : u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N), couche de mélange de 75 m et atmosphère de 1 m d’eau, C_air = 0,403 de la colonne (K.PART_AIR), la même dans l’inertie et dans le couplage. Contrôles : retard moyen des saisons, 28 jours sur les terres extratropicales et 58 sur les mers. <code>physics/saisons.js</code>.</div>
 </article>
 <article class="ref" id="willmottMatsuura2001" data-tags="observation temperature land seasonal-cycle">
     <div class="cite-key">[willmottMatsuura2001]</div>
@@ -2079,21 +2412,21 @@
     <div class="title">Terrestrial Air Temperature and Precipitation: Monthly and Annual Time Series (University of Delaware, UDel_AirT_Precip)</div>
     <div class="venue">Center for Climatic Research, University of Delaware ; distribué par NOAA PSL (données sur grille 0,5°, version non relevée)</div>
     <div class="doi"><a href="https://psl.noaa.gov/data/gridded/data.UDel_AirT_Precip.html">psl.noaa.gov/data/gridded/data.UDel_AirT_Precip.html</a></div>
-    <div class="used-in">CONTRÔLE (pas une entrée ; ❔ valeurs sans script de relevé dans le dépôt) : premier harmonique de la température des terres 1981–2010 par bande — N_pol 18,8, S_pol 12,1, N_mid 14,3, S_mid 6,5, tropiques 4,0 K — face au cycle calculé de <code>physics/saisons.js</code> et aux amplitudes de zone posées de <code>physics/physics.js</code>.</div>
+    <div class="used-in">CONTRÔLE (pas une entrée ; ❔ valeurs sans script de relevé dans le dépôt) : premier harmonique de la température des terres 1981–2010 par bande — N_pol 18,8, S_pol 12,1, N_mid 14,3, S_mid 6,5, tropiques 4,0 K — face au cycle calculé de <code>physics/saisons.js</code>, celui que lisent les calottes et la glace saisonnière.</div>
 </article>
 <article class="ref" id="stefan1891" data-tags="sea-ice conduction">
     <div class="cite-key">[stefan1891]</div>
     <div class="authors">Stefan, J.</div>
     <div class="title">Über die Theorie der Eisbildung, insbesondere über die Eisbildung im Polarmeere</div>
     <div class="venue">Ann. Phys. Chem. (Wiedemann), 42:269–286 (1891)</div>
-    <div class="used-in">Croissance de la glace de mer par conduction : h = √(2 k_i FDD / (ρ_i L_f)), FDD degrés-jours de gel. Épaisseur de la glace de mer saisonnière dans l'impédance de la mer. <code>physics/saisons.js</code>. DOI non vérifié : omis.</div>
+    <div class="used-in">Croissance de la glace de mer par conduction : h = √(2 k_i FDD / (ρ_i L_f)), FDD degrés-jours de gel. Épaisseur de la glace de mer de chaque latitude, dans l’impédance de la mer et dans la masse de la banquise qui fond l’été (<code>physics/saisons.js</code>, epaisseurStefan, la seule ; <code>physics/physics.js</code>, EARTH.glaceSaisonniere). DOI non vérifié : omis.</div>
 </article>
 <article class="ref" id="carslawJaeger1959" data-tags="conduction textbook sea-ice">
     <div class="cite-key">[carslawJaeger1959]</div>
     <div class="authors">Carslaw, H. S. &amp; Jaeger, J. C.</div>
     <div class="title">Conduction of Heat in Solids, 2nd ed.</div>
     <div class="venue">Oxford University Press, Oxford (1959)</div>
-    <div class="used-in">Équation de la chaleur dans une dalle dont la base est tenue à température fixe et la surface oscille : flux de surface / température de surface = k q coth(q h), q = √(iω/κ) — k/h pour une dalle mince, √(kρc) √(iω) pour un milieu semi-infini. Glace de mer posée sur l'eau à son point de gel dans l'impédance de la mer. <code>physics/saisons.js</code>.</div>
+    <div class="used-in">Équation de la chaleur dans une dalle dont la base est tenue à température fixe et la surface oscille : flux de surface / température de surface = k q coth(q h), q = √(iω/κ) — k/h pour une dalle mince, √(kρc) √(iω) pour un milieu semi-infini. Glace de mer posée sur l’eau à son point de gel dans l’impédance de la mer ; la dalle seule (mer toute gelée) donne la température de surface de la banquise, lue pour sa fonte. <code>physics/saisons.js</code>.</div>
 </article>
 <article class="ref" id="feistelWagner2006" data-tags="ice thermodynamics laboratory">
     <div class="cite-key">[feistelWagner2006]</div>
@@ -2146,7 +2479,7 @@
     <div class="title">A new parameterization of hydrous mantle melting</div>
     <div class="venue">Geochem. Geophys. Geosyst., 4(9):1073 (2003)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2002GC000433">10.1029/2002GC000433</a></div>
-    <div class="used-in">Solidus 1 085,7 °C et liquidus 1 780 °C de la péridotite à 0 GPa : intérieur (<code>geology/interieur.js</code>) et surface en fusion (<code>calculations_albedo.js</code>, à la place de la rampe 1 000–2 373 K sans source).</div>
+    <div class="used-in">Solidus 1 085,7 °C et liquidus 1 780 °C de la péridotite à 0 GPa : intérieur (<code>geology/interieur.js</code>) et surface en fusion (<code>albedo/calculations_albedo.js</code>, partLave, lue par l’albédo planétaire et le bilan méridien).</div>
 </article>
 
 <article class="ref" id="scoteseWright2018" data-tags="paleogeography dem">
@@ -2155,28 +2488,28 @@
     <div class="title">PALEOMAP Paleodigital Elevation Models (PaleoDEMS) for the Phanerozoic</div>
     <div class="venue">PALEOMAP Project, données 1° × 1° tous les 5 Ma, 0–540 Ma (2018), CC-BY 4.0</div>
     <div class="doi"><a href="https://doi.org/10.5281/zenodo.5460860">10.5281/zenodo.5460860</a></div>
-    <div class="used-in">Paléogéographie zonale CALCULÉE (CO2/scripts/paleogeo/paleodem_zones.py → <code>data/paleogeo_zones.js</code>) : part de continent (socle &gt; −1 000 m), altitude moyenne du socle et des hautes terres, latitudes moyennes, par bande et par hémisphère. Socle SANS glace, même croûte pour les deux calottes : la carte 0 Ma porte le socle antarctique enfoncé par sa glace et la SURFACE de l'inlandsis du Groenland ; le script en retire la glace cellule par cellule (profil de <a href="#nye1952">[nye1952]</a> fermé sur le volume et l'aire de <a href="#fretwell2013">[fretwell2013]</a> ; inlandsis de <a href="#citterio2013">[citterio2013]</a> fermé sur le volume de <a href="#morlighem2017">[morlighem2017]</a>). Les cartes de 0 à 80 Ma copient le socle antarctique actuel chargé (rotation rigide de quelques degrés, corrélation de 0,70 à 0,85 après recalage ; dès 85 Ma, reconstruction, r ≤ 0,50), celles de 5 et 10 Ma la surface de l'inlandsis : l'empreinte transportée de la calotte y REMPLACE la carte par le socle déchargé de 0 Ma transporté — ⚠️ relief propre de la carte perdu, dont les basses terres antarctiques relevées de 300 à 600 m de 15 à 25 Ma ; hors de l'empreinte, la carte est intacte. Méridien ±180 : deux demi-échantillons (colonnes −180 et +180) sur les cartes de 361 colonnes, le seul −180 sur celles de 360 (150 à 395 Ma) — règle des trapèzes ; à 0 Ma, la colonne −180 vaut 0 m au sud de 60° S. Lu par <code>physics/calottes.js</code>.</div>
+    <div class="used-in">Paléogéographie zonale CALCULÉE (CO2/scripts/paleogeo/paleodem_zones.py → <code>data/paleogeo_zones.js</code>) : part de continent (socle &gt; −1 000 m), altitude moyenne du socle et des hautes terres, latitudes moyennes, par bande et par hémisphère. Socle SANS glace, même croûte pour les deux calottes : la carte 0 Ma porte le socle antarctique enfoncé par sa glace et la SURFACE de l'inlandsis du Groenland ; le script en retire la glace cellule par cellule (profil de <a href="#nye1952">[nye1952]</a> fermé sur le volume et l'aire de <a href="#fretwell2013">[fretwell2013]</a> ; inlandsis de <a href="#citterio2013">[citterio2013]</a> fermé sur le volume de <a href="#morlighem2017">[morlighem2017]</a>). Les cartes de 0 à 80 Ma copient le socle antarctique actuel chargé (rotation rigide de quelques degrés, corrélation de 0,70 à 0,85 après recalage ; dès 85 Ma, reconstruction, r ≤ 0,50), celles de 5 et 10 Ma la surface de l'inlandsis : l'empreinte transportée de la calotte y REMPLACE la carte par le socle déchargé de 0 Ma transporté — ⚠️ relief propre de la carte perdu, dont les basses terres antarctiques relevées de 300 à 600 m de 15 à 25 Ma ; hors de l'empreinte, la carte est intacte. Méridien ±180 : deux demi-échantillons (colonnes −180 et +180) sur les cartes de 361 colonnes, le seul −180 sur celles de 360 (150 à 395 Ma) — règle des trapèzes ; à 0 Ma, la colonne −180 vaut 0 m au sud de 60° S. Lu par <code>physics/calottes.js</code>. La terre émergée des bandes fait aussi la mer : le bassin de la carte (🍰🗻🌊, socle sous le niveau de la mer de la reconstruction), rempli dans un monde à océan (<code>albedo/calculations_albedo.js</code>, calculateGeologySurfaces, surfacesSansGlace).</div>
 </article>
 <article class="ref" id="nye1952" data-tags="ice-sheet plasticity">
     <div class="cite-key">[nye1952]</div>
     <div class="authors">Nye, J. F.</div>
     <div class="title">A method of calculating the thicknesses of the ice-sheets</div>
     <div class="venue">Nature, 169:529–530 (1952)</div>
-    <div class="used-in">Calotte parfaitement plastique : h² = 2 τ₀ x / (ρ_i g), τ₀ mesuré 50–150 kPa (100 retenu). <code>physics/calottes.js</code> (geometrie). Même loi pour l'épaisseur de la glace antarctique par cellule sur la carte 0 Ma des PaleoDEM, depuis la marge du continent reculée de d₀ : τ effectif (42,6 kPa) et d₀ (228 km) ferment le volume et l'aire posés de <a href="#fretwell2013">[fretwell2013]</a> (<code>CO2/scripts/paleogeo/paleodem_zones.py</code>).</div>
+    <div class="used-in">Calotte parfaitement plastique : h² = 2 τ₀ x / (ρ_i g), τ₀ mesuré 50–150 kPa. Dôme du moteur sur socle d’Airy, H = C √s (<code>physics/calottes.js</code>, geometrie) ; τ effectif 26,90 kPa, fermé sur le volume et l’aire posés de <a href="#fretwell2013">[fretwell2013]</a> par le même dôme (<code>CO2/scripts/paleogeo/paleodem_zones.py</code>).</div>
 </article>
 <article class="ref" id="braithwaite1995" data-tags="ice-sheet melt pdd">
     <div class="cite-key">[braithwaite1995]</div>
     <div class="authors">Braithwaite, R. J.</div>
     <div class="title">Positive degree-day factors for ablation on the Greenland ice sheet studied by energy-balance modelling</div>
     <div class="venue">J. Glaciol., 41(137):153–160 (1995)</div>
-    <div class="used-in">Facteurs de fonte ~3 (neige) et ~8 (glace) mm d’eau par °C·jour. <code>physics/calottes.js</code> (K.DDF_NEIGE, K.DDF_GLACE, bilanPoint).</div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : facteurs de fonte ~3 (neige) et ~8 (glace) mm d’eau par °C·jour, comparés au rapport fonte / degrés-jours positifs du bilan d’énergie de surface (<code>physics/calottes.js</code>, ddf_neige, ddf_glace).</div>
 </article>
 <article class="ref" id="reeh1991" data-tags="ice-sheet melt pdd">
     <div class="cite-key">[reeh1991]</div>
     <div class="authors">Reeh, N.</div>
     <div class="title">Parameterization of melt rate and surface temperature on the Greenland ice sheet</div>
     <div class="venue">Polarforschung, 59(3):113–128 (1991)</div>
-    <div class="used-in">Méthode des degrés-jours : la neige de l’année fond d’abord, puis la glace. <code>physics/calottes.js</code>.</div>
+    <div class="used-in">Méthode des degrés-jours : la neige de l’année fond d’abord, puis la glace (calottes) ou ce qu’elle découvre (glace saisonnière : glace nue de la banquise, sol). <code>physics/calottes.js</code>, <code>physics/physics.js</code>.</div>
 </article>
 <article class="ref" id="calovGreve2005" data-tags="ice-sheet melt pdd">
     <div class="cite-key">[calovGreve2005]</div>
@@ -2184,7 +2517,7 @@
     <div class="title">A semi-analytical solution for the positive degree-day model with stochastic temperature variations</div>
     <div class="venue">J. Glaciol., 51(172):173–175 (2005)</div>
     <div class="doi"><a href="https://doi.org/10.3189/172756505781829601">10.3189/172756505781829601</a></div>
-    <div class="used-in">Degrés-jours positifs d'une loi normale d'écart-type σ autour du cycle annuel, intégrale en température faite à la main : PDD = ∫ [σ e^(−T²/2σ²)/√(2π) + (T/2) erfc(−T/(√2 σ))] dt (éq. 6). <code>physics/calottes.js</code> (bilanPoint, 24 nœuds de l'année).</div>
+    <div class="used-in">Degrés-jours positifs d'une loi normale d'écart-type σ autour du cycle annuel, intégrale en température faite à la main : PDD = ∫ [σ e^(−T²/2σ²)/√(2π) + (T/2) erfc(−T/(√2 σ))] dt (éq. 6). La même forme, autour du seuil T* = −(absorbé + c₀)/c₁ du bilan d’énergie, donne la fonte attendue d’une glace nue ; pour la neige, coupée au seuil d’une neige sèche (<code>physics/calottes.js</code>, fonteJour, 24 nœuds de l'année).</div>
 </article>
 <article class="ref" id="seguinotRogozhina2014" data-tags="ice-sheet melt pdd reanalysis">
     <div class="cite-key">[seguinotRogozhina2014]</div>
@@ -2192,7 +2525,7 @@
     <div class="title">Daily temperature variability predetermined by thermal conditions over ice-sheet surfaces</div>
     <div class="venue">J. Glaciol., 60(221):603–605 (2014)</div>
     <div class="doi"><a href="https://doi.org/10.3189/2014JoG14J036">10.3189/2014JoG14J036</a></div>
-    <div class="used-in">Écart-type des températures journalières autour du cycle annuel sur le Groenland, σ = −0,15 T_m + 1,66 K (éq. 3 ; ERA-40 1958–2001, régression pondérée en 1/σ, r² = 0,79) — sa décroissance vers 0 °C vient du point de fusion. Une mesure : σ n'a pas d'équation. ⚠️ L'article l'exclut des terres sans glace, où le modèle fait naître les calottes. ❔ Au-dessus de 0 °C, σ garde sa valeur de 0 °C (la régression contient des mois jusqu'à +2 °C). <code>physics/calottes.js</code> (K.SIGMA_FONTE_K, K.PENTE_SIGMA).</div>
+    <div class="used-in">Écart-type des températures journalières autour du cycle annuel sur le Groenland, σ = −0,15 T_m + 1,66 K (éq. 3 ; ERA-40 1958–2001, régression pondérée en 1/σ, r² = 0,79) — sa décroissance vers 0 °C vient du point de fusion. Une mesure : σ n'a pas d'équation. ⚠️ L'article l'exclut des terres sans glace, où le modèle fait naître les calottes. ❔ Au-dessus de 0 °C, σ garde sa valeur de 0 °C (la régression contient des mois jusqu'à +2 °C). <code>physics/calottes.js</code> (K.SIGMA_FONTE_K, K.PENTE_SIGMA) ; le même σ donne la probabilité de fonte de la glace saisonnière (<code>physics/physics.js</code>, EARTH.glaceSaisonniere).</div>
 </article>
 <article class="ref" id="janssensHuybrechts2000" data-tags="ice-sheet melt refreezing">
     <div class="cite-key">[janssensHuybrechts2000]</div>
@@ -2231,7 +2564,7 @@
     <div class="title">Milankovitch solar radiation variations and ice age ice sheet sizes</div>
     <div class="venue">Nature, 261:17–20 (1976)</div>
     <div class="doi"><a href="https://doi.org/10.1038/261017a0">10.1038/261017a0</a></div>
-    <div class="used-in">Calotte parfaitement plastique en deux dimensions (le long du méridien), bilan intégré sur sa surface : sa taille d'équilibre suit l'insolation, avec deux états stables. <code>physics/calottes.js</code> (geometrie, bilanCalotte).</div>
+    <div class="used-in">Calotte parfaitement plastique en deux dimensions (le long du méridien), bilan intégré sur sa surface : sa taille d'équilibre suit l'insolation, avec deux états stables ; une neige qui tient sur un sommet dont le dôme ne peut pas grandir ne fait pas de calotte : sommet de naissance. <code>physics/calottes.js</code> (geometrie, bilanCalotte, rangBilan).</div>
 </article>
 <article class="ref" id="pollard1978" data-tags="ice-sheet milankovitch geometry">
     <div class="cite-key">[pollard1978]</div>
@@ -2245,7 +2578,7 @@
     <div class="authors">Jouzel, J. &amp; Merlivat, L.</div>
     <div class="title">Deuterium and oxygen 18 in precipitation: modeling of the isotopic effects during snow formation</div>
     <div class="venue">J. Geophys. Res., 89(D7):11749–11757 (1984)</div>
-    <div class="used-in">Température de formation de la neige au sommet de l’inversion : T_inv = 0,67 T_s + 88,9 K (Antarctique). Accumulation des calottes à la saturation de l’inversion.</div>
+    <div class="used-in">Température de formation de la neige au sommet de l’inversion : T_inv = 0,67 T_s + 88,9 K (Antarctique). Accumulation des calottes à la saturation de l’inversion, sous la calotte seulement ; un sol sans glace suit l’air libre, hors du domaine de la mesure.</div>
 </article>
 <article class="ref" id="siler2018" data-tags="hydrologic-cycle energy-balance moisture-transport">
     <div class="cite-key">[siler2018]</div>
@@ -2255,7 +2588,7 @@
     <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-18-0081.1">10.1175/JCLI-D-18-0081.1</a></div>
     <div class="used-in">Transport d'énergie humide en diffusion, F = −(2π p_s/g) D (1 − x²) dh/dx (éq. 2), D = 1,16·10⁶ m²/s ajusté sur la
         température zonale d'ERA-Interim, part de la cellule de Hadley w = e^(−x²/0,3²) (éq. 4–6) : P − E le long du profil méridien,
-        d'où la neige des calottes. <code>API_BILAN/physics/calottes.js</code> (calculer, bilanPoint).</div>
+        d'où la neige des calottes (<code>API_BILAN/physics/calottes.js</code>, calculer, bilanPoint) et la neige de l'année de la glace saisonnière (<code>API_BILAN/physics/physics.js</code>, EARTH.glaceSaisonniere).</div>
 </article>
 <article class="ref" id="arthern2006" data-tags="ice-sheet accumulation antarctica">
     <div class="cite-key">[arthern2006]</div>
@@ -2263,7 +2596,7 @@
     <div class="title">Antarctic snow accumulation mapped using polarization of 4.3-cm wavelength microwave emission</div>
     <div class="venue">J. Geophys. Res., 111:D06107 (2006)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2004JD005667">10.1029/2004JD005667</a></div>
-    <div class="used-in">CONTRÔLE (pas une entrée) : accumulation moyenne de l’Antarctique posé 143 ± 4 kg m⁻² an⁻¹.</div>
+    <div class="used-in">CONTRÔLE (pas une entrée) : accumulation moyenne de l’Antarctique posé 143 ± 4 kg m⁻² an⁻¹ — ÉCHEC : le modèle donne 47 sur 📱 ; causes candidates dans <code>doc/equation.html</code> (neige des calottes).</div>
 </article>
 <article class="ref" id="muttoniKent2026" data-tags="paleogeography albedo">
     <div class="cite-key">[muttoniKent2026]</div>
@@ -2314,7 +2647,7 @@
     <div class="title">Bedmap2: improved ice bed, surface and thickness datasets for Antarctica</div>
     <div class="venue">The Cryosphere, 7:375–393 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.5194/tc-7-375-2013">10.5194/tc-7-375-2013</a></div>
-    <div class="used-in">Glace posée de l'Antarctique, plates-formes exclues (tableau 7) : 26,54e6 km³ sur 12,295e6 km². Aire des calottes actuelles (<code>CALOTTES_ACTUELLES</code>, <code>config/configTimeline.js</code>). Volume ET aire ferment les deux inconnues du profil de <a href="#nye1952">[nye1952]</a> — τ effectif et recul de la marge — qui donne l'épaisseur de la glace par cellule sur la carte 0 Ma des PaleoDEM, d'où le rebond d'Airy ρ_i/ρ_m · H et la recharge d'eau qui déchargent le socle antarctique (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>) ; l'aire, lue dans <code>CALOTTES_ACTUELLES</code>, y est une entrée.</div>
+    <div class="used-in">Glace posée de l’Antarctique, plates-formes exclues (tableau 7) : 26,54e6 km³ sur 12,295e6 km². Aire des calottes actuelles (<code>CALOTTES_ACTUELLES</code>, <code>config/configTimeline.js</code>). Volume et aire ferment τ du dôme plastique du moteur (V = (8π/15) C R^(5/2) : une équation, une inconnue, τ = 26,90 kPa) ; la même loi et le même τ retirent la glace de la carte 0 Ma des PaleoDEM sur l’empreinte réelle (24,92e6 km³, −6,1 %), d’où le rebond d’Airy ρ_i/ρ_m · H et la recharge d’eau qui déchargent le socle antarctique (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>) ; l’aire, lue dans <code>CALOTTES_ACTUELLES</code>, y est une entrée.</div>
 </article>
 <article class="ref" id="gumsley2017" data-tags="paleoproterozoic glaciation goe geochronology">
     <div class="cite-key">[gumsley2017]</div>
@@ -2372,7 +2705,7 @@
     <div class="title">BedMachine v3: Complete bed topography and ocean bathymetry mapping of Greenland from multibeam echo sounding combined with mass conservation</div>
     <div class="venue">Geophys. Res. Lett., 44(21):11051–11061 (2017)</div>
     <div class="doi"><a href="https://doi.org/10.1002/2017GL074954">10.1002/2017GL074954</a></div>
-    <div class="used-in">Volume total de glace du Groenland, « total ice volume of 2.99 ± 0.02 10⁶ km³ » : il ferme le socle chargé moyen sous l'inlandsis des PaleoDEM (b̄ = s̄ − V/A = 437 m sur la carte 0 Ma), d'où l'épaisseur H = s − b̄ et le socle déchargé b̄ + ρ_i/ρ_m · H, porté sur les cartes de 5 et 10 Ma (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>).</div>
+    <div class="used-in">Volume total de glace du Groenland, « total ice volume of 2.99 ± 0.02 10⁶ km³ » : il ferme le socle chargé moyen sous l’inlandsis des PaleoDEM (b̄ = s̄ − V/A = 437 m sur la carte 0 Ma), d’où l’épaisseur H = s − b̄ et le socle déchargé b̄ + ρ_i/ρ_m · H, porté sur les cartes de 5 et 10 Ma (<code>CO2/scripts/paleogeo/paleodem_zones.py</code> → <code>data/paleogeo_zones.js</code>). 🎯 : volume du dôme de même loi et même τ à l’aire de l’inlandsis, 2,26e6 km³ (−24 %).</div>
 </article>
 <article class="ref" id="schubertTurcotteOlson2001" data-tags="geodynamics mantle-viscosity textbook">
     <div class="cite-key">[schubertTurcotteOlson2001]</div>
@@ -2394,6 +2727,60 @@
     <div class="authors">Yang, J., Jansen, M. F., Macdonald, F. A. &amp; Abbot, D. S.</div>
     <div class="title">Persistence of a surface freshwater ocean after a Snowball Earth</div>
     <div class="venue">Geology, 45:615–618 (2017)</div>
+</article>
+
+<article class="ref" id="andreas1987" data-tags="surface-layer roughness snow">
+    <div class="cite-key">[andreas1987]</div>
+    <div class="authors">Andreas, E. L.</div>
+    <div class="title">A theory for the scalar roughness and the scalar transfer coefficients over snow and sea ice</div>
+    <div class="venue">Boundary-Layer Meteorology, 38(1–2):159–184 (1987)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/BF00121562">10.1007/BF00121562</a></div>
+    <div class="used-in">Rugosité thermique z_h ≈ z₀ sur une neige lisse : flux turbulents du bilan d’énergie d’une surface qui fond, <code>physics/calottes.js</code> (article non relu, cité par van den Broeke et al. 2008).</div>
+</article>
+
+<article class="ref" id="brutsaert1975" data-tags="longwave clear-sky emissivity">
+    <div class="cite-key">[brutsaert1975]</div>
+    <div class="authors">Brutsaert, W.</div>
+    <div class="title">On a derivable formula for long-wave radiation from clear skies</div>
+    <div class="venue">Water Resources Research, 11(5):742–744 (1975)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/WR011i005p00742">10.1029/WR011i005p00742</a></div>
+    <div class="used-in">Émissivité du ciel clair ε = 1,24 (e_a/T_a)^(1/7) : rayonnement descendant sur une calotte qui fond, <code>physics/calottes.js</code> (K.BRUTSAERT_A, K.BRUTSAERT_N).</div>
+</article>
+
+<article class="ref" id="hogstrom1996" data-tags="surface-layer von-karman">
+    <div class="cite-key">[hogstrom1996]</div>
+    <div class="authors">Högström, U.</div>
+    <div class="title">Review of some basic characteristics of the atmospheric surface layer</div>
+    <div class="venue">Boundary-Layer Meteorology, 78(3–4):215–246 (1996)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/BF00120937">10.1007/BF00120937</a></div>
+    <div class="used-in">Constante de von Kármán κ = 0,40 ± 0,01 : coefficient de transfert neutre des flux turbulents, <code>physics/calottes.js</code> (K.KARMAN).</div>
+</article>
+
+<article class="ref" id="vandenBroeke2008" data-tags="greenland ablation surface-energy-balance aws">
+    <div class="cite-key">[vandenBroeke2008]</div>
+    <div class="authors">van den Broeke, M., Smeets, P., Ettema, J., van der Veen, C., van de Wal, R. &amp; Oerlemans, J.</div>
+    <div class="title">Partitioning of melt energy and meltwater fluxes in the ablation zone of the west Greenland ice sheet</div>
+    <div class="venue">The Cryosphere, 2(2):179–189 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/tc-2-179-2008">10.5194/tc-2-179-2008</a></div>
+    <div class="used-in">Stations S5, S6, S9 (67° N) : vent à 10 m et rugosité de la neige du bilan d’énergie de surface (<code>physics/calottes.js</code>, K.VENT_SURFACE_M_S, K.Z0_M) ; température à 2 m en moyenne annuelle, contrôle 🎯 de J&amp;M appliquée au Groenland, de l’air libre et de la boîte terre (la forme de l’inversion hivernale ne la règle pas) ; bilan de masse des stations : 📖, regardé pour choisir la forme de l’inversion hivernale (🔧).</div>
+</article>
+
+<article class="ref" id="paterson1972" data-tags="ice-sheet plasticity volume">
+    <div class="cite-key">[paterson1972]</div>
+    <div class="authors">Paterson, W. S. B.</div>
+    <div class="title">Laurentide Ice Sheet: Estimated volumes during Late Wisconsin</div>
+    <div class="venue">Reviews of Geophysics and Space Physics, 10(4):885–917 (1972)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/RG010i004p00885">10.1029/RG010i004p00885</a></div>
+    <div class="used-in">Profil plastique d’une calotte et volume ∝ aire^(5/4) : le dôme des calottes du moteur, V = (8π/15) C R^(5/2) (<code>physics/calottes.js</code>, geometrie), et l’aire de <code>CALOTTES_OLIGOCENE</code> tirée de son volume.</div>
+</article>
+
+<article class="ref" id="bahr2015" data-tags="glaciers ice-sheet scaling review">
+    <div class="cite-key">[bahr2015]</div>
+    <div class="authors">Bahr, D. B., Pfeffer, W. T. &amp; Kaser, G.</div>
+    <div class="title">A review of volume-area scaling of glaciers</div>
+    <div class="venue">Reviews of Geophysics, 53(1):95–140 (2015)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2014RG000470">10.1002/2014RG000470</a></div>
+    <div class="used-in">Loi d’échelle volume–aire des calottes, γ = 5/4 : cadre du dôme de <code>physics/calottes.js</code>.</div>
 </article>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->

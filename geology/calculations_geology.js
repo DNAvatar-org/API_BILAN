@@ -1,9 +1,10 @@
 // ============================================================================
 // File: API_BILAN/geology/calculations_geology.js
 // Desc: Fonctions de calcul géologique basées sur la configuration centralisée
-// Version 1.1.0
-// Date: [October 10, 2026]
+// Version 1.1.1
+// Date: [October 29, 2026]
 // Logs:
+// - v1.1.1: solar_intensity = Soleil de Gough à l'âge de ▶ / Soleil actuel (CONST.L_SOLEIL_W), plus le 🔋☀️ posé par époque.
 // - v1.1.0: PAS DE GARDES. computeFluxFromEpoch retiré (il rendait 0 en silence pour toute époque hors courante :
 //   geothermal_flux, toujours un nombre — DATA ou NaN —, était lu en premier). Époque inconnue = erreur, plus
 //   null. Plus de faux champs : core_temperature_k (clé absente de TIMELINE), volcanoFactor de config (aucune
@@ -38,8 +39,8 @@ function getGeologicalPeriodByName(periodName) {
         planet_radius: epoch['📐'] * 1000,
         total_atmosphere_mass_kg: window.COMPUTE.dryAtmosphereMassKgFromComponents(epoch),
         gravity: epoch['🍎'],
-        // FluxManager : solar_intensity est un facteur (1.0 = aujourd'hui)
-        solar_intensity: epoch['🔋☀️'] / 3.828e26
+        // FluxManager : solar_intensity est un facteur (1.0 = aujourd'hui) — luminosité de Gough à l'âge de ▶ de l'époque.
+        solar_intensity: window.COMPUTE.goughLuminosity(window.INTERIEUR.ageDe(epoch, epoch['▶'])) / window.CONST.L_SOLEIL_W
     };
 }
 

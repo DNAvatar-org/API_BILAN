@@ -136,35 +136,27 @@ roche sans air ni eau, à −18 °C.
 
 ## Tuning : le barycentre d'incertitude 🧩
 
-Le modèle dépend de paramètres dont la valeur exacte est scientifiquement incertaine (propriétés
-optiques des nuages, sensibilité aux CCN, effet sulfate, seuils d'hystérésis). Plutôt que d'en figer
-un jeu arbitrairement, un **curseur [0–100 %] par groupe** interpole entre les bornes de la
-littérature, déclarées avec leur source dans `config/fine_tuning_bounds.js` :
+Le modèle dépend de paramètres MESURÉS dont la valeur exacte est incertaine (gouttes, seuil de pluie et
+fractions des nuages, humidité de surface, effet sulfate). Plutôt que d'en figer un jeu arbitrairement, une
+**jauge [0–100 %]** interpole entre les bornes de la littérature, déclarées avec leur source dans
+`config/fine_tuning_bounds.js` ; chaque paramètre lit SA jauge (`target.baryGroup`) :
 
-- **0 %** → borne `min` de chaque paramètre du groupe
-- **100 %** → borne `max`
+- **FROID**, **CHAUD** : **100 %** → la valeur la plus réchauffante de chaque plage (monter la jauge réchauffe)
+- **SUBTIL** : **100 %** → borne haute (le sens dépend de l'époque)
 
 Il n'y a pas de « valeur nominale » cachée : le défaut est un point du segment, pas une exception.
 
-| Groupe | Rôle | Défaut |
+| Jauge | Paramètres | Défaut |
 |---|---|---|
-| **ATM** | Curseur maître de l'atmosphère — pilote CLOUD_SW et SCIENCE | 45 % |
-| **CLOUD_SW** | Propriétés optiques des nuages (albédo SW) | 45 % |
-| **SCIENCE** | Sensibilités scientifiques (gain index nuageux, sensibilité CCN) | 45 % |
-| **HYSTERESIS** | Seuils et facteurs de la rétroaction glace-albédo | 100 % |
+| **FROID** ☁️ | nuages bas : gouttes sur océan (CDNC), seuil de pluie, fraction de nuages bas — refroidissent quand ils augmentent | 50 % |
+| **CHAUD** 🌥 | fraction de nuages hauts, humidité relative de surface — réchauffent | 50 % |
+| **SUBTIL** | exposant sulfate → gouttes (signe selon l'époque) | 70 % |
 
-`ATM`, `CLOUD_SW` et `SCIENCE` sont **liés** : régler l'un force les trois à la même valeur
-(`tuning.js` v1.0.13). C'est voulu — ce sont trois vues du même flou sur l'atmosphère.
+Les jauges règlent la HAUTEUR de la courbe du modèle, pas sa forme : le défaut est un point de chaque segment
+(`DATA['🎚️'].baryByGroup`, `data/initDATA.js`).
 
 ```js
-api.run({
-    epochId: '🚂',
-    animEnabled: false,
-    tuning: { CLOUD_SW: 70, SCIENCE: 70, HYSTERESIS: 100 }
-});
-
-// Forme longue équivalente
-api.run({ epochId: '🚂', tuning: { baryByGroup: { ATM: 70, CLOUD_SW: 70, SCIENCE: 70, HYSTERESIS: 100 } } });
+api.run({ epochId: '🚂', animEnabled: false, tuning: { baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70 } } });
 ```
 
 > Le groupe **SOLVER** n'existe plus comme barycentre : les paramètres de convergence sont statiques

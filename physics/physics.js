@@ -1,22 +1,12 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.7.0
-// - v2.7.0 (2026-10-27): glace Ih dans CONST (L_f, c_p, k) ; rôle et défaut des amplitudes de zone déclarés.
-// - v2.6.0 (2026-10-25): albédo de l'océan par Fresnel (n de l'eau, Hale & Querry 1973) ; bornes de ln τ des nuages hauts des
-//   parts CALIPSO ; nuages hauts à 226,3 K mesurés (⚠️ en attendant le niveau calculé par le modèle).
-// - v2.5.0 (2026-10-15): nuages MOYENS — EARTH.NUAGES.F_MOYEN 0,23 (Stubenrauch 2024, CAMcol) et SIGMA_MOYEN (440–680 hPa).
-// - v2.4.0 (2026-10-13): écarts de zone CALCULÉS (bilan méridien de North 1981, physics/meridien.js) : facteurGlaceZones(T, EPOCH, dT),
-//   STATE.dTzones, part d'énergie englacée par zone ; EPOCH['🥶'], obliquityZoneWarmingK, EBM_B / EBM_ALBEDO_REF retirés.
-// - v2.3.1 (2026-10-13): fractions de zones calculées (1 − sin 60°…) et seules utilisées ; CH4_EDS_SCALE et T_LAVA_* retirés.
-// - v2.3.0 (2026-10-12): EARTH.NUAGES — microphysique des nuages (Ackerman & Marley 2001 pour la structure verticale et la
-//   glace, Martin et al. 1994 pour les gouttes, fraction mesurée MODIS King et al. 2013, deux-flux g = 0,85).
-//   EARTH['🪩🍰']['🪩🍰⛅'] (r_c = 0,42, réglée) retirée : la réflectance du nuage est calculée (DATA['🪩']['🪩🍰⛅']).
-//   (2026-10-13) Ackerman & Marley abandonné : nuage adiabatique limité par la pluie (14 µm), humidité moyenne de
-//   Manabe & Wetherald, rayon de glace déclaré ; H2O_SURFACE_RH_01 = mesure ; EARTH.DIFFUSIVITE (1,66, Elsasser) ;
-//   EARTH.fractionGelee : glace saisonnière pondérée par l'ensoleillement pour l'albédo.
-// Date: [October 10, 2026]
-// Copyright 2025 DNAvatar.org - Arnaud Maignan
+// Version 2.19.1
+// - v2.19.1 (2026-10-30): commentaires de la glace saisonnière : terre de chaque latitude, forêt sous la neige.
+// - v2.19.0 (2026-10-30): neige des terres masquée par la forêt sous la neige (ALBEDO.foretSousNeige), la même à toutes les latitudes ;
+//   la terre de chaque latitude pèse par sa part de terre (SAISONS.cycles).
+// Date: [October 30, 2026]
+// Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
 // ¬Ā (/nʌl nʌl eɪ/) (/nɔ̃ a ma.kʁɔ̃/) : ¬¬Aristotelicisme via UTF8.
@@ -37,17 +27,20 @@ CONST.PLANCK_H = 6.62607015e-34;      // [J·s] Planck, J·s (CODATA 2018)
 CONST.SPEED_OF_LIGHT = 2.998e8;       // [m/s] c, m/s
 CONST.BOLTZMANN_KB = 1.380649e-23;    // [J/K] Boltzmann, J/K (CODATA 2018)
 CONST.STEFAN_BOLTZMANN = 5.670374419e-8; // [W/(m²·K⁴)] Stefan-Boltzmann, W/(m²·K⁴)
-CONST.SOLAR_CONSTANT = 1361;              // [W/m²] TSI W/m² (Kopp & Lean 2011, TSIS-1). 🔒 = L☉/(4π×AU²) = 3.828e26/(4π×1.496e11²)
+// Soleil ACTUEL : sa luminosité (valeur nominale de l'UAI) est la seule donnée ; la constante solaire (flux à 1 UA) en découle,
+// après CONV (CONST.SOLAR_CONSTANT, plus bas), et la luminosité de l'époque aussi (Gough 1981, convergence/compute.js).
+CONST.L_SOLEIL_W = 3.828e26;          // [W] IAU 2015, résolution B3 (L☉ nominale)
 CONST.MAX_PLANCK_SAFE = 1e30;         // [W/(m²·sr·m)] Cap Planck (W/(m²·sr·m)) pour workers / transfert radiatif
 
 // ========== 2. PHYSIQUE DURE (propriétés intrinsèques) ==========
-CONST.R_GAS = 8.314;  // [J/(mol·K)] Gaz parfaits, J/(mol·K)
+CONST.R_GAS = 8.314462618;  // [J/(mol·K)] constante des gaz parfaits, N_A k_B, exacte dans le SI de 2019 (CODATA 2018)
 CONST.M_N2 = 0.02801;   // [kg/mol] N₂ kg/mol
 CONST.M_O2 = 0.03200;   // [kg/mol] O₂ kg/mol
 CONST.M_CO2 = 0.04401;  // [kg/mol] CO₂ kg/mol
 CONST.M_CH4 = 0.01604;  // [kg/mol] CH₄ kg/mol
 CONST.M_H2O = 0.01802;  // [kg/mol] H₂O kg/mol
 CONST.RHO_WATER = 1000;  // [kg/m³] Densité eau kg/m³
+CONST.RHO_EAU_MER = 1025;  // [kg/m³] eau de mer de surface (S = 35 g/kg, ~20 °C ; TEOS-10, IOC et al. 2010)
 // ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
 // C-C est une équation DIFFÉRENTIELLE : de/dT = L·e/(R_v·T²). L'intégrer donne ln e = −L/(R_v T) + C,
 // et cette constante d'intégration doit être fixée par UN point de la courbe de coexistence.
@@ -67,9 +60,18 @@ CONST.CP_AIR = 1005;  // [J/(kg·K)] Capacité calorifique air sec J/(kg·K)
 CONST.L_FUSION_GLACE = 3.3355e5;  // [J/kg] chaleur latente de fusion de la glace à 0 °C (CRC Handbook of Chemistry and Physics)
 CONST.CP_GLACE = 2096.78;  // [J/(kg·K)] chaleur massique de la glace Ih au point triple (IAPWS R10-06, Feistel & Wagner 2006)
 CONST.K_GLACE = 2.24;  // [W/(m·K)] conductivité thermique de la glace Ih au point de fusion (Carnahan et al. 2021, ajustement des mesures)
+// Masse volumique de la glace Ih, 916,7 kg/m³ à 0 °C et 1 atm (IAPWS R10-06, Feistel & Wagner 2006) → 917 : lue aussi par les
+// cristaux des nuages (radiative/calculations.js) et la masse des calottes (physics/calottes.js, h2o/calculations_h2o.js).
+CONST.RHO_GLACE = 917;  // [kg/m³]
+// Deux années, deux grandeurs : l'année TROPIQUE règle le cycle des saisons (calendrier de l'orbite, ω des boîtes terre et mer,
+// P − E et fonte par an, temps de rebond du socle) ; l'année JULIENNE compte les âges (convention de l'UAI : intérieur).
+CONST.AN_TROPIQUE_JOURS = 365.2422;  // [jour] année tropique moyenne (365,24219 j, Laskar 1986)
+CONST.AN_JULIEN_JOURS = 365.25;      // [jour] année julienne
 CONST.T_BOIL = 373.15;  // [K] Ébullition eau 1 atm (K)
 CONST.T0_WATER = 273.15;  // [K] K — 0 °C, DÉFINITION de l'échelle Celsius. ⚠️ Ce n'est PAS le point
 // triple (273,16 K, cf. CONST.T_TRIPLE_WATER) : l'ancien commentaire le disait à tort.
+// C'est aussi le point de fusion de la glace sous 1 atm (point de glace, l'ancienne définition du 0 °C) : la neige tient au sol
+// en dessous — seuil de la glace saisonnière des terres (EARTH.glaceSaisonniere ; la mer gèle plus bas, EARTH.T_FREEZE_SEAWATER_K).
 // CONST.T_LAVA_START (1000 K) / T_LAVA_COMPLETE (2373 K), sans source, retirées le 2026-10-13 : la surface en fusion suit
 // le solidus / liquidus mesurés de la péridotite (INTERIEUR.CONST.T_SOLIDUS / T_LIQUIDUS, Katz 2003).
 CONST.LAMBDA_CO2_CENTER = 15.0e-6;   // [m] CO₂ 15 μm
@@ -99,6 +101,12 @@ CONV.AU_M = 1.496e11;  // [m]
 CONV.STANDARD_ATMOSPHERE_PA = 101325;  // [Pa]
 CONV.molar_mass_air_ref = 0.029;  // [kg/mol]
 CONV.SECONDS_PER_DAY = 86400;  // [s]
+// Constante solaire : flux du Soleil actuel à 1 UA, L☉ / (4π UA²) = 1 361,1 W/m² (TSI mesurée 1 360,8 ± 0,5, Kopp & Lean 2011).
+CONST.SOLAR_CONSTANT = CONST.L_SOLEIL_W / (4 * Math.PI * CONV.AU_M * CONV.AU_M);  // [W/m²]
+// État de référence de la paramétrisation de la diffusion de Rayleigh (Lacis & Hansen 1974, éq. 41 : atmosphère standard),
+// lu par radiative/solaire.js ; ce n'est pas la masse molaire de repli CONV.molar_mass_air_ref.
+CONV.RAYLEIGH_G_REF = 9.80665;      // [m/s²] pesanteur normale (CGPM 1901)
+CONV.RAYLEIGH_M_AIR_REF = 0.02897;  // [kg/mol] air sec de l'atmosphère standard
 CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;  // [s]
 CONV.P_ANN_SCALE_MM_AN = 200000;  // [mm/an]
 // CONV.O2_REF_MASS (1e18 kg) et CONV.CH4_REF_MASS (1e13 kg) SUPPRIMÉES le 2026-09-22 :
@@ -126,282 +134,177 @@ CONV.CCN_SULFATE_REF_KG = 1.05e9;  // [kg (de SO₄)]
 // ========== EARTH (terrestre : seuils climat, cycle eau, albédos par défaut ; overridable par époque) ==========
 // var pour permettre plot.js / main.js de faire var EARTH = window.EARTH sans erreur
 var EARTH = window.EARTH = {};
-// 🏷️ LEGACY — T_NO_POLAR_ICE_K = 293K était calibré comme seuil de T_GLOBALE (plus utilisé dans la formule 3-zones ;
-// conservé pour rétro-compat outils externes / logs). La formule glace utilise désormais T_FREEZE_SEAWATER + dT.
-EARTH.T_NO_POLAR_ICE_RANGE_K = 20;                             // [K] largeur de rampe ice_temp_factor (utilisée)
-/** Plafond absolu ice_temp_factor. Depuis v2.0.15 = 1.0 (formule 3 zones normalisée par construction).
- *  Ancien 0.46 (≤ v2.0.14) : artefact Terre-moderne qui empêchait Snowball en capant la glace à 46%.
- *  Nouvelle formule (pol+mid+trop, Σf_z = 1.0) rend ce plafond physique et sûr à 1.0. */
-EARTH.ICE_FORMULA_MAX_FRACTION = 1.0;  // [m²/m² (fraction de surface englacée)]
-EARTH.T_ICE_TRANSITION_RANGE_K = 20;  // [K]
 
 // ─── Zones de latitude (EBM 0D à 3 zones, Budyko-Sellers) ──────────────────────
-// Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où T_zone = T̄ − dT_z < T_freeze.
-// 3 zones pondérées par leur surface (géométrie sphérique, somme exacte = 1) ; dT_z (> 0 : plus froid que la moyenne)
-// CALCULÉS par le bilan méridien (bloc suivant), pas posés.
-// Seuil local glace → seuil global : T_thresh_z_high = T_FREEZE_SEAWATER_K + dT_z + amp_z_eff.
+// Hypothèse physique : T moyenne globale ≠ T locale par latitude. La glace se forme là où la terre ou la mer d'une bande passe sous
+// le gel pendant une partie de l'année (EARTH.glaceSaisonniere, cycle des boîtes de physics/saisons.js). 3 zones pondérées par leur
+// surface (géométrie sphérique, somme exacte = 1) ; dT_z (> 0 : plus froid que la moyenne) CALCULÉS par le bilan méridien (bloc
+// suivant), pas posés.
 // ─── ÉCARTS DE TEMPÉRATURE DES ZONES : CALCULÉS (2026-10-13), plus posés par époque ─────────────────────────────────
 // Avant : EPOCH['🥶'] = { dT_pol, dT_mid, dT_trop } posés à la main pour chaque époque (moderne +20 / +5 / −5, qui ne sont
 // même pas de moyenne nulle et sous-estiment les tropiques de 5,5 K), et une correction d'obliquité ΔS̄(1 − 0,30)/2,0.
 // Maintenant : bilan d'énergie méridien diffusif de North, Cahalan & Coakley 1981 (Rev. Geophys. 19:91, éq. 22), solution à
 // deux modes T(x) = T̄ + T₂ P₂(x), x = sin(latitude) — physics/meridien.js. L'obliquité y entre par l'insolation exacte.
-// window.STATE.dTzones = { pol, mid, trop } (dT = T̄ − T_zone) : posé par MERIDIEN.resoudre à chaque calcul d'albédo.
-// État initial (avant le premier calcul d'albédo) : le gradient MESURÉ de North 1981 (T₂ = −28,0 °C, hémisphère nord) ramené
-// aux trois zones, ⟨P₂⟩ = −0,375 / 0,2165 / 0,8078 → dT = −10,5 / +6,1 / +22,6 K. C'est une condition initiale, pas un réglage.
-// Fractions surface par zone, géométrie sphérique (sin φ₂ − sin φ₁ sur 2 hémisphères) :
-//   Pol (60°–90°)  = 1 − sin 60°  = 0.134
-//   Mid (30°–60°)  = sin 60° − sin 30° = 0.366
-//   Trop (0°–30°)  = sin 30° − sin 0°  = 0.500
-//   Σ = 1.000  (cap physique correct, remplace l'artefact ICE_FORMULA_MAX_FRACTION=0.46)
-// Calculées (géométrie), pas recopiées : depuis le 2026-10-13 ce sont les SEULES fractions de zones du modèle
-// (CONFIG_COMPUTE.polarZoneFraction / midlatZoneFraction, 0,13 / 0,37 arrondis, retirés).
-EARTH.POLAR_ZONE_FRAC    = 1 - Math.sin(Math.PI / 3);                      // [m²/m² (surface de la zone / surface du globe)] 60°–90°, 0,134
-EARTH.MIDLAT_ZONE_FRAC   = Math.sin(Math.PI / 3) - Math.sin(Math.PI / 6);  // [m²/m² (surface de la zone / surface du globe)] 30°–60°, 0,366
-EARTH.TROPICAL_ZONE_FRAC = Math.sin(Math.PI / 6);                          // [m²/m² (surface de la zone / surface du globe)] 0°–30°, 0,500
-
-// ─── Amplitude saisonnière des ZONES ────────────────
-// Demi-amplitude été-hiver de la zone, ⚠️ POSÉE (ERA5 et Peixoto & Oort 1992 ch. 7 cités, valeurs non relevées), × sin ε.
-// Elle sert à la glace SAISONNIÈRE de zone — largeur des rampes de facteurGlaceZones (seuils de gel, bascules en boule de
-// neige), glace pondérée par l'ensoleillement (fractionGelee) — et au cycle annuel des terres des calottes (physics/meridien.js).
-// Le cycle CALCULÉ (physics/saisons.js, mode saisonnier de North et al. 1981) existe et tient les terres mesurées à ±15 % aux
-// pôles et aux moyennes latitudes (❔ relevé UDel sans script), mais on ne sait pas encore le recevoir (⚠️) :
-//   · glace de mer : la mer d'une zone n'a que 1 à 2 K d'amplitude calculée, et une rampe de ZONE aussi étroite devient une
-//     marche (70 % de la zone tropicale gèle en 1,9 K) ; la largeur posée tient lieu de l'étalement en latitude de la zone —
-//     il faut une glace de mer par latitude ;
-//   · calottes : le pôle du bilan méridien est trop chaud (T₂ ≈ −21,5 contre −28 observé) et les hautes terres de N_mid naissent
-//     au bout polaire de leur bande ; avec le cycle calculé, le 1er clic 🐾 bascule en boule de neige.
-EARTH.SEASONAL_AMP_POL_K  = 15;  // [K] pôle : amplitude annuelle 2× (été + 15 K, hiver − 15 K) autour de la moyenne
-EARTH.SEASONAL_AMP_MID_K  = 25;  // [K] mi-lat continentale : amplitude plus large (effet continentalité)
-// Tropical : faible saisonnalité (3 K pic-à-demi), dominée par océan chaud inertiel.
-//   Réf. ERA5 1991-2020, Peixoto & Oort 1992 ch.7 : ΔT mensuel tropical ≈ ±3 K.
-//   Seuil haut T_trop_thresh_high = 271,15 + dT_trop + 3 K, dT_trop du bilan méridien (−10,5 K à l'état initial → 263,65 K).
-//   Rampe étroite (largeur 6 K) → pente forte → bifurcation Budyko-Sellers classique.
-EARTH.SEASONAL_AMP_TROP_K = 3;   // [K] tropical : amplitude annuelle faible (océan thermique)
-// Mi-latitudes OCÉANIQUES (2026-10-13) : SEASONAL_AMP_MID_K (25 K) est continental ; la surface de la mer des moyennes
-// latitudes varie de quelques K seulement sur l'année et ne gèle pas. La zone 30–60° est pondérée par la part de
-// continent de l'époque (1 − 🍰🗻🌊 ; 0,30 sur 📱, ≈ 0,28 mesurés dans les bandes 30–60° N+S).
-// ⚠️ FOURCHETTE de mémoire : demi-amplitude annuelle de la température de surface de la mer aux moyennes latitudes
-// ~3–5 K (Peixoto & Oort 1992 ch. 7, à vérifier) → 4.
-EARTH.SEASONAL_AMP_MID_OCEAN_K = 4;  // [K]
-
-// ─── Couplage obliquité ε (activé) ─────────────────────────────────────────────
-// ε = obliquité axiale (clé epoch '⚾'). Terre 2025 : ε_REF = 23.44°.
-// Loi : amp_z_eff = SEASONAL_AMP_z_K × sin(ε) / sin(ε_REF)   (ε→0 → pas de saison → amp_eff=0)
-// Source : insolation annuelle latitude-dépendante f(ε) — Berger 1978, Laskar et al. 2004.
-// Hypothèse Archéen : Williams 1993 suggère ε ~ 45–70° (expliquerait glaciations basse-latitude
-// du Protérozoïque sans invoquer un Snowball global).
-EARTH.OBLIQUITY_DEG_REF = 23.44;     // [°] référence où SEASONAL_AMP_*_K sont posées
+// T₂ = DATA['🧮']['🌡️🎱'], posé par MERIDIEN.resoudre à chaque calcul d'albédo ; écarts { pol, mid, trop } (dT = T̄ − T_zone)
+// lus par MERIDIEN.ecarts(). Au clic frise, MERIDIEN.depuisConfig remet T₂ au gradient MESURÉ de North 1981 (−28,0 °C,
+// hémisphère nord), ⟨P₂⟩ = −0,375 / 0,2165 / 0,8080 (MERIDIEN.P2_MOYEN) → dT = −10,5 / +6,1 / +22,6 K : une condition initiale,
+// pas un réglage.
+// LES ZONES, une seule définition (deux hémisphères) : bornes en x = sin(latitude), part de la surface du globe f = x₁ − x₀
+// (géométrie sphérique, Σ f = 1) — tropiques 0–30° (0,500), moyennes latitudes 30–60° (0,366), pôles 60–90° (0,134). Lues par
+// le bilan méridien (physics/meridien.js), les bandes des calottes et des boîtes saisonnières (physics/calottes.js, une par
+// hémisphère), la glace saisonnière et toute moyenne sur le globe.
+EARTH.ZONES = [
+    { cle: 'trop', x0: 0, x1: Math.sin(Math.PI / 6) },
+    { cle: 'mid', x0: Math.sin(Math.PI / 6), x1: Math.sin(Math.PI / 3) },
+    { cle: 'pol', x0: Math.sin(Math.PI / 3), x1: 1 }
+];
+EARTH.ZONES.forEach(function (z) { z.f = z.x1 - z.x0; });   // [m²/m² (surface de la zone / surface du globe)]
+/** Moyenne sur le globe d'une grandeur de zone { pol, mid, trop } : Σ_z f_z v_z. */
+EARTH.moyenneGlobe = function (v) {
+    var s = 0;
+    for (var i = 0; i < EARTH.ZONES.length; i++) s += EARTH.ZONES[i].f * v[EARTH.ZONES[i].cle];
+    return s;
+};
 
 // ─── Insolation par latitude (Berger 1978, géométrie orbitale) ─────────────────────────────────────────────────────
-// La redistribution méridienne de l'insolation par ε (Milankovitch) entre désormais dans le bilan méridien
-// (physics/meridien.js) par l'insolation annuelle EXACTE de chaque latitude. EARTH.EBM_B_W_PER_M2_K (2,0), EBM_ALBEDO_REF
-// (0,30) et obliquityZoneWarmingK (écart ΔS̄(1 − α)/B appliqué aux 🥶 posés) sont retirés le 2026-10-13.
-// v-2026-09-23 : renommée depuis SOLAR_CONSTANT_REF_W — c'est un flux (W/m²), pas une puissance.
-EARTH.SOLAR_CONSTANT_REF_W_PER_M2 = 1361;  // [W/m²]
-
-/** Insolation journalière moyenne (W/m²) à la latitude lat pour une déclinaison dec (degrés). */
-function dailyMeanInsolation(lat_deg, dec_deg) {
-    var toRad = Math.PI / 180;
-    var phi = lat_deg * toRad, dec = dec_deg * toRad;
-    var x = -Math.tan(phi) * Math.tan(dec);
-    var H = x >= 1 ? 0 : (x <= -1 ? Math.PI : Math.acos(x));
-    return EARTH.SOLAR_CONSTANT_REF_W_PER_M2 / Math.PI
-        * (H * Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.sin(H));
-}
-
-EARTH.dailyMeanInsolation = dailyMeanInsolation;   // [W/m²] insolation journalière moyenne (fonction de la latitude et de la déclinaison)
-
-/** Insolation annuelle moyenne (W/m²) d'une bande de latitude [l0,l1]°, pondérée par la surface. */
-function zoneAnnualMeanInsolation(l0_deg, l1_deg, obliquity_deg) {
-    var toRad = Math.PI / 180;
-    var nLat = 20, nDay = 73; // pas 5 jours : moyenne annuelle stable à < 0,05 W/m²
-    var num = 0, den = 0;
-    for (var i = 0; i < nLat; i++) {
-        var lat = l0_deg + (l1_deg - l0_deg) * (i + 0.5) / nLat;
-        var w = Math.cos(lat * toRad);
-        var sum = 0;
-        for (var d = 0; d < nDay; d++) {
-            var lam = 2 * Math.PI * d / nDay;
-            var dec = Math.asin(Math.sin(obliquity_deg * toRad) * Math.sin(lam)) / toRad;
-            sum += dailyMeanInsolation(lat, dec);
-        }
-        num += (sum / nDay) * w;
-        den += w;
-    }
-    return num / den;
-}
-
-var _zoneInsolationCache = {};
-/** { pol, mid, trop } : insolation annuelle moyenne par zone (W/m²), mise en cache par ε. */
-EARTH.zoneAnnualInsolation = function (obliquity_deg) {
-    var key = Number(obliquity_deg).toFixed(4);
-    if (!_zoneInsolationCache[key]) {
-        _zoneInsolationCache[key] = {
-            trop: zoneAnnualMeanInsolation(0, 30, obliquity_deg),   // f = 0.500
-            mid:  zoneAnnualMeanInsolation(30, 60, obliquity_deg),  // f = 0.366
-            pol:  zoneAnnualMeanInsolation(60, 90, obliquity_deg)   // f = 0.134
-        };
-    }
-    return _zoneInsolationCache[key];
+// La redistribution méridienne de l'insolation par ε (Milankovitch) entre dans le bilan méridien (physics/meridien.js) par
+// l'insolation annuelle EXACTE de chaque latitude. Insolation journalière : la seule formule, celle d'astronomie.js
+// (insolationJournaliere), sur l'orbite circulaire de l'obliquité courante (EARTH.orbiteCirculaire) pour le bilan méridien.
+/** Orbite circulaire d'obliquité eps_deg [°], au format d'astronomie.js (obliquité en radians, e = 0). */
+EARTH.orbiteCirculaire = function (eps_deg) {
+    return { obliquite: eps_deg * Math.PI / 180, excentricite: 0, varpi: 0 };
 };
 
-// ─── GLACE SAISONNIÈRE ET ENSOLEILLEMENT (2026-10-13) ─────────────────────────────────────────────────────────────
-// La rampe de computeIceTempFactor donne la fraction de l'ANNÉE où une zone est sous le gel (T_zone ± amplitude
-// saisonnière). Mais la glace saisonnière est là en hiver, quand le soleil est bas ou absent (nuit polaire) : son effet
-// sur l'albédo est la fraction de l'ÉNERGIE solaire annuelle qui tombe sur elle, pas la fraction du temps. Calcul exact :
-// insolation journalière (dailyMeanInsolation, géométrie orbitale) × [T(jour) < T_gel], T(jour) = T_zone + amp·sin(λ − δ),
-// δ = retard des saisons thermiques sur le soleil. ⚠️ MESURE APPROCHÉE : maximum de température ~1 mois après le
-// solstice sur les continents, ~2 mois sur l'océan → 1 mois retenu (borne basse). Lu aussi par les calottes (cycle annuel des
-// terres, physics/meridien.js) ; le retard calculé (physics/saisons.js) donne 21–38 j sur les terres, 79–93 j sur la mer.
-EARTH.RETARD_SAISONS_JOURS = 30;  // [jour]
-var _tableInsolation = {};
-/** Insolation journalière S[lat][jour] d'une bande [l0,l1]° (hémisphère nord), en cache par ε. */
-function tableInsolation(l0_deg, l1_deg, obliquity_deg) {
-    var key = l0_deg + ':' + l1_deg + ':' + Number(obliquity_deg).toFixed(4);
-    if (_tableInsolation[key]) return _tableInsolation[key];
-    var toRad = Math.PI / 180;
-    var nLat = 10, nDay = 73;
-    var t = { poids: [], S: [] };
-    for (var i = 0; i < nLat; i++) {
-        var lat = l0_deg + (l1_deg - l0_deg) * (i + 0.5) / nLat;
-        t.poids.push(Math.cos(lat * toRad));
-        var ligne = [];
-        for (var d = 0; d < nDay; d++) {
-            var lam = 2 * Math.PI * d / nDay;
-            ligne.push(dailyMeanInsolation(lat, Math.asin(Math.sin(obliquity_deg * toRad) * Math.sin(lam)) / toRad));
-        }
-        t.S.push(ligne);
-    }
-    _tableInsolation[key] = t;
-    return t;
-}
-/** { temps, energie } : fractions de l'année et de l'énergie solaire annuelle d'une bande sous le gel. */
-EARTH.fractionGelee = function (T_zone_K, amp_K, l0_deg, l1_deg, obliquity_deg) {
-    var t = tableInsolation(l0_deg, l1_deg, obliquity_deg);
-    var retard = 2 * Math.PI * EARTH.RETARD_SAISONS_JOURS / window.ORBITE.JOURS_AN;
-    var nDay = t.S[0].length;
-    var tps = 0, nrj = 0, nrjTot = 0, n = 0;
-    for (var i = 0; i < t.S.length; i++) {
-        for (var d = 0; d < nDay; d++) {
-            var gel = (T_zone_K + amp_K * Math.sin(2 * Math.PI * d / nDay - retard)) < EARTH.T_FREEZE_SEAWATER_K ? 1 : 0;
-            tps += t.poids[i] * gel;
-            n += t.poids[i];
-            nrj += t.poids[i] * t.S[i][d] * gel;
-            nrjTot += t.poids[i] * t.S[i][d];
-        }
-    }
-    return { temps: tps / n, energie: nrj / nrjTot };
-};
-
+// ─── GLACE SAISONNIÈRE ─────────────────────────────────────────────────────────────────────────────────────────────────
+// Celle de chaque latitude de chaque bande (CALOTTES.BANDES, points de SAISONS.points), à la température d'un point
+// (SAISONS.temperaturePoint : sa boîte + T₂ (P₂(x) − ⟨P₂⟩_zone) ; sur la terre, la terre de sa latitude, couplée à la mer de la bande
+// par sa part de terre ; sur la mer, la mer de la bande) et au cycle calculé de sa boîte, annuel et semi-annuel (physics/saisons.js :
+// bilan d'énergie de North, Cahalan & Coakley 1981 forcé par l'insolation de la date). La terre garde
+// la neige tant que T est sous la fusion de la glace (CONST.T0_WATER) ; la mer gèle sous EARTH.T_FREEZE_SEAWATER_K — la glace de Stefan
+// de saisons.js, dalle qui change l'impédance de la mer, la seule part gelée de la mer : son aire, son albédo et sa masse
+// (H2O.masseGlaceMer). Arc gelé de chaque point sur les nœuds de l'année du bilan des calottes (SAISONS.arc).
+// La glace pèse par l'ÉNERGIE solaire qui tombe sur elle (insolation de chaque nœud à la latitude du point, à la date), pas par la part
+// du temps. Son ALBÉDO suit la saison nœud par nœud, comme celui d'une calotte (physics/calottes.js, bilanPoint) : neige sèche hors
+// fonte (ALBEDO.albedoGlaceSeche) ; pendant la fonte — probabilité de fonte du nœud par la loi des calottes (CALOTTES.fonteJour :
+// loi normale des températures journalières de Seguinot & Rogozhina 2014 ; une neige sèche fond le jour où son bilan, sous son
+// albédo, atteint la fusion), à l'air du nœud : sur la terre, l'air de la terre de sa latitude au point ; sur la mer, la
+// surface de la dalle de glace seule (Tglace de SAISONS.cycles : la couche de mélange de la mer libre voisine n'amortit pas la surface
+// d'une banquise) avec son palier de fusion, au plus 0 °C (❔ 🔧 forme choisie en regardant le co-albédo polaire) — neige mouillée 🪩🍰🧊
+// sur la part de la saison de fonte que couvre la neige de l'année (P − E de Siler, Roe & Armour 2018 les jours de gel, contre la
+// fonte possible : Reeh 1991), puis ce qu'elle découvre : glace nue à mares de fonte 🪩🍰🏊 (Perovich et al. 2002, JGR 107:8044,
+// SHEBA) sur la mer — jusqu'à ce que la fonte possible d'une glace nue ait fondu sa masse de Stefan, ρ_i h : la mer est alors libre
+// pour le reste de la saison —, le sol 🪩🍰🌍 sur la terre. Sur la terre, la forêt sous la neige (ALBEDO.foretSousNeige, la même à
+// toutes les latitudes) masque la neige toute la saison : forêt enneigée 🪩🍰🌳❄️ ; la forêt de chaque latitude (ALBEDO.poserForet :
+// part préagricole sous la ligne des arbres de sa saison de croissance, à son arc de l'année) est posée ici, pour la terre libre.
+// Sans phase liquide possible (hors d'un monde à océan, H2O.mondeOcean : eau au-dessus
+// de son point critique, ou pas d'atmosphère, sous le point triple), la glace ne fond pas, elle se sublime : neige sèche toute l'année.
+// ⚠️ Déclaré : neige des terres dès que la surface est sous la fusion, sans bilan de chute et de fonte pour sa présence (la fonte
+// n'en règle que l'albédo) ; ⚠️ vent et rugosité du bilan de fonte : ceux du Groenland ouest (calottes) ; ⚠️ 🔧 forêt sous la neige
+// la même à toutes les latitudes, forme sans source (ALBEDO.foretSousNeige).
 /**
- * EARTH.computeIceTempFactor(T_glob_K, EPOCH) : ice_temp_factor ∈ [0,1].
- * FONCTION UNIQUE — appelée par calculations_albedo.js, calculations_flux.js, calculations_h2o.js.
- *
- * MODÈLE PHYSIQUE (EBM 0D 3 zones × saisonnalité × obliquité) :
- *   En zone z ∈ {pol, mid, trop}, la T_locale annuelle vaut T_glob − dT_z, dT_z du bilan méridien (ici l'état initial,
- *   gradient mesuré de North 1981) :
- *     - Polaire (60°–90°, f=0.134) : dT_pol = +22,6 K (plus froid)
- *     - Mi-lat  (30°–60°, f=0.366) : dT_mid =  +6,1 K (plus froid)
- *     - Tropical (0°–30°, f=0.500) : dT_trop = −10,5 K (plus chaud, NÉGATIF)
- *
- *   Amplitude saisonnière effective : amp_z_eff = SEASONAL_AMP_z_K × sin(ε) / sin(ε_REF).
- *   La glace se forme dès T_locale_hiver < T_FREEZE_SEAWATER (T_locale − amp_eff < T_FREEZE).
- *   La glace devient permanente dès T_locale_été < T_FREEZE (T_locale + amp_eff < T_FREEZE).
- *
- *   ⇒ Seuil HAUT zone z (glace commence) : T_glob = T_FREEZE + dT_z + amp_z_eff
- *   ⇒ Seuil BAS  zone z (glace permanente) : T_glob = T_FREEZE + dT_z − amp_z_eff
- *   ⇒ Rampe linéaire largeur = 2·amp_z_eff (ε↑ → rampe plus large ; ε→0 → step function).
- *
- *   ice_tf = f_pol·tf_pol + f_mid·tf_mid + f_trop·tf_trop    (somme pondérée directe, Σf_z=1.0)
- *
- *   Physique Snowball Earth (Budyko-Sellers classique) : quand T_glob passe sous T_FREEZE + dT_trop + amp_trop, la rampe
- *   tropicale s'active, et la rétroaction glace-albédo peut dépasser le gain de 1 → bifurcation.
- *
- * EPOCH : l'entrée TIMELINE courante (⚾ facultatif). dT = { pol, mid, trop } (dT = T̄ − T_zone) : CALCULÉ par le bilan
- * méridien (physics/meridien.js) ; computeIceTempFactor lit le dernier résolu (window.STATE.dTzones), facteurGlaceZones le
- * reçoit (itérations du bilan méridien). Plus d'EPOCH['🥶'] posé par époque (2026-10-13).
- *
- * @returns {{ice_tf, tf_pol, tf_mid, tf_trop,
- *            T_thresh_pol_high, T_thresh_pol_low, T_thresh_mid_high, T_thresh_mid_low,
- *            T_thresh_trop_high, T_thresh_trop_low,
- *            dT_pol, dT_mid, dT_trop, amp_pol, amp_mid, amp_trop,
- *            f_pol, f_mid, f_trop, obliquity_deg, obliquity_factor, dT_obliquity}}
+ * Glace SAISONNIÈRE des bandes, aux boîtes saisons = SAISONS.cycles (et leurs arcs gelés) et à l'absorption absorbe du bilan
+ * méridien (part de l'insolation absorbée au sol par une neige qui fond, et nuages ; physics/meridien.js) — grandeurs de travail de
+ * son itération. La seule du modèle, lue par le bilan méridien (co-albédos de bande), par l'albédo planétaire
+ * (albedo/calculations_albedo.js) et par la masse de glace de mer (h2o/calculations_h2o.js). Écrit dans DATA['🪩'], par bande et
+ * pour ses terres et sa mer ({ N_pol: { terre, mer }, S_pol, … } ; les lecteurs les pondèrent par la terre et la mer libres de la
+ * bande, MERIDIEN.surfacesBandes) :
+ *   🍰📅🧊 = part de l'ANNÉE sous la glace — terre : moyenne des points de la bande pondérée par leur part de terre ; mer : g de
+ *            saisons.js (moyenne des points) ;
+ *   🍰☀️🧊 = part de l'ÉNERGIE solaire annuelle de la bande qui tombe sur la glace, Σ_points w Σ_nœuds S f / Σ w S (w : part de
+ *            terre de la latitude sur la terre, 1 sur la mer), moins la fin de
+ *            saison de fonte où la glace de mer a fondu (mer libre) ;
+ *   🍰☀️🪩🧊 = part de cette énergie que la glace RÉFLÉCHIT, Σ_points w Σ_nœuds S f α / Σ w S, mêmes poids (albédo moyen de la
+ *            glace : 🍰☀️🪩🧊 / 🍰☀️🧊).
+ * Équilibre du cycle courant, sans inertie d'un calcul à l'autre : seules les calottes ont une mémoire. Sans eau (⚖️💧 = 0, corps
+ * noir avant ses météorites), pas de glace.
  */
-EARTH.facteurGlaceZones = function (T_glob_K, EPOCH, dT) {
-    var cc = window.CONFIG_COMPUTE;
-    var f_pol = EARTH.POLAR_ZONE_FRAC;
-    var f_mid = EARTH.MIDLAT_ZONE_FRAC;
-    var f_trop = EARTH.TROPICAL_ZONE_FRAC;
-    var dT_pol  = dT.pol;
-    var dT_mid  = dT.mid;
-    var dT_trop = dT.trop;
-    var obliquity_deg = EARTH.obliquiteCourante(EPOCH);
-    // Facteur sin(ε)/sin(ε_REF), borné à 0.
-    var toRad = Math.PI / 180;
-    var sinRef = Math.sin(EARTH.OBLIQUITY_DEG_REF * toRad);
-    var obliquity_factor = Math.max(0, Math.sin(obliquity_deg * toRad) / sinRef);
-    // Amplitudes saisonnières effectives, dérivées de l'obliquité.
-    var amp_pol  = EARTH.SEASONAL_AMP_POL_K  * obliquity_factor;
-    var amp_mid  = EARTH.SEASONAL_AMP_MID_K  * obliquity_factor;
-    var amp_trop = EARTH.SEASONAL_AMP_TROP_K * obliquity_factor;
-    // Seuils haut (glace commence saisonnalement) et bas (glace permanente) pour les 3 zones.
-    var T_thresh_pol_high  = EARTH.T_FREEZE_SEAWATER_K + dT_pol  + amp_pol;
-    var T_thresh_pol_low   = EARTH.T_FREEZE_SEAWATER_K + dT_pol  - amp_pol;
-    var T_thresh_mid_high  = EARTH.T_FREEZE_SEAWATER_K + dT_mid  + amp_mid;
-    var T_thresh_mid_low   = EARTH.T_FREEZE_SEAWATER_K + dT_mid  - amp_mid;
-    var T_thresh_trop_high = EARTH.T_FREEZE_SEAWATER_K + dT_trop + amp_trop;
-    var T_thresh_trop_low  = EARTH.T_FREEZE_SEAWATER_K + dT_trop - amp_trop;
-    // Rampe linéaire sur 2·amp_z_eff (largeur physique, dérivée de sin(ε)).
-    var widthPol  = Math.max(1e-6, 2 * amp_pol);
-    var widthMid  = Math.max(1e-6, 2 * amp_mid);
-    var widthTrop = Math.max(1e-6, 2 * amp_trop);
-    var tf_pol  = Math.max(0, Math.min(1, (T_thresh_pol_high  - T_glob_K) / widthPol));
-    // Mi-latitudes : part continentale (amplitude amp_mid) + part océanique (amplitude SEASONAL_AMP_MID_OCEAN_K).
-    var fContinent = 1 - EPOCH['🗻']['🍰🗻🌊'];
-    var amp_mid_oc = EARTH.SEASONAL_AMP_MID_OCEAN_K * obliquity_factor;
-    var tf_mid_oc = Math.max(0, Math.min(1, (EARTH.T_FREEZE_SEAWATER_K + dT_mid + amp_mid_oc - T_glob_K) / Math.max(1e-6, 2 * amp_mid_oc)));
-    var tf_mid  = fContinent * Math.max(0, Math.min(1, (T_thresh_mid_high  - T_glob_K) / widthMid)) + (1 - fContinent) * tf_mid_oc;
-    var tf_trop = Math.max(0, Math.min(1, (T_thresh_trop_high - T_glob_K) / widthTrop));
-    // Somme pondérée directe : les 3 zones sommant à 1.0 par construction (géométrie sphérique),
-    // ice_tf ∈ [0,1] est directement la fraction de surface glacée — plus besoin de normalisation.
-    var ice_tf = f_pol * tf_pol + f_mid * tf_mid + f_trop * tf_trop;
-    // Pondération par l'ensoleillement (EARTH.fractionGelee) : rapport énergie/temps de la glace, sur les 3 zones.
-    // Ne sert qu'à l'ALBÉDO (calculations_albedo) ; l'étendue et la masse de glace restent ice_tf.
-    var gPol = EARTH.fractionGelee(T_glob_K - dT_pol, amp_pol, 60, 90, obliquity_deg);
-    var gMidC = EARTH.fractionGelee(T_glob_K - dT_mid, amp_mid, 30, 60, obliquity_deg);
-    var gMidO = EARTH.fractionGelee(T_glob_K - dT_mid, amp_mid_oc, 30, 60, obliquity_deg);
-    var gMid = { temps: fContinent * gMidC.temps + (1 - fContinent) * gMidO.temps,
-                 energie: fContinent * gMidC.energie + (1 - fContinent) * gMidO.energie };
-    var gTrop = EARTH.fractionGelee(T_glob_K - dT_trop, amp_trop, 0, 30, obliquity_deg);
-    var gTemps = f_pol * gPol.temps + f_mid * gMid.temps + f_trop * gTrop.temps;
-    var gEnergie = f_pol * gPol.energie + f_mid * gMid.energie + f_trop * gTrop.energie;
-    return {
-        ice_tf: ice_tf,
-        // sans glace (gTemps = 0) le rapport est sans objet : 1
-        rapport_ensoleillement: gTemps > 0 ? gEnergie / gTemps : 1,
-        // Part de l'énergie solaire annuelle de CHAQUE zone qui tombe sur de la glace (co-albédo par zone, bilan méridien).
-        e_pol: gPol.energie, e_mid: gMid.energie, e_trop: gTrop.energie,
-        tf_pol: tf_pol, tf_mid: tf_mid, tf_trop: tf_trop,
-        T_thresh_pol_high:  T_thresh_pol_high,  T_thresh_pol_low:  T_thresh_pol_low,
-        T_thresh_mid_high:  T_thresh_mid_high,  T_thresh_mid_low:  T_thresh_mid_low,
-        T_thresh_trop_high: T_thresh_trop_high, T_thresh_trop_low: T_thresh_trop_low,
-        // compat rétro-facing (ancien champ exposé par calculations_albedo.js) :
-        T_thresh_pol: T_thresh_pol_high, T_thresh_mid: T_thresh_mid_high,
-        dT_pol: dT_pol, dT_mid: dT_mid, dT_trop: dT_trop,
-        amp_pol: amp_pol, amp_mid: amp_mid, amp_trop: amp_trop,
-        f_pol: f_pol, f_mid: f_mid, f_trop: f_trop,
-        obliquity_deg: obliquity_deg, obliquity_factor: obliquity_factor
-    };
-};
-/** Facteur de glace avec les écarts de zone du DERNIER bilan méridien résolu (window.STATE.dTzones). */
-EARTH.computeIceTempFactor = function (T_glob_K, EPOCH) {
-    return EARTH.facteurGlaceZones(T_glob_K, EPOCH, window.STATE.dTzones);
-};
-/** [°] Obliquité courante : 📜⚾ — l'orbite à la date (La2004, −51 Ma → aujourd'hui, physics/orbite.js) —, sinon celle de
- *  l'époque (avant −51 Ma), sinon la config. */
-EARTH.obliquiteCourante = function (EPOCH) {
-    if (window.DATA['📜']['⚾'] > 0) return window.DATA['📜']['⚾'];
-    return ('⚾' in EPOCH) ? EPOCH['⚾'] : window.CONFIG_COMPUTE.obliquityDeg;
+EARTH.glaceSaisonniere = function (saisons, absorbe) {
+    var DATA = window.DATA, BANDES = window.CALOTTES.BANDES, SURFACES = ['terre', 'mer'], temps = {}, energie = {}, reflet = {};
+    var i, j, k, b, s, pt;
+    if (DATA['⚖️']['⚖️💧'] === 0) {
+        for (i = 0; i < BANDES.length; i++) {
+            temps[BANDES[i].cle] = { terre: 0, mer: 0 };
+            energie[BANDES[i].cle] = { terre: 0, mer: 0 };
+            reflet[BANDES[i].cle] = { terre: 0, mer: 0 };
+        }
+        DATA['🪩']['🍰📅🧊'] = temps;
+        DATA['🪩']['🍰☀️🧊'] = energie;
+        DATA['🪩']['🍰☀️🪩🧊'] = reflet;
+        return;
+    }
+    for (i = 0; i < BANDES.length; i++) {
+        b = BANDES[i];
+        var tTerre = 0, pTerre = 0, arcsT = saisons[b.cle].terre.arcs;
+        for (j = 0; j < arcsT.length; j++) { tTerre += arcsT[j].poids * arcsT[j].t; pTerre += arcsT[j].poids; }
+        tTerre /= pTerre;
+        temps[b.cle] = { terre: tTerre, mer: saisons[b.cle].glace };
+    }
+    DATA['🪩']['🍰📅🧊'] = temps;   // l'étendue de la glace qu'elle donne (MERIDIEN.etendueGlace) règle la glace sèche des tropiques
+    var S = window.SAISONS, CK = window.CALOTTES.K, M = DATA['🪩🍰'], T0 = CONST.T0_WATER, n = CK.NOEUDS;
+    var o = S.date(window.INTERIEUR.ageCourant()), sol = S.soleil(), insolation = {};
+    var h = CONST.AN_TROPIQUE_JOURS / n;   // [jour]
+    // Fonte possible : dans un monde à océan seulement (phase liquide), au bilan d'énergie d'une neige qui fond au niveau de la mer.
+    var liquide = window.H2O.mondeOcean(), c, seb;
+    if (liquide) {
+        c = window.CALOTTES.contexte(saisons, absorbe);
+        seb = c.seb(DATA['🫧']['🎈'] * window.CONV.STANDARD_ATMOSPHERE_PA);
+    }
+    for (i = 0; i < BANDES.length; i++) {
+        b = BANDES[i];
+        var aSec = window.ALBEDO.albedoGlaceSeche(b.zone), ab = absorbe[b.zone];
+        // Forêt de chaque latitude de la bande (ALBEDO.poserForet → 🗻.🍰🗻🌳) ; part masquée par la canopée (forêt enneigée 🪩🍰🌳❄️) :
+        // la forêt sous la neige sur la terre, rien sur la mer.
+        window.ALBEDO.poserForet(b, saisons[b.cle].terre.arcs);
+        var fN = window.ALBEDO.foretSousNeige();
+        var foret = { terre: saisons[b.cle].terre.arcs.map(function () { return fN; }), mer: saisons[b.cle].mer.arcs.map(function () { return 0; }) };
+        energie[b.cle] = {};
+        reflet[b.cle] = {};
+        for (s = 0; s < SURFACES.length; s++) {
+            var aSous = SURFACES[s] === 'mer' ? M['🪩🍰🏊'] : M['🪩🍰🌍'], arcs = saisons[b.cle][SURFACES[s]].arcs;
+            var E = 0, R = 0, tot = 0;
+            for (j = 0; j < arcs.length; j++) {
+                pt = arcs[j];
+                var pw = SURFACES[s] === 'mer' ? 1 : pt.poids;   // poids de la latitude : sa part de terre (la mer, à poids égaux)
+                var fF = foret[SURFACES[s]][j], aSecS = (1 - fF) * aSec + fF * M['🪩🍰🌳❄️'];
+                if (!(pt.lat in insolation)) insolation[pt.lat] = S.noeuds(o, pt.lat, n).map(function (v) { return sol * v; });   // [W/m²]
+                var Sn = insolation[pt.lat], sT = 0, sF = 0, sFP = 0, mN = 0, mG = 0, gel = 0;
+                for (k = 0; k < n; k++) {
+                    sT += Sn[k];
+                    sF += Sn[k] * pt.f[k];
+                    if (liquide) {
+                        // Nœud k, la loi de fonte des calottes (CALOTTES.fonteJour) sur l'air du nœud (°C) : sur la terre, l'air de la
+                        // terre de sa latitude au point ; sur la banquise, la surface de la dalle (Tglace) avec son palier de fusion — une glace
+                        // qui fond reste à 0 °C, l'excès d'énergie la fond (Maykut & Untersteiner 1971), et l'air d'été au-dessus
+                        // d'elle est à ~0 °C (❔ air de la dalle froide = sa surface, sans inversion).
+                        var r = window.CALOTTES.fonteJour(SURFACES[s] === 'mer' ? Math.min(pt.Tglace[k] - T0, 0) : pt.T[k] - T0, Sn[k], ab, seb);
+                        sFP += Sn[k] * pt.f[k] * r.p;
+                        mN += pt.f[k] * h * r.neige;           // [kg m⁻²] fonte possible d'une neige
+                        mG += pt.f[k] * h * r.glace;           // [kg m⁻²] … d'une glace nue
+                        gel += pt.f[k] * r.gel / n;            // part de l'année gelée et sous 0 °C
+                    }
+                }
+                tot += pw * sT;   // même ordre de sommation que E : sous une glace de toute l'année, E = tot exactement
+                E += pw * sF;
+                if (liquide) {
+                    // Neige de l'année les jours de gel (P − E de Siler à la latitude du point), fondue d'abord ; puis la surface
+                    // découverte (Reeh 1991) : part p de la saison de fonte sous la neige. Sur la mer, la glace nue fond ensuite :
+                    // sa masse, ρ_i h de Stefan (SAISONS.epaisseurStefan, degrés-jours de gel de l'arc), tient la part
+                    // ρ_i h / m_G de la saison (m_G : fonte possible d'une glace nue) ; sur la part w qui reste, la glace a fondu et
+                    // la mer est libre (son albédo vient du bilan méridien, hors de la glace). Sans énergie de fonte, rien ne fond.
+                    var neige = Math.max(0, c.PmoinsE(pt.x)) * gel, p = neige === 0 ? 0 : Math.min(1, neige / mN);
+                    var w = SURFACES[s] === 'mer' && mG > 0 ? Math.max(0, 1 - p - CONST.RHO_GLACE * S.epaisseurStefan(pt.fdd) / mG) : 0;
+                    R += pw * (aSecS * sF - (1 - fF) * (aSec - (p * M['🪩🍰🧊'] + (1 - p - w) * aSous)) * sFP);
+                    E -= pw * w * sFP;
+                } else {
+                    R += pw * aSecS * sF;
+                }
+            }
+            energie[b.cle][SURFACES[s]] = E / tot;
+            reflet[b.cle][SURFACES[s]] = R / tot;
+        }
+    }
+    DATA['🪩']['🍰☀️🧊'] = energie;
+    DATA['🪩']['🍰☀️🪩🧊'] = reflet;
 };
 EARTH.EVAPORATION_E0 = 0.001;  // [kg/(m²·s)]
 EARTH.EVAPORATION_T_REF = 288;  // [K]
@@ -515,8 +418,15 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // loi tirée des observations, standard des modèles radiatifs-convectifs 1D : r̄ = RH_s · (p/p_s − 0,02) / (1 − 0,02),
     // RH_s = humidité de surface du modèle (H2O_SURFACE_RH_01). ⚠️ MESURE (forme), pas une équation de la physique.
     MW_P_RESIDU: 0.02,         // [-]
-    RHO_LIQUIDE: 1000,         // [kg/m³]
-    RHO_GLACE: 917,            // [kg/m³]
+    // La loi est celle d'une atmosphère dont la tropopause est à σ_t,réf ; quand la troposphère s'épaissit (tropopause à
+    // température fixée, plus haut), le profil se déplace avec elle : radiative/calculations.js la lit à
+    // σ* = 1 − (1 − σ)·(1 − σ_t,réf)/(1 − σ_t), σ_t tropopause du profil (humidité relative presque invariante à pression
+    // fixée dans la basse troposphère, champs de la haute troposphère décalés vers le haut avec la tropopause : Sherwood et al.
+    // 2010, JGR 115:D09104 ; Singh & O'Gorman 2012, J. Clim. 25:8259). Tenue à σ fixé, la loi ferait tendre l'humidité
+    // relative vers zéro aux niveaux d'émission de la vapeur d'un climat chaud. σ_t,réf : tropopause de l'atmosphère standard US 1976
+    // (11 km, 226,32 hPa sur 1 013,25).
+    MW_SIGMA_TROPOPAUSE: 22632.1 / CONV.STANDARD_ATMOSPHERE_PA,   // [-]
+    // Masses volumiques de l'eau liquide et de la glace des gouttes et des cristaux : CONST.RHO_WATER et CONST.RHO_GLACE.
     // ─── Gouttes liquides : rayon effectif de Martin, Johnson & Spice (1994, J. Atmos. Sci. 51:1823), mesures avion
     //     en stratocumulus : r_eff³ = 3·LWC / (4π ρ_w k N). k = (r_volumique / r_eff)³ dépend de la masse d'air :
     K_MARTIN_OCEAN: 0.80,      // [-] masse d'air maritime (Martin et al. 1994)
@@ -535,9 +445,9 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // ─── Glace : pas de loi physique simple de la taille des cristaux (habitus, agrégation). ⚠️ FOURCHETTE de mémoire
     //     des rayons effectifs MODIS de la glace, ~20–40 µm (King et al. 2013 fig. 13–14, à relever) → 30 µm.
     R_EFF_GLACE: 30e-6,        // [m]
-    // ─── Phase : partition linéaire liquide/glace entre −40 °C et 0 °C (Hu & Stamnes 1993, J. Climate 6:728).
+    // ─── Phase : partition linéaire liquide/glace entre −40 °C et 0 °C (Hu & Stamnes 1993, J. Climate 6:728) ; tout liquide à
+    //     0 °C, CONST.T0_WATER.
     T_TOUT_GLACE: 233.15,      // [K]
-    T_TOUT_LIQUIDE: 273.15,    // [K]
     // ─── Diffusion solaire : facteur d'asymétrie des gouttes dans le visible (Hansen & Travis 1974, Space Sci. Rev.
     //     16:527 ; Lacis & Hansen 1974, J. Atmos. Sci. 31:118). Réflectance deux-flux d'un nuage conservatif :
     //     R = √3(1−g)τ / (2 + √3(1−g)τ) = 0,13 τ / (1 + 0,13 τ) pour g = 0,85.
@@ -569,9 +479,6 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     SIGMA_MOYEN: 560 / 1013.25 // [-] p/p_s du niveau des nuages moyens (milieu de 440–680 hPa)
     // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².
 };
-// Capacité calorifique massique de l'air humide (J/(kg·K)). Utilisé pour le gradient adiabatique Γ = g/Cp dans computeH2OScaleHeight().
-// Valeur ±5 % stable entre atmosphère N₂+O₂ moderne, CO₂ dense (Hadéen) et N₂+CO₂ précoce. Cp_CO2 ≈ 840, Cp_H2O gas ≈ 1864, Cp_N2 ≈ 1040.
-EARTH.CP_AIR_MOIST_J_KG_K = 1005;  // [J/(kg·K)]
 // Albédo d'une mer PLANE : réflexion de Fresnel de la lumière non polarisée à l'interface air–eau d'indice n,
 //   R(μ) = ½ (r_s² + r_p²), r_s = (μ − n μ_t)/(μ + n μ_t), r_p = (n μ − μ_t)/(n μ + μ_t), μ_t = √(1 − (1 − μ²)/n²),
 // moyennée sur le disque éclairé, ∫₀¹ R(μ) 2μ dμ (la même intégrale qu'en lumière diffuse isotrope) : 0,066 pour n = 1,333.
@@ -598,14 +505,14 @@ EARTH['🪩🍰'] = {
     // Warren (1982) Rev. Geophys. 20:67. Plage pristine snow 0.80–0.90 ; 0.85 = médiane broadband.
     '🪩🍰❄️': 0.85,
     // 🏊 = bare ice + melt ponds (segment haut Briegleb, T ≥ 0 °C) — Perovich (2002) SHEBA ; Briegleb et al. NCAR/TN-463 §5.
-    '🪩🍰🏊': 0.50
+    '🪩🍰🏊': 0.50,
+    // 🌳❄️ = forêt enneigée : la canopée masque la neige du sol. ⚠️ FOURCHETTE MESURÉE, milieu : canopée boréale enneigée ~0,2–0,3
+    // (Robock 1980, Mon. Weather Rev. 108:267 ; Betts & Ball 1997, JGR 102:28901 ; Qu & Hall 2007, J. Climate 20:3971) → 0,25.
+    '🪩🍰🌳❄️': 0.25
 };
 
-// ========== STATE (état solver partagé : glace figée, etc.) ==========
+// ========== STATE (état solver partagé) ==========
 var STATE = window.STATE = {};
-// Écarts de température des zones (dT = T̄ − T_zone, K), posés par MERIDIEN.resoudre (physics/meridien.js) à chaque calcul
-// d'albédo. Condition INITIALE : le gradient mesuré de North et al. 1981 (T₂ = −28,0 °C) ramené aux trois zones.
-STATE.dTzones = { pol: 28.0 * 0.8078, mid: 28.0 * 0.2165, trop: -28.0 * 0.375 };
 
 // ========== PHYS (fonctions de physique exposées) ==========
 var PHYS = window.PHYS = {};
@@ -673,6 +580,17 @@ function pSatLiquide(T) {
 }
 PHYS.pSatLiquide = pSatLiquide;
 
+/** [1/K] d(ln p_sat)/dT sur l'EAU LIQUIDE, dérivée analytique de pSatLiquide : Murphy & Koop 2005 éq. 10 sous le point triple,
+ *  IAPWS au-dessus (dLnPSatEau). Une seule phase de part et d'autre du point triple : pas de saut de pente au gel. */
+function dLnPSatLiquide(T) {
+    if (T >= CONST.T_TRIPLE_WATER) return dLnPSatEau(T);
+    const a = 0.0415 * (T - 218.8), th = Math.tanh(a);
+    return 6763.22 / (T * T) - 4.210 / T + 0.000367
+        + 0.0415 * (1 - th * th) * (53.878 - 1331.22 / T - 9.44523 * Math.log(T) + 0.014025 * T)
+        + th * (1331.22 / (T * T) - 9.44523 / T + 0.014025);
+}
+PHYS.dLnPSatLiquide = dLnPSatLiquide;
+
 
 /** [1/K] d(ln p_sat)/dT, dérivée analytique des deux mêmes formules (T < T_c). */
 function dLnPSatEau(T) {
@@ -717,11 +635,10 @@ function eauSansLiquide() {
     if (!(m['⚖️💧'] > 0)) return false;                 // pas d'eau : aucune phase à trancher
     const T = DATA['🧮']['🧮🌡️'];
     if (T >= EAU.T_C) return true;
-    const EP = DATA['📅'];
     const aire = 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
     const nEau = m['⚖️💧'] / CONST.M_H2O;
     const nSec = m['⚖️🏭'] / CONST.M_CO2 + m['⚖️🐄'] / CONST.M_CH4 + m['⚖️🫁'] / CONST.M_O2 + m['⚖️💨'] / CONST.M_N2;
-    const pToutVapeur = (m['⚖️💧'] + m['⚖️🫧']) * EP['🍎'] / aire;          // [Pa] pression totale, toute l'eau en l'air
+    const pToutVapeur = (m['⚖️💧'] + m['⚖️🫧']) * DATA['📅']['🍎'] / aire;   // [Pa] pression totale, toute l'eau en l'air
     return pSatEau(T) >= pToutVapeur * nEau / (nEau + nSec);
 }
 PHYS.eauSansLiquide = eauSansLiquide;
@@ -733,12 +650,10 @@ PHYS.eauSansLiquide = eauSansLiquide;
 //   avec L de Bolton (1980) valide ~200–400 K. Ici, valide jusqu'au point critique (647 K) : l'ancienne borne
 //   « T < 600 K, au-delà non modélisé » tombe. Au-delà, il n'y a plus de vapeur saturée — c'est le régime
 //   eauSansLiquide(), qui a son propre profil (radiative/calculations.js, profilVapeurSeule).
-// - Γ = g / Cp humide (EARTH.CP_AIR_MOIST_J_KG_K). Terre moderne (288 K) : H_vap ≈ 2,4 km (Manabe & Wetherald 1967).
+// - Γ = gradient de la parcelle de surface, loi adiabatique du profil (RADIATIVE.gradientSurface : sèche, c_p du mélange de JANAF),
+//   le même que temperatureAtZ. Terre moderne (288 K) : Γ ≈ 9,7 K/km, H_vap ≈ 1,6 km. Diagnostic (calculateRadiativeCapacities).
 function computeH2OScaleHeight() {
-    const T = window.DATA['🧮']['🧮🌡️'];
-    const g = window.TIMELINE[window.DATA['📜']['👉']]['🍎'];
-    const Gamma = g / EARTH.CP_AIR_MOIST_J_KG_K;          // K/m
-    return 1 / (Gamma * dLnPSatEau(T));                   // m
+    return 1 / (window.RADIATIVE.gradientSurface() * dLnPSatEau(window.DATA['🧮']['🧮🌡️']));   // m
 }
 
 PHYS.computeH2OScaleHeight = computeH2OScaleHeight;
