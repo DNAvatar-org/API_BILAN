@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.10.7
+// Version 1.10.8
+// - v1.10.8 (2026-10-31): frontière F1 remesurée : 1a et ⛄ à 4 250 ppm de CO₂.
 // - v1.10.7 (2026-10-31): CO₂ de 🪸 à 79,4 mbar (🔧 : moyenne géométrique de Kanzaki & Murakami 2015).
 // - v1.10.6 (2026-10-31): 🧫 par clic : 🦕 et 🦤 lisent celle de 💀 (lendemains de crise), 🦕 à 151,9 Ma celle de 📱 (état 🔁) ;
 //   fourchettes ch4 du banc de 🍄 💀 🦕 🐊 à la règle de l'encadré « CH₄ DES ÉPOQUES ».
@@ -191,7 +192,10 @@ const N_PAS_CAROTTES = Math.ceil((CAROTTES_AGE - (window.AN_PRESENT - BASE_HOLOC
 //   s = 0,51182 → 1 267,7 ppm / 30,47 ppm : frise ☃ −73,6 °C (snowball)
 // La chaîne seule tenait jusqu'à 1 130,6 ppm, mais la branche chaude n'y est plus qu'une tangente : le clic frise (premier pas
 // plus grand) passait dessous. Remesurer après tout changement de physique.
-const STURTIEN_CO2_KG = 7.762073e15;   // [kg] 1 267,9 ppm d'air sec
+// 2026-10-31 (calottes à trois boîtes, terre libre continentale, σ(T, P), FROID 62, 🪸 à 79,4 mbar), chaîne 🪸 → 1a → (🗻) ⛄ → 💫,
+//   CO₂ seul, CH₄ inchangé : 4 200 ppm → 1a −67,3 °C (s'effondre) · 4 250 ppm → 1a 10,7 °C, ⛄ −70,3 °C, reste gelé (−67,2) au 💫.
+//   ⚠️ Au-dessus de la fourchette du Sturtien [500 ; 2 000] ppm du banc : c'est le seuil du modèle, pas un choix.
+const STURTIEN_CO2_KG = 2.601846e+16;   // [kg] 4 250 ppm d'air sec (avant 7.762073e15, 1 267,9 ppm)
 const STURTIEN_CH4_KG = 6.800241e13;   // [kg] 30,48 ppm d'air sec
 const CALOTTES_SANS = { S_pol: 0, N_pol: 0, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
 const CALOTTES_ACTUELLES = { S_pol: 0.35984, N_pol: 0.050239, S_mid: 0, N_mid: 0, S_trop: 0, N_trop: 0 };
