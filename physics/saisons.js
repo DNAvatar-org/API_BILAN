@@ -54,17 +54,17 @@
 //       l'eau, h2o/calculations_h2o.js).
 //       Contrôle (pas une entrée) : premier harmonique des terres mesuré (University of Delaware 1981–2010 ; ❔ valeurs sans script
 //       de relevé, version des données non relevée).
-//       Approximations DÉCLARÉES : ❔ l'air de la terre libre traverse tout le continent de la bande (calotte + terre libre) avant
-//       la mer : une terre libre reste continentale quand une calotte couvre une partie de son continent (la Sibérie au DMG) ; une
-//       frange côtière autour d'une calotte centrale (l'Antarctique) serait plus maritime — la table n'a pas la longitude qui
-//       trancherait (distance à la mer de la terre libre, calculable sur la grille PaleoDEM complète) ; trois boîtes par bande, la terre de chaque latitude couplée à leur mer (⚠️ ν réduit à une traversée :
+//       Approximations DÉCLARÉES : ⚠️ l'air de la terre libre traverse le continent (calotte comprise) sur la distance de la terre
+//       libre à la côte que donne la carte (PALEOGEO.r_libre : le long de la latitude, la calotte sur la terre la plus froide
+//       d'abord) ; trois boîtes par bande, la terre de chaque latitude couplée à leur mer (⚠️ ν réduit à une traversée :
 //       de la bande, à son milieu, et de chaque latitude pour sa terre ; ⚠️ part de terre des tranches de 5° que recouvre la cellule
 //       du point, uniforme en x dans chaque tranche, sans longitude : un continent et un archipel de même part ont le même été) ; ⚠️ n = 2 pour le mode
 //       semi-annuel ; co-albédo de chaque boîte constant sur l'année ; écart de la bande à sa zone tronqué au mode P₁ ; glace de mer
 //       pondérée par sa part de l'année g, au cycle de la fin du clic ; ⚠️ une seule dalle de glace par bande, à l'épaisseur
 //       moyenne de ses latitudes gelées ; ⚠️ mesures posées faute d'équation : couche de mélange, vitesse de l'air et part de la
 //       colonne d'air qu'elle advecte, effusivité du sol. Calendrier de Kepler et insolation d'une orbite : ceux de physics/orbite.js.
-// Version 2.8.0
+// Version 2.9.0
+// - v2.9.0 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre), au lieu du ❔ continental.
 // - v2.8.0 (2026-10-31): terre libre ↔ mer à la traversée du continent (calotte + terre libre), ❔ sans longitude.
 // - v2.7.0 (2026-10-31): trois boîtes par bande, calotte, terre libre et mer libre ; la calotte échange avec l'air qui la traverse.
 // - v2.6.1 (2026-10-31): terre d'un point = celle des tranches que recouvre sa cellule en x, au prorata de l'aire (Σ f Δx = terre).
@@ -288,10 +288,11 @@
      * Une boîte sans aire n'a pas d'équation : la terre libre prend l'air de la mer et inversement, la calotte celui de l'air hors
      * calotte. Élimination de Gauss sur les boîtes présentes (trois au plus). Renvoie { calotte, terre, mer } [complexes].
      */
-    function systeme(Z, ZM, F, p, kap, nu) {
-        // Terre libre ↔ mer : l'air traverse le CONTINENT, calotte comprise (p_C + p_L), pas la seule terre libre : une terre libre
-        // reste continentale quand une calotte couvre une partie de son continent ; la mer reçoit le même flux, ν p_L/((p_C + p_L) p_M).
-        const E = p.C + p.L, nL = p.L > 0 ? nu / E : 0, nM = p.L > 0 && p.M > 0 ? nu * p.L / (E * p.M) : 0;
+    function systeme(Z, ZM, F, p, kap, nu, rL) {
+        // Terre libre ↔ mer : l'air traverse le continent (calotte comprise, p_C + p_L : la glace ne déplace pas la côte) sur la
+        // distance de la terre libre à la côte, rL fois celle de la terre sans calotte (PALEOGEO.r_libre) ; la mer reçoit le même
+        // flux, ν p_L/(E p_M).
+        const E = (p.C + p.L) * rL, nL = p.L > 0 ? nu / E : 0, nM = p.L > 0 && p.M > 0 ? nu * p.L / (E * p.M) : 0;
         const pA = p.L + p.M, kp = p.C === 0 || pA === 0 ? 0 : kap * p.C / pA;
         const inc = ['C', 'L', 'M'].filter((k) => p[k] > 0 && (k !== 'M' || ZM !== null));
         const ligne = {
@@ -319,6 +320,17 @@
         if (p.C === 0) x.C = [(p.L * x.L[0] + p.M * x.M[0]) / pA, (p.L * x.L[1] + p.M * x.M[1]) / pA];
         if (pA === 0) { x.L = x.C; x.M = x.C; }
         return { calotte: x.C, terre: x.L, mer: x.M };
+    }
+
+    /** Distance de la terre libre à la côte, rapportée à celle de la terre sans calotte, quand une calotte couvre la part f de la
+     *  terre de la bande : PALEOGEO.r_libre aux parts PALEOGEO.fractions_libre, linéaire entre deux ; au-delà de la dernière part
+     *  (0,95), sa valeur. */
+    function distanceLibre(r, f) {
+        const F = window.PALEOGEO.fractions_libre;
+        let k = 0;
+        while (k < F.length - 2 && F[k + 1] < f) k++;
+        const t = Math.min(1, (f - F[k]) / (F[k + 1] - F[k]));
+        return r[k] + t * (r[k + 1] - r[k]);
     }
 
     /** Cycle d'une surface : { a1 [K], d1 [rad] (retard sur le soleil), r2, i2 [K] (Re et Im de T̂₂) } ; T(θ) = T + a1 sin(θ − d1)
@@ -379,7 +391,8 @@
             const Tbande = D['🧮']['🧮🌡️'] - dT[b.zone] + T1 * b.h * xm;
             const thC = p.C === 0 || pA === 0 ? 0 : (aC - aB[b.cle]) * sol * Fb.S0 / (NCC.B + kap / pA);
             const thA = pA === 0 ? 0 : -p.C * thC / pA;
-            const u = p.L === 0 || p.M === 0 ? 0 : (aT - aM) * sol * Fb.S0 / (NCC.B + kp + nu / (p.C + p.L) + nu * p.L / ((p.C + p.L) * p.M));
+            const rL = p.L > 0 ? distanceLibre(P[b.cle].rLibre, p.C / (p.C + p.L)) : 1;   // sans terre libre : sans objet
+            const u = p.L === 0 || p.M === 0 ? 0 : (aT - aM) * sol * Fb.S0 / (NCC.B + kp + nu / ((p.C + p.L) * rL) + nu * p.L / ((p.C + p.L) * rL * p.M));
             const Tcal = Tbande + thC, Tterre = pA === 0 ? Tbande : Tbande + thA + p.M / pA * u, Tmer = pA === 0 ? Tbande : Tbande + thA - p.L / pA * u;
             const pts = points(b), Tf = window.EARTH.T_FREEZE_SEAWATER_K, TmerP = pts.map((q) => temperaturePoint(Tmer, b, q.x));
             // Un harmonique n : impédances de la calotte et de la terre libre (⚠️ la même) et de la mer, système des trois boîtes ;
@@ -399,7 +412,7 @@
                 // Glace sans épaisseur (aucune latitude gelée) : dalle infiniment conductrice, la mer reste à son point de gel
                 // (impédance infinie, ZM null) ; la calotte et la terre échangent avec une mer à température fixe.
                 const ZM = g > 0 && h === 0 ? null : (g > 0 ? glace() : libre);
-                return systeme(ZT, ZM, { C: [aC * sol, 0], L: [aT * sol, 0], M: [aM * sol, 0] }, p, kap, nu);
+                return systeme(ZT, ZM, { C: [aC * sol, 0], L: [aT * sol, 0], M: [aM * sol, 0] }, p, kap, nu, rL);
             };
             // Glace de mer, latitude par latitude (points de la bande, temperaturePoint de la mer). À g donné, l'épaisseur h est le point
             // fixe de G : h → cycle de la mer (annuel et semi-annuel) → arc gelé de chaque latitude → épaisseur de Stefan de chacune,

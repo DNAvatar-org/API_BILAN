@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.10.8
+// Version 1.10.9
+// - v1.10.9 (2026-11-01): 🐾 : premier pas jusqu'à 805 ka aux masses de la racine, puis 5 ka jusqu'à 800 ka.
 // - v1.10.8 (2026-10-31): frontière F1 remesurée : 1a et ⛄ à 4 250 ppm de CO₂.
 // - v1.10.7 (2026-10-31): CO₂ de 🪸 à 79,4 mbar (🔧 : moyenne géométrique de Kanzaki & Murakami 2015).
 // - v1.10.6 (2026-10-31): 🧫 par clic : 🦕 et 🦤 lisent celle de 💀 (lendemains de crise), 🦕 à 151,9 Ma celle de 📱 (état 🔁) ;
@@ -183,6 +184,10 @@ const CHEMIN_QUATERNAIRE = (cle, pas) => pas.concat([DUREE_QUATERNAIRE_MA - pas.
 const CAROTTES_AGE = 8e5;   // [an avant AN_PRESENT]
 const PAS_CAROTTES_AN = 5000;   // [an]
 const N_PAS_CAROTTES = Math.ceil((CAROTTES_AGE - (window.AN_PRESENT - BASE_HOLOCENE_AN)) / PAS_CAROTTES_AN) - 1;   // pas entiers dans 🦣
+// Masses de la racine de 🦣 (2,58 Ma), lues par sa ligne et par le premier état 🔁 du chemin 🐾 : avant les carottes (800 ka), aucune
+// mesure continue du CO₂ ; le premier pas de 🐾 garde celles de la racine jusqu'à 805 ka (❔), puis un pas de 5 ka entre dans 800 ka.
+const QUATERNAIRE_CO2_KG = 2.1742e15;   // [kg] CO₂ ≈ 282 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024), Gélasien / Plaisancien
+const QUATERNAIRE_CH4_KG = 1.9550e12;   // [kg] CH₄ ≈ 0,695 ppm : préindustriel moderne de Beerling et al. 2011 (encadré « CH₄ DES ÉPOQUES »)
 // Sturtien : ☃ (hysteresis 1a, ◀ = 717 Ma) et ⛄ (▶ = 717 Ma) sont la MÊME planète au même instant — même CO₂, même CH₄,
 // deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14, CO₂ et CH₄ descendus ENSEMBLE dans leurs fourchettes
 // (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas, critère « frise = clic » : ☃ chaud au CLIC
@@ -1261,8 +1266,8 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ état actuel posé : pas de reconstruction d'aire à 2,58 Ma trouvée (Antarctique depuis 34 Ma, Groenland depuis ≥ 2,7 Ma)
         //'🗻': { '🍰🗻🌊': 0.66, '🍰🗻🏔': 0.19, '🍰🗻🌍': 0.15 },
         // Racine (2,58 Ma, avant la première carotte) : le CO₂ de PhanDA, comme la courbe cyan à cette date.
-        '⚖️🏭': 2.1742e+15, // CO₂ ≈ 282 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Gélasien et Plaisancien (comme la courbe cyan)
-        '⚖️🐄': 1.9550e+12, // CH₄ ≈ 0,695 ppm d'air sec : préindustriel moderne de Beerling et al. 2011 (encadré « CH₄ DES ÉPOQUES »)
+        '⚖️🏭': QUATERNAIRE_CO2_KG,   // CO₂ ≈ 282 ppm (QUATERNAIRE_CO2_KG)
+        '⚖️🐄': QUATERNAIRE_CH4_KG,   // CH₄ ≈ 0,695 ppm (QUATERNAIRE_CH4_KG)
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1272,9 +1277,10 @@ const timeline = [
         '🕰': {
             // DEUX CHEMINS (🕰.🛤), au choix du premier clic, du même départ (frise de 🦣, 2,58 Ma) à la même arrivée (11,7 ka, passage
             // à 🛖) :
-            //   🐾 pas à pas — un pas de 2,58 Ma à 800 ka (avant les carottes de glace, aucune mesure continue du CO₂), puis des pas de
-            //      5 ka le long des carottes antarctiques (obliquité et précession échantillonnées au-dessus de Nyquist) jusqu'à 15 ka,
-            //      puis l'entrée dans l'Holocène : 159 clics. La courbe orange peut suivre les cycles de la courbe cyan (Snyder 2016) ;
+            //   🐾 pas à pas — un pas de 2,58 Ma à 805 ka au CO₂ et au CH₄ de la racine (avant les carottes de glace, aucune mesure
+            //      continue ; un état d'arrivée ne vaut que pour son pas : la glace ne s'équilibre pas 1,8 Ma sur le seul maximum glaciaire
+            //      de 800 ka), un pas de 5 ka jusqu'à 800 ka, puis des pas de 5 ka le long des carottes antarctiques (obliquité et
+            //      précession échantillonnées au-dessus de Nyquist) jusqu'à 15 ka, puis l'entrée dans l'Holocène : 160 clics. La courbe orange peut suivre les cycles de la courbe cyan (Snyder 2016) ;
             //   🦘 le saut — de 2,58 Ma au dernier maximum glaciaire (21 ka) en un clic, puis la déglaciation : 2 clics. L'Holocène
             //      arrive par la physique, calottes portées depuis un état glaciaire, sans la graine de 🛖.
             // Chaque chemin porte sa séquence (order) et ses états (🔁) ; 🕰.order, 🔁 et 🖼 sont des accesseurs vers le chemin joué
@@ -1288,9 +1294,10 @@ const timeline = [
             // l'orbite à la date (physics/orbite.js). AUCUN texte ici : le récit de chaque clic vit dans CO2/static/texts/epochs_alt2sec.js.
             '🛤': {
                 '🐾': {
-                    'order': CHEMIN_QUATERNAIRE('🐾', [(BASE_QUATERNAIRE_AGE - CAROTTES_AGE) / 1e6]
+                    'order': CHEMIN_QUATERNAIRE('🐾', [(BASE_QUATERNAIRE_AGE - CAROTTES_AGE - PAS_CAROTTES_AN) / 1e6, PAS_CAROTTES_AN / 1e6]
                         .concat(Array.from({ length: N_PAS_CAROTTES }, () => PAS_CAROTTES_AN / 1e6))),   // … puis 3,275 ka
                     '🔁': [
+                    { '⚖️🏭': QUATERNAIRE_CO2_KG, '⚖️🐄': QUATERNAIRE_CH4_KG },   // 805 ka : celles de la racine (aucune mesure avant 800 ka)
                     { '⚖️🏭': 1.5405e+15, '⚖️🐄': 1.1223e+12 },   // 800 ka : 199,6 ppm / 399 ppb — CO₂ interpolé (aucune mesure à ± 1 ka)
                     { '⚖️🏭': 1.5953e+15, '⚖️🐄': 1.1926e+12 },   // 795 ka : 206,7 ppm / 424 ppb
                     { '⚖️🏭': 1.8047e+15, '⚖️🐄': 1.4683e+12 },   // 790 ka : 233,8 ppm / 522 ppb

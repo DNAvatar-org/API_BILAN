@@ -137,7 +137,8 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.17.0
+// Version 1.18.0
+// - v1.18.0 (2026-11-01): geographie et parts portent rLibre, distance de la terre libre à la côte (PALEOGEO.r_libre).
 // - v1.17.0 (2026-10-31): un point de calotte lit la boîte calotte de sa bande, sa marge et un sol nu la terre libre.
 // - v1.16.1 (2026-10-31): naissance d'un dôme d'une seule cellule définie ; borne basse du continent lue dans PALEOGEO.
 // - v1.16.0 (2026-10-31): la marge gagne une cellule par son haut (socleCouvert).
@@ -226,6 +227,8 @@
                     if (aire[n] > 0) { lat[n] = (a0 * L0[n] + a1 * L1[n]) / aire[n]; socle[n] = (a0 * Z0[n] + a1 * Z1[n]) / aire[n]; }
                 }
             }
+            // Distance de la terre libre à la côte selon la part couverte (PALEOGEO.r_libre), interpolée entre les deux cartes.
+            const rLibre = avant ? G.avant.r_libre : G.r_libre[b.cle][i].map((r, k) => (1 - w) * r + w * G.r_libre[b.cle][i + 1][k]);
             const cellules = [];
             let continent = 0, emerge = 0;
             for (let n = 0; n < N; n++) {
@@ -238,7 +241,7 @@
                 throw new Error('[CALOTTES] PALEOGEO à ' + ageMa + ' Ma, ' + b.cle + ' : continent ' + continent + ', terre émergée ' + emerge + ' (≤ 1 attendu)');
             }
             out[b.cle] = { N: N, aire: aire, lat: lat, x: lat.map((l) => Math.sin(l * Math.PI / 180)), socle: socle, cellules: cellules,
-                continent: continent, emerge: emerge };
+                continent: continent, emerge: emerge, rLibre: rLibre };
         }
         return out;
     }
@@ -248,7 +251,7 @@
      *  geographie(), la seule source de la terre par bande. */
     function parts() {
         const G = geographie(), out = {};
-        for (const b of BANDES) out[b.cle] = { continent: G[b.cle].continent, emerge: G[b.cle].emerge };
+        for (const b of BANDES) out[b.cle] = { continent: G[b.cle].continent, emerge: G[b.cle].emerge, rLibre: G[b.cle].rLibre };
         return out;
     }
 

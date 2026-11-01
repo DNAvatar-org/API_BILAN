@@ -241,7 +241,7 @@
     <div class="title">Some results from a time-dependent thermodynamic model of sea ice</div>
     <div class="venue">Journal of Geophysical Research, 76(6):1550–1575 (1971)</div>
     <div class="doi"><a href="https://doi.org/10.1029/JC076i006p01550">10.1029/JC076i006p01550</a></div>
-    <div class="used-in">Surface en fusion tenue au point de fusion, l’excès d’énergie fond la glace : l’air de la loi de fonte de la banquise, la surface de la dalle, vaut au plus 0 °C (<code>physics/physics.js</code>, EARTH.glaceSaisonniere) ; sur les terres, l’air de la boîte terre, sans palier.</div>
+    <div class="used-in">Surface en fusion tenue au point de fusion, l’excès d’énergie fond la glace : l’air de la loi de fonte de la banquise, la surface de la dalle, vaut au plus 0 °C (<code>physics/physics.js</code>, EARTH.glaceSaisonniere) ; sur les terres, l’air de la terre de la latitude, sans palier.</div>
 </article>
 
 <article class="ref" id="fetterer2017" data-tags="sea-ice extent satellite observation">
@@ -2404,7 +2404,7 @@
     <div class="title">The spatial structure of the annual cycle in surface temperature: amplitude, phase, and Lagrangian history</div>
     <div class="venue">J. Climate, 26(20):7852–7862 (2013)</div>
     <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-13-00021.1">10.1175/JCLI-D-13-00021.1</a></div>
-    <div class="used-in">Bilan d’énergie terre–océan à atmosphère advectée (éq. 2–3), réduit dans le modèle à deux boîtes par bande couplées par ν = u C_air / (2π R cos φ) (❔ réduction maison), et à la terre de chaque latitude couplée à la mer de la bande à sa part de terre, f Z_n T + ν_φ (T − M_n) = f F_n ; jeu de paramètres de leur tableau 1 : u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N), couche de mélange de 75 m et atmosphère de 1 m d’eau, C_air = 0,403 de la colonne (K.PART_AIR), la même dans l’inertie et dans le couplage. Contrôles : retard moyen des saisons, 28 jours sur les terres extratropicales et 58 sur les mers. <code>physics/saisons.js</code>.</div>
+    <div class="used-in">Bilan d’énergie terre–océan à atmosphère advectée (éq. 2–3), réduit dans le modèle à trois boîtes par bande (calotte, terre libre, mer libre) : terre libre ↔ mer par ν = u C_air / (2π R cos φ) à la traversée du continent de la bande (❔ réduction maison), calotte ↔ air qui la traverse par κ = 2 u C_air / (π R_c), R_c rayon de son dôme (le même raisonnement à l’échelle du dôme) ; et à la terre de chaque latitude couplée à la mer de la bande à sa part de terre, f Z_n T + f κ′ (T − C_n) + ν_φ (T − M_n) = f a_L F_n ; jeu de paramètres de leur tableau 1 : u = 6,1 m/s (rétrotrajectoires HYSPLIT, 45–50° N), couche de mélange de 75 m et atmosphère de 1 m d’eau, C_air = 0,403 de la colonne (K.PART_AIR), la même dans l’inertie et dans le couplage. Contrôles : retard moyen des saisons, 28 jours sur les terres extratropicales et 58 sur les mers. <code>physics/saisons.js</code>.</div>
 </article>
 <article class="ref" id="willmottMatsuura2001" data-tags="observation temperature land seasonal-cycle">
     <div class="cite-key">[willmottMatsuura2001]</div>
@@ -2762,7 +2762,7 @@
     <div class="title">Partitioning of melt energy and meltwater fluxes in the ablation zone of the west Greenland ice sheet</div>
     <div class="venue">The Cryosphere, 2(2):179–189 (2008)</div>
     <div class="doi"><a href="https://doi.org/10.5194/tc-2-179-2008">10.5194/tc-2-179-2008</a></div>
-    <div class="used-in">Stations S5, S6, S9 (67° N) : vent à 10 m et rugosité de la neige du bilan d’énergie de surface (<code>physics/calottes.js</code>, K.VENT_SURFACE_M_S, K.Z0_M) ; température à 2 m en moyenne annuelle, contrôle 🎯 de J&amp;M appliquée au Groenland, de l’air libre et de la boîte terre (la forme de l’inversion hivernale ne la règle pas) ; bilan de masse des stations : 📖, regardé pour choisir la forme de l’inversion hivernale (🔧).</div>
+    <div class="used-in">Stations S5, S6, S9 (67° N) : vent à 10 m et rugosité de la neige du bilan d’énergie de surface (<code>physics/calottes.js</code>, K.VENT_SURFACE_M_S, K.Z0_M) ; température à 2 m en moyenne annuelle, contrôle 🎯 de J&amp;M appliquée au Groenland, de l’air libre et de la boîte calotte, sa marge dans la terre libre (la forme de l’inversion hivernale ne la règle pas) ; bilan de masse des stations : 📖, regardé pour choisir la forme de l’inversion hivernale (🔧).</div>
 </article>
 
 <article class="ref" id="paterson1972" data-tags="ice-sheet plasticity volume">
