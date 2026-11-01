@@ -1,11 +1,12 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.19.1
+// Version 2.19.2
+// - v2.19.2 (2026-11-01): commentaire : ω des trois boîtes de chaque bande.
 // - v2.19.1 (2026-10-30): commentaires de la glace saisonnière : terre de chaque latitude, forêt sous la neige.
 // - v2.19.0 (2026-10-30): neige des terres masquée par la forêt sous la neige (ALBEDO.foretSousNeige), la même à toutes les latitudes ;
 //   la terre de chaque latitude pèse par sa part de terre (SAISONS.cycles).
-// Date: [October 30, 2026]
+// Date: [November 1, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause. 
 // See https://commonsclause.com/ for full terms.
@@ -63,7 +64,7 @@ CONST.K_GLACE = 2.24;  // [W/(m·K)] conductivité thermique de la glace Ih au p
 // Masse volumique de la glace Ih, 916,7 kg/m³ à 0 °C et 1 atm (IAPWS R10-06, Feistel & Wagner 2006) → 917 : lue aussi par les
 // cristaux des nuages (radiative/calculations.js) et la masse des calottes (physics/calottes.js, h2o/calculations_h2o.js).
 CONST.RHO_GLACE = 917;  // [kg/m³]
-// Deux années, deux grandeurs : l'année TROPIQUE règle le cycle des saisons (calendrier de l'orbite, ω des boîtes terre et mer,
+// Deux années, deux grandeurs : l'année TROPIQUE règle le cycle des saisons (calendrier de l'orbite, ω des trois boîtes (calotte, terre libre, mer libre),
 // P − E et fonte par an, temps de rebond du socle) ; l'année JULIENNE compte les âges (convention de l'UAI : intérieur).
 CONST.AN_TROPIQUE_JOURS = 365.2422;  // [jour] année tropique moyenne (365,24219 j, Laskar 1986)
 CONST.AN_JULIEN_JOURS = 365.25;      // [jour] année julienne

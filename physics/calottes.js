@@ -43,7 +43,7 @@
 //           annuelle (zone du bilan méridien, écart de la bande et écart de la calotte) plus T₂ (P₂(x) − ⟨P₂⟩_zone) pour la latitude du
 //           point, et son cycle annuel, forcé par les harmoniques de l'insolation À LA DATE de chaque sous-pas (obliquité et
 //           précession). La MARGE, le dernier anneau du dôme, est dans l'air de la TERRE LIBRE de sa bande qui la borde (❔ sans source :
-//           la zone d'ablation au bord de la calotte reçoit l'air de la terre libre voisine ; la table n'a pas de longitude) ; un sol nu
+//           la zone d'ablation au bord de la calotte reçoit l'air de la terre libre voisine ; les cellules de la table n'ont pas de longitude) ; un sol nu
 //           aussi. ALTITUDE : une seule lecture de la colonne — au-dessus de
 //           la couche limite, l'air libre suit la loi adiabatique du profil du modèle (radiative/calculations.js, loiAdiabatique :
 //           sèche puis humide, Pierrehumbert 2010 éq. 2.33). SOUS LA CALOTTE, il part du sommet de l'inversion au niveau de la mer et
@@ -51,14 +51,14 @@
 //           enneigée de la calotte antarctique ; sans inversion au-dessus de 269,4 K) : T_s(z) = min(T_inv(z), (T_inv(z) − 88,9)/0,67)
 //           en moyenne annuelle, soit un gradient de surface Γ/0,67 sous inversion. Relation de moyenne ANNUELLE, l'inversion est
 //           celle du sol qui ne reçoit pas le soleil : l'inversion propre à l'altitude (au-delà de celle du niveau de la mer, que
-//           porte déjà la boîte terre) est répartie sur l'année au poids (S_max − S)/(S_max − S̄) de l'insolation du point, nulle au
+//           porte déjà la boîte calotte) est répartie sur l'année au poids (S_max − S)/(S_max − S̄) de l'insolation du point, nulle au
 //           maximum d'insolation : en été la surface suit l'air libre, en hiver elle s'en découple (❔ 🔧 forme sans source, choisie
 //           en regardant la chaîne 🐾 et la fonte d'été des stations du Groenland ouest ; elle ne déplace pas la moyenne annuelle,
 //           celle de J&M, dont la seule température annuelle à 2 m des stations de van den Broeke et al. 2008 est un contrôle 🎯).
 //           Un SOL SANS GLACE (le sommet d'une calotte qui n'est pas née) est hors du domaine de
 //           cette mesure : l'inversion de J&M est celle d'une neige, très émissive, isolante et réfléchissante, qui ne reçoit
 //           presque rien du sol ni du soleil ; un sol nu conduit et stocke la chaleur et absorbe le soleil d'été. Sa surface suit
-//           l'air libre, parti de la boîte terre au niveau de la mer (❔ pas d'inversion propre à l'altitude sur un sol nu).
+//           l'air libre, parti de la boîte terre libre au niveau de la mer (❔ pas d'inversion propre à l'altitude sur un sol nu).
 //           Le bord d'une calotte est la dernière cellule gagnée, la moins favorable et la plus mince, dans l'air de la terre libre :
 //           c'est là qu'elle fond, ce qui borne sa taille ;
 //         · accumulation : l'humidité qu'APPORTENT les tourbillons des latitudes moyennes, pas la vapeur locale. Transport d'énergie
@@ -137,12 +137,13 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.18.0
+// Version 1.18.1
+// - v1.18.1 (2026-11-01): commentaires : boîte calotte ou terre libre selon le point, cellules de la table sans longitude.
 // - v1.18.0 (2026-11-01): geographie et parts portent rLibre, distance de la terre libre à la côte (PALEOGEO.r_libre).
 // - v1.17.0 (2026-10-31): un point de calotte lit la boîte calotte de sa bande, sa marge et un sol nu la terre libre.
 // - v1.16.1 (2026-10-31): naissance d'un dôme d'une seule cellule définie ; borne basse du continent lue dans PALEOGEO.
 // - v1.16.0 (2026-10-31): la marge gagne une cellule par son haut (socleCouvert).
-// Date: [October 31, 2026]
+// Date: [November 1, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -339,8 +340,8 @@
     /**
      * Bilan de masse annuel [kg m⁻² an⁻¹] en un point de calotte :
      *   Ts : température annuelle de surface [K] (latitude et altitude comprises) ; dI [K] : inversion de surface due à l'altitude du
-     *   point (au-delà de celle du niveau de la mer, déjà dans la boîte terre), hivernale ; cyc = { a1, d1, r2, i2 } : cycle annuel de la
-     *   boîte terre de sa bande à la date (physics/saisons.js) ; Sn : insolation moyenne de chaque nœud de l'année à la date, à sa
+     *   point (au-delà de celle du niveau de la mer, déjà dans sa boîte), hivernale ; cyc = { a1, d1, r2, i2 } : cycle annuel de la
+     *   boîte de son point (calotte ; terre libre pour la marge et un sol nu) à la date (physics/saisons.js) ; Sn : insolation moyenne de chaque nœud de l'année à la date, à sa
      *   latitude [W/m², Soleil de l'époque] ; absorbe = { sec, neige, glace } : part de l'insolation absorbée au sol par une neige
      *   sèche, mouillée, une glace nue ; seb = { c0 [W/m²], c1 [W m⁻² K⁻¹] } : bilan d'énergie d'une surface qui fond,
      *   Q = absorbé + c0 + c1 (T_a − T₀) ; PmE : P − E à sa latitude [kg m⁻² an⁻¹] ; rapport : réduction de la neige avec l'altitude.
@@ -590,7 +591,7 @@
      * sol par une surface qui fond, et couverture : nuages bas et moyens du modèle (physics/meridien.js) — les deux, grandeurs de
      * travail de l'itération du bilan méridien. Le profil méridien (T̄ = 🧮🌡️, T₂ = 🌡️🎱), la pression, la masse molaire de l'air,
      * la gravité, le rayon et l'humidité de surface se lisent dans DATA. Renvoie les fonctions lues par bilanCalotte : P − E
-     * (Siler), bilan d'énergie de surface seb(p), colonnes des cellules d'une bande, cycle de la boîte terre et insolation des nœuds à
+     * (Siler), bilan d'énergie de surface seb(p), colonnes des cellules d'une bande, cycle de la boîte du point (calotte, ou terre libre) et insolation des nœuds à
      * une date.
      */
     function contexte(saisons, absorbe) {

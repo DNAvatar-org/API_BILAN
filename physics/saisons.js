@@ -1,5 +1,5 @@
-// File: API_BILAN/physics/saisons.js - Boîtes terre et mer de chaque bande de latitude : moyenne annuelle et cycle annuel
-// Desc: Je calcule la température de surface de la terre et de la mer de chaque bande (zone du bilan méridien × hémisphère) :
+// File: API_BILAN/physics/saisons.js - Trois boîtes de chaque bande de latitude (calotte, terre libre, mer libre) : moyenne annuelle et cycle annuel
+// Desc: Je calcule la température de surface de la calotte, de la terre libre et de la mer libre de chaque bande (zone du bilan méridien × hémisphère) :
 //       moyenne annuelle ET cycle annuel, au lieu de poser des amplitudes. C'est le bilan d'énergie diffusif de North, Cahalan &
 //       Coakley 1981 (Rev. Geophys. Space Phys. 19:91, éq. 54–58), avec trois boîtes par bande — sa calotte, sa terre libre et sa
 //       mer libre — couplées par l'air qui passe de l'une à l'autre, résolu harmonique par harmonique (n = 0 annuel moyen, n = 1
@@ -25,9 +25,13 @@
 //           glace B + n(n+1) D + i nω C_air + k_i q coth(q h_i), dalle sur l'eau à son point de gel (équation de la chaleur,
 //           Carslaw & Jaeger 1959), q = √(i nω/κ_i), épaisseur de Stefan h_i = √(2 k_i FDD / (ρ_i L_f)), g et les degrés-jours
 //           de gel FDD tirés du cycle de la mer elle-même (plus petite racine, balayage puis dichotomie) ;
-//         · couplage terre–mer : ν = u C_air / (2π R cos φ), l'air traverse la bande en un temps 2π R cos φ / u et y
-//           échange sa chaleur (réduction à deux boîtes de McKinnon, Stine & Huybers 2013, éq. 3, à leurs u, C_a et C_o) : ν/p_L par
-//           m² de terre libre, ν/p_M par m² de mer libre ;
+//         · couplage terre libre–mer : ν = u C_air / (2π R cos φ), l'air traverse la bande en un temps 2π R cos φ / u et y
+//           échange sa chaleur (réduction à deux boîtes de McKinnon, Stine & Huybers 2013, éq. 3, à leurs u, C_a et C_o). L'air de la
+//           terre libre traverse le continent de la bande (calotte comprise : la glace ne déplace pas la côte) sur la distance de la
+//           terre libre à la côte, r fois celle de toute la terre émergée : ν/((p_C + p_L) r) par m² de terre libre,
+//           ν p_L/((p_C + p_L) r p_M) par m² de mer libre ; r = distanceLibre, PALEOGEO.r_libre (calculé sur la carte PaleoDEM,
+//           paleodem_zones.py) à la part p_C/(p_C + p_L) de la terre que couvre la calotte, 1 sans calotte (ν/p_L et ν/p_M : les deux
+//           boîtes) et avant 540 Ma (❔ sans carte) ;
 //         · CALOTTE (MERIDIEN.surfacesBandes : sa part p_C de la bande, terre émergée et plateau) : l'air de la bande hors calotte
 //           (terre libre et mer libre au prorata de leurs aires) la traverse sur sa corde moyenne πR/2 (R : rayon de son dôme, √(p_C
 //           A_bande/π)) et y échange sa chaleur, le même raisonnement que ν à l'échelle de la calotte : κ = 2 u C_air / (π R) par m²
@@ -56,21 +60,22 @@
 //       de relevé, version des données non relevée).
 //       Approximations DÉCLARÉES : ⚠️ l'air de la terre libre traverse le continent (calotte comprise) sur la distance de la terre
 //       libre à la côte que donne la carte (PALEOGEO.r_libre : le long de la latitude, la calotte sur la terre la plus froide
-//       d'abord) ; trois boîtes par bande, la terre de chaque latitude couplée à leur mer (⚠️ ν réduit à une traversée :
+//       d'abord, ⚠️ classée par T₂ P₂(sin φ) − Γ z, un classement et non une température ; ❔ r = 1 avant 540 Ma, sans carte) ; trois boîtes par bande, la terre de chaque latitude couplée à leur mer (⚠️ ν réduit à une traversée :
 //       de la bande, à son milieu, et de chaque latitude pour sa terre ; ⚠️ part de terre des tranches de 5° que recouvre la cellule
 //       du point, uniforme en x dans chaque tranche, sans longitude : un continent et un archipel de même part ont le même été) ; ⚠️ n = 2 pour le mode
 //       semi-annuel ; co-albédo de chaque boîte constant sur l'année ; écart de la bande à sa zone tronqué au mode P₁ ; glace de mer
 //       pondérée par sa part de l'année g, au cycle de la fin du clic ; ⚠️ une seule dalle de glace par bande, à l'épaisseur
 //       moyenne de ses latitudes gelées ; ⚠️ mesures posées faute d'équation : couche de mélange, vitesse de l'air et part de la
 //       colonne d'air qu'elle advecte, effusivité du sol. Calendrier de Kepler et insolation d'une orbite : ceux de physics/orbite.js.
-// Version 2.9.0
+// Version 2.9.1
+// - v2.9.1 (2026-11-01): commentaires : couplage terre libre ↔ mer à la distance à la côte (ν/((p_C + p_L) r)), trois boîtes.
 // - v2.9.0 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre), au lieu du ❔ continental.
 // - v2.8.0 (2026-10-31): terre libre ↔ mer à la traversée du continent (calotte + terre libre), ❔ sans longitude.
 // - v2.7.0 (2026-10-31): trois boîtes par bande, calotte, terre libre et mer libre ; la calotte échange avec l'air qui la traverse.
 // - v2.6.1 (2026-10-31): terre d'un point = celle des tranches que recouvre sa cellule en x, au prorata de l'aire (Σ f Δx = terre).
 // - v2.6.0 (2026-10-30): terre de chaque latitude couplée à la mer de la bande à la part de terre de sa latitude (latitudes, terreDe) ;
 //   arcs gelés des terres à son cycle, pesant par sa part de terre.
-// Date: [October 31, 2026]
+// Date: [November 1, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -282,9 +287,10 @@
      * Un harmonique des trois boîtes d'une bande — calotte C, terre libre L, mer libre M, parts p = { C, L, M } (p_A = p_L + p_M :
      * l'air hors calotte) — : impédances Z (calotte et terre libre) et ZM (mer ; null : mer fixe à son point de gel, T_M = 0), forçages
      * F = { C, L, M } [complexes, par W/m² d'insolation], échanges κ (calotte ↔ air hors calotte, par m² de calotte), κ' = κ p_C/p_A
-     * (par m² hors calotte) et ν (terre libre ↔ mer, par m² de bande) :
+     * (par m² hors calotte), ν (terre libre ↔ mer, par m² de bande) et rL (distance de la terre libre à la côte, rapportée à celle
+     * de la terre sans calotte), E = (p_C + p_L) rL :
      *   C : (Z + κ) T_C − κ (p_L T_L + p_M T_M)/p_A = F_C
-     *   L : (Z + κ' + ν/p_L) T_L − κ' T_C − (ν/p_L) T_M = F_L       M : (Z_M + κ' + ν/p_M) T_M − κ' T_C − (ν/p_M) T_L = F_M
+     *   L : (Z + κ' + ν/E) T_L − κ' T_C − (ν/E) T_M = F_L       M : (Z_M + κ' + ν p_L/(E p_M)) T_M − κ' T_C − (ν p_L/(E p_M)) T_L = F_M
      * Une boîte sans aire n'a pas d'équation : la terre libre prend l'air de la mer et inversement, la calotte celui de l'air hors
      * calotte. Élimination de Gauss sur les boîtes présentes (trois au plus). Renvoie { calotte, terre, mer } [complexes].
      */
@@ -340,7 +346,7 @@
     const cycleDe = (boite, F) => cycle(mul(boite.G1, F.F1), mul(boite.G2, F.F2));
 
     /**
-     * Boîtes terre et mer de chaque bande (CALOTTES.BANDES) à l'état de DATA (T̄ = 🧮🌡️, écarts de zone MERIDIEN.ecarts ; terre
+     * Les trois boîtes de chaque bande (CALOTTES.BANDES) à l'état de DATA (T̄ = 🧮🌡️, écarts de zone MERIDIEN.ecarts ; terre
      * émergée de chaque bande, gravité et pression de l'époque à la date courante) :
      *   coA = { cle: { calotte, terre, mer } } co-albédos des colonnes d'un m² de calotte, de terre libre et de mer libre de chaque
      *   bande (physics/meridien.js, grandeur de travail de l'itération du bilan méridien) ; leurs parts de la bande :
@@ -386,7 +392,7 @@
             const kp = p.C === 0 || pA === 0 ? 0 : kap * p.C / pA;
             // Moyennes annuelles : zone + écart de la bande (P₁) + écarts des trois boîtes, de somme nulle sur la bande (systeme à n = 0,
             // impédance B) : calotte θ_C = (a_C − ā) S₀ / (B + κ/p_A), air hors calotte θ_A = −p_C θ_C / p_A, terre libre − mer libre
-            // u = (a_T − a_M) S₀ / (B + κ' + ν/p_L + ν/p_M). Une bande sans terre libre ou sans mer libre n'a pas d'écart terre–mer ; sans
+            // u = (a_T − a_M) S₀ / (B + κ' + ν/((p_C + p_L) r) + ν p_L/((p_C + p_L) r p_M)). Une bande sans terre libre ou sans mer libre n'a pas d'écart terre–mer ; sans
             // air (ν = κ = 0, ⚫) chaque boîte est à son équilibre radiatif.
             const Tbande = D['🧮']['🧮🌡️'] - dT[b.zone] + T1 * b.h * xm;
             const thC = p.C === 0 || pA === 0 ? 0 : (aC - aB[b.cle]) * sol * Fb.S0 / (NCC.B + kap / pA);

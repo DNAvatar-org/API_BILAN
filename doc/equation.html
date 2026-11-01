@@ -4,7 +4,8 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.11.2
+Version 2.11.3
+  - v2.11.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre, calculée sur les PaleoDEM).
   - v2.11.2 (2026-11-01): trois boîtes par bande (calotte, terre libre, mer libre), arrêt du point fixe par dichotomie.
   - v2.11.1 (2026-10-31): terre de chaque latitude au prorata de l'aire, bas du continent, 🧫 par clic.
   - v2.11.0 (2026-10-31): sections efficaces σ(λ, T, P), arrêt du point fixe par encadrement, marge des calottes par le haut de
@@ -934,8 +935,8 @@ Licensed under Apache License 2.0 with Commons Clause.
             refroidi par son albédo ; ⚠️ pas la terre de la latitude de sa cellule, que lisent la neige et la forêt) — sa moyenne annuelle plus
             \(T_2\,(P_2(x) - \langle P_2\rangle_z)\) pour la latitude du point, et son cycle annuel à la date de chaque sous-pas : la
             moyenne et le cycle du même objet (❔ cycle indépendant de l'altitude). La MARGE, dernier anneau du dôme, est dans l'air de la
-            terre libre de la bande (❔ la zone d'ablation au bord d'une calotte reçoit l'air de la terre libre voisine ; sans source, la
-            table n'a pas de longitude), sous l'inversion de J&amp;M de cet air. Altitude, une seule lecture de la colonne :
+            terre libre de la bande (❔ la zone d'ablation au bord d'une calotte reçoit l'air de la terre libre voisine ; sans source, les
+            cellules de la table n'ont pas de longitude), sous l'inversion de J&amp;M de cet air. Altitude, une seule lecture de la colonne :
             au-dessus de la couche limite, l'air libre suit la loi adiabatique du profil du modèle (sèche puis humide, Pierrehumbert
             2010 éq. 2.33). SOUS LA CALOTTE, il monte depuis le sommet de l'inversion au niveau de la mer, et la surface est sous
             l'inversion de Jouzel &amp; Merlivat, \(T_{\text{inv}} = 0{,}67\,T_s + 88{,}9\) K, mesurée sur la surface enneigée de la
@@ -974,7 +975,8 @@ Licensed under Apache License 2.0 with Commons Clause.
             85 Ma et plus ne copient plus la carte 0 Ma (r ≤ 0,50) et restent au niveau du socle chargé. ❔ Groenland de 15 Ma, relevé
             par Scotese au-dessus du socle déchargé, gardé tel quel. Grille de 1° : méridien ±180 et latitudes frontières des tranches :
             règle des trapèzes (lignes frontières à demi-poids) ; distance de grand cercle à la mer sur tout le globe, pour la carte de
-            0 Ma seulement (marge de la glace antarctique retirée).</p>
+            0 Ma seulement (marge de la glace antarctique retirée) ; distance de la terre libre à la côte le long de la latitude, pour
+            chaque carte (r_libre, carte « Cycle saisonnier calculé »).</p>
         <p class="src">Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 ; Nye 1952, Nature 169:529 ; Paterson 1972,
             Rev. Geophys. Space Phys. 10:885 ; Bahr, Pfeffer &amp; Kaser 2015, Rev. Geophys. 53:95 ; Fretwell et al.
             2013, The Cryosphere 7:375 ; Citterio &amp; Ahlstrøm 2013, The Cryosphere 7:445 ; Morlighem et al. 2017, GRL 44:11051 ;
@@ -1127,7 +1129,7 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq P" id="eq-cycle-saisonnier-calcule">
         <div class="titre"><span class="cl P">P</span> Cycle saisonnier calculé des calottes, des terres et des mers</div>
-        <div class="f" data-tex="Z_T\hat T_C + \kappa\Big(\hat T_C - \tfrac{p_L\hat T_L + p_M\hat T_M}{p_L+p_M}\Big) = a_C F_n,\quad Z_T\hat T_L + \kappa'(\hat T_L - \hat T_C) + \tfrac{\nu}{p_C+p_L}(\hat T_L - \hat T_M) = a_L F_n,\quad Z_M\hat T_M + \kappa'(\hat T_M - \hat T_C) + \tfrac{\nu\,p_L}{(p_C+p_L)\,p_M}(\hat T_M - \hat T_L) = a_M F_n,\quad Z_T = B + n(n{+}1)D + i n\omega C_{\text{air}} + e_{\text{sol}}\sqrt{i n\omega},\quad Z_M = (1{-}g)\big[B + n(n{+}1)D + i n\omega (C_{\text{mer}} {+} C_{\text{air}})\big] + g\Big[B + n(n{+}1)D + i n\omega C_{\text{air}} + k_i q\coth(q h_i)\Big],\quad q = \sqrt{i n\omega/\kappa_i},\quad \kappa = \frac{2u\,C_{\text{air}}}{\pi R_c},\ \kappa' = \kappa\frac{p_C}{p_L+p_M},\ \nu = \frac{u\,C_{\text{air}}}{2\pi R\cos\varphi},\qquad f\,Z_T\,\hat T_\varphi + f\kappa'\big(\hat T_\varphi - \hat T_C\big) + \nu_\varphi\big(\hat T_\varphi - \hat T_M\big) = f\,a_L F_n"></div>
+        <div class="f" data-tex="Z_T\hat T_C + \kappa\Big(\hat T_C - \tfrac{p_L\hat T_L + p_M\hat T_M}{p_L+p_M}\Big) = a_C F_n,\quad Z_T\hat T_L + \kappa'(\hat T_L - \hat T_C) + \tfrac{\nu}{(p_C+p_L)\,r}(\hat T_L - \hat T_M) = a_L F_n,\quad Z_M\hat T_M + \kappa'(\hat T_M - \hat T_C) + \tfrac{\nu\,p_L}{(p_C+p_L)\,r\,p_M}(\hat T_M - \hat T_L) = a_M F_n,\quad Z_T = B + n(n{+}1)D + i n\omega C_{\text{air}} + e_{\text{sol}}\sqrt{i n\omega},\quad Z_M = (1{-}g)\big[B + n(n{+}1)D + i n\omega (C_{\text{mer}} {+} C_{\text{air}})\big] + g\Big[B + n(n{+}1)D + i n\omega C_{\text{air}} + k_i q\coth(q h_i)\Big],\quad q = \sqrt{i n\omega/\kappa_i},\quad \kappa = \frac{2u\,C_{\text{air}}}{\pi R_c},\ \kappa' = \kappa\frac{p_C}{p_L+p_M},\ \nu = \frac{u\,C_{\text{air}}}{2\pi R\cos\varphi},\ r = r_{\text{libre}}\Big(\frac{p_C}{p_C+p_L}\Big),\qquad f\,Z_T\,\hat T_\varphi + f\kappa'\big(\hat T_\varphi - \hat T_C\big) + \nu_\varphi\big(\hat T_\varphi - \hat T_M\big) = f\,a_L F_n"></div>
         <p>Mode saisonnier du bilan diffusif de North, Cahalan &amp; Coakley 1981 (éq. 54–58), harmonique par harmonique (n = 1 annuel,
             n = 2 semi-annuel), trois boîtes par bande : sa calotte (part \(p_C\), MERIDIEN.surfacesBandes), sa terre libre (la terre
             émergée de la date, PALEOGEO, moins la calotte qui la couvre, \(p_L\)) et sa mer libre (\(p_M\)) ; B et D du bilan annuel.
@@ -1148,13 +1150,23 @@ Licensed under Apache License 2.0 with Commons Clause.
             encadrement et dichotomie quand la pente approche 1), puis \(g\) = la plus petite racine (balayage, puis dichotomie) ; une
             glace sans épaisseur a une impédance infinie. La surface de la glace a son propre cycle, celui de la dalle seule (la mer
             toute gelée, à l'épaisseur \(h\)) : sa fonte (carte « Albédo de la glace saisonnière »). Couplage : l'air traverse la bande en \(2\pi R\cos\varphi/u\).
-            TERRE LIBRE ↔ MER : l'air de la terre libre traverse TOUT le continent de la bande, calotte comprise (\(p_C + p_L\)),
-            avant la mer — \(\nu/(p_C + p_L)\) par m² de terre libre, \(\nu\,p_L/((p_C + p_L)\,p_M)\) par m² de mer (le même flux de
-            part et d'autre) ; sans calotte, \(\nu/p_L\) et \(\nu/p_M\), la réduction à deux boîtes. ❔ Une terre libre reste continentale quand
-            une calotte couvre une partie de son continent (la Sibérie au DMG) ; sans longitude dans la table, la frange côtière d'une
-            calotte centrale (l'Antarctique) est traitée comme un intérieur — la distance à la mer de la terre libre, calculable sur la
-            grille PaleoDEM, trancherait. CALOTTE : l'air de la bande hors calotte (terre libre et mer libre au prorata de leurs aires,
-            ❔ sans longitude) la traverse sur sa corde moyenne \(\pi R_c/2\) (\(R_c = \sqrt{p_C A_{\text{bande}}/\pi}\), le rayon de
+            TERRE LIBRE ↔ MER : l'air de la terre libre traverse le continent de la bande, calotte comprise (\(p_C + p_L\) : la glace
+            ne déplace pas la côte), avant la mer, sur la distance de la terre libre à la côte — \(\nu/((p_C + p_L)\,r)\) par m² de
+            terre libre, \(\nu\,p_L/((p_C + p_L)\,r\,p_M)\) par m² de mer (le même flux de part et d'autre). \(r\) est la distance
+            moyenne à la côte de la terre libre rapportée à celle de toute la terre émergée de la bande, quand la calotte couvre la part
+            \(f = p_C/(p_C + p_L)\) de cette terre : PALEOGEO.r_libre aux parts 0, 0,1 … 0,9 et 0,95, linéaire entre deux, la dernière
+            valeur au-delà de 0,95, interpolée entre les deux cartes qui encadrent la date ; sans calotte \(r = 1\) et le système
+            redonne \(\nu/p_L\) et \(\nu/p_M\), la réduction à deux boîtes. ⚛ Géométrie calculée sur les PaleoDEM (grille de 1°,
+            paleodem_zones.py, distance_libre) : la distance d'une maille de terre émergée à la côte est prise le long de sa latitude,
+            jusqu'à la mer la plus proche des deux côtés (méridien ±180 bouclé ; une latitude sans mer : le demi-tour du cercle), la
+            calotte comptée comme terre ; moyenne pondérée par l'aire. Une terre libre reste ainsi continentale quand une calotte
+            couvre une partie de son continent (la Sibérie au DMG), et celle d'une calotte centrale n'est plus qu'une frange côtière
+            (S_pol à 0 Ma : \(r = 0{,}127\) quand la calotte couvre 95 % de la terre). ⚠️ La calotte couvre la terre la plus froide
+            d'abord, classée par \(T^* = T_2 P_2(\sin\varphi) - \Gamma z\) (\(T_2 = -25\) K, \(\Gamma = 6{,}5\) K/km : un classement,
+            pas une température), et non par le rang du bilan du sol nu qui place les calottes du moteur. ❔ Avant 540 Ma (pas de
+            carte) : \(r = 1\).
+            CALOTTE : l'air de la bande hors calotte (terre libre et mer libre au prorata de leurs aires,
+            ❔ les cellules de la table n'ont pas de longitude) la traverse sur sa corde moyenne \(\pi R_c/2\) (\(R_c = \sqrt{p_C A_{\text{bande}}/\pi}\), le rayon de
             son dôme) et y échange sa chaleur : \(\kappa = 2uC_{\text{air}}/(\pi R_c)\) par m² de calotte, le raisonnement de \(\nu\) à
             l'échelle du dôme ; il en rend l'écart à la terre libre et à la mer, \(\kappa' = \kappa\,p_C/(p_L + p_M)\) par m². Une petite
             calotte (\(\kappa\) grand) a l'air de la bande ; une grande, le sien, refroidi par son albédo. ⚠️ Impédance de la calotte =
@@ -1172,7 +1184,7 @@ Licensed under Apache License 2.0 with Commons Clause.
             boîte à la bande, de somme nulle, forcé par l'écart de son co-albédo à celui de la bande (\(\bar a\), moyenne des trois colonnes
             pondérée par leurs parts) : calotte \(\theta_C = (a_C - \bar a)S_0/(B + \kappa/(p_L + p_M))\), air hors calotte
             \(\theta_A = -p_C\,\theta_C/(p_L + p_M)\), terre libre moins mer libre
-            \(\delta = (a_L - a_M)S_0/\big(B + \kappa' + \nu/(p_C + p_L) + \nu\,p_L/((p_C + p_L)\,p_M)\big)\) (une bande sans terre libre
+            \(\delta = (a_L - a_M)S_0/\big(B + \kappa' + \nu/((p_C + p_L)\,r) + \nu\,p_L/((p_C + p_L)\,r\,p_M)\big)\) (une bande sans terre libre
             ou sans mer libre n'a pas d'écart terre–mer) ; ❔ troncature au mode P₁, co-albédo de chaque boîte constant sur l'année. Calculé à chaque itération du bilan méridien, forcé par les co-albédos de l'itération précédente ; lu par les calottes (température et cycle d'un point de calotte — la boîte calotte, ou la terre libre pour sa marge et un sol nu —, à la date de chaque sous-pas) et par la glace saisonnière
             (neige des terres et glace de mer de chaque latitude ; la part gelée \(g\) de la mer est la seule, pour son aire, son albédo
             et sa masse dans le partage de l'eau), à la même température d'un point (SAISONS.temperaturePoint, la seule). ❔ Hors de La2004 (avant −51 Ma) : insolation d'une orbite circulaire à l'obliquité de l'époque.</p>
@@ -1180,7 +1192,7 @@ Licensed under Apache License 2.0 with Commons Clause.
             ajustement. 💻 Vitesse de l'air u = 6,1 m/s : moyenne de leurs rétrotrajectoires HYSPLIT à 45–50° N, calculées sur des
             vents analysés. ❔ Atmosphère de 1 m d'eau : paramètre posé de leur modèle idéalisé (94 % de la variance des climatologies
             mensuelles à 45–50° N, §4b), ni mesure ni ajustement ; ⚠️ la même part de la colonne à toute époque. ⚠️ Effusivité du sol 1 500 J m⁻² K⁻¹ s^-½ : ordre de grandeur sans source. ❔ Réduction du
-            couplage advectif de McKinnon et al. (éq. 3) à trois boîtes par bande, à l'échelle du dôme pour la calotte, et à la part de terre de chaque latitude ; n = 2 pour le mode
+            couplage advectif de McKinnon et al. (éq. 3) à trois boîtes par bande, à la traversée du continent sur la distance de la terre libre à la côte, à l'échelle du dôme pour la calotte, et à la part de terre de chaque latitude ; n = 2 pour le mode
             semi-annuel ; glace de mer pondérée par g. ⚠️ Part de terre des tranches de 5° que recouvre la cellule du point, uniforme en sin φ dans chaque tranche, sans longitude (un continent et un archipel de même part ont le même été) ; sens unique : la mer de la bande échange avec la terre libre de la bande, pas avec celle de chaque latitude ; avant 540 Ma (sans carte), la terre
             de la bande à toutes les latitudes.</p>
         <p>❔ 🎯 Été de la terre de chaque latitude au nœud le plus chaud de l'année (📱 ; ordres de grandeur observés, sans relevé) :
@@ -1198,11 +1210,12 @@ Licensed under Apache License 2.0 with Commons Clause.
             🎯 Retard des terres extratropicales 17 à 27 jours (13 et 18 aux tropiques ; 28 mesurés en moyenne, HadCRUT4, McKinnon et
             al. 2013) ; mers 80 à 93 jours (58 mesurés). Le 2ᵉ harmonique n'a pas de contrôle.</p>
         <p class="src">North, Cahalan &amp; Coakley 1981, Rev. Geophys. 19:91 (éq. 54–58) ; McKinnon, Stine &amp; Huybers 2013, J. Climate
-            26:7852 ; Stefan 1891 ; Carslaw &amp; Jaeger 1959 ; Carnahan et al. 2021 ; Feistel &amp; Wagner 2006 ; IOC et al. 2010 (TEOS-10) ; Willmott &amp;
+            26:7852 ; Scotese &amp; Wright 2018 (PaleoDEM) ; Stefan 1891 ; Carslaw &amp; Jaeger 1959 ; Carnahan et al. 2021 ; Feistel &amp; Wagner 2006 ; IOC et al. 2010 (TEOS-10) ; Willmott &amp;
             Matsuura (UDel)</p>
         <p class="code">physics/saisons.js → SAISONS.cycles (terre.latitudes), terreLatitudes, terreDe, forcage, noeuds, points,
-            temperaturePoint, arc, epaisseurStefan, K.PART_AIR ; physics/saisons.js → systeme ; physics/meridien.js → resoudre,
-            surfacesBandes (colonnes d'un m² de calotte, de terre libre et de mer libre, à chaque itération) ; physics/orbite.js → insolationCumulee, REFERENCE</p>
+            temperaturePoint, arc, epaisseurStefan, K.PART_AIR ; physics/saisons.js → systeme, distanceLibre ; physics/calottes.js → geographie, parts (rLibre) ; physics/meridien.js → resoudre,
+            surfacesBandes (colonnes d'un m² de calotte, de terre libre et de mer libre, à chaque itération) ; physics/orbite.js → insolationCumulee, REFERENCE ; data/paleogeo_zones.js
+            (CO2/scripts/paleogeo/paleodem_zones.py → distance_libre)</p>
     </div>
     <div class="eq P" id="eq-mer-gelee">
         <div class="titre"><span class="cl P">P</span> Mer gelée : la part mer de la glace saisonnière</div>

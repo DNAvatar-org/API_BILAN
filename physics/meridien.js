@@ -19,14 +19,14 @@
 //       Le co-albédo de chaque zone vient du transfert solaire du modèle (radiative/solaire.js) avec la distribution annuelle des
 //       angles solaires DE LA ZONE et l'albédo de surface de la zone : ses calottes (albédo annuel de chacune, pondéré par
 //       l'insolation et par sa fonte, physics/calottes.js), sa glace saisonnière (EARTH.glaceSaisonniere : neige et glace de mer de
-//       chaque latitude de ses bandes au cycle de leurs boîtes terre et mer, pondérées par l'ensoleillement qu'elles reçoivent et
-//       réfléchissant à l'albédo de la saison, 🪩.🍰☀️🪩🧊) et sa surface libre — terre émergée et mer de ses deux bandes (PALEOGEO à la
+//       chaque latitude de ses bandes au cycle de leur terre (celle de chaque latitude) et de leur mer libre, pondérées par
+//       l'ensoleillement qu'elles reçoivent et réfléchissant à l'albédo de la saison, 🪩.🍰☀️🪩🧊) et sa surface libre — terre émergée et mer de ses deux bandes (PALEOGEO à la
 //       date, CALOTTES.parts), moins les calottes (surfacesBandes) ; terre libre à l'albédo de ses forêt, désert et sol (ALBEDO.terresLibres :
 //       la forêt de la bande, ALBEDO.poserForet), un bassin à sec (hors d'un monde à océan) compté en terre —, la lave couvrant le tout, albédos des
 //       matériaux lus dans DATA['🪩🍰'] : les surfaces de l'albédo planétaire (ALBEDO.surfacesSansGlace), une seule loi. Le transfert solaire de chaque zone est tabulé une fois par calcul en fonction
 //       de l'albédo de surface (tableColonne) : il sert aussi aux colonnes d'un m² de calotte, de terre libre et de mer libre de
 //       chaque bande, dont les co-albédos forcent les trois boîtes du cycle saisonnier (physics/saisons.js), et à l'absorption au sol
-//       d'une calotte qui fond ; les boîtes terre libre et mer portent la glace saisonnière de leur bande. La glace dépend de T₂ et T₂ de la glace : point fixe. Glace saisonnière,
+//       d'une calotte qui fond ; la terre de chaque latitude et la mer libre portent la glace saisonnière de leur bande. La glace dépend de T₂ et T₂ de la glace : point fixe. Glace saisonnière,
 //       calottes et leur albédo de chaque itération sont écrits dans DATA (🪩.🍰📅🧊, 🪩.🍰☀️🧊, 🪩.🍰☀️🪩🧊, 🗻.🧮🍰🗻🧊, sa masse 🗻.🧮⚖️🗻🧊 et
 //       son albédo 🗻.🧮🪩🗻🧊) : l'albédo planétaire lit ceux de l'état convergé. Hors d'un monde à océan (eau sans phase condensée,
 //       ou sans atmosphère), il n'y a pas de calotte : aire, masse et albédo nuls (physics/calottes.js, sansCalotte).
@@ -40,13 +40,14 @@
 //       transfert solaire d'une zone interpolé (cubique) entre six albédos de surface ; boîtes du cycle saisonnier forcées par les
 //       co-albédos de l'itération précédente (à la première : calottes de départ, en neige sèche, sans glace saisonnière, forêt du
 //       calcul précédent).
-// Version 1.15.2
+// Version 1.15.3
+// - v1.15.3 (2026-11-01): commentaires : point fixe (dichotomie, pas doublé), trois boîtes, glace saisonnière sur la terre de chaque latitude.
 // - v1.15.2 (2026-10-31): racine encadrée → dichotomie (calotte qui change de branche) ; pente ĝ ≥ 1 → pas doublé jusqu'à l'encadrer.
 // - v1.15.0 (2026-10-31): colonnes d'un m² de calotte, de terre libre et de mer libre (trois boîtes de physics/saisons.js).
 // - v1.14.3 (2026-10-31): description de resoudre : l'arrêt par encadrement de la racine.
 // - v1.14.2 (2026-10-31): arrêt aussi quand deux T₂ successifs encadrent la racine à moins de TOLERANCE_K (saut de G).
 // - v1.14.1 (2026-10-30): message du point fixe non convergé : l'erreur estimée du critère d'arrêt, |G − x|/(1 − max(ĝ, 0)).
-// Date: [October 31, 2026]
+// Date: [November 1, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -252,19 +253,22 @@
      * Chaque itération calcule à son T₂ les boîtes du cycle saisonnier (SAISONS.cycles), forcées par les colonnes de l'itération
      * précédente, et écrit dans DATA la glace saisonnière de ces boîtes (EARTH.glaceSaisonniere) et les calottes du pas
      * (🧮🍰🗻🧊, 🧮🔺📏🗻🧊, 🧮📿🗻🧊, 🧮⚖️🗻🧊, 🧮🪩🗻🧊) ; à la sortie, ce sont celles de l'état convergé.
-     * Itération SIMPLE x ← G(x), sans relaxation, tant que la pente de G est positive : les rétroactions glace–albédo le sont
-     * (G' ≥ 0), une relaxation ne ferait que ralentir ; et elle n'atteint que les points fixes stables (G' < 1), ceux que la
-     * planète peut habiter — une sécante ou un Newton convergeraient aussi vers la racine instable d'une bistabilité. Pente ĝ de
+     * Itération SIMPLE x ← G(x), sans relaxation, tant que la pente de G est dans [0, 1[ : les rétroactions glace–albédo sont
+     * positives (G' ≥ 0), une relaxation ne ferait que ralentir ; et elle n'atteint que les points fixes stables (G' < 1), ceux que
+     * la planète peut habiter — une sécante ou un Newton convergeraient aussi vers la racine instable d'une bistabilité. Pente ĝ de
      * la sécante des deux derniers points, 1 + Δ(G(x) − x)/Δx. Quand elle est NÉGATIVE (une calotte intégrée sur un long clic
      * répond par un saut : son bilan intégré n'est pas monotone, elle finit sur une branche ou l'autre), l'itération simple
      * oscille autour du point fixe : pas de Wegstein, x ← x + (G(x) − x)/(1 − ĝ) (Wegstein 1958, Commun. ACM 1(6):9), le point
-     * fixe de la sécante — G décroissante n'a qu'une racine, et sur un saut il s'arrête au seuil. Arrêt quand l'erreur estimée sur T₂,
-     * |G(x) − x| / (1 − max(ĝ, 0)), ĝ < 1, passe sous TOLERANCE_K : une pente négative ne réduit pas l'erreur — estimée sur une
-     * sécante lointaine, ou à la première itération entre deux applications différentes (colonnes de départ en neige sèche), elle
-     * ferait passer |G(x) − x| = 0,15 K pour 0,0008 K à ĝ = −179. Arrêt aussi quand les deux derniers T₂ (itérations ≥ 1, mêmes
-     * colonnes de départ) encadrent la racine (G(x) − x change de signe) à moins de TOLERANCE_K : G saute (une calotte change de
-     * branche), le point fixe est à son seuil, connu à la tolérance près. Le T₂ posé est celui où la glace, les co-albédos et les
-     * calottes ont été évalués (un seul état). Sans convergence en ITERATIONS_MAX : crash.
+     * fixe de la sécante — G décroissante n'a qu'une racine, et sur un saut il s'arrête au seuil. Quand elle est ≥ 1, x ← G(x) se
+     * traîne loin d'un point fixe instable (G(x) − x garde son signe) : le pas double à chaque itération, x ← x + p (G(x) − x),
+     * p = 2, 4, 8… dans le sens de la dérive, jusqu'à encadrer la racine. Dès que la racine est ENCADRÉE (le dernier T₂ où
+     * G(x) − x > 0 et le dernier où il est < 0, itérations ≥ 1, mêmes colonnes de départ), DICHOTOMIE : elle converge même quand G
+     * saute d'une itération à l'autre (une calotte change de branche), où la sécante tourne en rond. Arrêt quand l'erreur estimée
+     * sur T₂, |G(x) − x| / (1 − max(ĝ, 0)), ĝ < 1, passe sous TOLERANCE_K : une pente négative ne réduit pas l'erreur — estimée sur
+     * une sécante lointaine, ou à la première itération entre deux applications différentes (colonnes de départ en neige sèche),
+     * elle ferait passer |G(x) − x| = 0,15 K pour 0,0008 K à ĝ = −179. Arrêt aussi quand l'encadrement de la racine fait moins de
+     * TOLERANCE_K : G saute, le point fixe est à son seuil, connu à la tolérance près. Le T₂ posé est celui où la glace, les
+     * co-albédos et les calottes ont été évalués (un seul état). Sans convergence en ITERATIONS_MAX : crash.
      * Renvoie { coAlbedo, Rg, A, RgSoleil, poids, calottes, absorbe, saisons, colonnes, iterations, pente } — A : albédo planétaire au
      * sommet avant voile, Σ_z w_z (1 − a_z), w_z part de l'insolation du globe reçue par la zone (poidsInsolation) : l'albédo que lit
      * le solveur (calculateAlbedo) ; RgSoleil = Σ_z w_z Rg_z —, et T2, dT en lecture de DATA.
@@ -330,9 +334,10 @@
                 for (const b of window.CALOTTES.BANDES) neigeSeche[b.cle] = M['🪩🍰❄️'];
                 colonnes = surfaces(surfacesBandes(), neigeSeche).colonnes;
             }
-            // Boîtes terre et mer de chaque bande (moyenne annuelle et réponse au forçage solaire) à ce T₂ ; leur glace saisonnière,
-            // latitude par latitude (EARTH.glaceSaisonniere) ; puis les calottes continentales : un point de calotte a la même
-            // température de point (SAISONS.temperaturePoint de la boîte terre de sa bande), cycle à la date de chaque sous-pas
+            // Les trois boîtes de chaque bande (calotte, terre libre, mer libre : moyenne annuelle et réponse au forçage solaire) à ce
+            // T₂ ; leur glace saisonnière, latitude par latitude (EARTH.glaceSaisonniere) ; puis les calottes continentales : un point
+            // de calotte a la température de point (SAISONS.temperaturePoint) de la boîte calotte de sa bande, sa marge et un sol nu
+            // celle de la terre libre, cycle à la date de chaque sous-pas
             // (physics/calottes.js). Tous lisent T₂ = x dans DATA.
             saisons = window.SAISONS.cycles(colonnes);
             window.EARTH.glaceSaisonniere(saisons, absorbe);

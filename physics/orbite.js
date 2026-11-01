@@ -6,7 +6,7 @@
 //         · obliquité ε → 📜⚾ (compute.js) : insolation annuelle par latitude du bilan méridien, amplitude des saisons ;
 //         · excentricité e → flux solaire moyen de l'année, S / √(1 − e²) (Kepler ; compute.js getSoleil) ;
 //         · insolation journalière par latitude : celle de l'orbite de 1950 (REFERENCE) plus son écart à la date, l'anomalie. C'est
-//           par elle qu'entrent la précession et l'excentricité dans l'année : forçage des boîtes terre et mer (physics/saisons.js)
+//           par elle qu'entrent la précession et l'excentricité dans l'année : forçage des trois boîtes de chaque bande (calotte, terre libre, mer libre : physics/saisons.js)
 //           et bilan d'énergie de surface des calottes (physics/calottes.js). L'anomalie est calculée aux LIGNES de la table (pas de
 //           1 ka) : une date se lit entre les deux lignes qui l'encadrent (encadrement), interpolée linéairement — les calottes la
 //           lisent à la date de chacun de leurs sous-pas.
@@ -16,10 +16,11 @@
 //       Hors de la validité (avant −51 Ma), pas de solution publiée : anomalie nulle, Soleil sans facteur, pas d'obliquité ici —
 //       l'époque déclare la sienne (📜⚾, compute.js) ; l'orbite de référence y est choisie par physics/saisons.js (orbite circulaire).
 //       Âges : années avant window.AN_PRESENT (config/configTimeline.js, la seule origine) ; année tropique : CONST.AN_TROPIQUE_JOURS.
-// Version 1.4.0
+// Version 1.4.1
+// - v1.4.1 (2026-11-01): commentaire : forçage des trois boîtes de chaque bande.
 // - v1.4.0 (2026-10-29): pas d'obliquité hors de la solution (plus de 0 pour « celle de l'époque ») ; origine des âges et année
 //   tropique lues à leur seule source.
-// Date: [October 29, 2026]
+// Date: [November 1, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
