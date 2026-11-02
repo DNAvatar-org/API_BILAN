@@ -4,14 +4,15 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.11.3
+Version 2.11.4
+  - v2.11.4 (2026-11-02): une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte), κ au rayon d'un dôme.
   - v2.11.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre, calculée sur les PaleoDEM).
   - v2.11.2 (2026-11-01): trois boîtes par bande (calotte, terre libre, mer libre), arrêt du point fixe par dichotomie.
   - v2.11.1 (2026-10-31): terre de chaque latitude au prorata de l'aire, bas du continent, 🧫 par clic.
   - v2.11.0 (2026-10-31): sections efficaces σ(λ, T, P), arrêt du point fixe par encadrement, marge des calottes par le haut de
     la cellule ; valeurs de 📱 et forçages remesurés.
   - v2.10.0 (2026-10-30): terre de chaque latitude, forêt de chaque bande, sommet des calottes, arrêt du point fixe sur T₂.
-Date: [November 1, 2026]
+Date: [November 2, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
 -->
@@ -871,7 +872,7 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq P" id="eq-calottes-bilan-integre">
         <div class="titre"><span class="cl P">P</span> Calottes : place par le bilan du sol nu, dôme plastique et bilan de masse intégré</div>
-        <div class="f" data-tex="H = C\sqrt{s},\ C = \sqrt{\frac{2\tau}{\rho_i\,g\,(1-\rho_i/\rho_m)}},\qquad V = \frac{8\pi}{15}\,C\,R^{5/2},\ R = \sqrt{\frac{a\,A_{\text{bande}}}{\pi}},\qquad z = m + w\,(1 - f) + \Big(1 - \frac{\rho_i}{\rho_m}\Big)H - \epsilon,\qquad \bar B(a) = \frac{\sum_k A_k\,B\big(T_k(z_k),\ z_k\big)}{\sum_k A_k}"></div>
+        <div class="f" data-tex="H = C\sqrt{s},\ C = \sqrt{\frac{2\tau}{\rho_i\,g\,(1-\rho_i/\rho_m)}},\qquad V = N\,\frac{8\pi}{15}\,C\,R^{5/2},\ R = \sqrt{\frac{a\,A_{\text{bande}}}{N\,\pi}},\qquad z = m + w\,(1 - f) + \Big(1 - \frac{\rho_i}{\rho_m}\Big)H - \epsilon,\qquad \bar B(a) = \frac{\sum_k A_k\,B\big(T_k(z_k),\ z_k\big)}{\sum_k A_k}"></div>
         <p>Le continent de chaque bande (socle &gt; −1 000 m, PaleoDEM ; aire des mailles de 1° par les trapèzes en latitude, nulle au pôle) est découpé en 48 cellules : 6 tranches de latitude de 5° × 8
             classes de socle (bornes −200, 0, 250, 500, 1 000, 1 500, 2 500 m), avec l'aire, la latitude et le socle déchargé moyens de
             chacune — les deux variables dont dépend le bilan d'un point. PLACE : chaque cellule reçoit ΔT*, le réchauffement que le
@@ -891,8 +892,9 @@ Licensed under Apache License 2.0 with Commons Clause.
             \(a\,A_{\text{bande}}\) : un dôme de rayon \(R\) ne couvre que des terres à moins de \(R\) de son sommet — la tranche de la
             cellule \(k\) est à \(d_k = \max(0, |\varphi_k - \varphi_s| - 2{,}5^\circ)\,R_p\) du sommet, et la cellule n'est gagnée que si
             le dôme qui la couvre a ce rayon, \(\sqrt{(S + A_k)/\pi} \ge d_k\) ; si aucune n'est atteinte, la plus proche (❔ la calotte
-            franchit la mer qui l'en sépare). Géométrie, aucune constante. ❔ La table ne donne que la latitude des cellules : un même
-            dôme peut encore couvrir des massifs de même latitude séparés en longitude. Le rang est celui du climat du calcul : aucune
+            franchit la mer qui l'en sépare). Géométrie, aucune constante. ❔ La table ne donne que la latitude des cellules : la portée est
+            celle d'un dôme de l'aire cumulée \(S + A_k\) (\(N\) n'y entre pas) et ne voit pas la longitude ; les massifs séparés en
+            longitude sont comptés par \(N\) (paragraphe suivant). Le rang est celui du climat du calcul : aucune
             place n'est posée. Équilibre \(\bar B(a) = 0\), premier zéro sur le chemin de la calotte (croissance ou décroissance), lu aux
             40 pas de la grille et aux bords des cellules du dôme, puis par bissection — un creux plus étroit qu'un pas, la marge mince
             d'une cellule tout juste gagnée, arrête la calotte —, plafonné par le continent de la bande ;
@@ -909,8 +911,22 @@ Licensed under Apache License 2.0 with Commons Clause.
             la marge mince sur les cellules polaires froides — un ordre de cellules, pas une géographie (à 🦣 : 86° S, 2 792 m).</p>
         <p>GÉOMÉTRIE : un dôme parfaitement plastique (Nye 1952) sur un socle à l'équilibre d'Airy : \(\tau = \rho_i g H|\nabla z_s|\),
             \(z_s\) = socle déchargé + \((1-\rho_i/\rho_m)H\), d'où \(H = C\sqrt{s}\), \(s\) distance à la marge (\(H^2\) proportionnel
-            à \(s\)). Le dôme a l'aire de la calotte : \(V = \frac{8\pi}{15}\,C\,R^{5/2}\), \(V \propto S^{5/4}\) — la loi d'échelle des
-            calottes plastiques (Paterson 1972 ; Bahr, Pfeffer &amp; Kaser 2015, γ = 5/4). Ses anneaux, du sommet à la marge, sont les
+            à \(s\)). Une calotte est d'un seul tenant, mais sur la carte son aire se répartit en morceaux : quand elle couvre la part
+            \(f = a/\text{continent}\) du continent de la bande, la terre la plus froide d'abord, ses mailles de 1° forment des
+            morceaux connexes (voisines par les côtés, méridien ±180 raccordé, sans sortir de la bande) d'aires \(A_i\), de nombre
+            effectif \(N = (\sum A_i)^2/\sum A_i^2\) (PALEOGEO.n_morceaux, calculé par paleodem_zones.py pour chaque carte à
+            \(f\) = 0, 0,1 … 0,9 et 0,95 ; CALOTTES.nDomes l'interpole linéairement entre deux parts et entre deux cartes, \(N = 1\) à
+            aire nulle). ⚛ La connexité sur la carte. ⚠️ Le classement « la plus froide d'abord » est celui de \(r_{\text{libre}}\),
+            \(T^* = T_2 P_2(\sin\varphi) - \Gamma z\) (\(T_2 = -25\) K, \(\Gamma = 6{,}5\) K/km : un classement, pas une
+            température), et non le rang du bilan du sol nu. ❔ Avant 540 Ma (pas de carte) : \(N = 1\). Sur 0 Ma, S_pol : \(N\) = 3,98
+            à \(f\) = 0,1, 1,18 à 0,3 et 1,00 dès 0,9 ; N_pol : 6,05 à 0,3 et 1,04 à 0,7. Un même nombre de km² de glace éparpillés
+            sur plusieurs reliefs fait des dômes plus petits et plus minces (\(H \propto \sqrt{R}\)) que s'ils formaient un seul dôme.
+            ⚠️ Le moteur pose \(N\) dômes égaux, des morceaux de même aire (\(N\) est celui de \(N\) morceaux égaux de même moyenne
+            des aires pondérée par l'aire, non entier), de rayon \(R = \sqrt{a\,A_{\text{bande}}/(N\pi)}\), chaque cellule pour sa part
+            (aire/\(N\)) dans chacun : \(V = N\,\frac{8\pi}{15}\,C\,R^{5/2} = N^{-1/4}\,\frac{8\pi}{15}\,C\,(S/\pi)^{5/4}\),
+            \(V \propto S^{5/4}\) à \(N\) donné — la loi d'échelle des calottes plastiques (Paterson 1972 ; Bahr, Pfeffer &amp; Kaser 2015,
+            γ = 5/4). À aire totale \(S\) fixée, \(N\) dômes ont le rayon \(R/\sqrt{N}\), l'épaisseur au sommet \(N^{-1/4}\) et le
+            volume \(N^{-1/4}\) de ceux d'un dôme unique. Les anneaux de chaque dôme, du sommet à la marge, sont les
             cellules couvertes dans l'ordre du rang (❔ croissance concentrique) ; épaisseur moyenne exacte de chaque anneau, écrite
             sans soustraction de grands nombres ; \(\epsilon\) : écart du socle porté à son équilibre (carte suivante). MARGE : le relief est
             continu, la marge gagne une cellule par son HAUT — la part couverte \(f\) d'une cellule de socle moyen \(m\) a pour socle
@@ -919,17 +935,17 @@ Licensed under Apache License 2.0 with Commons Clause.
             sommet nu d'une calotte d'aire nulle est au point le plus haut de sa cellule (\(f = 0\)). ❔ Socle uniforme dans la
             cellule, centré sur \(m\) : la table ne donne que la moyenne. Posée au socle moyen de chaque cellule gagnée, la marge
             descendrait d'un coup (900 m, ~6 K, entre les deux classes du haut) et \(\bar B(a)\) aurait de faux zéros. ❔ Une calotte
-            par bande et par hémisphère, un seul dôme même sur des terres séparées en longitude. ❔ Relief du socle ignoré dans la loi plastique (il
+            par bande et par hémisphère, de \(N\) dômes égaux. ❔ Relief du socle ignoré dans la loi plastique (il
             s'ajoute sous la glace).</p>
-        <p>Une seule loi, un seul τ : le script qui décharge le socle ferme τ avec ce même dôme sur le volume (26,54·10⁶ km³) et
+        <p>Une seule loi, un seul τ : le script qui décharge le socle ferme τ avec ce même dôme (\(N = 1\) : l'Antarctique posé est d'un seul tenant) sur le volume (26,54·10⁶ km³) et
             l'aire (12,295·10⁶ km²) posés de l'Antarctique (Bedmap2, tableau 7) — une équation, une inconnue : τ = 26,9 kPa
             (PALEOGEO.tau_Pa, lu par le moteur). ❔ L'aire est une entrée, pas un contrôle : retirer la glace actuelle d'une carte de
             données demande de savoir où elle est posée, et le seuil de −1 000 m borne aussi le plateau libre de glace et les
             plates-formes flottantes. ❔ τ uniforme sur tout le continent ; τ effectif sous les 50–150 kPa mesurés (fleuves de glace et
-            plates-formes y sont compris). 📖 Le moteur pose donc 26,54·10⁶ km³ à l'aire de Bedmap2, par construction. 🎯 La même loi et
+            plates-formes y sont compris). 📖 Le moteur pose donc 26,54·10⁶ km³ à l'aire de Bedmap2 pour un dôme unique, par construction ; à la part de 📱 (0,727 du continent) il lit \(N\) = 1,04 dômes, d'où 26,26·10⁶ km³ (−1,1 %). 🎯 La même loi et
             le même τ sur l'empreinte réelle de la carte de 0 Ma (marge à 243 km du bord du continent, aire de Bedmap2) donnent
             24,92·10⁶ km³, −6,1 % : l'écart du dôme à la forme réelle de l'Antarctique. 🎯 Groenland (📱, 0,0502 de sa bande,
-            1,715·10⁶ km²) : volume du dôme 2,26·10⁶ km³ contre 2,99·10⁶ (BedMachine v3), −24 % ; posé, son sommet est le candidat du
+            1,715·10⁶ km²) : volume d'un dôme unique 2,26·10⁶ km³ contre 2,99·10⁶ (BedMachine v3), −24 % ; le moteur y lit \(N\) = 1,91 dômes (N_pol à 0 Ma, part du continent 0,063), soit \(N^{-1/4}\) × 2,26 = 1,92·10⁶ km³, −36 % ; posé, son sommet est le candidat du
             meilleur \(\bar B\) à son aire, à 72° N (socle 1 720 m) : le rang ne connaît pas la longitude.</p>
         <p>Température d'un point : la boîte calotte de sa bande (carte « Cycle saisonnier calculé » : l'air qui traverse la calotte,
             refroidi par son albédo ; ⚠️ pas la terre de la latitude de sa cellule, que lisent la neige et la forêt) — sa moyenne annuelle plus
@@ -981,14 +997,14 @@ Licensed under Apache License 2.0 with Commons Clause.
             Rev. Geophys. Space Phys. 10:885 ; Bahr, Pfeffer &amp; Kaser 2015, Rev. Geophys. 53:95 ; Fretwell et al.
             2013, The Cryosphere 7:375 ; Citterio &amp; Ahlstrøm 2013, The Cryosphere 7:445 ; Morlighem et al. 2017, GRL 44:11051 ;
             Scotese &amp; Wright 2018 ; Pierrehumbert 2010 ; Jouzel &amp; Merlivat 1984, JGR 89:11749 ; IOC et al. 2010 (TEOS-10)</p>
-        <p class="code">physics/calottes.js → geographie, parts, sommets, rangBilan, dome, geometrie, socleCouvert, bilanCalotte, bilanPoint, colonne
+        <p class="code">physics/calottes.js → geographie, parts, nDomes, sommets, rangBilan, dome, geometrie, socleCouvert, bilanCalotte, bilanPoint, colonne
             (lire, libre), equilibre, calculer, engager, sansCalotte ; DATA['🗻']['📿🗻🧊'] ; physics/saisons.js → SAISONS.cycles ; h2o/calculations_h2o.js → mondeOcean ; radiative/calculations.js → loiAdiabatique ; data/paleogeo_zones.js
             (CO2/scripts/paleogeo/paleodem_zones.py)</p>
     </div>
     <div class="eq P" id="eq-calottes-rebond-socle">
         <div class="titre"><span class="cl P">P</span> Calottes : rebond retardé du socle et conservation de la masse</div>
-        <div class="f" data-tex="\frac{dV}{dt} = \frac{a\,A\,\bar B(a, d)}{\rho_i},\quad V = \frac{8\pi}{15}\,C\,R^{5/2},\qquad \frac{\partial d}{\partial t} = \frac{\frac{\rho_i}{\rho_m}\,H - d}{\tau_b},\qquad \tau_b = \frac{4\pi\eta}{\rho_m\,g\,\lambda},\quad \lambda = \frac{3\,000}{1\,350}\;2\sqrt{\frac{A_{\text{continent}}}{\pi}}"></div>
-        <p>Au clic time, la calotte avance par la conservation de sa masse : son volume \(V\) (le dôme de son aire ; \(A\) aire de la bande) gagne ce que son bilan intégré lui apporte ; plafond : le continent
+        <div class="f" data-tex="\frac{dV}{dt} = \frac{a\,A\,\bar B(a, d)}{\rho_i},\quad V = N\,\frac{8\pi}{15}\,C\,R^{5/2},\ R = \sqrt{\frac{a\,A}{N\,\pi}},\qquad \frac{\partial d}{\partial t} = \frac{\frac{\rho_i}{\rho_m}\,H - d}{\tau_b},\qquad \tau_b = \frac{4\pi\eta}{\rho_m\,g\,\lambda},\quad \lambda = \frac{3\,000}{1\,350}\;2\sqrt{\frac{A_{\text{continent}}}{\pi}}"></div>
+        <p>Au clic time, la calotte avance par la conservation de sa masse : son volume \(V\) (celui de ses \(N\) dômes égaux de rayon \(R\) ; \(A\) aire de la bande) gagne ce que son bilan intégré lui apporte ; plafond : le continent
             de la bande, le surplus part à la mer. Le socle ne suit pas sa charge sans retard : son enfoncement \(d\), porté par cellule (48 par bande), relaxe vers l'équilibre d'Archimède \(\frac{\rho_i}{\rho_m}H\) en un temps \(\tau_b\) (asthénosphère
             relaxante locale, Le Meur &amp; Huybrechts 1996, éq. 1 et 4). Une calotte qui recule reste posée sur un socle encore
             enfoncé par sa charge passée : sa surface est plus basse, plus chaude, et fond davantage (Abe-Ouchi et al. 2013). À
@@ -999,7 +1015,7 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p>\(\tau_b\) : mode d'un demi-espace visqueux (Haskell ; Schubert, Turcotte &amp; Olson 2001, éq. 5.2.32). ⚠️ η =
             10²¹ Pa·s, mesure posée : viscosité moyenne du manteau jusqu'à ~1 400 km, tirée par cette même équation du soulèvement
             daté de la Fennoscandie (Haskell 1935 ; Mitrovica 1996 : 0,65–1,1·10²¹). ❔ λ = (3 000 / 1 350) × largeur de la charge, le
-            rapport de Schubert et al. pour la Fennoscandie, un seul cas ; ❔ largeur = 2 × le rayon du dôme qui couvre le continent de la bande, \(2\sqrt{A_{\text{continent}}/\pi}\) (la déformation garde la largeur de la plus grande
+            rapport de Schubert et al. pour la Fennoscandie, un seul cas ; ❔ largeur = 2 × le rayon du dôme unique qui couvrirait le continent de la bande (sans \(N\)), \(2\sqrt{A_{\text{continent}}/\pi}\) (la déformation garde la largeur de la plus grande
             charge, celle qui compte quand une calotte fond ; une petite calotte naissante relaxe donc trop vite). τ_b : Antarctique 1,19 ka, N_pol 0,94 ka, N_mid 0,66 ka (carte de 0 Ma). 🎯 Laurentide (2 500 km de large) : l'équation donne 2,21 ka pour
             2,6 ka observés (tableau 5.1, −15 %) — contrôle indépendant si η n'est pas tiré de ce même tableau (à vérifier).
             📖 Fennoscandie (1 350 km, 4,4 ka observés) : pas un contrôle, η et le rapport λ / largeur en viennent ; l'équation donne
@@ -1007,9 +1023,10 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p>Négligés : la flexion de la lithosphère (\(D k^4/\rho_m g\) &lt; 0,1 % pour λ ≥ 3 000 km, Bueler et al. 2007, éq. 14),
             la part élastique instantanée, la sphéricité, le manteau inférieur plus visqueux. ❔ Un seul τ_b par bande, celui de la
             calotte qui couvre le continent de sa bande ; η constante dans le temps.</p>
-        <p>Résolution : variable intégrée \(q = V^{1/5}\) : pour le dôme,
-            \(dq/dt = \frac{\pi}{5}\big(\frac{8\pi}{15}C\big)^{-4/5}\bar B/\rho_i\), fini à la naissance et constant à bilan constant ;
-            l'aire d'un volume est en forme close. Sur les 100 derniers milliers d'années du clic : Heun en \(q\),
+        <p>Résolution : variable intégrée \(q = V^{1/5}\) : pour \(N\) dômes égaux,
+            \(dq/dt = \frac{\pi}{5}\big(\frac{8\pi}{15}C\big)^{-4/5}N^{1/5}\,\bar B/\rho_i\), fini à la naissance et constant à bilan et
+            \(N\) constants ; l'aire d'un volume est en forme close à \(N\) donné, \(S = N^{1/5}\) fois celle d'un dôme unique de volume
+            \(V\) ; \(N\) dépend de l'aire, lu à l'aire par un point fixe en 4 itérations (\(N^{1/5}\) varie peu), plafonné par le continent. Sur les 100 derniers milliers d'années du clic : Heun en \(q\),
             calotte et socle ensemble, en sous-pas bornés par τ_b et par le temps propre
             \(\rho_i \max(\bar H, h_{\text{tol}}) / \max(\text{accumulation}, \text{fonte})\), \(h_{\text{tol}}\) = la tolérance du point
             fixe méridien ramenée en altitude, 0,01 K / Γ_s (gradient de surface au sommet) — une calotte plus mince ne se voit pas, et
@@ -1166,8 +1183,8 @@ Licensed under Apache License 2.0 with Commons Clause.
             pas une température), et non par le rang du bilan du sol nu qui place les calottes du moteur. ❔ Avant 540 Ma (pas de
             carte) : \(r = 1\).
             CALOTTE : l'air de la bande hors calotte (terre libre et mer libre au prorata de leurs aires,
-            ❔ les cellules de la table n'ont pas de longitude) la traverse sur sa corde moyenne \(\pi R_c/2\) (\(R_c = \sqrt{p_C A_{\text{bande}}/\pi}\), le rayon de
-            son dôme) et y échange sa chaleur : \(\kappa = 2uC_{\text{air}}/(\pi R_c)\) par m² de calotte, le raisonnement de \(\nu\) à
+            ❔ les cellules de la table n'ont pas de longitude) la traverse sur sa corde moyenne \(\pi R_c/2\) (\(R_c = \sqrt{p_C A_{\text{bande}}/(N\pi)}\), le rayon d'un des \(N\)
+            dômes de la calotte, \(N\) = CALOTTES.nDomes à la part \(p_C\) de la bande : ses morceaux connexes sur la carte) et y échange sa chaleur : \(\kappa = 2uC_{\text{air}}/(\pi R_c)\) par m² de calotte, le raisonnement de \(\nu\) à
             l'échelle du dôme ; il en rend l'écart à la terre libre et à la mer, \(\kappa' = \kappa\,p_C/(p_L + p_M)\) par m². Une petite
             calotte (\(\kappa\) grand) a l'air de la bande ; une grande, le sien, refroidi par son albédo. ⚠️ Impédance de la calotte =
             celle de la terre libre.
@@ -1213,7 +1230,7 @@ Licensed under Apache License 2.0 with Commons Clause.
             26:7852 ; Scotese &amp; Wright 2018 (PaleoDEM) ; Stefan 1891 ; Carslaw &amp; Jaeger 1959 ; Carnahan et al. 2021 ; Feistel &amp; Wagner 2006 ; IOC et al. 2010 (TEOS-10) ; Willmott &amp;
             Matsuura (UDel)</p>
         <p class="code">physics/saisons.js → SAISONS.cycles (terre.latitudes), terreLatitudes, terreDe, forcage, noeuds, points,
-            temperaturePoint, arc, epaisseurStefan, K.PART_AIR ; physics/saisons.js → systeme, distanceLibre ; physics/calottes.js → geographie, parts (rLibre) ; physics/meridien.js → resoudre,
+            temperaturePoint, arc, epaisseurStefan, K.PART_AIR ; physics/saisons.js → systeme, distanceLibre ; physics/calottes.js → geographie, parts (rLibre, nMorceaux), nDomes ; physics/meridien.js → resoudre,
             surfacesBandes (colonnes d'un m² de calotte, de terre libre et de mer libre, à chaque itération) ; physics/orbite.js → insolationCumulee, REFERENCE ; data/paleogeo_zones.js
             (CO2/scripts/paleogeo/paleodem_zones.py → distance_libre)</p>
     </div>

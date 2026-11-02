@@ -33,9 +33,9 @@
 //           paleodem_zones.py) à la part p_C/(p_C + p_L) de la terre que couvre la calotte, 1 sans calotte (ν/p_L et ν/p_M : les deux
 //           boîtes) et avant 540 Ma (❔ sans carte) ;
 //         · CALOTTE (MERIDIEN.surfacesBandes : sa part p_C de la bande, terre émergée et plateau) : l'air de la bande hors calotte
-//           (terre libre et mer libre au prorata de leurs aires) la traverse sur sa corde moyenne πR/2 (R : rayon de son dôme, √(p_C
-//           A_bande/π)) et y échange sa chaleur, le même raisonnement que ν à l'échelle de la calotte : κ = 2 u C_air / (π R) par m²
-//           de calotte ; il en rend l'écart à l'air hors calotte, κ' = κ p_C/(p_L + p_M) par m² de terre libre ou de mer. L'albédo
+//           (terre libre et mer libre au prorata de leurs aires) la traverse sur sa corde moyenne πR/2 (R : rayon d'UN des N dômes de
+//           la calotte, √(p_C A_bande/(N π)), N = CALOTTES.nDomes : ses morceaux connexes sur la carte) et y échange sa chaleur, le
+//           même raisonnement que ν à l'échelle du dôme : κ = 2 u C_air / (π R) par m² de calotte ; il en rend l'écart à l'air hors calotte, κ' = κ p_C/(p_L + p_M) par m² de terre libre ou de mer. L'albédo
 //           d'une calotte refroidit donc d'abord son propre air, et l'air de la bande par ce qu'il en emporte ; une petite calotte
 //           (κ grand) a l'air de la bande, une grande le sien ;
 //         · terre de la bande : la terre ÉMERGÉE de PALEOGEO à la date (CALOTTES.parts), moins la calotte qui la couvre : la terre
@@ -67,7 +67,9 @@
 //       pondérée par sa part de l'année g, au cycle de la fin du clic ; ⚠️ une seule dalle de glace par bande, à l'épaisseur
 //       moyenne de ses latitudes gelées ; ⚠️ mesures posées faute d'équation : couche de mélange, vitesse de l'air et part de la
 //       colonne d'air qu'elle advecte, effusivité du sol. Calendrier de Kepler et insolation d'une orbite : ceux de physics/orbite.js.
-// Version 2.9.1
+// Version 2.10.1
+// - v2.10.1 (2026-11-02): commentaires : R de κ est le rayon d'un des N dômes de la calotte.
+// - v2.10.0 (2026-11-02): l'air traverse un des dômes de la calotte (CALOTTES.nDomes), pas une calotte d'un seul tenant.
 // - v2.9.1 (2026-11-01): commentaires : couplage terre libre ↔ mer à la distance à la côte (ν/((p_C + p_L) r)), trois boîtes.
 // - v2.9.0 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre), au lieu du ❔ continental.
 // - v2.8.0 (2026-10-31): terre libre ↔ mer à la traversée du continent (calotte + terre libre), ❔ sans longitude.
@@ -75,7 +77,7 @@
 // - v2.6.1 (2026-10-31): terre d'un point = celle des tranches que recouvre sa cellule en x, au prorata de l'aire (Σ f Δx = terre).
 // - v2.6.0 (2026-10-30): terre de chaque latitude couplée à la mer de la bande à la part de terre de sa latitude (latitudes, terreDe) ;
 //   arcs gelés des terres à son cycle, pesant par sa part de terre.
-// Date: [November 1, 2026]
+// Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -388,7 +390,8 @@
             const xm = (b.x0 + b.x1) / 2;
             const nu = K.VENT_M_S * Cair / (2 * Math.PI * R * Math.sqrt(1 - xm * xm));                       // [W m⁻² K⁻¹]
             // Calotte : κ = 2 u C_air / (π R) par m² de calotte, R rayon de son dôme ; κ' = κ p_C / p_A par m² hors calotte.
-            const kap = p.C === 0 ? 0 : 2 * K.VENT_M_S * Cair / (Math.PI * Math.sqrt(p.C * window.CALOTTES.aireBande(b) / Math.PI));
+            // R : rayon d'un des dômes de la calotte (CALOTTES.nDomes : ses morceaux connexes sur la carte).
+            const kap = p.C === 0 ? 0 : 2 * K.VENT_M_S * Cair / (Math.PI * Math.sqrt(p.C * window.CALOTTES.aireBande(b) / (window.CALOTTES.nDomes(P[b.cle], p.C) * Math.PI)));
             const kp = p.C === 0 || pA === 0 ? 0 : kap * p.C / pA;
             // Moyennes annuelles : zone + écart de la bande (P₁) + écarts des trois boîtes, de somme nulle sur la bande (systeme à n = 0,
             // impédance B) : calotte θ_C = (a_C − ā) S₀ / (B + κ/p_A), air hors calotte θ_A = −p_C θ_C / p_A, terre libre − mer libre

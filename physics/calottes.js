@@ -9,8 +9,8 @@
 //           refroidissement uniforme les englacerait, froides (haute latitude, socle haut) et enneigées d'abord. La calotte de
 //           fraction a couvre, depuis son SOMMET et dans cet ordre, les cellules que son DÔME ATTEINT — un dôme de rayon R ne
 //           couvre que des terres à moins de R de son sommet : la tranche d'une cellule est à la distance max(0, |φ − φ_sommet| −
-//           2,5°) du sommet, et la cellule n'est gagnée que si le dôme qui la couvre a ce rayon (sinon la plus proche) —, jusqu'à
-//           l'aire a A_bande. Le relief est continu : la marge gagne une cellule par son HAUT, la part couverte d'une cellule est
+//           2,5°) du sommet, et la cellule n'est gagnée que si le dôme qui la couvre a ce rayon (sinon la plus proche ; ❔ la portée est
+//           celle d'un dôme de l'aire cumulée, sans N) —, jusqu'à l'aire a A_bande. Le relief est continu : la marge gagne une cellule par son HAUT, la part couverte d'une cellule est
 //           sa part la plus haute (socleCouvert). Le rang est celui du climat du calcul (boîtes, profil méridien), pas une place
 //           posée. SOMMET : un des candidats de la bande, la cellule de terre émergée la plus robuste de chaque tranche (la neige ne s'accumule pas
 //           sur la mer : la calotte gagne le plateau depuis la terre) ; une calotte NAÎT (a = 0) sur le premier, dans l'ordre de
@@ -21,21 +21,28 @@
 //           l'autre (📿🗻🧊) tant que son aire est positive et que sa cellule existe à la date ;
 //         · GÉOMÉTRIE : un DÔME parfaitement plastique (Nye 1952) sur un socle à l'équilibre d'Airy : τ = ρ_i g H |∇z_s|,
 //           z_s = socle déchargé + (1 − ρ_i/ρ_m) H, d'où H = C √s, C = √(2 τ / (ρ_i g (1 − ρ_i/ρ_m))), s la distance à la marge
-//           (H² proportionnel à s, solution de |∇(H²)| = constante nulle sur la marge). Le dôme de la calotte a l'aire de la
-//           calotte, rayon R = √(a A_bande / π) : V = (8π/15) C R^(5/2), V ∝ S^(5/4) (la loi d'échelle des calottes plastiques ;
-//           Paterson 1972, Rev. Geophys. 10:885 ; Bahr, Pfeffer & Kaser 2015, Rev. Geophys. 53:95, γ = 5/4) ; τ = PALEOGEO.tau_Pa,
-//           fermé sur le volume et l'aire posés de l'Antarctique par le script de la table (CO2/scripts/paleogeo/paleodem_zones.py)
-//           avec ce même dôme : une seule loi, une seule géométrie, un seul τ. Ses anneaux, du sommet à la marge, sont les cellules
-//           couvertes dans l'ordre où la marge les a gagnées (❔ croissance concentrique : la première cellule est le sommet, la
-//           dernière gagnée est la marge ; la table ne donne que la latitude des cellules, pas leur longitude) ; épaisseur moyenne
+//           (H² proportionnel à s, solution de |∇(H²)| = constante nulle sur la marge). Une calotte est d'un seul tenant : sur la
+//           carte, celle qui couvre la part a / continent du continent de la bande, la terre la plus froide d'abord, forme des
+//           morceaux connexes d'aires A_i, de nombre effectif N = (Σ A_i)² / Σ A_i² (PALEOGEO.n_morceaux, ⚛ la connexité sur la carte,
+//           ⚠️ le classement T₂ P₂(sin φ) − Γ z, ❔ N = 1 avant 540 Ma ; nDomes : linéaire entre deux parts, au-delà de 0,95 la dernière,
+//           N = 1 à aire nulle) ; un même nombre de km² de glace éparpillés sur plusieurs reliefs fait des dômes plus petits et plus
+//           minces (H ∝ √R) que s'ils formaient un seul dôme. La calotte est N dômes égaux (⚠️ des morceaux de même aire), chacun de
+//           rayon R = √(a A_bande / (N π)) : V = N (8π/15) C R^(5/2) = N^(−1/4) (8π/15) C (S/π)^(5/4), V ∝ S^(5/4) à N donné (la loi
+//           d'échelle des calottes plastiques ; Paterson 1972, Rev. Geophys. 10:885 ; Bahr, Pfeffer & Kaser 2015, Rev. Geophys. 53:95,
+//           γ = 5/4) ; τ = PALEOGEO.tau_Pa, fermé sur le volume et l'aire posés de l'Antarctique par le script de la table
+//           (CO2/scripts/paleogeo/paleodem_zones.py) avec le même dôme à N = 1 (l'Antarctique posé est d'un seul tenant) : une seule
+//           loi, une seule géométrie, un seul τ. Les anneaux de chaque dôme, du sommet à la marge, sont les cellules couvertes dans
+//           l'ordre où la marge les a gagnées, chaque cellule pour sa part dans chaque dôme (❔ croissance concentrique : la première
+//           cellule est le sommet, la dernière gagnée est la marge ; la table ne donne que la latitude des cellules, pas leur
+//           longitude) ; épaisseur moyenne
 //           exacte de chaque anneau ;
 //         · isostasie RETARDÉE : le socle s'enfonce de d, qui relaxe vers l'équilibre d'Airy (ρ_i / ρ_m) H au temps τ_b
 //           (asthénosphère relaxante locale, Le Meur & Huybrechts 1996, Ann. Glaciol. 23:309, éq. 1 et 4) ; τ_b = 4π η / (ρ_m g λ),
 //           demi-espace visqueux de Haskell (Schubert, Turcotte & Olson 2001, Mantle Convection, éq. 5.2.32) ; ⚠️ η = 10²¹ Pa·s
 //           mesure posée (tirée du soulèvement daté de la Fennoscandie : Haskell 1935 ; Mitrovica 1996, 0,65–1,1e21) ;
 //           λ = (3 000 / 1 350) × largeur de la charge, le rapport de Schubert et al. pour la Fennoscandie (⚠️ un seul cas), largeur
-//           = 2 × le rayon du dôme qui couvre le continent de la bande (❔ la déformation garde la largeur de la plus grande
-//           charge, celle qui compte quand une calotte fond) ; socle porté par cellule, z = socle déchargé + H − (ρ_i/ρ_m) H −
+//           = 2 × le rayon du dôme unique qui couvrirait le continent de la bande (❔ la déformation garde la largeur de la plus grande
+//           charge, celle qui compte quand une calotte fond ; sans N) ; socle porté par cellule, z = socle déchargé + H − (ρ_i/ρ_m) H −
 //           écart. Le socle resté bas sous une calotte qui fond l'expose à l'air plus chaud (Abe-Ouchi et al. 2013, Nature 500:190) ;
 //         · BILAN INTÉGRÉ sur toute la calotte, chaque cellule à SA latitude et SON altitude (Weertman 1976, Nature 261:17 ;
 //           Pollard 1978, Nature 272:233). TEMPÉRATURE d'un point : la boîte CALOTTE de sa bande (physics/saisons.js, mode
@@ -102,8 +109,9 @@
 //           sommet à placer (null) ; au clic time, il
 //           part de l'état du clic précédent et avance sur le temps écoulé par la CONSERVATION DE LA MASSE,
 //           dV/dt = a A_bande B̄ / ρ_i (plafond : le continent de la bande, le surplus part à la mer), avec le socle. Variable
-//           intégrée q = V^(1/5) : pour le dôme, dq/dt = (π/5) ((8π/15) C)^(−4/5) B̄ / ρ_i, fini à la naissance et constant à bilan
-//           constant. Heun en sous-pas bornés par τ_b et par le temps propre de la calotte,
+//           intégrée q = V^(1/5) : pour N dômes égaux, dq/dt = (π/5) ((8π/15) C)^(−4/5) N^(1/5) B̄ / ρ_i, fini à la naissance et
+//           constant à bilan constant, et l'aire de V est N^(1/5) fois celle d'un dôme de volume V, N pris à l'aire (point fixe en 4
+//           itérations, N^(1/5) varie peu). Heun en sous-pas bornés par τ_b et par le temps propre de la calotte,
 //           ρ_i max(H̄, tolérance) / max(accumulation, fonte), sur les MEMOIRE_ANS derniers ans du clic, jusqu'à sa fin (le
 //           forçage change à chaque sous-pas) ; avant, Euler implicite de la même loi en pas qui doublent, borné par l'équilibre
 //           à la date du pas (stable, un clic plus long avance plus loin) ; socle exact sous une charge linéaire sur chaque pas.
@@ -114,8 +122,9 @@
 //       1995) ; température annuelle à 2 m des stations S5, S6, S9 du Groenland ouest (van den Broeke et al. 2008, table 2) ;
 //       volume du Groenland (BedMachine v3, 2,99e6 km³). Pas des contrôles (📖) : le bilan de masse de ces stations (la forme de
 //       l'inversion hivernale regarde leur fonte d'été) et la masse des calottes portées (τ est fermé sur le volume de Bedmap2).
-//       Approximations DÉCLARÉES : une calotte par bande et par hémisphère, un seul dôme même sur des terres séparées en longitude
-//       (❔ il n'atteint que les tranches de latitude à sa portée) ;
+//       Approximations DÉCLARÉES : une calotte par bande et par hémisphère, de N dômes égaux (⚠️ des morceaux de même aire ; ⚠️ la
+//       part du continent couverte, la terre la plus froide d'abord ; ❔ N = 1 avant 540 Ma), dont la portée en latitude (❔ celle
+//       d'un dôme de l'aire cumulée) ne voit pas la longitude ;
 //       chaque cellule à sa latitude et à son socle moyens (❔ socle uniforme dans la cellule, centré sur sa moyenne et contenu
 //       dans sa classe, pour la part que couvre la marge) ; ⚠️ rang des cellules fixé sur un calcul (orbite de la fin du clic) ;
 //       ❔ le plateau continental est rangé comme une terre au niveau de la mer, et la glace qui le couvre est posée (⚠️ pas de
@@ -137,13 +146,15 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.18.1
+// Version 1.19.1
+// - v1.19.1 (2026-11-02): commentaires : une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte).
+// - v1.19.0 (2026-11-02): une calotte est N dômes (PALEOGEO.n_morceaux, ses morceaux connexes sur la carte) et non un seul.
 // - v1.18.1 (2026-11-01): commentaires : boîte calotte ou terre libre selon le point, cellules de la table sans longitude.
 // - v1.18.0 (2026-11-01): geographie et parts portent rLibre, distance de la terre libre à la côte (PALEOGEO.r_libre).
 // - v1.17.0 (2026-10-31): un point de calotte lit la boîte calotte de sa bande, sa marge et un sol nu la terre libre.
 // - v1.16.1 (2026-10-31): naissance d'un dôme d'une seule cellule définie ; borne basse du continent lue dans PALEOGEO.
 // - v1.16.0 (2026-10-31): la marge gagne une cellule par son haut (socleCouvert).
-// Date: [November 1, 2026]
+// Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -230,6 +241,8 @@
             }
             // Distance de la terre libre à la côte selon la part couverte (PALEOGEO.r_libre), interpolée entre les deux cartes.
             const rLibre = avant ? G.avant.r_libre : G.r_libre[b.cle][i].map((r, k) => (1 - w) * r + w * G.r_libre[b.cle][i + 1][k]);
+            // Nombre effectif de dômes selon la part couverte du continent (PALEOGEO.n_morceaux), interpolé entre les deux cartes.
+            const nMorceaux = avant ? G.avant.n_morceaux : G.n_morceaux[b.cle][i].map((n, k) => (1 - w) * n + w * G.n_morceaux[b.cle][i + 1][k]);
             const cellules = [];
             let continent = 0, emerge = 0;
             for (let n = 0; n < N; n++) {
@@ -242,7 +255,7 @@
                 throw new Error('[CALOTTES] PALEOGEO à ' + ageMa + ' Ma, ' + b.cle + ' : continent ' + continent + ', terre émergée ' + emerge + ' (≤ 1 attendu)');
             }
             out[b.cle] = { N: N, aire: aire, lat: lat, x: lat.map((l) => Math.sin(l * Math.PI / 180)), socle: socle, cellules: cellules,
-                continent: continent, emerge: emerge, rLibre: rLibre };
+                continent: continent, emerge: emerge, rLibre: rLibre, nMorceaux: nMorceaux };
         }
         return out;
     }
@@ -252,7 +265,7 @@
      *  geographie(), la seule source de la terre par bande. */
     function parts() {
         const G = geographie(), out = {};
-        for (const b of BANDES) out[b.cle] = { continent: G[b.cle].continent, emerge: G[b.cle].emerge, rLibre: G[b.cle].rLibre };
+        for (const b of BANDES) out[b.cle] = { continent: G[b.cle].continent, emerge: G[b.cle].emerge, rLibre: G[b.cle].rLibre, nMorceaux: G[b.cle].nMorceaux };
         return out;
     }
 
@@ -267,17 +280,32 @@
      *  sans neige ni bilan (sansCalotte). */
     const rangSocle = (gb) => gb.cellules.slice().sort((p, q) => (emergee(q) - emergee(p)) || (gb.socle[q] - gb.socle[p]));
 
-    /** Géométrie de la calotte de fraction a de la bande (a ≤ continent), dôme de rayon R = √(a A_bande / π) posé sur les
-     *  cellules dans l'ordre du rang gb.rang : part couverte f de chaque cellule (la dernière, la marge, en partie), liste des
+    /** Valeur d'une table de la carte aux parts PALEOGEO.fractions_libre (r_libre, n_morceaux) à la part f : linéaire entre deux
+     *  parts ; au-delà de la dernière (0,95), sa valeur. */
+    function selonPart(r, f) {
+        const F = window.PALEOGEO.fractions_libre;
+        let k = 0;
+        while (k < F.length - 2 && F[k + 1] < f) k++;
+        const t = Math.min(1, (f - F[k]) / (F[k + 1] - F[k]));
+        return r[k] + t * (r[k + 1] - r[k]);
+    }
+    /** Nombre effectif de dômes d'une calotte de fraction a de la bande : PALEOGEO.n_morceaux à la part a / continent (une calotte est
+     *  d'un seul tenant : ses morceaux connexes sur la carte) ; aire nulle : un dôme. */
+    const nDomes = (gb, a) => a === 0 ? 1 : selonPart(gb.nMorceaux, a / gb.continent);
+
+    /** Géométrie de la calotte de fraction a de la bande (a ≤ continent) : N = nDomes dômes égaux (⚠️ des morceaux de même aire), de
+     *  rayon R = √(a A_bande / (N π)), posés sur les cellules dans l'ordre du rang gb.rang (chaque cellule pour sa part dans chaque
+     *  dôme) : part couverte f de chaque cellule (la dernière, la marge, en partie), liste des
      *  cellules couvertes (du sommet à la marge), épaisseur moyenne H [m] de leur partie couverte — moyenne exacte de C √(R − ρ)
-     *  sur l'anneau ρ₀ … ρ₁ qu'elle occupe, écrite sans soustraction de grands nombres —, rayon R [m] et volume V [m³]. */
+     *  sur l'anneau ρ₀ … ρ₁ qu'elle occupe, écrite sans soustraction de grands nombres —, nombre de dômes N, rayon R [m] d'un dôme et
+     *  volume V [m³] des N dômes. */
     function geometrie(a, bande, gb) {
-        const Ab = aireBande(bande), A = a * Ab, R = Math.sqrt(A / Math.PI), C = plastique();
+        const N = nDomes(gb, a), Ab = aireBande(bande), A = a * Ab / N, R = Math.sqrt(A / Math.PI), C = plastique();
         const f = new Float64Array(gb.N), H = new Float64Array(gb.N), couvertes = [];
         let S = 0;
         for (const i of gb.rang) {
             if (!(S < A)) break;
-            const w = gb.aire[i] * Ab, reste = A - S, marge = w >= reste, c = marge ? reste : w;
+            const w = gb.aire[i] * Ab / N, reste = A - S, marge = w >= reste, c = marge ? reste : w;   // part de la cellule dans un dôme
             const r0 = Math.sqrt(S / Math.PI), r1 = marge ? R : Math.sqrt((S + c) / Math.PI);
             const u0 = reste / (Math.PI * (R + r0)), u1 = (reste - c) / (Math.PI * (R + r1)), m = Math.sqrt(u0 * u1);
             const P3 = u0 + m + u1, P5 = u0 * u0 + u0 * m + u0 * u1 + u1 * m + u1 * u1;
@@ -286,7 +314,7 @@
             couvertes.push(i);
             S += c;
         }
-        return { f: f, H: H, couvertes: couvertes, R: R, V: volumeDome(R) };
+        return { f: f, H: H, couvertes: couvertes, N: N, R: R, V: N * volumeDome(R) };
     }
 
     /** [m] Socle moyen de la part f d'une cellule que couvre la calotte (f = 0 : son point le plus haut). La marge gagne une
@@ -442,7 +470,7 @@
      * marge — le dernier anneau — dans l'air de la terre libre (colonne marge). Une calotte d'aire nulle vaut le bilan de son
      * sommet, la première cellule du rang (geo.rang), à son point le plus haut (m + w), SANS GLACE : sa surface suit l'air libre
      * de la terre libre (colonne libre) tant qu'aucune calotte ne la couvre. Renvoie aussi l'épaisseur
-     * moyenne H̄ [m], l'altitude, la latitude et la température moyennes, la distance du sommet à la marge (rayon du dôme, marge
+     * moyenne H̄ [m], l'altitude, la latitude et la température moyennes, la distance du sommet à la marge (rayon d'un dôme, marge
      * [km]), les degrés-jours, la fonte possible d'une neige et d'une glace (contrôle 🎯 des facteurs degrés-jours) et l'albédo
      * annuel. o : orbite de la date.
      */
@@ -671,7 +699,7 @@
     }
 
     /** Temps de rebond du demi-espace visqueux de la bande [an], τ_b = 4π η / (ρ_m g λ), λ = (3 000/1 350) × largeur de la calotte
-     *  qui couvre son continent, deux fois le rayon de son dôme (en-tête). */
+     *  qui couvre son continent, deux fois le rayon du dôme unique qui le couvrirait (en-tête). */
     const tempsRebond = (bande, gb) => 4 * Math.PI * K.VISCOSITE_MANTEAU
         / (K.RHO_MANTEAU * window.DATA['📅']['🍎'] * K.LAMBDA_SUR_LARGEUR * 2 * Math.sqrt(gb.continent * aireBande(bande) / Math.PI))
         / (window.CONST.AN_TROPIQUE_JOURS * window.CONV.SECONDS_PER_DAY);
@@ -779,9 +807,16 @@
             // la naissance, constant à bilan constant ; aire du dôme de volume V, πR² avec R = (15 V / (8π C))^(2/5), plafonnée par le
             // continent (au plafond, le surplus part à la mer : la calotte garde le volume du dôme du continent).
             const eq = 1 / 5, Kq = Math.PI / 5 * Math.pow(8 * Math.PI / 15 * plastique(), -0.8) / CONST.RHO_GLACE;
-            const Acont = aireBande(b) * gb.continent;
-            const versA = (qq) => qq > 0 ? Math.min(Acont, Math.PI * Math.pow(15 * Math.pow(qq, 5) / (8 * Math.PI * plastique()), 0.8)) / aireBande(b) : 0;
-            const taux = (ak, gk, Bk) => Kq * Bk;
+            // N dômes égaux : V = N^(−1/4) (8π/15) C (S/π)^(5/4) ⇒ dq/dt = Kq N^(1/5) B̄ et S = N^(1/5) × celle d'un dôme de volume V,
+            // N pris à l'aire (point fixe, N^(1/5) varie peu).
+            const versA = (qq) => {
+                if (!(qq > 0)) return 0;
+                const un = Math.PI * Math.pow(15 * Math.pow(qq, 5) / (8 * Math.PI * plastique()), 0.8) / aireBande(b);
+                let x = Math.min(gb.continent, un);
+                for (let it = 0; it < 4; it++) x = Math.min(gb.continent, un * Math.pow(nDomes(gb, x), 0.2));
+                return x;
+            };
+            const taux = (ak, gk, Bk) => Kq * Math.pow(gk.N, 0.2) * Bk;
             let a = a0, g = geometrie(a, b, gb), L = charge(g, N);
             let d = L.map((v, i) => v + e[i]);                                   // [m] enfoncement moyen de chaque cellule, + vers le bas
             // Socle au bout de h années sous une charge qui passe linéairement de L (calotte courante) à celle de aN :
@@ -882,5 +917,5 @@
 
     window.CALOTTES = { K: K, BANDES: BANDES, aireBande: aireBande, parts: parts, geographie: geographie, geometrie: geometrie, normale: normale, fonteJour: fonteJour, bilanPoint: bilanPoint,
         colonne: colonne, contexte: contexte, bilanCalotte: bilanCalotte, calculer: calculer, depuisConfig: depuisConfig,
-        engager: engager, socleEquilibre: socleEquilibre, rangBilan: rangBilan };
+        engager: engager, socleEquilibre: socleEquilibre, rangBilan: rangBilan, nDomes: nDomes };
 })();
