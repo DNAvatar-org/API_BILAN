@@ -113,8 +113,9 @@
 //           constant à bilan constant, et l'aire de V est N^(1/5) fois celle d'un dôme de volume V, N pris à l'aire (point fixe en 4
 //           itérations, N^(1/5) varie peu). Heun en sous-pas bornés par τ_b et par le temps propre de la calotte,
 //           ρ_i max(H̄, tolérance) / max(accumulation, fonte), sur les MEMOIRE_ANS derniers ans du clic, jusqu'à sa fin (le
-//           forçage change à chaque sous-pas) ; avant, Euler implicite de la même loi en pas qui doublent, borné par l'équilibre
-//           à la date du pas (stable, un clic plus long avance plus loin) ; socle exact sous une charge linéaire sur chaque pas.
+//           forçage change à chaque sous-pas) ; avant, Euler implicite de la même loi en pas qui doublent sous l'orbite MOYENNE de
+//           cet intervalle (SAISONS.moyenne, circulaire à l'obliquité moyenne de La2004 : un pas de plusieurs cycles orbitaux ne
+//           tient pas l'orbite d'une date ; ⚠️ le bilan de l'orbite moyenne et non la moyenne des bilans), borné par l'équilibre de cette orbite (stable, un clic plus long avance plus loin) ; socle exact sous une charge linéaire sur chaque pas.
 //         · MASSE : ρ_i Σ V des calottes du pas (🧮⚖️🗻🧊, posée par physics/meridien.js), engagée avec elles (⚖️🗻🧊) ; c'est la
 //           glace continentale du partage de l'eau (h2o/calculations_h2o.js).
 //       Contrôles 🎯 (pas des entrées) : accumulation moyenne de l'Antarctique posé, 143 ± 4 kg m⁻² an⁻¹ (Arthern et al. 2006, JGR
@@ -146,14 +147,10 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.19.1
+// Version 1.20.0
+// - v1.20.0 (2026-11-02): part ancienne d'un clic sous l'orbite moyenne (SAISONS.moyenne), plus l'orbite d'une date par pas.
 // - v1.19.1 (2026-11-02): commentaires : une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte).
 // - v1.19.0 (2026-11-02): une calotte est N dômes (PALEOGEO.n_morceaux, ses morceaux connexes sur la carte) et non un seul.
-// - v1.18.1 (2026-11-01): commentaires : boîte calotte ou terre libre selon le point, cellules de la table sans longitude.
-// - v1.18.0 (2026-11-01): geographie et parts portent rLibre, distance de la terre libre à la côte (PALEOGEO.r_libre).
-// - v1.17.0 (2026-10-31): un point de calotte lit la boîte calotte de sa bande, sa marge et un sol nu la terre libre.
-// - v1.16.1 (2026-10-31): naissance d'un dôme d'une seule cellule définie ; borne basse du continent lue dans PALEOGEO.
-// - v1.16.0 (2026-10-31): la marge gagne une cellule par son haut (socleCouvert).
 // Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -653,7 +650,7 @@
             if (!cache.has(cle)) cache.set(cle, S.sommesNoeuds(P, l, K.NOEUDS));
             return cache.get(cle);
         };
-        const cleDate = (o) => o.k + ':' + o.w + (o.hors ? 'h' : '');
+        const cleDate = S.cle;
         const c = {
             saisons: saisons, absorbe: absorbe, LOI: LOI,
             // ∂F_q/∂x / (2π a²), a = rayon 📐 ; par an (année tropique)
@@ -687,7 +684,7 @@
             insolation: (o, latDeg) => {
                 const l = Math.round(latDeg), cle = cleDate(o) + ':' + l;
                 if (!dates.has(cle)) {
-                    const R = parNoeud(refs, (o.hors ? 'h' : 'r') + l, S.reference(o), l);
+                    const R = parNoeud(refs, (o.hors ? 'h' + o.obliquite + ':' : 'r') + l, S.reference(o), l);
                     const A0 = parNoeud(lignes, o.k * 181 + l + 90, window.ORBITE.anomalieLigne(o.k), l);
                     const A1 = parNoeud(lignes, (o.k + 1) * 181 + l + 90, window.ORBITE.anomalieLigne(o.k + 1), l);
                     dates.set(cle, R.map((v, j) => sol * (v + (1 - o.w) * A0[j] + o.w * A1[j])));
@@ -746,8 +743,8 @@
      * ρ_i max(H̄, tolérance) / max(accumulation, fonte) — la tolérance du point fixe méridien ramenée en altitude,
      * MERIDIEN.TOLERANCE_K / Γ_s (gradient de surface de la colonne du sommet) : une calotte plus mince ne se voit pas, et le pas
      * ne se réduit pas sans fin quand elle fond ;
-     * avant, Euler implicite (même taux, à l'état d'arrivée, à son socle et à sa date) en pas qui doublent depuis ce sous-pas,
-     * cherché entre l'état courant et l'équilibre sous l'orbite de la date d'arrivée ; socle relaxé vers l'équilibre d'Airy
+     * avant, Euler implicite (même taux, à l'état d'arrivée et à son socle) sous l'orbite moyenne de cet intervalle
+     * (SAISONS.moyenne), en pas qui doublent depuis ce sous-pas, cherché entre l'état courant et l'équilibre sous cette orbite ; socle relaxé vers l'équilibre d'Airy
      * d'une charge qui varie linéairement sur le pas (solution exacte de dd/dt = (L − d)/τ_b).
      * aEq : équilibre à socle d'Airy sous l'orbite de la fin du clic ; tau : temps de renouvellement au départ.
      * Hors d'un monde à océan (H2O.mondeOcean), pas de calotte : sansCalotte.
@@ -771,6 +768,9 @@
         // La2004, l'orbite de référence à l'obliquité de l'époque (physics/saisons.js).
         const orbite = (t) => window.SAISONS.date(ageFin + dureeAns - t);
         const oDepart = orbite(0), oFin = orbite(dureeAns);
+        // Part ancienne du clic (avant ses MEMOIRE_ANS derniers ans) : l'orbite moyenne sur la précession et l'obliquité de cet
+        // intervalle (SAISONS.moyenne) — un pas qui dure plusieurs de leurs cycles ne tient pas l'orbite d'une seule date.
+        const oMoyenne = window.SAISONS.moyenne(ageFin + dureeAns, ageFin + Math.min(dureeAns, K.MEMOIRE_ANS));
         const res = {};
         let masseTotale = 0;
         for (const b of BANDES) {
@@ -830,26 +830,27 @@
             const prendre = (s) => { a = s.a; g = s.g; L = s.L; d = s.d; e = s.e; };
             // Sous-pas : τ_b et le temps propre de la calotte, épaisseur comptée au moins à la tolérance ; sans calotte, τ_b.
             const pasPropre = (mb) => Math.min(tauB, a === 0 ? Infinity : CONST.RHO_GLACE * Math.max(mb.H, tolZ) / Math.max(mb.accumulation, mb.fonte));
-            // Équilibre à socle d'Airy sous l'orbite d'une date, cherché depuis l'état courant (cible d'un pas implicite) ; une date
-            // par position dans la table (k + w), celle de la fin du clic déjà connue.
-            const equilibres = new Map([[oFin.k + oFin.w, aEq]]);
+            // Équilibre à socle d'Airy sous une orbite, cherché depuis l'état courant à la première lecture (cible des pas implicites,
+            // sous l'orbite moyenne) ; celui de l'orbite de la fin du clic déjà connu (la même avant −51 Ma).
+            const equilibres = new Map([[window.SAISONS.cle(oFin), aEq]]);
             const equilibreA = (o) => {
-                if (!equilibres.has(o.k + o.w)) equilibres.set(o.k + o.w, equilibre(a, b, gb, c, zero, o));
-                return equilibres.get(o.k + o.w);
+                const k = window.SAISONS.cle(o);
+                if (!equilibres.has(k)) equilibres.set(k, equilibre(a, b, gb, c, zero, o));
+                return equilibres.get(k);
             };
             const ancien = Math.max(0, dureeAns - K.MEMOIRE_ANS);
             let t = 0, n = 0;
-            // Part ancienne du clic : Euler implicite en q, q(a') = q + h dq/dt(a', socle et orbite d'arrivée), a' entre a et
-            // l'équilibre de la date d'arrivée ; pas doublés.
-            let hAncien = pasPropre(bilanCalotte(a, b, gb, c, e, oDepart));
+            // Part ancienne du clic : Euler implicite en q sous l'orbite moyenne, q(a') = q + h dq/dt(a', socle d'arrivée), a' entre a
+            // et l'équilibre de l'orbite moyenne ; pas doublés.
+            let hAncien = pasPropre(bilanCalotte(a, b, gb, c, e, oMoyenne));
             while (t < ancien) {
-                const h = Math.min(hAncien, ancien - t), q0 = Math.pow(g.V, eq), o = orbite(t + h);
+                const h = Math.min(hAncien, ancien - t), q0 = Math.pow(g.V, eq);
                 const G = (x) => {
                     const s = socleApres(x, h);
-                    return Math.pow(s.g.V, eq) - q0 - h * taux(x, s.g, bilanCalotte(x, b, gb, c, s.e, o).B);
+                    return Math.pow(s.g.V, eq) - q0 - h * taux(x, s.g, bilanCalotte(x, b, gb, c, s.e, oMoyenne).B);
                 };
                 const s0 = Math.sign(G(a));
-                let lo = a, hi = equilibreA(o);
+                let lo = a, hi = equilibreA(oMoyenne);
                 for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (Math.sign(G(m)) === s0) lo = m; else hi = m; }
                 prendre(socleApres((lo + hi) / 2, h));
                 t += h; hAncien *= 2; n++;

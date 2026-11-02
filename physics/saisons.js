@@ -67,16 +67,11 @@
 //       pondérée par sa part de l'année g, au cycle de la fin du clic ; ⚠️ une seule dalle de glace par bande, à l'épaisseur
 //       moyenne de ses latitudes gelées ; ⚠️ mesures posées faute d'équation : couche de mélange, vitesse de l'air et part de la
 //       colonne d'air qu'elle advecte, effusivité du sol. Calendrier de Kepler et insolation d'une orbite : ceux de physics/orbite.js.
-// Version 2.10.1
+// Version 2.11.0
+// - v2.11.0 (2026-11-02): orbite moyenne d'un intervalle (moyenne : circulaire, obliquité moyenne de La2004), lue par la part
+//   ancienne d'un clic ; l'orbite porte son obliquité hors de la solution (cle des caches).
 // - v2.10.1 (2026-11-02): commentaires : R de κ est le rayon d'un des N dômes de la calotte.
 // - v2.10.0 (2026-11-02): l'air traverse un des dômes de la calotte (CALOTTES.nDomes), pas une calotte d'un seul tenant.
-// - v2.9.1 (2026-11-01): commentaires : couplage terre libre ↔ mer à la distance à la côte (ν/((p_C + p_L) r)), trois boîtes.
-// - v2.9.0 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre), au lieu du ❔ continental.
-// - v2.8.0 (2026-10-31): terre libre ↔ mer à la traversée du continent (calotte + terre libre), ❔ sans longitude.
-// - v2.7.0 (2026-10-31): trois boîtes par bande, calotte, terre libre et mer libre ; la calotte échange avec l'air qui la traverse.
-// - v2.6.1 (2026-10-31): terre d'un point = celle des tranches que recouvre sa cellule en x, au prorata de l'aire (Σ f Δx = terre).
-// - v2.6.0 (2026-10-30): terre de chaque latitude couplée à la mer de la bande à la part de terre de sa latitude (latitudes, terreDe) ;
-//   arcs gelés des terres à son cycle, pesant par sa part de terre.
 // Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -108,9 +103,34 @@
     const div = (a, b) => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
     const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
-    /** Date du forçage pour un âge [années avant 2025] : les deux lignes de la table La2004 qui l'encadrent (ORBITE.encadrement)
-     *  et hors = date hors de la solution (avant −51 Ma : orbite circulaire à l'obliquité de l'époque, reference). */
-    const date = (age) => Object.assign(window.ORBITE.encadrement(age), { hors: !window.ORBITE.valide(age) });
+    /** Date du forçage pour un âge [années avant 2025] : les deux lignes de la table La2004 qui l'encadrent (ORBITE.encadrement),
+     *  hors = date hors de la solution (avant −51 Ma) et l'obliquité de son orbite de référence (reference : circulaire à
+     *  l'obliquité de l'époque, 📜⚾ ; dans la solution, l'obliquité est celle des lignes : null). */
+    const date = (age) => {
+        const hors = !window.ORBITE.valide(age);
+        return Object.assign(window.ORBITE.encadrement(age), { hors: hors, obliquite: hors ? window.DATA['📜']['⚾'] : null });
+    };
+    /** Clé d'une orbite pour les caches : ses lignes et, hors de la solution, son obliquité. */
+    const cle = (o) => o.k + ':' + o.w + (o.hors ? 'h' + o.obliquite : '');
+    let _moyenne = null;
+    /** Orbite MOYENNE de ageDebut à ageFin [années avant 2025, ageDebut ≥ ageFin], sur la précession et l'obliquité : circulaire —
+     *  la moyenne sur la précession efface les termes en e cos(λ − ϖ) (❔ termes en e² négligés) — à l'obliquité moyenne de La2004
+     *  sur l'intervalle, un échantillon par ligne de la table ; hors de la solution, l'obliquité de l'époque (📜⚾ ; ❔ pour un
+     *  intervalle à cheval sur −51 Ma, celle que 📜⚾ porte à la date du calcul). Lue par la part ancienne d'un clic
+     *  (physics/calottes.js) ; la dernière est gardée (un clic la relit à chaque itération). */
+    function moyenne(ageDebut, ageFin) {
+        const eps0 = window.DATA['📜']['⚾'], c = ageDebut + ':' + ageFin + ':' + eps0;
+        if (_moyenne === null || _moyenne.c !== c) {
+            const n = Math.max(1, Math.ceil((ageDebut - ageFin) / window.LA2004.pasAns));
+            let ecart = 0;
+            for (let i = 0; i < n; i++) {
+                const age = ageFin + (i + 0.5) * (ageDebut - ageFin) / n;
+                if (window.ORBITE.valide(age)) ecart += window.ORBITE.obliquiteDeg(age) - eps0;
+            }
+            _moyenne = { c: c, o: { k: window.ORBITE.N_LIGNES, w: 0, hors: true, obliquite: eps0 + ecart / n } };
+        }
+        return _moyenne.o;
+    }
 
     /** Soleil de l'époque rapporté au Soleil actuel (luminosités, compute.js et CONST.L_SOLEIL_W) : l'insolation d'astronomie.js est
      *  celle du Soleil actuel. */
@@ -120,16 +140,19 @@
     /**
      * Insolation de l'orbite de référence, en sommes CUMULÉES par pas à la latitude entière demandée — la forme des lignes
      * d'anomalie d'ORBITE ({ ligne(lat) }, lue par ORBITE.sommeAnomalie). Dans la solution La2004 : l'orbite de 1950, celle dont
-     * ORBITE donne l'écart (ORBITE.REFERENCE) ; hors de la solution (o.hors) : orbite circulaire à l'obliquité de l'époque
+     * ORBITE donne l'écart (ORBITE.REFERENCE) ; hors de la solution (o.hors) : orbite circulaire à l'obliquité de l'orbite (o.obliquite)
      * (ORBITE.insolationCumulee) — aucune phase de précession n'y est connue, et la moyenne sur la précession efface les termes en
      * e cos(λ − ϖ) (❔ termes en e² négligés ; l'orbite de 1950, périhélie en janvier, donnerait un été austral plus fort à toutes
      * les époques anciennes).
      */
     function reference(o) {
         if (!o.hors) return window.ORBITE.REFERENCE;
-        const eps = window.DATA['📜']['⚾'] * DEG, cle = eps.toFixed(8);
-        if (!_circulaires.has(cle)) _circulaires.set(cle, window.ORBITE.insolationCumulee({ obliquite: eps, excentricite: 0, varpi: 0 }));
-        return _circulaires.get(cle);
+        const eps = o.obliquite * DEG, c = eps.toFixed(8);
+        if (!_circulaires.has(c)) {
+            _circulaires.set(c, window.ORBITE.insolationCumulee({ obliquite: eps, excentricite: 0, varpi: 0 }));
+            if (_circulaires.size > K.CACHE_LIGNES) _circulaires.delete(_circulaires.keys().next().value);
+        }
+        return _circulaires.get(c);
     }
 
     /** Points d'une bande : N_X points uniformes en x = sin |φ| (moyenne de bande = moyenne de surface), { x, lat } ; lat = latitude
@@ -258,9 +281,12 @@
      * { cle: { S0, F1, F2 } } [W/m², Soleil actuel] — référence + écart de la ligne k + w × (écart de la ligne k + 1 − celui de k).
      */
     function forcage(o) {
-        const r = reference(o), cle = o.hors ? 'h' + window.DATA['📜']['⚾'].toFixed(8) : '1950';
-        if (!_harmRef.has(cle)) _harmRef.set(cle, harmoniques(r));
-        const R = _harmRef.get(cle), A0 = harmoniquesLigne(o.k), A1 = harmoniquesLigne(o.k + 1), w = o.w, out = {};
+        const r = reference(o), c = o.hors ? 'h' + o.obliquite.toFixed(8) : '1950';
+        if (!_harmRef.has(c)) {
+            _harmRef.set(c, harmoniques(r));
+            if (_harmRef.size > K.CACHE_LIGNES) _harmRef.delete(_harmRef.keys().next().value);
+        }
+        const R = _harmRef.get(c), A0 = harmoniquesLigne(o.k), A1 = harmoniquesLigne(o.k + 1), w = o.w, out = {};
         const m = (a, b) => [(1 - w) * a[0] + w * b[0], (1 - w) * a[1] + w * b[1]];
         for (const b of window.CALOTTES.BANDES) {
             const x = R[b.cle], u = A0[b.cle], v = A1[b.cle];
@@ -519,7 +545,7 @@
     /** Terre de la latitude x = sin |φ| de la bande ({ T, G1, G2 } : celle du point de la bande le plus proche, saisons[b].terre.latitudes). */
     const terreDe = (terre, b, x) => terre.latitudes[Math.floor((x - b.x0) / (b.x1 - b.x0) * K.N_X)];
 
-    window.SAISONS = { K: K, date: date, terreDe: terreDe, soleil: soleil, reference: reference, forcage: forcage, sommesNoeuds: sommesNoeuds, noeuds: noeuds, cycleDe: cycleDe,
+    window.SAISONS = { K: K, date: date, cle: cle, moyenne: moyenne, terreDe: terreDe, soleil: soleil, reference: reference, forcage: forcage, sommesNoeuds: sommesNoeuds, noeuds: noeuds, cycleDe: cycleDe,
         points: points, temperaturePoint: temperaturePoint, temperaturesNoeuds: temperaturesNoeuds, arc: arc, arcPoint: arcPoint, epaisseurStefan: epaisseurStefan,
         cycles: cycles };
 })();

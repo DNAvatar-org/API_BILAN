@@ -1,13 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.10.9
+// Version 1.11.0
+// - v1.11.0 (2026-11-02): fourchettes du banc à la date du clic (benchLitA, BENCH_LIT_DATEES : NOAA 2025 pour 📱).
 // - v1.10.9 (2026-11-01): 🐾 : premier pas jusqu'à 805 ka aux masses de la racine, puis 5 ka jusqu'à 800 ka.
 // - v1.10.8 (2026-10-31): frontière F1 remesurée : 1a et ⛄ à 4 250 ppm de CO₂.
-// - v1.10.7 (2026-10-31): CO₂ de 🪸 à 79,4 mbar (🔧 : moyenne géométrique de Kanzaki & Murakami 2015).
-// - v1.10.6 (2026-10-31): 🧫 par clic : 🦕 et 🦤 lisent celle de 💀 (lendemains de crise), 🦕 à 151,9 Ma celle de 📱 (état 🔁) ;
-//   fourchettes ch4 du banc de 🍄 💀 🦕 🐊 à la règle de l'encadré « CH₄ DES ÉPOQUES ».
-// - v1.10.5 (2026-10-31): commentaires : pressureBroadening (σ à la (T, P) de chaque couche), sources de 🧫 de 🦕 relues.
-// Date: [October 31, 2026]
+// Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -1911,6 +1908,20 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } }
 };
 
+// Fourchettes DATÉES : la littérature à l'année où un clic arrive (banc : window.benchLitA), mesures seulement — la mesure, à
+// la largeur de la fourchette de l'époque à ▶.
+(function () {
+    const autour = (v, r) => [v - (r[1] - r[0]) / 2, v + (r[1] - r[0]) / 2];
+    const B = window.BENCH_LIT_BY_EPOCH_ID;
+    window.BENCH_LIT_DATEES = {
+        '📱': {
+            2025: { co2: autour(427.35, B['📱'].co2), ch4: autour(1.936, B['📱'].ch4),
+                src: { co2: "✅ NOAA Mauna Loa 2025 = 427,35 ppm (air sec, moyenne annuelle), à la largeur de la fourchette de 2000",
+                       ch4: "✅ NOAA GML moyenne globale 2025 = 1,936 ppm, à la largeur de la fourchette de 2000" } }
+        }
+    };
+})();
+
 // Paramètres de calcul (convergence radiatif)
 // Convention de source :
 // - [OBS/CALIB] : valeur issue d'observations/littérature ou calibration sur observations
@@ -2190,6 +2201,24 @@ window.CONFIG_COMPUTE.logRnDNotes = true;
         Object.defineProperty(B, 'tC', { enumerable: true, get: () => { const c = cyan(EP, EP['▶']); return [c[1], c[3]]; } });
         Object.defineProperty(B.src, 'tC', { enumerable: true, get: () => '📈 courbe cyan d\'Histoire à ▶ (± 1σ) : ' + cyan(EP, EP['▶'])[4] });
     }
+    // Fourchettes d'une ligne du banc arrivée à date (unité de ▶ de son époque : âge ou année) : à ▶, celles de l'époque ;
+    // ailleurs, la littérature À CETTE DATE — la courbe cyan (tC) et les fourchettes datées (BENCH_LIT_DATEES) —, une
+    // fourchette de ▶ ne valant pas pour une autre date. Rien après AN_PRESENT : aucune mesure du futur.
+    window.benchLitA = function (id, date) {
+        const EP = window.TIMELINE.find((e) => e['📅'] === id);
+        if (date === EP['▶']) return window.BENCH_LIT_BY_EPOCH_ID[id];
+        const an = Math.round(date), L = { src: {} };
+        if (age(EP, an) >= 0) {
+            const c = cyan(EP, an);
+            L.tC = [c[1], c[3]];
+            L.src.tC = '📈 courbe cyan d\'Histoire à la date du clic (± 1σ) : ' + c[4];
+        }
+        if (id in window.BENCH_LIT_DATEES && an in window.BENCH_LIT_DATEES[id]) {
+            const D = window.BENCH_LIT_DATEES[id][an];
+            for (const k of Object.keys(D.src)) { L[k] = D[k]; L.src[k] = D.src[k]; }
+        }
+        return L;
+    };
 })();
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -4,14 +4,10 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.11.4
+Version 2.11.5
+  - v2.11.5 (2026-11-02): part ancienne d'un clic sous l'orbite moyenne de l'intervalle (circulaire, obliquité moyenne de La2004).
   - v2.11.4 (2026-11-02): une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte), κ au rayon d'un dôme.
   - v2.11.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre, calculée sur les PaleoDEM).
-  - v2.11.2 (2026-11-01): trois boîtes par bande (calotte, terre libre, mer libre), arrêt du point fixe par dichotomie.
-  - v2.11.1 (2026-10-31): terre de chaque latitude au prorata de l'aire, bas du continent, 🧫 par clic.
-  - v2.11.0 (2026-10-31): sections efficaces σ(λ, T, P), arrêt du point fixe par encadrement, marge des calottes par le haut de
-    la cellule ; valeurs de 📱 et forçages remesurés.
-  - v2.10.0 (2026-10-30): terre de chaque latitude, forêt de chaque bande, sommet des calottes, arrêt du point fixe sur T₂.
 Date: [November 2, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
@@ -1033,8 +1029,12 @@ Licensed under Apache License 2.0 with Commons Clause.
             une calotte qui fond disparaît en un nombre fini de sous-pas ; l'orbite est celle de la date de départ puis d'arrivée de
             chaque sous-pas, jusqu'au bout du clic. Socle : solution exacte pour une charge qui varie linéairement sur le sous-pas,
             \(d(h) = L_N + (d - L)\,e^{-x} - (L_N - L)\,\frac{1 - e^{-x}}{x}\), \(x = h/\tau_b\). Avant : Euler implicite de la même loi
-            en pas qui doublent, l'état d'arrivée cherché entre l'état courant et l'équilibre sous l'orbite de la date d'arrivée —
-            stable, un clic plus long avance plus loin, et le coût d'un clic de plusieurs millions d'années reste borné.</p>
+            en pas qui doublent, l'état d'arrivée cherché entre l'état courant et l'équilibre sous l'orbite MOYENNE —
+            stable, un clic plus long avance plus loin, et le coût d'un clic de plusieurs millions d'années reste borné. L'orbite
+            moyenne de cet intervalle sur la précession et l'obliquité est circulaire, à l'obliquité moyenne de La2004 sur l'intervalle
+            (SAISONS.moyenne : 23,32° sur le Quaternaire ; avant −51 Ma, celle de l'époque) : un pas de plusieurs cycles orbitaux ne
+            tient pas l'orbite d'une seule date. ⚠️ C'est le bilan de l'orbite moyenne, pas la
+            moyenne des bilans (la fonte n'est pas linéaire).</p>
         <p>📖 Avec une Terre viscoélastique réaliste, les grands reculs qu'un socle amorti localement produit ne sont plus si marqués
             (Deblonde &amp; Peltier 1990) : le retard ne suffit pas à lui seul à déglacer une calotte dont l'équilibre reste englacé.</p>
         <p class="src">Le Meur &amp; Huybrechts 1996, Ann. Glaciol. 23:309 ; Haskell 1935, Physics 6:265 ; Mitrovica 1996, JGR

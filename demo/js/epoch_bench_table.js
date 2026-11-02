@@ -1,13 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_table.js
 // Desc: Table de resultats : creation et mise a jour des lignes, copie d une ligne au presse-papier.
-// Version 1.1.2
-// Date: 2026-10-15
+// Version 1.2.0
+// Date: 2026-11-02
 // logs :
+//   - v1.2.0: fourchettes de chaque ligne à sa date (window.benchLitA) : cyan à la date du clic, gaz datés par la littérature.
 //   - v1.1.2: date de la ligne = celle de l'état calculé (opts.date), plus ▶ de l'époque ; année du calendrier pour 🛖 🚂 📱.
 //   - v1.1.1: tr.dataset.rowKey (clic sur la ligne → état de ce calcul dans l'index).
-//   - v1.1.0: une ligne = une cle (opts.rowKey), plus forcement une epoque : le mode tictimes ecrit
-//     plusieurs lignes par epoque (un clic chacune), avec l'etape du clic sous le nom et la T° d'arrivee
-//     en T init (opts.tInitC). Logos d'hysteresis alignes sur configTimeline (🌦 1b, ⛈ 1c).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -100,13 +98,14 @@ function createRow(epoch, opts) {
           '</div>' +
         '</div>' +
       '</td>' +
-      '<td class="num fit tinit-cell">' + fmtTinitCell(epoch, opts.tInitC) + '</td>' +
+      '<td class="num fit tinit-cell">' + fmtTinitCell(epoch, opts.tInitC, window.benchLitA(id, opts.date)) + '</td>' +
       '<td class="num fit" id="tconv-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="num fit" id="dfin-'  + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-rad-path mono" id="radpath-' + safeId + '"><span class="status-run">\u2026</span></td>' +
       '<td class="json-conv-atm mono" id="convatm-' + safeId + '"><span class="status-run">\u2026</span></td>';
     tr.dataset.safeId = safeId;
     tr.dataset.rowKey = opts.rowKey;
+    tr.dataset.date = opts.date;   // updateRow : les fourchettes de la littérature à cette date (window.benchLitA)
 
     document.getElementById('results-body').appendChild(tr);
     return tr;
@@ -121,6 +120,7 @@ function updateRow(rowKey, id, initStep, lastStep, status, tEpochInitC, epoch, r
     var safeId = safeIdOf(rowKey);
     var tr = document.getElementById('row-' + safeId);
     if (!tr) return;
+    var L = window.benchLitA(id, Number(tr.dataset.date));
     tr.className = status === 'converged' ? 'done-converged'
                  : status === 'max_iter'  ? 'done-maxiter'
                  : (status === 'crash' || status === 'abort' || (typeof status === 'string' && status.indexOf('crash:') === 0)) ? 'done-crash'
@@ -132,7 +132,7 @@ function updateRow(rowKey, id, initStep, lastStep, status, tEpochInitC, epoch, r
     var convAtmEl = document.getElementById('convatm-' + safeId);
 
     if (radPathEl) radPathEl.innerHTML = fmtRadInitAndPath(initStep, radTPath, lastStep);
-    if (convAtmEl) convAtmEl.innerHTML = fmtConvAtmSnapshot(convAtmSnap, id);
+    if (convAtmEl) convAtmEl.innerHTML = fmtConvAtmSnapshot(convAtmSnap, id, L);
     /* Pr\u00e9fixe statut dans la cellule T FIN : rien si converged, pictogramme + statut sinon (crash/max_iter/abort).
        Le message complet reste disponible dans les logs (console + log de run). */
     var statusPrefix = '';
@@ -143,7 +143,7 @@ function updateRow(rowKey, id, initStep, lastStep, status, tEpochInitC, epoch, r
     } else if (status !== 'converged') {
         statusPrefix = '<span class="status-warn" title="' + String(status) + '">\u26a0\ufe0f</span> ';
     }
-    if (tConv && lastStep) tConv.innerHTML = statusPrefix + fmtCvsLit(lastStep.temperature_C, id);
+    if (tConv && lastStep) tConv.innerHTML = statusPrefix + fmtCvsLit(lastStep.temperature_C, L);
     if (dFin && lastStep && typeof lastStep.temperature_C === 'number' && isFinite(lastStep.temperature_C)
         && typeof tEpochInitC === 'number' && isFinite(tEpochInitC)) {
         dFin.innerHTML = fmtDelta(lastStep.temperature_C - tEpochInitC);

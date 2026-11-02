@@ -1,12 +1,11 @@
 // File: API_BILAN/demo/epoch_bench_format.js
 // Desc: Formatage des cellules : temperatures, ages, plages litterature, snapshot ATM, chemin radiatif.
-// Version 1.4.2
+// Version 1.5.0
+// - v1.5.0: fourchettes passées par la ligne (L = window.benchLitA : la littérature à sa date), clé par clé.
 // - v1.4.2: ligne ☁👁 — nuages vus d'en haut (simulateur ISCCP, 🪩👁) ; sur 📱, la mesure ISCCP-H 2010 entre crochets.
-// Date: 2026-10-15
+// Date: 2026-11-02
 // Logs:
 // - v1.4.1: T init : bande cyan (tC) puis fourchette des sources de l'époque (tCRepere, en blanc), une ligne chacune.
-// - v1.4.0: benchLogFile (journal de CO2, jamais chargé ici) et stubs displayConvergence / epochName retirés
-//   (demo_host.js et le moteur les fournissent) ; plus de contrôle de présence de BENCH_LIT_BY_EPOCH_ID.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -40,11 +39,10 @@ function benchWrapRange(html, v, range) {
     return cls ? '<span class="' + cls + '">' + html + '</span>' : html;
 }
 
-/** T convergée colorée selon la fourchette littérature de l'époque. */
-function fmtCvsLit(v, epochId) {
-    if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
-    var L = (epochId != null && epochId !== '') ? BENCH_LIT_BY_EPOCH_ID[epochId] : null;
-    return benchWrapRange(v.toFixed(2), v, (L && L.tC) ? L.tC : null);
+/** T convergée colorée selon la courbe cyan à la date de la ligne (L = window.benchLitA). */
+function fmtCvsLit(v, L) {
+    if (v == null || !isFinite(v)) return '<span class="val-na">—</span>';
+    return benchWrapRange(v.toFixed(2), v, ('tC' in L) ? L.tC : null);
 }
 function fmtDelta(v) {
     if (v == null || !isFinite(v)) return '<span class="val-na">\u2014</span>';
@@ -59,12 +57,6 @@ var BENCH_PAL_OCEAN_KG = 1.4e21;
 
 /** Masse colonne atmosphère ~1 bar (kg) — même ordre que P_ratio dans doc physique (≈ 5,148e18). */
 var BENCH_M_ATM_REF_KG = 5.148e18;
-
-/**
- * Fourchettes littérature pour le bench : source unique window.BENCH_LIT_BY_EPOCH_ID
- * (API_BILAN/config/configTimeline.js), réassignée à chaque chargement du script — pas de CSV, pas de cookie.
- */
-var BENCH_LIT_BY_EPOCH_ID = window.BENCH_LIT_BY_EPOCH_ID;
 
 /** Plage litt\u00e9rature CSV : [min,max] avec virgule (m\u00eame r\u00e8gles d\u2019arrondi qu\u2019avant pour bench). */
 function benchLitRangeBracket(lo, hi) {
@@ -88,19 +80,17 @@ function benchSrcMark(L, cle) {
     return ' <span class="bench-src" title="' + String(t).replace(/"/g, '&quot;') + '">' + ico + '</span>';
 }
 
-/** T init : ligne 1 = T\u2080 (\u00b0C) ; ligne 2 = fourchette CSV [Tmin,Tmax] ; note \u00e9ventuelle (ligne 3). */
-/** T init (°C) : la graine 🌡️🧮, ou tInitC (mode tictimes : T° d'arrivée du clic précédent). */
-function fmtTinitCell(epoch, tInitC) {
-    var id = epoch['\u{1F4C5}'];
-    var tNum = (tInitC != null) ? fmtC(tInitC) : (epoch['\u{1F321}\ufe0f\u{1F9EE}'] - 273.15).toFixed(1);
-    var L = BENCH_LIT_BY_EPOCH_ID[id];
-    if (!L) return tNum;
-    if (!('tC' in L)) {
-        return tNum + '<br><span class="bench-sub">' + L.note + '</span>';
+/** T init (°C) : la graine 🌡️🧮, ou tInitC (mode tictimes : T° d'arrivée du clic précédent) ; puis les fourchettes de la
+ *  date de la ligne (L = window.benchLitA) : la bande cyan (tC), la fourchette des sources (tCRepere, en blanc, à ▶). */
+function fmtTinitCell(epoch, tInitC, L) {
+    var tNum = (tInitC != null) ? fmtC(tInitC) : (epoch['\u{1F321}️\u{1F9EE}'] - 273.15).toFixed(1);
+    var out = tNum;
+    if ('tC' in L) {
+        out += '<br><span class="bench-ligne"><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>' + benchSrcMark(L, 'tC') + '</span>';
     }
-    // Deux lignes insécables : la bande cyan (tC), puis la fourchette des sources de l'époque (tCRepere, en blanc).
-    var out = tNum + '<br><span class="bench-ligne"><span class="bench-sub">' + benchLitRangeBracket(L.tC[0], L.tC[1]) + '</span>' + benchSrcMark(L, 'tC') + '</span>'
-        + '<br><span class="bench-ligne"><span class="bench-repere">' + benchLitRangeBracket(L.tCRepere[0], L.tCRepere[1]) + '</span>' + benchSrcMark(L, 'tCRepere') + '</span>';
+    if ('tCRepere' in L) {
+        out += '<br><span class="bench-ligne"><span class="bench-repere">' + benchLitRangeBracket(L.tCRepere[0], L.tCRepere[1]) + '</span>' + benchSrcMark(L, 'tCRepere') + '</span>';
+    }
     if (L.note) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
     }
@@ -109,13 +99,12 @@ function fmtTinitCell(epoch, tInitC) {
 
 /**
  * Snapshot post-convergence : CO\u2082 / CH\u2084 / H\u2082O ; ligne seule \u{1F370}\u{1FAE7}*\u{1F308}={\u2026} ; alb\u00e9do = CHARS.ALBEDO \u{1FAE9} (miroir, pas confondre avec d\u2019autres glyphes).
+ * L = window.benchLitA(époque, date de la ligne) : les fourchettes de la littérature à cette date (configTimeline.js).
  */
-function fmtConvAtmSnapshot(snap, epochId) {
+function fmtConvAtmSnapshot(snap, epochId, L) {
     if (!snap) return '<span class="val-na">\u2014</span>';
     var CONST = window.CONST;
     var M_air = snap.Mair;
-    var L = (epochId != null && epochId !== '') ? BENCH_LIT_BY_EPOCH_ID[epochId] : null;
-    var hasLitGaz = L && ('tC' in L);
     var parts = [];
     // Moles d'air SEC par kg d'air humide : 1/M_air − w_H₂O/M_H₂O (voir en-tête v1.1.0).
     var molDryPerKg = (M_air ? 1 / M_air : 0)
@@ -124,8 +113,8 @@ function fmtConvAtmSnapshot(snap, epochId) {
         var ppmCO2 = (snap.co2Frac / CONST.M_CO2) / molDryPerKg * 1e6;   // air SEC
         var sCo2 = '<span class="bench-key">CO\u2082</span>\u2248' + benchWrapRange(
             (ppmCO2 < 1e5 ? ppmCO2.toFixed(0) + ' ppm' : (ppmCO2 / 1e3).toFixed(0) + 'k ppm'),
-            ppmCO2, hasLitGaz ? L.co2 : null);
-        if (hasLitGaz) {
+            ppmCO2, ('co2' in L) ? L.co2 : null);
+        if ('co2' in L) {
             sCo2 += ' <span class="bench-sub">' + benchLitRangeBracket(L.co2[0], L.co2[1]) + '</span>' + benchSrcMark(L, 'co2');
         }
         parts.push(sCo2);
@@ -134,8 +123,8 @@ function fmtConvAtmSnapshot(snap, epochId) {
         var ppmCH4 = (snap.ch4Frac / CONST.M_CH4) / molDryPerKg * 1e6;   // air SEC
         var sCh4 = '<span class="bench-key">CH\u2084</span>\u2248' + benchWrapRange(
             (ppmCH4 < 1e5 ? ppmCH4.toFixed(2) + ' ppm' : (ppmCH4 / 1e3).toFixed(0) + 'k ppm'),
-            ppmCH4, hasLitGaz ? L.ch4 : null);
-        if (hasLitGaz) {
+            ppmCH4, ('ch4' in L) ? L.ch4 : null);
+        if ('ch4' in L) {
             sCh4 += ' <span class="bench-sub">' + benchLitRangeBracket(L.ch4[0], L.ch4[1]) + '</span>' + benchSrcMark(L, 'ch4');
         }
         parts.push(sCh4);
@@ -143,8 +132,8 @@ function fmtConvAtmSnapshot(snap, epochId) {
     if (typeof snap.h2oFrac === 'number' && isFinite(snap.h2oFrac) && CONST && M_air) {
         var molH2O = snap.h2oFrac * (M_air / CONST.M_H2O);
         var sH2o = '<span class="bench-key">H\u2082O</span>\u2248' + benchWrapRange(
-            (molH2O * 100 >= 0.1 ? (molH2O * 100).toFixed(2) : (molH2O * 100).toPrecision(2)) + '% vapmol.', molH2O * 100, hasLitGaz ? L.h2oVap : null);
-        if (hasLitGaz) {
+            (molH2O * 100 >= 0.1 ? (molH2O * 100).toFixed(2) : (molH2O * 100).toPrecision(2)) + '% vapmol.', molH2O * 100, ('h2oVap' in L) ? L.h2oVap : null);
+        if ('h2oVap' in L) {
             sH2o += ' <span class="bench-sub">' + benchLitRangeBracket(L.h2oVap[0], L.h2oVap[1]) + '</span>' + benchSrcMark(L, 'h2oVap');
         }
         parts.push(sH2o);
@@ -180,9 +169,7 @@ function fmtConvAtmSnapshot(snap, epochId) {
     if (lineAlb) chunks.push(lineAlb);
     if (snap.isccp) chunks.push(fmtNuagesVusDenHaut(snap.isccp, epochId));
     var out = chunks.join('<br>');
-    if (L && !('tC' in L) && L.note) {
-        out += '<br><span class="bench-sub">' + L.note + '</span>';
-    } else if (hasLitGaz && L.note) {
+    if (L.note) {
         out += '<br><span class="bench-sub">' + L.note + '</span>';
     }
     return out;

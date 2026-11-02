@@ -16,11 +16,12 @@
 //       Hors de la validité (avant −51 Ma), pas de solution publiée : anomalie nulle, Soleil sans facteur, pas d'obliquité ici —
 //       l'époque déclare la sienne (📜⚾, compute.js) ; l'orbite de référence y est choisie par physics/saisons.js (orbite circulaire).
 //       Âges : années avant window.AN_PRESENT (config/configTimeline.js, la seule origine) ; année tropique : CONST.AN_TROPIQUE_JOURS.
-// Version 1.4.1
+// Version 1.5.0
+// - v1.5.0 (2026-11-02): N_LIGNES exporté (orbite moyenne de physics/saisons.js : la ligne au-delà de la table).
 // - v1.4.1 (2026-11-01): commentaire : forçage des trois boîtes de chaque bande.
 // - v1.4.0 (2026-10-29): pas d'obliquité hors de la solution (plus de 0 pour « celle de l'époque ») ; origine des âges et année
 //   tropique lues à leur seule source.
-// Date: [November 1, 2026]
+// Date: [November 2, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -180,7 +181,7 @@
         return (cumul(d2) - cumul(d1)) * SECONDES_PAS;
     }
 
-    window.ORBITE = { N_PAS: N_PAS, valide: valide, elements: elements, obliquiteDeg: obliquiteDeg,
+    window.ORBITE = { N_PAS: N_PAS, N_LIGNES: N_LIGNES, valide: valide, elements: elements, obliquiteDeg: obliquiteDeg,
         facteurSoleil: facteurSoleil, insolation65N: insolation65N, longitudes: longitudes, insolationCumulee: insolationCumulee,
         REFERENCE: REFERENCE, encadrement: encadrement, anomalieLigne: anomalieLigne, sommeAnomalie: sommeAnomalie };
 })();

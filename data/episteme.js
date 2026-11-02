@@ -16,14 +16,10 @@
 //       Un 🎯 n'est un contrôle que si la mesure n'a fixé aucune entrée du calcul : celle qui a servi à ajuster un paramètre
 //       (D de North, η et λ du rebond) ou à choisir une forme (inversion hivernale des calottes), ou qui EST l'entrée
 //       (graine du clic frise), est 📖 pour cet usage ; la forme ainsi choisie est 🔧.
-// Version 1.14.4
+// Version 1.14.5
+// - v1.14.5 (2026-11-02): part ancienne d’un clic sous l’orbite moyenne (⚠️ bilan de l’orbite moyenne, pas moyenne des bilans).
 // - v1.14.4 (2026-11-02): une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte), κ au rayon d’un dôme.
 // - v1.14.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (⚛ sur les PaleoDEM, ⚠️ classement, ❔ avant 540 Ma).
-// - v1.14.2 (2026-11-01): trois boîtes par bande (calotte, terre libre, mer libre), arrêt du point fixe par dichotomie.
-// - v1.14.1 (2026-10-31): terre de chaque latitude au prorata de l’aire, bas du continent, 🧫 par clic (bown2005).
-// - v1.14.0 (2026-10-31): σ(λ, T, P), CH₄ des époques par la simulation la plus proche, arrêt par encadrement, marge des
-//   calottes par le haut de la cellule, 🧫 de 🦕 ; valeurs de 📱, du DMG et des chaînes remesurées.
-// - v1.13.0 (2026-10-30): terre de chaque latitude, forêt de chaque bande, sommet des calottes, arrêt du point fixe sur T₂.
 // Date: 2026-11-02
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
@@ -213,7 +209,8 @@
         { cible: 'eq:eq-calottes-rebond-socle', ref: 'bueler2007', statut: '⚛', usage: '📖', quoi: 'correction de flexion du temps de relaxation, 1 + D k⁴/(ρ_m g) (éq. 14) : moins de 0,1 % pour λ ≥ 3 000 km, négligée' },
         { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '❔', usage: '📌', quoi: 'un seul τ_b par bande (la calotte qui couvre le continent de sa bande) ; η constante dans le temps ; part élastique instantanée, sphéricité et manteau inférieur négligés' },
         { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚛', usage: '🔢', quoi: 'variable intégrée q = V^(1/5) : pour N dômes égaux, dq/dt = (π/5)((8π/15) C)^(−4/5) N^(1/5) B̄/ρ_i, fini à la naissance et constant à bilan constant ; aire d’un volume en forme close à N donné, S = N^(1/5) fois celle d’un dôme unique de volume V, N lu à l’aire (point fixe en 4 itérations : N^(1/5) varie peu), plafonnée par le continent ; sur les 100 derniers ka du clic, Heun en sous-pas bornés par τ_b et par le temps propre ρ_i max(H̄, h_tol) / max(accumulation, fonte), h_tol = 0,01 K / Γ_s (Γ_s gradient de surface au sommet), l’orbite au départ puis à l’arrivée de chaque sous-pas, jusqu’à la fin du clic ; socle exact sous une charge linéaire, porté par cellule (48 par bande)' },
-        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚛', usage: '🔢', quoi: 'avant les 100 derniers ka du clic : Euler implicite de la même loi en pas qui doublent, l’état d’arrivée cherché entre l’état courant et l’équilibre sous l’orbite de la date d’arrivée — stable, un clic plus long avance plus loin, coût borné' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚛', usage: '🔢', quoi: 'avant les 100 derniers ka du clic : Euler implicite de la même loi en pas qui doublent, l’état d’arrivée cherché entre l’état courant et l’équilibre sous l’orbite moyenne — stable, un clic plus long avance plus loin, coût borné' },
+        { cible: 'eq:eq-calottes-rebond-socle', ref: null, statut: '⚠️', usage: '📌', quoi: 'avant les 100 derniers ka du clic, l’orbite MOYENNE de cet intervalle sur la précession et l’obliquité (SAISONS.moyenne : circulaire, à l’obliquité moyenne de La2004 sur l’intervalle — 23,32° sur le Quaternaire —, celle de l’époque avant −51 Ma) : un pas de plusieurs cycles orbitaux ne tient plus l’orbite d’une seule date (une orbite froide tenue 168 ka fait naître une calotte que la vraie suite des orbites ne fait pas naître) ; c’est le bilan de l’orbite moyenne, pas la moyenne des bilans — la fonte n’est pas linéaire' },
         { cible: 'eq:eq-calottes-rebond-socle', ref: 'abeOuchi2013', statut: '💻', usage: '📖', quoi: 'mécanisme des terminaisons : la surface d\'une calotte qui recule reste basse sur un socle qui n\'a pas remonté ; leurs τ = 5 ka et ρ_eff = 4 500 kg/m³, calés, ne sont pas repris' },
         { cible: 'eq:eq-calottes-rebond-socle', ref: 'deblondePeltier1990', statut: '💻', usage: '📖', quoi: 'avec une Terre viscoélastique, les grands reculs d\'un socle amorti localement ne sont plus si marqués' },
         { cible: 'dico:🔺📏🗻🧊', ref: 'leMeurHuybrechts1996', statut: '⚛', usage: '📌', quoi: 'socle en retard sur sa charge, relaxé localement en τ_b' },
@@ -714,9 +711,11 @@
         { cible: 'histoire:instrumental', ref: 'jones1999', statut: '📡', usage: '🎯', quoi: 'absolu 1951–1980 = 14,0 ± 0,5 °C : centre et largeur des fourchettes de 🚂 et 📱' },
         { cible: 'histoire:instrumental', ref: 'lenssen2019', statut: '📡', usage: '🎯', quoi: 'GISTEMP v4 : an 2000 = +0,39 °C sur 1951–1980, soit 14,4 °C' },
         { cible: 'histoire:instrumental', ref: 'copernicusEsotc2024', statut: '📡', usage: '🎯', quoi: '1850–1900 = 13,5 °C ; 2024 = 15,1 °C' },
+        { cible: 'histoire:instrumental', ref: 'copernicusGch2025', statut: '📡', usage: '🎯', quoi: '2025 = 13,5 + 1,47 = 14,97 °C (ERA5)' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'macfarlingMeure2006', statut: '📡', usage: '🎯', quoi: 'fourchettes CO₂ et CH₄ de 🚂' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'beerling2011', statut: '💻', usage: '📖', quoi: 'fourchettes ch4 de 🍄 💀 🦕 🦤 🐊 🏔 : aucune mesure du CH₄ — la simulation de l’Éocène aux CO₂ 5 % et 95 % de PhanDA, l’incertitude du CO₂ propagée ; elle est l’entrée de ces époques : pas un contrôle' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'noaaGml', statut: '📡', usage: '🎯', quoi: 'fourchettes CO₂ et CH₄ de 📱' },
+        { cible: 'config:BENCH_LIT_DATEES', ref: 'noaaGml', statut: '📡', usage: '🎯', quoi: 'fourchettes du clic 📱 2025 : CO₂ 427,35 ppm, CH₄ 1,936 ppm, à la largeur des fourchettes de 2000' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'dai2006', statut: '📡', usage: '🎯', quoi: 'fourchettes h2oVap : humidité relative 0,70–0,80' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'heldSoden2006', statut: '⚛', usage: '🎯', quoi: 'vapeur de colonne +7 %/K (Clausius-Clapeyron) : fourchettes h2oVap calculées faute de mesure paléo' },
     ];
