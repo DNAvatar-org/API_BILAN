@@ -4,7 +4,8 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.10.2
+// Version 1.10.3
+// - v1.10.3 (2026-11-01): jauges FROID 61, CHAUD 53 (hauteur).
 // - v1.10.2 (2026-10-31): DATA['📜']['🧫'], biosphère marine du clic.
 // - v1.10.1 (2026-10-31): jauge FROID 62 (hauteur de 📱 avec les sections efficaces à la pression de la couche).
 // Date: [October 31, 2026]
@@ -50,8 +51,8 @@
         // FROID 50 entre les deux (attendu ≈ 📱 15,0 / 🚂 13,7).
         // FROID 50 / CHAUD 50 : milieu des plages mesurées, point de départ des explorations (2026-10-26, demande utilisateur ;
         // essai dans l'interface : 📱 14,49 °C, 14,4 mesurés).
-        // FROID 62 : avec les sections efficaces à la pression de chaque couche, rend 📱 à 14,41 °C (14,40 mesurés).
-        baryByGroup: { FROID: 62, CHAUD: 50, SUBTIL: 70 },
+        // FROID 61 / CHAUD 53 : réglage de hauteur du propriétaire (interface, 2025 à 14,9 °C par le clic depuis 2000).
+        baryByGroup: { FROID: 61, CHAUD: 53, SUBTIL: 70 },
 
         // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page
