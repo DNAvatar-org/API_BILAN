@@ -1,8 +1,8 @@
 // File: API_BILAN/demo/js/graphe_main.js
 // Desc: Amorce de graphe.html : charge le moteur par BILAN_LOADER en relevant ce que pose chaque script,
-//       extrait le graphe d'appels (API_BILAN/graphe/), crée les cellules, puis boucle : un pas de forces et un
+//       extrait le graphe d'appels (API_BILAN/graphe/), crée les cellules (état gardé s'il y en a un), puis boucle : un pas de forces et un
 //       dessin par image tant que la simulation n'est pas au repos.
-// Version 1.1.0
+// Version 1.2.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -23,7 +23,10 @@ window.GRAPHE_MAIN = {
 
     boucle: function () {
         const V = window.GRAPHE_VUE;
-        if (V.alpha > 0) window.GRAPHE_FORCES.pas();
+        if (V.alpha > 0) {
+            window.GRAPHE_FORCES.pas();
+            if (V.alpha === 0) window.GRAPHE_MEMOIRE.garder();   // posée : c'est la position courante
+        }
         if (V.sale) window.GRAPHE_RENDU.dessiner();
         requestAnimationFrame(window.GRAPHE_MAIN.boucle);
     },
@@ -38,14 +41,22 @@ window.GRAPHE_MAIN = {
         window.GRAPHE_RENDU.lireCouleurs();
         M.dimensionner();
         window.GRAPHE_CELLULES.creer();
+        const retrouve = window.GRAPHE_MEMOIRE.restaurer();
+        window.GRAPHE_CELLULES.recalculer(false);
         window.GRAPHE_ENTREES.brancher();
         window.GRAPHE_UI.brancher();
+        window.GRAPHE_MEMOIRE.brancher();
         // La scène change de taille avec la fenêtre ET quand le panneau s'ouvre ou se ferme.
         new ResizeObserver(M.dimensionner).observe(V.canvas.parentElement);
-        // Laisser l'arbre se déplier hors écran, puis cadrer : quelques centaines de pas sans dessin.
-        for (let i = 0; i < 300; i++) window.GRAPHE_FORCES.pas();
-        window.GRAPHE_UI.recentrer();
-        V.chauffer(0.3);
+        if (retrouve) {
+            V.alpha = 0;
+            V.chauffer(0.05);   // l'état gardé est déjà posé : juste résorber ce qui a changé (tailles, nouvelles venues)
+        } else {
+            // Laisser l'arbre se déplier hors écran, puis cadrer : quelques centaines de pas sans dessin.
+            for (let i = 0; i < 300; i++) window.GRAPHE_FORCES.pas();
+            window.GRAPHE_UI.recentrer();
+            V.chauffer(0.3);
+        }
         document.getElementById('chargement').remove();
         M.boucle();
     },

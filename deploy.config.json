@@ -343,6 +343,54 @@
     {
       "src": "doc/css/bibliographie.css",
       "dest": "pages/bilan_radiatif/API_BILAN/doc/css/bibliographie.css"
+    },
+    {
+      "src": "graphe/graphe_appels.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/graphe/graphe_appels.js"
+    },
+    {
+      "src": "graphe/graphe_arbre.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/graphe/graphe_arbre.js"
+    },
+    {
+      "src": "demo/graphe.html",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/graphe.html"
+    },
+    {
+      "src": "demo/css/graphe.css",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/css/graphe.css"
+    },
+    {
+      "src": "demo/js/graphe_cellules.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_cellules.js"
+    },
+    {
+      "src": "demo/js/graphe_entrees.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_entrees.js"
+    },
+    {
+      "src": "demo/js/graphe_etat.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_etat.js"
+    },
+    {
+      "src": "demo/js/graphe_forces.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_forces.js"
+    },
+    {
+      "src": "demo/js/graphe_main.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_main.js"
+    },
+    {
+      "src": "demo/js/graphe_rendu.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_rendu.js"
+    },
+    {
+      "src": "demo/js/graphe_ui.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_ui.js"
+    },
+    {
+      "src": "demo/js/graphe_memoire.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/demo/js/graphe_memoire.js"
     }
   ]
 }

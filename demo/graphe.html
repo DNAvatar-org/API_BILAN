@@ -2,7 +2,7 @@
 <!-- File: API_BILAN/demo/graphe.html
      Desc: Le graphe d'appels du moteur, lu dans son code (API_BILAN/graphe/), en cellules qui se repoussent
            tout en restant liées à leur parent et à leurs enfants.
-     Version 1.1.0 · Date: November 4, 2026
+     Version 1.2.0 · Date: November 4, 2026
      Copyright 2026 DNAvatar.org - Arnaud Maignan -->
 <html lang="fr">
 <head>
@@ -27,6 +27,7 @@
             <button id="desepingler">désépingler</button>
             <button id="agiter">agiter</button>
             <button id="recentrer">recentrer</button>
+            <button id="oublier" title="oublier positions, repliées, réglages gardés : vue de départ, tout déplié">réinitialiser</button>
         </span>
         <div id="legende"></div>
         <p id="statut"></p>
@@ -47,6 +48,7 @@
     <script src="js/graphe_rendu.js"></script>
     <script src="js/graphe_entrees.js"></script>
     <script src="js/graphe_ui.js"></script>
+    <script src="js/graphe_memoire.js"></script>
     <script src="../loader/engine_manifest.js"></script>
     <script src="../loader/loader.js"></script>
     <script src="js/graphe_main.js"></script>

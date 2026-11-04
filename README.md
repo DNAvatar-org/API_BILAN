@@ -62,6 +62,10 @@ disparaît.
   d'arbre, liens croisés, orphelines, et chaque dossier du moteur (les fils d'un dossier masqué se
   rattachent au plus proche ancêtre visible). Un clic sur une cellule ouvre son fichier, ses
   appelants, ses appelées, ses clés du dico et son source.
+- **Mémoire** (`demo/js/graphe_memoire.js`) : au F5, la vue reprend là où elle était. Elle garde dans
+  localStorage les positions, les cellules épinglées et repliées, la caméra, les légendes et les
+  curseurs. Sans mémoire, tout est déplié ; « réinitialiser » revient à cette vue de départ. Une
+  fonction apparue dans le moteur entre-temps jaillit de son père.
 
 Ce que le graphe ne voit pas : les fonctions privées des modules (fermées dans un IIFE, jamais posées
 sur `window`), et donc les appels qui passent par elles. Un alias posé hors de la fonction, au niveau
