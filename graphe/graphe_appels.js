@@ -107,10 +107,11 @@ window.GRAPHE_EXTRACTION = {
         };
     },
 
-    /** Le dossier du script (albedo, physics, convergence…) ; CO2 pour ceux pris dans CO2/static ; api à la racine. */
+    /** Le dossier du script : albedo, physics, convergence… ; api à la racine d'API_BILAN ; Externe pour un script pris
+     *  hors de l'API (../CO2/static/astronomie.js : orbite, courbe cyan d'Histoire). */
     dossier: function (fichier) {
         const p = fichier.split('/');
-        if (p[0] === '..') return 'CO2';
+        if (p[0] === '..') return 'Externe';
         return p.length === 1 ? 'api' : p[p.length - 2];
     },
 

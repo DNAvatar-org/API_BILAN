@@ -120,6 +120,7 @@ window.GRAPHE_CELLULES = {
         if (V.choix !== null && !apres.has(V.choix)) { V.choix = null; window.GRAPHE_UI.montrer(null); }
         V.visibles = vis;
         V.chauffer(0.5);
+        window.GRAPHE_UI.legende();   // ses compteurs visibles/total suivent
     },
 
     /** Replie / déplie une cellule ; ses enfants qui réapparaissent jaillissent de sa position. */
@@ -144,6 +145,5 @@ window.GRAPHE_CELLULES = {
         for (let p = c.nd.parent; p !== null; p = V.parId[p].nd.parent) ancetres.unshift(V.parId[p]);
         ancetres.forEach(function (a) { a.plie = false; });
         window.GRAPHE_CELLULES.recalculer(true);
-        window.GRAPHE_UI.legende();
     }
 };

@@ -11,7 +11,8 @@
 
 window.GRAPHE_MEMOIRE = {
     CLE: 'graphe_moteur',
-    VERSION: 1,          // forme de l'état gardé : un état d'une autre forme est ignoré
+    VERSION: 2,          // forme de l'état gardé : un état d'une autre forme est ignoré (2 : dossier Externe,
+                         // croisés décochés et répulsion 200 par défaut)
 
     /** L'état gardé, ou null (rien de gardé, ou d'une autre forme). */
     lire: function () {

@@ -1,8 +1,8 @@
 // File: API_BILAN/demo/js/graphe_entrees.js
 // Desc: Souris sur le canvas. Bouton +/− d'une cellule, ou double-clic sur elle = replier / déplier ses appelées. Glisser une cellule la
 //       déplace (le reste suit par les ressorts) ; Maj au lâcher l'épingle. Glisser le fond déplace la vue,
-//       molette = zoom sous le curseur. Clic = sélection. Un seul geste à la fois (premier pointeur).
-// Version 1.1.0
+//       molette = zoom sous le curseur. Survol = fiche courte ; clic = fiche complète. Un seul geste à la fois (premier pointeur).
+// Version 1.2.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -86,12 +86,14 @@ window.GRAPHE_ENTREES = {
                 const c = E.toucher(m.x, m.y);
                 const b = c !== null && E.surBouton(c, m.x, m.y) ? c : null;
                 if (c !== V.survol || b !== V.survolBouton) { V.survol = c; V.survolBouton = b; V.sale = true; }
+                window.GRAPHE_UI.survoler(c, m.sx, m.sy);   // la fiche suit le curseur
                 cv.style.cursor = c === null ? 'grab' : 'pointer';
                 cv.title = b === null ? '' : b.plie ? 'déplier (' + b.nCaches + ' cachées)' : 'replier';
                 return;
             }
             if (g.id !== e.pointerId || g.type === 'bouton') return;
             g.bouge = g.bouge || Math.abs(m.sx - g.sx) + Math.abs(m.sy - g.sy) > 3;
+            if (g.bouge) window.GRAPHE_UI.survoler(null, 0, 0);   // pas de fiche pendant qu'on glisse
             if (g.type === 'vue') {
                 V.camera.x = g.cx + m.sx - g.sx;
                 V.camera.y = g.cy + m.sy - g.sy;
@@ -112,6 +114,7 @@ window.GRAPHE_ENTREES = {
         });
 
         cv.addEventListener('pointerleave', function () {
+            window.GRAPHE_UI.survoler(null, 0, 0);
             if (V.survol !== null) { V.survol = null; V.survolBouton = null; V.sale = true; }
         });
 

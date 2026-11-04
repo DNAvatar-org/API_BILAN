@@ -1,8 +1,8 @@
 // File: API_BILAN/demo/js/graphe_ui.js
 // Desc: Bandeau (curseurs des forces : l'id de chaque curseur est sa clé dans GRAPHE_VUE.CONFIG), légendes en
-//       boutons on/off (liaisons, orphelines, dossiers), et panneau de la fonction choisie : fichier, appelants,
+//       boutons on/off (liaisons, orphelines, dossiers rangés par thèmes avec bascule globale), et panneau de la fonction choisie : fichier, appelants,
 //       appelées, source.
-// Version 1.2.0
+// Version 1.3.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -62,25 +62,46 @@ window.GRAPHE_UI = {
             + contenu + '</button>';
     },
 
+    /** Les thèmes de la légende, avec leurs dossiers réels : le dernier (reste) reçoit tous ceux qu'aucun thème ne
+     *  nomme, dans l'ordre où ils apparaissent. */
+    themes: function () {
+        const V = window.GRAPHE_VUE;
+        const existants = Object.keys(V.couleurs);
+        const nommes = new Set();
+        V.THEMES.forEach(function (t) { t.dossiers.forEach(function (d) { nommes.add(d); }); });
+        return V.THEMES.map(function (t) {
+            const ds = t.dossiers.filter(function (d) { return existants.indexOf(d) >= 0; });
+            return { nom: t.nom, dossiers: t.reste ? ds.concat(existants.filter(function (d) { return !nommes.has(d); })) : ds };
+        });
+    },
+
     legende: function () {
         const V = window.GRAPHE_VUE;
         const U = window.GRAPHE_UI;
-        const n = {};
-        Object.keys(V.couleurs).forEach(function (d) { n[d] = 0; });
-        window.GRAPHE.noeuds.forEach(function (nd) { n[nd.dossier]++; });
+        const total = {};
+        const vus = {};
+        Object.keys(V.couleurs).forEach(function (d) { total[d] = 0; vus[d] = 0; });
+        window.GRAPHE.noeuds.forEach(function (nd) { total[nd.dossier]++; });
+        V.visibles.forEach(function (c) { vus[c.nd.dossier]++; });
         document.getElementById('legende').innerHTML =
-            '<span class="groupe">liaisons</span>'
+            '<div class="ligne"><span class="groupe">liaisons</span>'
             + U.bouton('voirArbre', V.voirArbre, '<b class="trait arbre"></b>père → fils', 'liens de l\'arbre (plus court chemin depuis api.run)')
             + U.bouton('voirCroises', V.voirCroises, '<b class="trait croise"></b>appels croisés', 'appels hors de l\'arbre')
-            + U.bouton('voirOrphelins', V.voirOrphelins, 'orphelines', 'fonctions que api.run n\'atteint pas')
+            + U.bouton('voirOrphelins', V.voirOrphelins, 'orphelines', 'fonctions que api.run n\'atteint pas (CLICS, diagnostics, appelées par des fonctions privées)')
             + '<span class="note"><b class="trait plein"></b>appel <b class="trait rappel"></b>passée en argument'
             + ' <b class="trait deduit"></b>alias déduit</span>'
             + '<span class="note">survol : <b class="trait appele"></b>appelées <b class="trait appelant"></b>appelants'
-            + ' <b class="trait pere"></b>père</span>'
-            + '<span class="groupe">dossiers</span>'
-            + Object.keys(V.couleurs).map(function (d) {
-                return U.bouton('dossier:' + d, V.dossiersCaches[d] !== true,
-                    '<i style="background:' + V.couleurs[d] + '"></i>' + d + ' <small>' + n[d] + '</small>', 'afficher / masquer ' + d);
+            + ' <b class="trait pere"></b>père</span></div>'
+            + U.themes().map(function (t, i) {
+                const allumes = t.dossiers.filter(function (d) { return V.dossiersCaches[d] !== true; }).length;
+                const etat = allumes === t.dossiers.length ? '' : allumes === 0 ? 'eteint' : 'partiel';
+                return '<div class="ligne"><button class="theme ' + etat + '" data-bascule="theme:' + i
+                    + '" title="tout afficher / tout masquer">' + t.nom + '</button>'
+                    + t.dossiers.map(function (d) {
+                        return U.bouton('dossier:' + d, V.dossiersCaches[d] !== true,
+                            '<i style="background:' + V.couleurs[d] + '"></i>' + d + ' <small>' + vus[d] + '/' + total[d] + '</small>',
+                            vus[d] + ' visibles sur ' + total[d] + ' (repliées, orphelines masquées ou dossier éteint)');
+                    }).join('') + '</div>';
             }).join('');
     },
 
@@ -89,14 +110,18 @@ window.GRAPHE_UI = {
         const b = e.target.closest('button');
         if (b === null) return;
         const cle = b.dataset.bascule;
-        if (cle.indexOf('dossier:') === 0) {
+        if (cle.indexOf('theme:') === 0) {
+            // Tout allumé → tout éteint ; sinon (éteint ou partiel) → tout allumé.
+            const ds = window.GRAPHE_UI.themes()[Number(cle.slice('theme:'.length))].dossiers;
+            const toutAllume = ds.every(function (d) { return V.dossiersCaches[d] !== true; });
+            ds.forEach(function (d) { V.dossiersCaches[d] = toutAllume; });
+        } else if (cle.indexOf('dossier:') === 0) {
             const d = cle.slice('dossier:'.length);
             V.dossiersCaches[d] = V.dossiersCaches[d] !== true;
         } else {
             V[cle] = !V[cle];
         }
-        window.GRAPHE_CELLULES.recalculer(true);
-        window.GRAPHE_UI.legende();
+        window.GRAPHE_CELLULES.recalculer(true);   // recalculer redessine la légende (compteurs)
     },
 
     statut: function () {
@@ -136,12 +161,13 @@ window.GRAPHE_UI = {
         V.camera.y = V.canvas.height / V.dpr / 2 - c.y * V.camera.k;
     },
 
-    /** Liste d'appelants (sens 'entrant') ou d'appelées ('sortant') de nd, avec le lien de l'arbre et la nature. */
-    liste: function (ids, nd, sens) {
+    /** Liste d'appelants (sens 'entrant') ou d'appelées ('sortant') de nd, avec le lien de l'arbre et la nature ;
+     *  au plus `max` lignes (la fiche du survol), puis leur nombre. */
+    liste: function (ids, nd, sens, max) {
         const V = window.GRAPHE_VUE;
         const U = window.GRAPHE_UI;
         if (ids.length === 0) return '<p class="vide">—</p>';
-        return '<ul>' + ids.map(function (id) {
+        return '<ul>' + ids.slice(0, max).map(function (id) {
             const c = V.parId[id];
             const arbre = sens === 'sortant' ? c.nd.parent === nd.id : nd.parent === id;
             const nature = sens === 'sortant' ? nd.natures[id] : c.nd.natures[nd.id];
@@ -149,37 +175,56 @@ window.GRAPHE_UI = {
                 + '<button data-id="' + id + '">' + id + '</button>'
                 + (arbre ? '<small>' + (sens === 'sortant' ? 'fils' : 'père') + '</small>' : '')
                 + (U.NATURES[nature] === '' ? '' : '<small>' + U.NATURES[nature] + '</small>') + '</li>';
-        }).join('') + '</ul>';
+        }).join('') + (ids.length > max ? '<li class="plus">… ' + (ids.length - max) + ' de plus</li>' : '') + '</ul>';
     },
 
     /** Les clés de DATA que le source cite, avec leur sens (DESC) ; une catégorie seule est dite telle. */
-    cles: function (nd) {
+    cles: function (nd, max) {
         const G = window.GRAPHE;
         if (nd.cles.length === 0) return '<p class="vide">—</p>';
-        return '<dl class="cles">' + nd.cles.map(function (k) {
+        return '<dl class="cles">' + nd.cles.slice(0, max).map(function (k) {
             const cat = G.dico.get(k);
             const sens = cat === k ? 'catégorie de DATA' : window.DESC[cat][k];
             return '<dt>' + k + '</dt><dd>' + window.GRAPHE_UI.echapper(sens) + '</dd>';
-        }).join('') + '</dl>';
+        }).join('') + (nd.cles.length > max ? '<dt>…</dt><dd>' + (nd.cles.length - max) + ' de plus</dd>' : '') + '</dl>';
     },
 
-    montrer: function (c) {
+    /** La fiche d'une fonction : complète dans le panneau (tout, et le source), courte au survol (listes écourtées). */
+    fiche: function (c, complete) {
         const U = window.GRAPHE_UI;
-        const p = document.getElementById('panneau');
-        p.classList.toggle('ouvert', c !== null);
-        if (c === null) { p.innerHTML = ''; return; }
         const nd = c.nd;
+        const max = complete ? Infinity : 8;
         const lignes = nd.source.split('\n');
         const extrait = lignes.slice(0, 80).join('\n') + (lignes.length > 80 ? '\n… (' + (lignes.length - 80) + ' lignes de plus)' : '');
-        p.innerHTML = '<button id="fermer" title="fermer">✕</button>'
-            + '<h2><i style="background:' + c.couleur + '"></i>' + nd.logo + ' ' + U.echapper(nd.id) + '</h2>'
+        return '<h2><i style="background:' + c.couleur + '"></i>' + nd.logo + ' ' + U.echapper(nd.id) + '</h2>'
             + '<p class="fichier">' + U.echapper(nd.fichier) + ' · profondeur ' + nd.profondeur
             + ' · ' + nd.enfants.length + ' fils' + (nd.orphelin ? ' · non atteinte depuis api.run' : '')
             + (nd.recursif ? ' · récursive ↻' : '')
             + (nd.alias.length > 1 ? '<br>aussi : ' + nd.alias.filter(function (a) { return a !== nd.id; }).join(', ') : '') + '</p>'
-            + '<h3>Appelée par <small>' + nd.appelants.length + '</small></h3>' + U.liste(nd.appelants, nd, 'entrant')
-            + '<h3>Appelle <small>' + nd.appels.length + '</small></h3>' + U.liste(nd.appels, nd, 'sortant')
-            + '<h3>Clés du dico <small>' + nd.cles.length + '</small></h3>' + U.cles(nd)
-            + '<h3>Source <small>' + lignes.length + ' lignes</small></h3><pre>' + U.echapper(extrait) + '</pre>';
+            + '<h3>Appelée par <small>' + nd.appelants.length + '</small></h3>' + U.liste(nd.appelants, nd, 'entrant', max)
+            + '<h3>Appelle <small>' + nd.appels.length + '</small></h3>' + U.liste(nd.appels, nd, 'sortant', max)
+            + '<h3>Clés du dico <small>' + nd.cles.length + '</small></h3>' + U.cles(nd, max)
+            + (complete ? '<h3>Source <small>' + lignes.length + ' lignes</small></h3><pre>' + U.echapper(extrait) + '</pre>'
+                : '<p class="aide-fiche">clic : fiche complète et source</p>');
+    },
+
+    montrer: function (c) {
+        const p = document.getElementById('panneau');
+        p.classList.toggle('ouvert', c !== null);
+        p.innerHTML = c === null ? '' : '<button id="fermer" title="fermer">✕</button>' + window.GRAPHE_UI.fiche(c, true);
+    },
+
+    /** La fiche du survol, à côté du curseur (sx, sy : px dans la scène), retournée vers l'intérieur près des bords.
+     *  c === null la cache. Ne prend pas la souris (pointer-events: none) : le survol continue dessous. */
+    survoler: function (c, sx, sy) {
+        const f = document.getElementById('fiche');
+        if (c === null) { f.hidden = true; f.dataset.id = ''; return; }
+        if (f.dataset.id !== c.nd.id) { f.innerHTML = window.GRAPHE_UI.fiche(c, false); f.dataset.id = c.nd.id; }
+        f.hidden = false;
+        const sc = f.parentElement;
+        const x = sx + 18 + f.offsetWidth > sc.clientWidth ? sx - 18 - f.offsetWidth : sx + 18;
+        const y = Math.min(Math.max(8, sy + 14), Math.max(8, sc.clientHeight - f.offsetHeight - 8));
+        f.style.left = Math.max(8, x) + 'px';
+        f.style.top = y + 'px';
     }
 };

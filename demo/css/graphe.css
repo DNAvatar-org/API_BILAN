@@ -35,7 +35,11 @@ body { display: flex; flex-direction: column; overflow: hidden; }
 #barre button:hover { border-color: var(--accent); }
 #niveauPli { width: 42px; background: #222b39; color: var(--texte); border: 1px solid var(--bord); border-radius: 5px;
     font: inherit; padding: 2px 4px; }
-#legende { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; width: 100%; font-size: 12px; }
+#legende { display: flex; flex-direction: column; gap: 4px; width: 100%; font-size: 12px; }
+#legende .ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+#barre #legende button.theme { min-width: 82px; justify-content: center; text-transform: uppercase; font-size: 10px;
+    letter-spacing: 0.06em; border-radius: 5px; background: #2a3445; }
+#barre #legende button.partiel { opacity: 0.7; border-style: dashed; }
 #legende .groupe { color: var(--doux); text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; margin: 0 2px 0 8px; }
 #legende .groupe:first-child { margin-left: 0; }
 #legende .note { display: inline-flex; align-items: center; gap: 5px; color: var(--doux); margin: 0 6px; }
@@ -57,6 +61,11 @@ i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: 
 main { flex: 1; display: flex; min-height: 0; }
 #scene { flex: 1; position: relative; min-width: 0; }
 #graphe { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
+/* Fiche du survol : même contenu que le panneau, écourté ; ne prend pas la souris. */
+#fiche { position: absolute; z-index: 2; width: 360px; max-height: calc(100% - 16px); overflow: hidden;
+    pointer-events: none; background: color-mix(in srgb, var(--surface) 94%, transparent); border: 1px solid var(--bord);
+    border-radius: 8px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); font-size: 12px; }
+#fiche[hidden] { display: none; }
 #chargement { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; color: var(--doux); }
 
 #panneau { width: 0; overflow: auto; background: var(--surface); border-left: 1px solid var(--bord);
@@ -65,23 +74,25 @@ main { flex: 1; display: flex; min-height: 0; }
 #fermer { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: var(--doux); font-size: 16px;
     cursor: pointer; }
 #fermer:hover { color: var(--texte); }
-#panneau h2 { font: 600 14px var(--mono); margin: 0 24px 4px 0; display: flex; gap: 8px; align-items: center;
+#panneau h2, #fiche h2 { font: 600 14px var(--mono); margin: 0 24px 4px 0; display: flex; gap: 8px; align-items: center;
     word-break: break-all; }
-#panneau h3 { font-size: 12px; margin: 14px 0 4px; color: var(--doux); text-transform: uppercase; letter-spacing: 0.04em; }
-#panneau .fichier { font: 12px var(--mono); color: var(--doux); margin: 0; }
-#panneau ul { list-style: none; margin: 0; padding: 0; }
-#panneau li { display: flex; align-items: center; gap: 6px; }
-#panneau li small { color: var(--doux); font-size: 10px; border: 1px solid var(--bord); border-radius: 8px; padding: 0 5px; }
-#panneau li.arbre button { font-weight: 600; }
-#panneau li button { background: none; border: 0; color: var(--texte); font: 12px var(--mono); padding: 1px 0;
+#panneau h3, #fiche h3 { font-size: 12px; margin: 14px 0 4px; color: var(--doux); text-transform: uppercase; letter-spacing: 0.04em; }
+#panneau .fichier, #fiche .fichier { font: 12px var(--mono); color: var(--doux); margin: 0; }
+#panneau ul, #fiche ul { list-style: none; margin: 0; padding: 0; }
+#panneau li, #fiche li { display: flex; align-items: center; gap: 6px; }
+#panneau li small, #fiche li small { color: var(--doux); font-size: 10px; border: 1px solid var(--bord); border-radius: 8px; padding: 0 5px; }
+#panneau li.arbre button, #fiche li.arbre button { font-weight: 600; }
+#panneau li button, #fiche li button { background: none; border: 0; color: var(--texte); font: 12px var(--mono); padding: 1px 0;
     cursor: pointer; text-align: left; word-break: break-all; }
-#panneau li button:hover { color: var(--accent); }
-#panneau li.croise button { color: var(--doux); font-style: italic; }
-#panneau .cles { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 12px; }
-#panneau .cles dt { white-space: nowrap; }
-#panneau .cles dd { margin: 0; color: var(--doux); }
-#panneau .vide { color: var(--doux); margin: 0; }
-#panneau pre { font: 11px/1.45 var(--mono); background: var(--fond); border: 1px solid var(--bord); border-radius: 6px;
+#panneau li button:hover, #fiche li button:hover { color: var(--accent); }
+#panneau li.croise button, #fiche li.croise button { color: var(--doux); font-style: italic; }
+#panneau .cles, #fiche .cles { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; font-size: 12px; }
+#panneau .cles dt, #fiche .cles dt { white-space: nowrap; }
+#panneau .cles dd, #fiche .cles dd { margin: 0; color: var(--doux); }
+#fiche h2 { margin-right: 0; font-size: 13px; }
+#fiche li.plus, #fiche .aide-fiche { color: var(--doux); font-size: 11px; margin: 4px 0 0; }
+#panneau .vide, #fiche .vide { color: var(--doux); margin: 0; }
+#panneau pre, #fiche pre { font: 11px/1.45 var(--mono); background: var(--fond); border: 1px solid var(--bord); border-radius: 6px;
     padding: 8px; overflow: auto; white-space: pre; }
 
 @media (max-width: 760px) {

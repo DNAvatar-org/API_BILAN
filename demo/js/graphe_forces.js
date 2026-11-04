@@ -2,7 +2,7 @@
 // Desc: Positionnement dynamique : les cellules se repoussent (charge en 1/d², plus collision de leurs
 //       rectangles), restent liées à leur parent et à leurs enfants par des ressorts mesurés de bord à bord,
 //       et plus faiblement à ce qu'elles appellent hors de l'arbre. Un pas par image, refroidi par alpha.
-// Version 1.1.0
+// Version 1.2.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -32,6 +32,37 @@ window.GRAPHE_FORCES = {
         b.vx -= ux * f; b.vy -= uy * f;
     },
 
+    /** Une passe de collision : chaque paire de rectangles qui se chevauchent (marge comprise) est écartée sur
+     *  l'axe le moins engagé — les cellules sont larges, c'est souvent la verticale. Une cellule tenue ne bouge pas,
+     *  l'autre prend tout l'écart. Rend le nombre de vrais recouvrements (au-delà de la marge). */
+    separer: function (vis, C) {
+        const n = vis.length;
+        let recouvrements = 0;
+        for (let i = 0; i < n; i++) {
+            const ci = vis[i];
+            for (let j = i + 1; j < n; j++) {
+                const cj = vis[j];
+                const dx = cj.x - ci.x;
+                const ox = (ci.w + cj.w) / 2 + C.marge - Math.abs(dx);
+                if (ox <= 0) continue;
+                const dy = cj.y - ci.y;
+                const oy = (ci.h + cj.h) / 2 + C.marge - Math.abs(dy);
+                if (oy <= 0 || (ci.fixe && cj.fixe)) continue;
+                if (ox > C.marge && oy > C.marge) recouvrements++;
+                const pi = ci.fixe ? 0 : cj.fixe ? 1 : 0.5;
+                const pj = 1 - pi;
+                if (ox < oy) {
+                    const s = (dx < 0 ? -1 : 1) * ox * C.collision;
+                    ci.x -= s * pi; cj.x += s * pj;
+                } else {
+                    const s = (dy < 0 ? -1 : 1) * oy * C.collision;
+                    ci.y -= s * pi; cj.y += s * pj;
+                }
+            }
+        }
+        return recouvrements;
+    },
+
     /** Un pas de simulation sur les cellules visibles. */
     pas: function () {
         const V = window.GRAPHE_VUE;
@@ -41,9 +72,8 @@ window.GRAPHE_FORCES = {
         const vis = V.visibles;
         const n = vis.length;
         const visible = new Set(vis);
-        let chevauchements = 0;
 
-        // Répulsion de toutes les paires, et collision des rectangles qui se chevauchent.
+        // Répulsion de toutes les paires.
         for (let i = 0; i < n; i++) {
             const ci = vis[i];
             for (let j = i + 1; j < n; j++) {
@@ -57,23 +87,6 @@ window.GRAPHE_FORCES = {
                 const f = C.repulsion * a / (e * e);
                 ci.vx -= dx / d * f; ci.vy -= dy / d * f;
                 cj.vx += dx / d * f; cj.vy += dy / d * f;
-                const ox = (ci.w + cj.w) / 2 + C.marge - Math.abs(dx);
-                const oy = (ci.h + cj.h) / 2 + C.marge - Math.abs(dy);
-                if (ox > 0 && oy > 0 && !(ci.fixe && cj.fixe)) {
-                    // Chevauchement : corrigé sur les positions (pas amorti), selon l'axe le moins engagé —
-                    // les cellules sont larges, c'est souvent la verticale. Une cellule tenue ne bouge pas : l'autre
-                    // prend tout l'écart.
-                    if (ox > C.marge && oy > C.marge) chevauchements++;   // vrai recouvrement, pas la marge seule
-                    const pi = ci.fixe ? 0 : cj.fixe ? 1 : 0.5;
-                    const pj = 1 - pi;
-                    if (ox < oy) {
-                        const s = (dx < 0 ? -1 : 1) * ox * C.collision;
-                        ci.x -= s * pi; cj.x += s * pj;
-                    } else {
-                        const s = (dy < 0 ? -1 : 1) * oy * C.collision;
-                        ci.y -= s * pi; cj.y += s * pj;
-                    }
-                }
             }
         }
 
@@ -107,6 +120,11 @@ window.GRAPHE_FORCES = {
             if (v > C.vitesseMax) { c.vx *= C.vitesseMax / v; c.vy *= C.vitesseMax / v; }
             c.x += c.vx; c.y += c.vy;
         });
+
+        // Collisions après l'intégration, en plusieurs passes : ce sont les positions finales du pas qui ne se
+        // chevauchent plus (une passe unique, avant les ressorts, laissait les amas se reformer).
+        let chevauchements = 0;
+        for (let k = 0; k < C.passes; k++) chevauchements = window.GRAPHE_FORCES.separer(vis, C);
 
         V.alpha *= C.refroidissement;
         // Au repos seulement quand plus rien ne se chevauche : sinon on continue au plus bas, collisions seules.

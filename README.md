@@ -53,15 +53,23 @@ disparaît.
   (`CHARS.ALBEDO` = 🪩), puis viennent les trois clés du dico les plus citées. La taille grandit avec
   le nombre de fils (1 + taille × √fils).
 - **Disposition dynamique** (`demo/js/graphe_forces.js`) : les cellules se repoussent (charge en
-  1/d², d mesurée de bord à bord, plus la collision de leurs rectangles). Des ressorts les lient à
+  1/d², d mesurée de bord à bord). Après chaque pas, trois passes de collision écartent les rectangles
+  qui se chevauchent encore. Des ressorts les lient à
   leur père et à leurs fils, et plus faiblement à ce qu'elles appellent hors de l'arbre. Plus un père
   a de fils, plus ils s'en écartent : le ressort ne descend pas sous le rayon où ils tiennent côte à
   côte (somme de leurs tailles / 2π, curseur « éventail »).
 - **Interaction.** Le bouton +/− ou un double-clic replie ou déplie les appelées. Glisser une cellule
-  entraîne ses voisines, et Maj au lâcher l'épingle. Les légendes sont des boutons on/off : liens
-  d'arbre, liens croisés, orphelines, et chaque dossier du moteur (les fils d'un dossier masqué se
-  rattachent au plus proche ancêtre visible). Un clic sur une cellule ouvre son fichier, ses
-  appelants, ses appelées, ses clés du dico et son source.
+  entraîne ses voisines, et Maj au lâcher l'épingle. Le survol montre la fiche courte de la fonction ;
+  le clic ouvre la fiche complète (fichier, appelants, appelées, clés du dico, source).
+- **Légendes en boutons on/off.** On trouve d'abord les liens d'arbre, les appels croisés (masqués au
+  départ) et les orphelines. Les dossiers suivent, rangés en trois thèmes : *physique* (physics,
+  radiative, spectroscopy), *moteur* (api, config, workers, data, convergence) et *terre* (geology et
+  le reste ; Externe = les scripts pris dans l'application, `CO2/static`). Chaque thème a une bascule
+  globale. Chaque dossier affiche « visibles/total », et les fils d'un dossier masqué se rattachent au
+  plus proche ancêtre visible.
+- **Orphelines** : les fonctions que `run` n'atteint pas. `run` fait converger une époque, mais le
+  temps avance par `CLICS`, que l'hôte appelle : les puits ocean et land en dépendent entièrement. On y
+  trouve aussi les diagnostics, et les fonctions appelées seulement par des fonctions privées.
 - **Mémoire** (`demo/js/graphe_memoire.js`) : au F5, la vue reprend là où elle était. Elle garde dans
   localStorage les positions, les cellules épinglées et repliées, la caméra, les légendes et les
   curseurs. Sans mémoire, tout est déplié ; « réinitialiser » revient à cette vue de départ. Une
