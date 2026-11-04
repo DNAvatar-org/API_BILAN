@@ -225,15 +225,15 @@ Il n'y a pas de « valeur nominale » cachée : le défaut est un point du segme
 
 | Jauge | Paramètres | Défaut |
 |---|---|---|
-| **FROID** ☁️ | nuages bas : gouttes sur océan (CDNC), seuil de pluie, fraction de nuages bas — refroidissent quand ils augmentent | 50 % |
-| **CHAUD** 🌥 | fraction de nuages hauts, humidité relative de surface — réchauffent | 50 % |
+| **FROID** ☁️ | nuages bas : gouttes sur océan (CDNC), seuil de pluie, fraction de nuages bas — refroidissent quand ils augmentent | 61 % |
+| **CHAUD** 🌥 | fraction de nuages hauts, humidité relative de surface — réchauffent | 53 % |
 | **SUBTIL** | exposant sulfate → gouttes (signe selon l'époque) | 70 % |
 
 Les jauges règlent la HAUTEUR de la courbe du modèle, pas sa forme : le défaut est un point de chaque segment
 (`DATA['🎚️'].baryByGroup`, `data/initDATA.js`).
 
 ```js
-api.run({ epochId: '🚂', animEnabled: false, tuning: { baryByGroup: { FROID: 50, CHAUD: 50, SUBTIL: 70 } } });
+api.run({ epochId: '🚂', animEnabled: false, tuning: { baryByGroup: { FROID: 61, CHAUD: 53, SUBTIL: 70 } } });
 ```
 
 > Le groupe **SOLVER** n'existe plus comme barycentre : les paramètres de convergence sont statiques
