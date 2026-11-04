@@ -4,11 +4,11 @@ File: API_BILAN/doc/equation.html
 Desc: Les équations du moteur telles qu'elles sont CODÉES, chacune classée : P physique, M mesure, F fourchette
       (jauge), C calage, N numérique, ⚠️ sans source. Ouverte dans la modale « 📐 Équations » de CO2/index.html.
       Écrite en relisant le code (API_BILAN/*), pas la documentation : chaque carte nomme son fichier et sa fonction.
-Version 2.11.5
+Version 2.11.6
+  - v2.11.6 (2026-11-03): tolérance : plancher déclaré par chaque époque (🧲🔬⌊).
   - v2.11.5 (2026-11-02): part ancienne d'un clic sous l'orbite moyenne de l'intervalle (circulaire, obliquité moyenne de La2004).
   - v2.11.4 (2026-11-02): une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte), κ au rayon d'un dôme.
-  - v2.11.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (PALEOGEO.r_libre, calculée sur les PaleoDEM).
-Date: [November 2, 2026]
+Date: [November 3, 2026]
 Copyright 2026 DNAvatar.org - Arnaud Maignan
 Licensed under Apache License 2.0 with Commons Clause.
 -->
@@ -64,21 +64,24 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq N" id="eq-tolerance-recherche-racine">
         <div class="titre"><span class="cl N">N</span> Tolérance et recherche de la racine</div>
-        <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ 0{,}1\ \text{W/m}^2\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>
+        <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ \Delta F_{\min}\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>
+        <p>δT (📜🧲🔬, en K) et le plancher \(\Delta F_{\min}\) (🧲🔬⌊, en W/m²) sont déclarés par chaque époque. Autour de l'actuel le bilan
+            ne varie que d'environ 0,6 W/m² par K (glace, vapeur, nuages), pas des 3,8 de Planck seul : un \(\Delta F\) toléré laisse
+            sur T un écart six fois plus grand que celui qu'annonce δT.</p>
         <p>Pas croissant (« Search ») jusqu'au changement de signe, puis dichotomie. Pas maximal 20 K, et jamais plus du double du pas
             précédent (ne pas sauter la fenêtre d’une branche chaude : la planète traverse les températures intermédiaires et s’arrête
             au premier équilibre rencontré ; la pente sécante, mesurée entre deux états d'eau et d'albédo différents, peut annoncer
             un équilibre lointain), ≤ 101 itérations. ❔ Au clic frise, la recherche part de la graine 📜🌡️🧮 de l'époque, qui est la
             courbe cyan d'Histoire à ▶ (sa médiane ; glissée vers ◀ le long de 🏔 et 🦣) : sur les états à deux branches, c'est la
             cible qui choisit la branche (clé 🌡️🧮 du dictionnaire).</p>
-        <p>Oscillation : deux états évalués à moins de 0,02 K (2 δT) l'un de l'autre, de \(\Delta F\) opposés et tous deux hors
+        <p>Oscillation : deux états évalués à moins de 0,02 K l'un de l'autre (2 ε_T, constante du solveur), de \(\Delta F\) opposés et tous deux hors
             tolérance — \(\Delta F\) y saute de plus de deux tolérances, il n'y a pas d'équilibre à cette précision. Une dichotomie qui
             encadre une racine change de signe par construction et va jusqu'à la tolérance ; les motifs de la trace des pas (période 2,
             cycle limite, micro-hystérésis) ne décident qu'en Search, quand T stagne. Sortie oscillation ou max_iter : le calcul ne
             s'arrête pas, il rend la température du dernier état évalué. Les calottes ne sont engagées (portées au clic suivant) que
             sur un calcul convergé ; sinon elles gardent leur date, et le clic suivant intègre toute la durée depuis elle.</p>
         <p class="code">calculations_flux.js → computeToleranceWm2, computeSearchIncrement, computeRadiativeTransfer (oscillation,
-            CALOTTES.engager) ; configTimeline.js → CONFIG_COMPUTE [SOLVER]</p>
+            CALOTTES.engager) ; configTimeline.js → 🧲🔬 et 🧲🔬⌊ de chaque époque, CONFIG_COMPUTE [SOLVER]</p>
     </div>
 </div>
 

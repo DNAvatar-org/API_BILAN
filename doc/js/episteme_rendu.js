@@ -1,7 +1,8 @@
 // File: API_BILAN/doc/js/episteme_rendu.js
 // Desc: Rendu des liens épistémiques (data/episteme.js) : une ligne « 🧭 statut · 🛠 usage · [référence] · ce qui est pris ».
 //       Partagé par doc/equation.html, doc/BIBLIOGRAPHIE.html et demo/dico.html. Libellés au survol : CHARS_DESC (alphabet.js).
-// Version 1.0.0
+// Version 1.1.0
+// - v1.1.0: cible iss: (couche plaquée sur la Terre ISS).
 // Date: 2026-10-14
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 'use strict';
@@ -10,7 +11,7 @@ window.EPISTEME_RENDU = (function () {
     const E = window.EPISTEME, D = window.CHARS_DESC;
     const logo = (c) => '<span class="ep-logo" title="' + D[c] + '">' + c + '</span>';
     // Où mène une cible, vue depuis la bibliographie.
-    const NATURE = { eq: 'équation', dico: 'clé', config: 'config', histoire: 'courbe Histoire' };
+    const NATURE = { eq: 'équation', dico: 'clé', config: 'config', histoire: 'courbe Histoire', iss: 'Terre ISS' };
 
     return {
         /** Les liens dont la cible ou la référence vaut `valeur`. */

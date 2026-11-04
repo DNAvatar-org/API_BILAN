@@ -5,7 +5,7 @@
 //       doc/BIBLIOGRAPHIE.html et le dictionnaire (demo/dico.html), via doc/js/episteme_rendu.js — aucun n'en garde de copie.
 //       Un lien : { cible, ref, statut, usage, quoi }
 //         cible  : 'eq:<id de carte equation.html>' | 'dico:<clé DATA>' | 'config:<constante de configTimeline.js>'
-//                  | 'histoire:<série de CO2/static/histoire/litterature.js>'
+//                  | 'histoire:<série de CO2/static/histoire/litterature.js>' | 'iss:<couche plaquée sur la Terre ISS, CO2/static/mesures/>'
 //         ref    : id de <article class="ref"> dans BIBLIOGRAPHIE.html, ou null (définition, aucune publication)
 //         statut : axe 🧭 — ⚛ physique · 📡 mesure directe · 🦴 reconstruction · 💻 simulation publiée · ❔ extrapolé · ⚠️ sans source
 //         usage  : axe 🛠 — 📌 posée · 🎚️ jauge · 🔧 calage · 🔢 numérique · 🎯 comparaison seulement (n'entre pas dans le calcul)
@@ -16,11 +16,11 @@
 //       Un 🎯 n'est un contrôle que si la mesure n'a fixé aucune entrée du calcul : celle qui a servi à ajuster un paramètre
 //       (D de North, η et λ du rebond) ou à choisir une forme (inversion hivernale des calottes), ou qui EST l'entrée
 //       (graine du clic frise), est 📖 pour cet usage ; la forme ainsi choisie est 🔧.
-// Version 1.14.5
-// - v1.14.5 (2026-11-02): part ancienne d’un clic sous l’orbite moyenne (⚠️ bilan de l’orbite moyenne, pas moyenne des bilans).
-// - v1.14.4 (2026-11-02): une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte), κ au rayon d’un dôme.
-// - v1.14.3 (2026-11-01): terre libre ↔ mer à la distance de la terre libre à la côte (⚛ sur les PaleoDEM, ⚠️ classement, ❔ avant 540 Ma).
-// Date: 2026-11-02
+// Version 1.15.2
+// - v1.15.2 (2026-11-04): 📱 : 973 GtCO₂ mesurés en 2000, référence 1 000 en 2025, facteurs des boutons (⚠️ choisis).
+// - v1.15.1 (2026-11-03): histoire:instrumental à l’échelle de Copernicus, pente des satellites après 2000 ; histoire:copernicus (courbe bleue).
+// - v1.15.0 (2026-11-03): cible iss:anomalies — températures mesurées HadCRUT5 sur la Terre ISS et leur popup.
+// Date: 2026-11-04
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
     'use strict';
@@ -602,8 +602,9 @@
         { cible: 'eq:eq-puits-co2-injecte', ref: 'ryan1997', statut: '📡', usage: '📌', quoi: 'déclin de la production ligneuse après fermeture du couvert : fenêtre « jeune » du puits terrestre' },
         { cible: 'eq:eq-puits-co2-injecte', ref: 'tang2014', statut: '📡', usage: '📌', quoi: 'NPP forestière maximale vers 10–40 ans : fenêtre jeune ≈ 30 ans' },
         { cible: 'eq:eq-puits-co2-injecte', ref: 'korner2005', statut: '📡', usage: '📌', quoi: 'Web-FACE : pas d’effet soutenu du CO₂ sur des arbres matures (β_mature faible)' },
-        { cible: 'config:📱 🕰', ref: 'globalCarbonBudget2025', statut: '📡', usage: '📌', quoi: 'émissions 2000–2024 avec usage des sols : 973 GtCO₂, clic ⛽ de la tranche 2000' },
-        { cible: 'config:📱 🕰', ref: 'globalCarbonBudget2024', statut: '📡', usage: '📌', quoi: '~41,6 GtCO₂/an en 2024 : 1 040 GtCO₂ par tranche de 25 ans des scénarios' },
+        { cible: 'config:📱 🕰', ref: 'globalCarbonBudget2025', statut: '📡', usage: '📌', quoi: 'émissions 2000–2024 avec usage des sols : 973 GtCO₂, clic 🛢 de la tranche 2000' },
+        { cible: 'config:📱 🕰', ref: 'globalCarbonBudget2024', statut: '📡', usage: '📌', quoi: '~41,6 GtCO₂/an en 2024 : la référence de 2025, 1 000 GtCO₂ par tranche de 25 ans (≈ 40 GtCO₂/an), arrondie' },
+        { cible: 'config:📱 🕰', ref: null, statut: '⚠️', usage: '📌', quoi: 'facteurs des boutons d’une tranche à la suivante — 🌈 ×1/2, ⛽ ×3/4, 🛢 ×1, 🪾 ×3/2 : des règles choisies, pas des prévisions' },
 
         // Pompe d’Urey 🌊🏭 par époque
         { cible: 'config:🌊🏭', ref: 'li2008', statut: '🦴', usage: '📌', quoi: 'histoire de Rodinia : pompe lente tant que le supercontinent tient (🪸), accélérée à sa dislocation (hysteresis 1a)' },
@@ -708,10 +709,33 @@
         { cible: 'eq:eq-equilibre-sommet-atmosphere', ref: 'sherwood2020', statut: '💻', usage: '🎯', quoi: 'sensibilité d’équilibre 2,6–3,9 K par doublement du CO₂ (probable, plusieurs lignes de preuves) — le modèle à 📱 : +2,72 K (CO₂ × 2, même géographie, calottes portées ; 🏔 +2,95, 🐊 +2,56), sous le forçage instantané d’une stratosphère de peau' },
 
         // Fourchettes du banc et courbe instrumentale (comparaison)
-        { cible: 'histoire:instrumental', ref: 'jones1999', statut: '📡', usage: '🎯', quoi: 'absolu 1951–1980 = 14,0 ± 0,5 °C : centre et largeur des fourchettes de 🚂 et 📱' },
-        { cible: 'histoire:instrumental', ref: 'lenssen2019', statut: '📡', usage: '🎯', quoi: 'GISTEMP v4 : an 2000 = +0,39 °C sur 1951–1980, soit 14,4 °C' },
-        { cible: 'histoire:instrumental', ref: 'copernicusEsotc2024', statut: '📡', usage: '🎯', quoi: '1850–1900 = 13,5 °C ; 2024 = 15,1 °C' },
-        { cible: 'histoire:instrumental', ref: 'copernicusGch2025', statut: '📡', usage: '🎯', quoi: '2025 = 13,5 + 1,47 = 14,97 °C (ERA5)' },
+        { cible: 'histoire:instrumental', ref: 'copernicusEsotc2024', statut: '💻', usage: '🎯', quoi: '1850–1900 = 13,5 °C : 0,88 °C (écart mesuré par les jeux de stations) sous la moyenne 1991–2020 d’ERA5' },
+        { cible: 'histoire:instrumental', ref: 'copernicusGch2025', statut: '💻', usage: '🎯', quoi: 'niveau après 2000 : moyenne 1991–2020 d’ERA5 = 14,38 °C (15,10 − 0,72 = 14,97 − 0,59 = 14,98 − 0,60), posée en 2005,5' },
+        { cible: 'histoire:instrumental', ref: 'desouzaMachado2025', statut: '📡', usage: '🎯', quoi: 'pente après 2000 : 0,021 ± 0,015 K/an, peau de la surface par AIRS en radiances claires (AIRS_RT), 09/2002–08/2022 (tableau 3) ; GISTEMP 0,021, ERA5 0,022 sur les mêmes mois. Aucun satellite ne mesure la moyenne absolue par tout temps : seule la pente est reprise' },
+        { cible: 'histoire:instrumental', ref: 'sobrino2020', statut: '📡', usage: '🎯', quoi: 'même pente par MODIS Terra + Aqua (peau des terres et des océans, ciel clair), 2003–2019 : 0,021 ± 0,001 °C/an' },
+        { cible: 'histoire:instrumental', ref: 'susskind2019', statut: '📡', usage: '🎯', quoi: 'AIRS v6 (radiances dégagées des nuages par calcul), 2003–2017 : 0,24 ± 0,12 °C/décennie, GISTEMP 0,22 sur les mêmes années' },
+        { cible: 'histoire:instrumental', ref: 'lenssen2019', statut: '📡', usage: '🎯', quoi: 'GISTEMP v4 (stations) : même pente que les satellites, 0,021 K/an sur 09/2002–08/2022 (tableau 3 de DeSouza-Machado et al. 2025)' },
+        { cible: 'histoire:instrumental', ref: 'jones1999', statut: '📡', usage: '🎯', quoi: 'absolu 1961–1990 = 14,0 °C, à 0,5 °C près : largeur de la bande instrumentale, et des fourchettes de 🚂 et 📱' },
+        { cible: 'histoire:instrumental', ref: 'jonesHarpham2013', statut: '📡', usage: '🎯', quoi: 'le ± 0,5 °C de 1999 redonné et confirmé (13,7–14,0 °C pour 1961–1990) ; une réanalyse (ERA-Interim) tombe ≈ 0,55 °C sous les stations : la bande couvre l’écart entre l’échelle de Copernicus et celle des stations' },
+        { cible: 'histoire:instrumental', ref: null, statut: '❔', usage: '🎯', quoi: 'pente prolongée hors des mesures (2000–2002, 2022–2025) ; moyenne 1991–2020 posée au milieu de la période (réchauffement supposé linéaire) ; trait droit de 1850–1900 à 2000 ; absolu et pente ajoutés en quadrature' },
+        { cible: 'histoire:copernicus', ref: 'copernicusGch2023', statut: '💻', usage: '📖', quoi: '2023 = 14,98 °C, début de l’El Niño 2023–24 (réanalyse ERA5, air à 2 m) : courbe bleue, hors de la cyan' },
+        { cible: 'histoire:copernicus', ref: 'copernicusGch2024', statut: '💻', usage: '📖', quoi: '2024 = 15,10 °C, fin de l’El Niño 2023–24 (réanalyse ERA5)' },
+        { cible: 'histoire:copernicus', ref: 'copernicusGch2025', statut: '💻', usage: '📖', quoi: '2025 = 14,97 °C, année neutre ou faible La Niña, à 0,01 °C de 2023 (réanalyse ERA5)' },
+        { cible: 'histoire:copernicus', ref: 'loeb2021', statut: '📡', usage: '📖', quoi: 'la Terre absorbe environ 1 W/m² de plus qu’elle n’émet : le modèle calcule un équilibre, l’observé n’y est pas encore (survol de 2025)' },
+        // Températures mesurées plaquées sur la Terre ISS (CO2/static/mesures/) et leur popup : montrées, hors calcul
+        { cible: 'iss:anomalies', ref: 'morice2021', statut: '📡', usage: '📖', quoi: 'HadCRUT.5.2.0.0, version non remplie (« mesuré seul ») : anomalies de température de surface à 1961–1990 par cases de 5°, 1850–2025 — air à 2 m sur les terres, eau de surface en mer' },
+        { cible: 'iss:anomalies', ref: 'morice2021', statut: '❔', usage: '📖', quoi: 'version analysée (« interpolé ») : cases sans mesure remplies par un processus gaussien d’après les cases voisines et la façon dont les températures varient ensemble' },
+        { cible: 'iss:anomalies', ref: null, statut: '⚠️', usage: '🔢', quoi: 'une année d’une case : moyenne de ses mois présents, au moins 6 (choix d’affichage, CO2/scripts/mesures/hadcrut5_annuel.py) ; montrée : l’année de la frise, arrondie, de 1850 à 2025 seulement (controle_anomalies.js)' },
+        { cible: 'iss:anomalies', ref: 'osborn2021', statut: '📡', usage: '📖', quoi: 'CRUTEM5 : air sous abri, 10 639 stations rassemblées dont 7 983 dans la grille, séries homogénéisées par les services nationaux (popup)' },
+        { cible: 'iss:anomalies', ref: 'kennedy2019', statut: '📡', usage: '📖', quoi: 'HadSST4 : navires (seaux, prises d’eau des moteurs) et bouées, biais de méthode corrigés, eau ramenée à 20 cm (popup)' },
+        { cible: 'iss:anomalies', ref: 'jones1999', statut: '📡', usage: '📖', quoi: 'température absolue de la Terre connue à ± 0,5 °C seulement : pourquoi on moyenne des écarts (popup)' },
+        { cible: 'iss:anomalies', ref: 'hersbach2020', statut: '💻', usage: '📖', quoi: 'ERA5, depuis 1940 : réanalyse — un modèle de prévision qui assimile les observations et calcule l’air à 2 m partout (popup)' },
+        { cible: 'iss:anomalies', ref: 'copernicusGch2024', statut: '💻', usage: '📖', quoi: 'chiffre annuel de Copernicus, 15,10 °C en 2024, tiré de la réanalyse ERA5 (popup)' },
+        { cible: 'iss:anomalies', ref: 'copernicusGch2025', statut: '💻', usage: '📖', quoi: 'chiffre annuel de Copernicus, 14,97 °C en 2025, tiré de la réanalyse ERA5 (popup)' },
+        { cible: 'iss:anomalies', ref: null, statut: '⚛', usage: '📖', quoi: 'El Niño déplace vers la surface une chaleur que l’océan stockait plus bas, il ne la crée pas : conservation de l’énergie (popup)' },
+        { cible: 'iss:anomalies', ref: 'spencerChristy1990', statut: '📡', usage: '📖', quoi: 'MSU / AMSU (UAH), depuis 1979 : température d’une couche de troposphère par l’émission micro-onde de l’O₂ vers 50–60 GHz, pas l’air à 2 m (popup)' },
+        { cible: 'iss:anomalies', ref: 'mearsWentz2017', statut: '📡', usage: '📖', quoi: 'RSS : la même mesure, d’autres corrections de la dérive de l’heure de passage — l’écart UAH / RSS (popup)' },
+        { cible: 'iss:anomalies', ref: 'wan2008', statut: '📡', usage: '📖', quoi: 'MODIS, depuis 2000 : température de peau des terres en infrarouge thermique, ciel clair, à l’heure du passage (popup)' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'macfarlingMeure2006', statut: '📡', usage: '🎯', quoi: 'fourchettes CO₂ et CH₄ de 🚂' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'beerling2011', statut: '💻', usage: '📖', quoi: 'fourchettes ch4 de 🍄 💀 🦕 🦤 🐊 🏔 : aucune mesure du CH₄ — la simulation de l’Éocène aux CO₂ 5 % et 95 % de PhanDA, l’incertitude du CO₂ propagée ; elle est l’entrée de ces époques : pas un contrôle' },
         { cible: 'config:BENCH_LIT_BY_EPOCH_ID', ref: 'noaaGml', statut: '📡', usage: '🎯', quoi: 'fourchettes CO₂ et CH₄ de 📱' },

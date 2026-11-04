@@ -3,10 +3,11 @@
 //       grandeur, et comment il se dit en clair. Rien que des définitions — aucun DOM, aucune image, aucun
 //       chemin de fichier. C'est ce qui me rend chargeable par n'importe quel hôte de l'API, y compris un
 //       banc sans interface. Le rendu (lexique HTML, pictos PNG, logos) vit dans CO2/static/compute/alphabet_render.js.
-// Version 2.6.2
+// Version 2.6.4
+// - v2.6.4 (2026-11-04): ⛽ 🛢 🪾 : facteurs de la tranche précédente ; × (facteur).
+// - v2.6.3 (2026-11-03): ⌊, plancher (🧲🔬⌊).
 // - v2.6.2 (2026-10-31): 🧫, biosphère marine (part de la boucle CLAW moderne).
-// - v2.6.1 (2026-10-30): 🐾 : 5 000 ans par clic.
-// Date: [October 31, 2026]
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -49,7 +50,7 @@ const CHARS = {
     BIG_IMPACT: '🎇', // Big impact : feu d'artifice (événement d'impact majeur)
     TIC_TIME: '💫',      // TicTime : étoile (événement d'avancement temporel)
     EMISSIONS: '🛢',     // Scénario émissions CO₂ (époque moderne, remplace 💫 pour 📱)
-    EMISSIONS_HIGH: '🪾', // Scénario émissions le plus fort (📱) : 2 × 🛢 par tranche de 25 ans
+    EMISSIONS_HIGH: '🪾', // Scénario émissions le plus fort (📱) : une fois et demie la tranche précédente
     SATELLITE: '🛰', // Satellite : satellite (événement)
     VU_DEN_HAUT: '👁', // Vu d'en haut par un satellite passif (simulateur ISCCP, radiative/nuages_isccp.js)
     FLUX_CN: '🌑', // Flux sortant : lune noire (rayonnement corps noir sortant)
@@ -213,6 +214,7 @@ const CHARS_DESC = {
     '🎞': 'Animation',
     '🔺': 'Delta (*)',
     '🔬': 'Tolérance (précision)',
+    '⌊': 'Plancher (borne basse) — 🧲🔬⌊ : plancher de la tolérance en flux (W/m²), déclaré par chaque époque',
     '🚩': 'T0 (t° initiale)',
     '🪩': 'Albédo',
     '🌕': 'Géothermie',
@@ -225,8 +227,10 @@ const CHARS_DESC = {
     '💫': 'TicTime',
     '🐾': 'Pas à pas — suivre les carottes de glace, 5 000 ans par clic',
     '🦘': 'Le saut — jusqu\'au dernier maximum glaciaire, puis l\'Holocène',
-    '🛢': 'Scénario émissions',
-    '🪾': 'Scénario émissions — double du bidon',
+    '🛢': 'Émissions : la même quantité que la tranche précédente (en 2000, les émissions mesurées)',
+    '⛽': 'Émissions : les trois quarts de la tranche précédente',
+    '🪾': 'Émissions : une fois et demie la tranche précédente',
+    '×': 'Facteur d’une tranche à la suivante (sans dimension)',
     '☄️': 'Météorite de glace',
     '🗻': 'Volcan — voile atmosphérique',
     '🌋': 'Volcan — CO₂ + noircissement de la glace',

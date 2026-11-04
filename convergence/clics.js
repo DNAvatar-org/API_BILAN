@@ -9,11 +9,11 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.4.2
+// Version 1.5.0
+// - v1.5.0 (2026-11-04): 📱 : un bouton à facteur multiplie l'émission de la tranche précédente (📜🔺⚖️🏭⏮).
 // - v1.4.2 (2026-10-29): l'époque se pose par 📜👉 seul (DATA['📅'] en est l'accesseur) ; 🗿 reste écrit pour l'interface.
 // - v1.4.1 (2026-10-29): frise = T₂ du bilan méridien à sa condition initiale (MERIDIEN.depuisConfig).
-// - v1.4.0: chemins (🕰.🛤, 🦣) : au premier clic, un bouton par chemin (🐾 pas à pas, 🦘 le saut) ; chaque chemin sa séquence.
-// Date: [October 29, 2026]
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
 'use strict';
@@ -21,7 +21,7 @@
 window.CLICS = (function () {
 
     /** État propre à une époque : remis à zéro à chaque changement d'époque (frise ou passage). */
-    const COMPTEURS_EPOQUE = ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭'];
+    const COMPTEURS_EPOQUE = ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '🔺⚖️🏭⏮'];
 
     /** Tics de temps géologique : même effet (📿💫, voile de la racine 🍰⚽), boutons différents selon l'époque — dont les deux
      *  chemins du Quaternaire (🐾 pas à pas, 🦘 le saut). */
@@ -53,8 +53,11 @@ window.CLICS = (function () {
         return Object.keys(W).some(function (k) { return !isNaN(Number(k)); });
     }
 
-    /** 📱 : 🕰 indexé par année. Tranche active = la dernière dont l'année est atteinte ; null à la borne de la frise
-     *  (window.TIMELINE_FUTUR ◀, 2300) : les clics continuent après ◀ de 📱 (2100), ses masses 🔀 restant à leur cible. */
+    /** 📱 : 🕰 indexé par année. Tranche active = celle du dernier bloc dont l'année est atteinte ; null à la borne de la frise
+     *  (window.TIMELINE_FUTUR ◀, 2300) : les clics continuent après ◀ de 📱 (2100), ses masses 🔀 restant à leur cible.
+     *  Une action par bouton : { 🔺⏳ durée (Ma), 🔺⚖️🏭 émis (kg CO₂), 🔺⚖️🏭⏮ ce que le clic passe au suivant }. Une action à
+     *  facteur (×) multiplie l'émission de la tranche précédente (📜🔺⚖️🏭⏮) et passe la sienne ; une action fixe (mesurée,
+     *  2000) émet la sienne et passe la référence qu'elle déclare. */
     function trancheActive(EP) {
         const W = EP['🕰'];
         const annees = Object.keys(W).filter(function (k) { return !isNaN(Number(k)); }).map(Number).sort(function (a, b) { return a - b; });
@@ -62,7 +65,12 @@ window.CLICS = (function () {
         if (date >= window.TIMELINE_FUTUR['◀']) return null;
         let active = annees[0];
         annees.forEach(function (a) { if (date >= a) active = a; });
-        return W[active];
+        const avant = window.DATA['📜']['🔺⚖️🏭⏮'], tranche = {};
+        Object.keys(W[active]).forEach(function (key) {
+            const a = W[active][key], emis = ('×' in a) ? avant * a['×'] : a['🔺⚖️🏭'];
+            tranche[key] = { '🔺⏳': W['🔺⏳'], '🔺⚖️🏭': emis, '🔺⚖️🏭⏮': ('×' in a) ? emis : a['🔺⚖️🏭⏮'] };
+        });
+        return tranche;
     }
 
     /**
@@ -155,8 +163,9 @@ window.CLICS = (function () {
         },
 
         /**
-         * Émission libre sur 📱 : kg de CO₂ émis, sur `ans` années — même effet qu'une action de tranche (⛽ 🛢 🪾) :
-         * masse injectée, puits (océan, forêts) sur la durée, horloge avancée ; sans tranche ni séquence. Une page
+         * Émission libre sur 📱 : kg de CO₂ émis, sur `ans` années — même effet qu'une action de tranche (🌈 ⛽ 🛢 🪾) :
+         * masse injectée, puits (océan, forêts) sur la durée, horloge avancée ; sans tranche ni séquence (📜🔺⚖️🏭⏮, ce que
+         * multiplie le bouton suivant, n'en est pas touché). Une page
          * hôte y met ce qu'elle mesure (CO2 embarqué : les déplacements du joueur). Ne lance aucun calcul.
          */
         emettre: function (kg, ans) {
@@ -179,7 +188,7 @@ window.CLICS = (function () {
 
         /**
          * Un clic d'action sur l'époque courante.
-         * @param {string} key  action de 🕰 (💫 🏔 ⛰ 🐾 🦘 ☄️ 🗻 🌋 🎇) ou, sur 📱, action de la tranche active (⛽ 🛢 🪾)
+         * @param {string} key  action de 🕰 (💫 🏔 ⛰ 🐾 🦘 ☄️ 🗻 🌋 🎇) ou, sur 📱, action de la tranche active (🌈 ⛽ 🛢 🪾)
          * @returns {{passage: string|null}} époque où le clic fait arriver (fin d'époque atteinte, ou ⏩ de 🎇)
          */
         jouer: function (key) {
@@ -203,6 +212,7 @@ window.CLICS = (function () {
             if (tranche !== null) {
                 // 📱 : émission + puits sur la durée du clic (une fois par événement), 📿💫 compte les clics.
                 H['🔺⚖️🏭'] += cfg['🔺⚖️🏭'];
+                H['🔺⚖️🏭⏮'] = cfg['🔺⚖️🏭⏮'];   // ce que multipliera le clic suivant
                 window.CO2.advanceCarbonSinks(cfg['🔺⏳'] * 1e6, cfg['🔺⚖️🏭']);
                 H['📿💫'] += 1;
             } else if (key === '☄️') {

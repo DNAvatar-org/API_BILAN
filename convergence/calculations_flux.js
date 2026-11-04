@@ -1,11 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.7.2
-// - v1.7.2 (2026-10-30): CO₂ de l'océan semé à l'équilibre de Henry à la T de départ (et non à T_ref), r lu tel quel.
-// - v1.7.1 (2026-10-29): graine du clic lue dans 📜🌡️🧮 ; pas du cycle de l'eau dans 💧🔺⏳💦 ; époque = DATA['📅'] ; intérieur et
-//   calottes lisent DATA eux-mêmes.
-// Date: [October 30, 2026]
+// Version 1.7.4
+// - v1.7.4 (2026-11-04): premier pas de Search sous Planck écrit tel quel (les configs frontière en dépendent).
+// - v1.7.3 (2026-11-03): plancher de la tolérance lu dans l'époque (📅 🧲🔬⌊).
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -36,7 +35,7 @@
 // - computeSearchIncrement: Math.pow(Δ,1/3)=NaN si Δ<0 → sign(Δ)×|Δ|^(1/3)
 // - calcul radiatif N : T affichée = température d'entrée (🧮🌡️⏮), pas la sortie après pas
 // - next_T_C = T atteinte par le pas (Search et Dicho) pour cohérence cycle albédo
-// - Tolérance flux : helper computeToleranceWm2 (source unique), borne min tolMinWm2
+// - Tolérance flux : helper computeToleranceWm2 (source unique), plancher de l'époque (📅 🧲🔬⌊)
 // - Dicho T===T_prev : arrêt seulement si convergé ; sinon élargir bracket pour débloquer
 // - 3 Dicho même sens d'affilée → retour Search + expansion bornes (comme Search)
 // - Crossing (0°C, T_boil) : phase=Search, 🧮🔄🪩++ pour index monotone (éviter cycle 6 puis 1)
@@ -202,10 +201,11 @@ function penteDePlanck(OLR) {
     return 4 * CONST.STEFAN_BOLTZMANN * Math.pow(OLR / CONST.STEFAN_BOLTZMANN, 0.75);
 }
 
-/** Tolérance flux (W/m²) = max(penteDePlanck(OLR) × precision_K, tolMinWm2) : « T à precision_K de l'équilibre ».
+/** Tolérance flux (W/m²) = max(penteDePlanck(OLR) × precision_K, plancher de l'époque DATA[📅][🧲🔬⌊]) : « T à precision_K
+ *  de l'équilibre » sous Planck seul ; avec les rétroactions la pente est plus faible et l'écart sur T plus grand.
  *  OLR : celui du dernier transfert ; avant le premier, l'émission est celle de la surface (σT⁴). */
 function computeToleranceWm2(OLR, precision_K) {
-    return Math.max(penteDePlanck(OLR) * precision_K, window.CONFIG_COMPUTE.tolMinWm2);
+    return Math.max(penteDePlanck(OLR) * precision_K, window.DATA['📅']['🧲🔬⌊']);
 }
 
 // Calcule T0 initial. Nouveau run (previous vide) : toujours T0 = époque. En anim en cours (previous non vide) : garder T actuelle.
@@ -299,7 +299,13 @@ function initForConfig() {
 // isFirst: true = après config, on pousse le premier cycle dans Convergence.
 // Async + yields pour que le bouton Stop soit cliquable pendant les calculs.
 // ============================================================================
-/** Dernier point de la recherche (T, Δ) : sert à mesurer la pente réelle dΔ/dT. Remis à zéro à chaque calcul. */
+/** Dernier point de la recherche (T, Δ) : sert à mesurer la pente réelle dΔ/dT. Remis à zéro à chaque calcul.
+ *  Au premier pas de Search, l'encadrement (expandBracketIfInvalid) appelle computeSearchIncrement juste avant le pas, à la
+ *  même température : ce point est donc déjà le dernier, la sécante attend le pas suivant et ce pas-là reste sous Planck (et
+ *  sans la borne « double du pas précédent »). C'est le chemin avec lequel les configs frontière ont été mesurées : au
+ *  passage 🪸 → 1a, la branche chaude n'existe qu'à sa tangente (Δ remonte à −0,006 W/m² vers 10,4 °C) ; une sécante dès ce
+ *  pas saute 4 K, arrive avec la glace en retard et ne trouve plus l'équilibre (1a à −67 °C). Le chemin en deux pas de Planck
+ *  ne coûte rien de plus : 111 calculs radiatifs contre 110 sur les frises des 21 époques. */
 let dernierPointRecherche = null;
 
 /** Calcule l'incrément Search (incTemp) en K.

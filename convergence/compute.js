@@ -16,7 +16,7 @@
 // UTF8 est la sémantique pour CODE & UI
 // ============================================================================
 
-/** 📱 : 🕰 indexé par année (clés numériques '2000', '2025'…), chaque tranche porte ses actions (⛽, 🛢, 🪾). */
+/** 📱 : 🕰 indexé par année (clés numériques '2000', '2025'…), chaque tranche porte ses actions (🌈 ⛽ 🛢 🪾, CLICS.trancheActive). */
 function yearBucketKeys(W) {
     return Object.keys(W).filter(k => !isNaN(Number(k)));
 }

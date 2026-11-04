@@ -9,7 +9,7 @@ La boucle radiatif s'arrête avec `🧮🛑 = 'converged'` lorsque :
 ```
 
 - **🔺🧲** : déséquilibre radiatif (W/m²) = flux entrant − flux sortant. À l'équilibre : **🔺🧲 ≈ 0**.
-- **🧲🔬** : tolérance en W/m² = `max(4σT³ × precision_K, tolMinWm2)`.
+- **🧲🔬** : tolérance en W/m² = `max(penteDePlanck(OLR) × precision_K, 🧲🔬⌊)` — `🧲🔬⌊` : plancher déclaré par chaque époque (`config/configTimeline.js`).
 
 Donc `'converged'` = « le bilan est assez proche de zéro ». Ce n'est pas un équilibre parfait (Δ = 0).
 

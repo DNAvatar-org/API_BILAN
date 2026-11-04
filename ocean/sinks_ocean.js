@@ -3,11 +3,11 @@
 // Desc: Les trois réservoirs océaniques (couche de mélange, thermocline, profond) et leur relaxation.
 //       Rien d'autre : la partition Henry de fond vit dans co2/calculations_co2.js, le puits
 //       terrestre dans land/sinks_land.js. Un fichier par puits, ils n'ont pas la même physique.
-// Version 1.2.4
+// Version 1.2.5
+// - v1.2.5 (2026-11-04): OCEAN_SINK.poserBoxesKg — les réservoirs d'un calcul gardé remis tels quels (progression au F5).
 // - v1.2.4 (2026-10-29): T_réf de Van 't Hoff = T̄ de la Terre actuelle, où les ratio_i sont mesurés (INTERIEUR.CONST.T_S0).
 // - v1.2.3 (2026-10-29): écarts de zone lus par MERIDIEN.ecarts, zones par EARTH.ZONES (moyenneGlobe) : leur seule source.
-// - v1.2.2 (2026-10-13): écarts de zone du bilan méridien au lieu d'EPOCH['🥶'] posés.
-// Date: [October 29, 2026]
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // ============================================================================
@@ -122,9 +122,15 @@ function oceanSinkTotalKg() {
     return s;
 }
 
-/** Contenu par réservoir (kg CO₂) — diagnostic / affichage. */
+/** Contenu par réservoir (kg CO₂) — diagnostic / affichage, et l'état que garde la progression (CO2 static/ui/progression.js). */
 function oceanSinkBoxesKg() {
     return oceanBoxKg.slice();
+}
+
+/** Les réservoirs remis tels qu'un calcul gardé les a laissés (kg CO₂, même ordre ; CO2 static/ui/progression.js) : sans
+ *  eux, syncOceanBoxes trouverait des réservoirs vides pour un total non nul, et le répartirait aux capacités. */
+function poserOceanSinkBoxesKg(kg) {
+    oceanBoxKg = kg.slice();
 }
 
 window.OCEAN_SINK = {};
@@ -134,3 +140,4 @@ window.OCEAN_SINK.advanceOceanSinkStep = advanceOceanSinkStep;
 window.OCEAN_SINK.zonalSolubilityFactor = zonalSolubilityFactor;
 window.OCEAN_SINK.totalKg = oceanSinkTotalKg;
 window.OCEAN_SINK.boxesKg = oceanSinkBoxesKg;
+window.OCEAN_SINK.poserBoxesKg = poserOceanSinkBoxesKg;

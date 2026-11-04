@@ -35,7 +35,7 @@
 
 <p class="sec-note">Usages et statuts (🧭 d’où vient la connaissance, 🛠 ce que le modèle en fait) : sous chaque entrée, lus dans
     <code>API_BILAN/data/episteme.js</code>. La page se range en deux parties lues dans ces mêmes liens : <strong>Physique</strong>
-    (au moins un usage entre dans le calcul) et <strong>Observations</strong> (courbe cyan d’Histoire et comparaisons 🎯 seulement).</p>
+    (au moins un usage entre dans le calcul) et <strong>Observations</strong> (courbe cyan d’Histoire, carte des températures mesurées de la Terre en fond (CO2) et comparaisons 🎯 seulement).</p>
 
 <nav class="toc">
     <strong>Sommaire :</strong>
@@ -53,7 +53,8 @@
     <a href="#sec-water-rt">Eau &amp; transfert radiatif</a> ·
     <a href="#sec-composition">Composition, nuages froids, bilan méridien</a> ·
     <a href="#sec-calottes-cryogenien">Calottes, Cryogénien</a> ·
-    <a href="#sec-interieur">Intérieur</a>
+    <a href="#sec-interieur">Intérieur</a> ·
+    <a href="#sec-mesures">Températures mesurées</a>
 </nav>
 
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
@@ -1156,7 +1157,7 @@
     <div class="title">Satellite and ocean data reveal marked increase in Earth's heating rate</div>
     <div class="venue">Geophysical Research Letters, 48:e2021GL093047 (2021)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2021GL093047">10.1029/2021GL093047</a></div>
-    <div class="used-in">CERES : déséquilibre radiatif mesuré au sommet de l'atmosphère, +0,5 W/m² (2005) → +1,0 W/m² (2019), confirmé par le contenu thermique océanique (flotteurs Argo). C'est LA grandeur que l'appli calcule, et elle dit que la Terre n'est PAS à l'équilibre : l'appli fait converger 🔺🧲 → 0, donc elle ne sait produire que des températures d'équilibre. ⚠️ TODO inertie thermique de l'océan.</div>
+    <div class="used-in">CERES : déséquilibre radiatif mesuré au sommet de l'atmosphère, +0,5 W/m² (2005) → +1,0 W/m² (2019), confirmé par le contenu thermique océanique (flotteurs Argo). C'est LA grandeur que l'appli calcule, et elle dit que la Terre n'est PAS à l'équilibre : l'appli fait converger 🔺🧲 → 0, donc elle ne sait produire que des températures d'équilibre. ⚠️ TODO inertie thermique de l'océan. Survol de 2025 dans la courbe bleue d’Histoire : le modèle calcule un équilibre, la Terre n’y est pas encore.</div>
 </article>
 
 <article class="ref" id="walkerHaysKasting1981" data-tags="co2 carbon-cycle weathering urey silicate negative-feedback">
@@ -1211,7 +1212,7 @@
     <div class="title">Global Carbon Budget 2024</div>
     <div class="venue">Earth System Science Data, 17(3):965–1039 (2025)</div>
     <div class="doi"><a href="https://doi.org/10.5194/essd-17-965-2025">10.5194/essd-17-965-2025</a></div>
-    <div class="used-in">Rythme des émissions en 2024, ~41,6 GtCO₂/an (fossile + usage des sols) → 1 040 GtCO₂ par tranche de 25 ans des scénarios ⛽ de 📱 (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>). Le cumul 2000–2024 vient de l’édition suivante, <a href="#globalCarbonBudget2025">[globalCarbonBudget2025]</a>.</div>
+    <div class="used-in">Rythme des émissions en 2024, ~41,6 GtCO₂/an (fossile + usage des sols) → référence de 2025 arrondie à 1 000 GtCO₂ par tranche de 25 ans, que multiplient les boutons de 📱 (<code>configTimeline.js</code>, <code>CO2/static/texts/epochs_alt2sec.js</code>). Le cumul 2000–2024 vient de l’édition suivante, <a href="#globalCarbonBudget2025">[globalCarbonBudget2025]</a>.</div>
 </article>
 
 
@@ -1666,7 +1667,16 @@
     <div class="title">Surface air temperature and its changes over the past 150 years</div>
     <div class="venue">Reviews of Geophysics, 37(2):173–199 (1999)</div>
     <div class="doi"><a href="https://doi.org/10.1029/1999RG900002">10.1029/1999RG900002</a></div>
-    <div class="used-in">Absolu 1951–1980 = 14,0 ± 0,5 °C : centre et LARGEUR des fourchettes tC 🚂 📱 <code>API_BILAN/config/configTimeline.js</code>.</div>
+    <div class="used-in">Absolu 1961–1990 = 14,0 °C, à 0,5 °C près (chiffre du corps de l’article, redonné par Jones &amp; Harpham 2013) : largeur de la bande instrumentale de la cyan (<code>L.instrumental</code>, <code>CO2/static/histoire/litterature.js</code>), donc des fourchettes tC de 🚂 et 📱 du banc.</div>
+</article>
+
+<article class="ref" id="jonesHarpham2013" data-tags="modern gmst absolute observations">
+    <div class="cite-key">[jonesHarpham2013]</div>
+    <div class="authors">Jones, P. D. &amp; Harpham, C.</div>
+    <div class="title">Estimation of the absolute surface air temperature of the Earth</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 118:3213–3217 (2013)</div>
+    <div class="doi"><a href="https://doi.org/10.1002/jgrd.50359">10.1002/jgrd.50359</a></div>
+    <div class="used-in">La valeur mondiale de 14 °C de Jones et al. 1999 à 0,5 °C près, confirmée : 13,7–14,0 °C pour 1961–1990 ; ERA-Interim ≈ 0,55 °C sous l’estimation par stations. Largeur de la bande instrumentale de la cyan (<code>L.instrumental</code>, <code>CO2/static/histoire/litterature.js</code>), qui couvre l’écart entre l’échelle de Copernicus (réanalyse) et celle des stations.</div>
 </article>
 
 <article class="ref" id="lenssen2019" data-tags="modern gmst gistemp">
@@ -1675,7 +1685,7 @@
     <div class="title">Improvements in the GISTEMP uncertainty model</div>
     <div class="venue">Journal of Geophysical Research: Atmospheres, 124:6307–6326 (2019)</div>
     <div class="doi"><a href="https://doi.org/10.1029/2018JD029522">10.1029/2018JD029522</a></div>
-    <div class="used-in">GISTEMP v4 : anomalie an 2000 = +0,39 °C vs 1951–1980 → 📱 = 14,4 °C <code>API_BILAN/config/configTimeline.js</code>. T̄ de la Terre actuelle : T_s0 de l’intérieur et T_ref de Van ’t Hoff du partage et du puits du CO₂ (INTERIEUR.CONST.T_S0).</div>
+    <div class="used-in">GISTEMP v4 (stations) : même pente que les satellites, 0,021 K/an sur 2002–2022 (tableau 3 de DeSouza-Machado et al. 2025) — recoupement de la cyan après 2000. An 2000 = +0,39 °C sur 1951–1980, soit 14,4 °C sur l’absolu de Jones et al. 1999 : T̄ de la Terre actuelle : T_s0 de l’intérieur et T_ref de Van ’t Hoff du partage et du puits du CO₂ (INTERIEUR.CONST.T_S0).</div>
 </article>
 
 <article class="ref" id="copernicusEsotc2024" data-tags="modern gmst preindustrial">
@@ -1684,7 +1694,7 @@
     <div class="title">European State of the Climate 2024</div>
     <div class="venue">C3S / WMO (2025)</div>
     <div class="doi"><a href="https://climate.copernicus.eu/esotc/2024">https://climate.copernicus.eu/esotc/2024</a></div>
-    <div class="used-in">Préindustriel 1850–1900 = 0,88 °C sous 1991–2020 (14,4 °C) → 🚂 = 13,5 °C <code>API_BILAN/config/configTimeline.js</code>.</div>
+    <div class="used-in">Préindustriel 1850–1900 = 0,88 °C (écart mesuré par les jeux de stations) sous la moyenne 1991–2020 d’ERA5, 14,38 °C → <strong>13,5 °C</strong> : départ de la bande instrumentale de la cyan (<code>L.instrumental</code>, <code>CO2/static/histoire/litterature.js</code>).</div>
 </article>
 
 <article class="ref" id="copernicusGch2025" data-tags="modern gmst observations">
@@ -1693,7 +1703,52 @@
     <div class="title">Global Climate Highlights 2025</div>
     <div class="venue">C3S / ECMWF (janvier 2026)</div>
     <div class="doi"><a href="https://climate.copernicus.eu/sites/default/files/custom-uploads/GCH-2025/GCH2025-full-report.pdf">climate.copernicus.eu — GCH2025-full-report.pdf</a></div>
-    <div class="used-in">2025 (ERA5) : +1,47 °C sur 1850–1900, soit 13,5 + 1,47 = <strong>14,97 °C</strong> → dernier point de la courbe instrumentale <code>CO2/static/histoire/litterature.js</code>, bande cyan du clic 📱 2025 du banc.</div>
+    <div class="used-in">2025 = <strong>14,97 °C</strong>, +1,47 °C sur 1850–1900 (réanalyse ERA5, air à 2 m) : dernier point de la courbe bleue d’Histoire, les années ERA5 (<code>L.copernicus</code>, <code>CO2/static/histoire/litterature.js</code>) — des années, hors de la cyan à laquelle le modèle se compare. Avec 2023 et 2024 : moyenne 1991–2020 d’ERA5 = <strong>14,38 °C</strong> (15,10 − 0,72 = 14,97 − 0,59 = 14,98 − 0,60), niveau de la cyan après 2000.</div>
+</article>
+
+<article class="ref" id="copernicusGch2023" data-tags="modern gmst observations">
+    <div class="cite-key">[copernicusGch2023]</div>
+    <div class="authors">Copernicus Climate Change Service (C3S)</div>
+    <div class="title">Global Climate Highlights 2023</div>
+    <div class="venue">C3S / ECMWF (janvier 2024)</div>
+    <div class="doi"><a href="https://climate.copernicus.eu/global-climate-highlights-2023">climate.copernicus.eu — global-climate-highlights-2023</a></div>
+    <div class="used-in">2023 = <strong>14,98 °C</strong>, +1,48 °C sur 1850–1900 (ERA5) : courbe bleue d’Histoire (<code>L.copernicus</code>).</div>
+</article>
+
+<article class="ref" id="copernicusGch2024" data-tags="modern gmst observations">
+    <div class="cite-key">[copernicusGch2024]</div>
+    <div class="authors">Copernicus Climate Change Service (C3S)</div>
+    <div class="title">Global Climate Highlights 2024</div>
+    <div class="venue">C3S / ECMWF (janvier 2025)</div>
+    <div class="doi"><a href="https://climate.copernicus.eu/global-climate-highlights-2024">climate.copernicus.eu — global-climate-highlights-2024</a></div>
+    <div class="used-in">2024 = <strong>15,10 °C</strong>, +1,60 °C sur 1850–1900 (ERA5), année El Niño : courbe bleue d’Histoire (<code>L.copernicus</code>).</div>
+</article>
+
+<article class="ref" id="sobrino2020" data-tags="modern gmst satellite observations">
+    <div class="cite-key">[sobrino2020]</div>
+    <div class="authors">Sobrino, J. A., García-Monteiro, S. &amp; Julien, Y.</div>
+    <div class="title">Surface Temperature of the Planet Earth from Satellite Data over the Period 2003–2019</div>
+    <div class="venue">Remote Sensing, 12(12):2036 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.3390/rs12122036">10.3390/rs12122036</a></div>
+    <div class="used-in">Peau des terres et des océans par MODIS Terra + Aqua, 2003–2019 : <strong>0,021 ± 0,001 °C/an</strong> — même pente que AIRS, recoupement de la cyan après 2000 (<code>L.instrumental</code>, <code>CO2/static/histoire/litterature.js</code>).</div>
+</article>
+
+<article class="ref" id="desouzaMachado2025" data-tags="modern gmst satellite observations">
+    <div class="cite-key">[desouzaMachado2025]</div>
+    <div class="authors">DeSouza-Machado, S., Strow, L. L. &amp; Kramer, R. J.</div>
+    <div class="title">Geophysical Trends Inferred From 20 Years of AIRS Infrared Global Observations</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 130(15):e2025JD043501 (2025)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2025JD043501">10.1029/2025JD043501</a></div>
+    <div class="used-in">AIRS, 09/2002–08/2022 (tableau 3) : <strong>0,021 ± 0,015 K/an</strong> en radiances claires (AIRS_RT) ; GISTEMP 0,021, ERA5 0,022 sur les mêmes mois — pente de la cyan après 2000 et son incertitude (<code>L.instrumental</code>).</div>
+</article>
+
+<article class="ref" id="susskind2019" data-tags="modern gmst satellite observations">
+    <div class="cite-key">[susskind2019]</div>
+    <div class="authors">Susskind, J., Schmidt, G. A., Lee, J. N. &amp; Iredell, L.</div>
+    <div class="title">Recent global warming as confirmed by AIRS</div>
+    <div class="venue">Environmental Research Letters, 14:044030 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1088/1748-9326/aafd4e">10.1088/1748-9326/aafd4e</a></div>
+    <div class="used-in">Peau de la surface par AIRS v6, 2003–2017 : <strong>0,24 ± 0,12 °C/décennie</strong>, GISTEMP 0,22 sur les mêmes années — recoupement de la pente de la cyan après 2000 (<code>L.instrumental</code>).</div>
 </article>
 
 <article class="ref" id="macfarlingMeure2006" data-tags="ice-core co2 ch4 law-dome preindustrial">
@@ -2874,6 +2929,63 @@
     <div class="venue">Global Earth Physics: A Handbook of Physical Constants, AGU Reference Shelf 1, 1–31 (1995)</div>
     <div class="doi"><a href="https://doi.org/10.1029/RF001p0001">10.1029/RF001p0001</a></div>
     <div class="used-in">Masse du noyau, 1,932·10²⁴ kg : <code>geology/interieur.js</code>.</div>
+</article>
+
+<!-- Carte des températures mesurées de la Terre en fond (CO2) (CO2/static/mesures/) et sa popup : des mesures montrées, hors calcul. -->
+<h2 id="sec-mesures">16. Températures mesurées depuis 1850 : stations, navires, bouées, satellites</h2>
+
+<article class="ref" id="kennedy2019" data-tags="sst observations hadsst">
+    <div class="cite-key">[kennedy2019]</div>
+    <div class="authors">Kennedy, J. J., Rayner, N. A., Atkinson, C. P. &amp; Killick, R. E.</div>
+    <div class="title">An Ensemble Data Set of Sea Surface Temperature Change From 1850: The Met Office Hadley Centre HadSST.4.0.0.0 Data Set</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 124(14):7719–7763 (2019)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2018JD029867">10.1029/2018JD029867</a></div>
+    <div class="used-in">HadSST4, la part mer de HadCRUT5 : navires (seaux, prises d’eau des moteurs) et bouées, corrections des biais de méthode de mesure, 200 tirages. Popup « Comment se mesure cette carte » de la Terre en fond (CO2) (<code>CO2/index.html</code>, <code>CO2/static/mesures/</code>).</div>
+</article>
+
+<article class="ref" id="mearsWentz2017" data-tags="satellite msu troposphere observations">
+    <div class="cite-key">[mearsWentz2017]</div>
+    <div class="authors">Mears, C. A. &amp; Wentz, F. J.</div>
+    <div class="title">A Satellite-Derived Lower-Tropospheric Atmospheric Temperature Dataset Using an Optimized Adjustment for Diurnal Effects</div>
+    <div class="venue">Journal of Climate, 30(19):7695–7718 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1175/JCLI-D-16-0768.1">10.1175/JCLI-D-16-0768.1</a></div>
+    <div class="used-in">RSS : température de la basse troposphère par MSU/AMSU, corrections de la dérive de l’heure de passage. Popup de la Terre en fond (CO2) (<code>CO2/index.html</code>) : ce que mesurent les satellites, et l’écart UAH / RSS.</div>
+</article>
+
+<article class="ref" id="morice2021" data-tags="modern gmst observations hadcrut">
+    <div class="cite-key">[morice2021]</div>
+    <div class="authors">Morice, C. P., Kennedy, J. J., Rayner, N. A., Winn, J. P., Hogan, E., Killick, R. E., Dunn, R. J. H., Osborn, T. J., Jones, P. D. &amp; Simpson, I. R.</div>
+    <div class="title">An Updated Assessment of Near-Surface Temperature Change From 1850: The HadCRUT5 Data Set</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 126(3):e2019JD032361 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2019JD032361">10.1029/2019JD032361</a></div>
+    <div class="used-in">HadCRUT.5.2.0.0 (Met Office Hadley Centre / CRU, Open Government Licence v3.0), anomalies mensuelles à 1961–1990 sur une grille de 5°, version analysée et version non remplie (ensemble_mean.nc) : moyennes annuelles 1850–2025 <code>CO2/static/mesures/anomalies_hadcrut5.js</code> (<code>CO2/scripts/mesures/hadcrut5_annuel.py</code>), plaquées sur la Terre de la Terre en fond (CO2) (<code>carte_anomalies.js</code>, <code>controle_anomalies.js</code>).</div>
+</article>
+
+<article class="ref" id="osborn2021" data-tags="land observations crutem stations">
+    <div class="cite-key">[osborn2021]</div>
+    <div class="authors">Osborn, T. J., Jones, P. D., Lister, D. H., Morice, C. P., Simpson, I. R., Winn, J. P., Hogan, E. &amp; Harris, I. C.</div>
+    <div class="title">Land Surface Air Temperature Variations Across the Globe Updated to 2019: The CRUTEM5 Data Set</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 126(2):e2019JD032352 (2021)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2019JD032352">10.1029/2019JD032352</a></div>
+    <div class="used-in">CRUTEM5, la part terres de HadCRUT5 : 10 639 stations rassemblées, dont 7 983 dans la grille, séries homogénéisées par les services météorologiques nationaux. Popup de la Terre en fond (CO2) (<code>CO2/index.html</code>).</div>
+</article>
+
+<article class="ref" id="spencerChristy1990" data-tags="satellite msu troposphere observations">
+    <div class="cite-key">[spencerChristy1990]</div>
+    <div class="authors">Spencer, R. W. &amp; Christy, J. R.</div>
+    <div class="title">Precise Monitoring of Global Temperature Trends from Satellites</div>
+    <div class="venue">Science, 247(4950):1558–1562 (1990)</div>
+    <div class="doi"><a href="https://doi.org/10.1126/science.247.4950.1558">10.1126/science.247.4950.1558</a></div>
+    <div class="used-in">MSU (UAH), depuis 1979 : température d’une couche de troposphère par l’émission micro-onde de l’oxygène, pas l’air à 2 m. Popup de la Terre en fond (CO2) (<code>CO2/index.html</code>).</div>
+</article>
+
+<article class="ref" id="wan2008" data-tags="satellite modis land-surface-temperature observations">
+    <div class="cite-key">[wan2008]</div>
+    <div class="authors">Wan, Z.</div>
+    <div class="title">New refinements and validation of the MODIS Land-Surface Temperature/Emissivity products</div>
+    <div class="venue">Remote Sensing of Environment, 112(1):59–74 (2008)</div>
+    <div class="doi"><a href="https://doi.org/10.1016/j.rse.2006.06.026">10.1016/j.rse.2006.06.026</a></div>
+    <div class="used-in">MODIS, depuis 2000 : température de peau des terres en infrarouge thermique, par ciel clair et à l’heure du passage. Popup de la Terre en fond (CO2) (<code>CO2/index.html</code>).</div>
 </article>
 
 <script src="js/bibliographie.js"></script>

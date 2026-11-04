@@ -6,7 +6,7 @@
 //       Même mécanique de clic que le banc headless CO2/scripts/bench_headless/courbe_modele.js (mode
 //       'clics'), elle-même calquée sur l'interface (events.js) : ordre 🕰.order sinon 💫, compteurs
 //       📿💫 / 📿☄️, voile 🔺🍰⚽ de 🗻 / 🌋 / 💫 / ⛰, passage à l'époque suivante quand la durée est écoulée
-//       (ou ⏩ de 🎇), puis 📱 : un clic ⛽ de la tranche 2000 → 2025.
+//       (ou ⏩ de 🎇), puis 📱 : un clic 🛢 de la tranche 2000 → 2025.
 // Version 2.0.1
 // - v2.0.1 (2026-10-15): createRow reçoit la date de l'état (CLICS.date()).
 // Date: 2026-10-12
@@ -16,7 +16,7 @@
 
 'use strict';
 
-/** ▶ Tictimes : frise ⚫ puis la chaîne de clics complète, T° conservée d'un clic à l'autre, jusqu'au ⛽ 2000 → 2025. */
+/** ▶ Tictimes : frise ⚫ puis la chaîne de clics complète, T° conservée d'un clic à l'autre, jusqu'au 🛢 2000 → 2025. */
 async function runTictimes() {
     const H = window.DATA['📜'];
     const timeline = window.TIMELINE;

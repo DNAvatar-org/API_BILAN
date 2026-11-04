@@ -3,16 +3,12 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.8.6
-// Date: [November 2, 2026]
+// Version 2.8.8
+// Date: [November 4, 2026]
 // logs :
+// - v2.8.8: 📜🔺⚖️🏭⏮, l’émission de la tranche précédente de 📱.
+// - v2.8.7: 📜🧲🔬 dit son unité (K) et le plancher de l’époque (🧲🔬⌊).
 // - v2.8.6: formules : une calotte est N dômes égaux, N = nombre effectif des morceaux connexes de la carte (🍰🗻🧊, 🔺📏🗻🧊).
-// - v2.8.5: formules : racine du point fixe encadrée → dichotomie, pas doublé quand la pente ĝ ≥ 1 (🌡️🎱) ; mer libre (🍰📅🧊).
-// - v2.8.4: formules : naissance d’une calotte, bas du continent de la table, terre de chaque latitude au prorata de l’aire.
-// - v2.8.3: 📜🧫, la biosphère marine du clic.
-// - v2.8.2: formules : arrêt du point fixe par encadrement (🌡️🎱), marge d’une calotte par le haut de sa cellule (🍰🗻🧊).
-// - v2.8.1: descriptions et formules : terre de chaque latitude, forêt de chaque bande et forêt sous la neige, sommet des calottes,
-//   arrêt du point fixe sur T₂.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -22,7 +18,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🔺⏳', '🧲🔬', '🌡️🧮', '🧫'],
+    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '🔺⚖️🏭⏮', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🔺⏳', '🧲🔬', '🌡️🧮', '🧫'],
     // '📅' : pas un groupe de clés — DATA['📅'] est l'époque courante, TIMELINE[📜👉] (accesseur, data/initDATA.js).
     // Masses
     '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
@@ -66,7 +62,8 @@ const DESC = {
         '🔘🕰': 'Bouton cliqué (☄️ ou 💫)',
         '🔺⏳': 'Durée du dernier clic joué dans l’époque (Ma) — le 🔺⏳ de son entrée de 🕰.order, ou de l’action de la tranche sur 📱 ; 0 avant le premier',
         '🔺🍰⚽': 'Cumul voile SW stratosphérique (fraction, 🌋)',
-        '🔺⚖️🏭': 'Cumul CO₂ injecté par événements 📱 ⛽/🛢 (kg)',
+        '🔺⚖️🏭': 'Cumul CO₂ injecté par événements 📱 🌈 ⛽ 🛢 🪾 (kg)',
+        '🔺⚖️🏭⏮': 'CO₂ émis par la tranche précédente de 📱 (kg), que multiplie le bouton suivant (🌈 ⛽ 🛢 🪾, CLICS.trancheActive) ; après la tranche mesurée de 2000, la référence qu’elle passe',
         '🔺⚖️🌊🏭': 'CO₂ injecté absorbé par l’océan (kg, Henry/Revelle)',
         '🔺⚖️🌳🏭': 'CO₂ injecté stocké par les forêts (kg, fertilisation)',
         '⚾': 'Obliquité ε que le calcul utilise (°) : celle de l’orbite à la date (La2004, de −51 Ma à aujourd’hui), sinon celle que l’époque déclare (EPOCH[⚾]) — lue par le bilan méridien, la glace saisonnière, les boîtes saisonnières et les calottes',
@@ -74,7 +71,7 @@ const DESC = {
         '🔁📝': 'Pourquoi de l’état de cycle courant (texte alt2sec de l’événement)',
         '🖼': 'Texture de la planète imposée (suite 🕰.🖼 parcourue par les tics ; sinon déduite de la date)',
         '🌙': 'Carte de nuit superposée (🕰.🌙) — lumières des villes côté ombre',
-        '🧲🔬': 'Précision Flux',
+        '🧲🔬': 'Précision de l’époque sur T (K), convertie en flux par la pente de Planck ; la tolérance ne descend pas sous le plancher de l’époque, 🧲🔬⌊ (computeToleranceWm2)',
         '🧫': 'Biosphère marine du clic (part de la boucle CLAW moderne, 1 = 📱) : celle de l’époque (EPOCH.🧫), ou de son état 🔁 daté quand il en porte une (🦕 à 151,9 Ma) — module la part DMS du sulfate efficace (ALBEDO.rapportCCN) ; posée par getEpochDateConfig',
     },
     '☀️': {

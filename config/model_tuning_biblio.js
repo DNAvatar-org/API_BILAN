@@ -1,9 +1,10 @@
 // File: API_BILAN/config/model_tuning_biblio.js - Bibliographie et impact des reglages
 // Desc: En francais, dans l'architecture, je documente les coefficients de tuning, leurs sources et leur effet thermique signe.
-// Version 1.0.4
+// Version 1.0.5
+// - v1.0.5 (2026-11-03): TOL_MIN_WM2 retiré (le plancher de tolérance est celui de chaque époque, 🧲🔬⌊).
 // - v1.0.4 (2026-10-30): HYSTERESIS retiré (la rampe de la mer gelée n'a plus de lecteur).
 // - v1.0.3 (2026-10-12): CLOUD_FRACTION_BASE / _INDEX_GAIN / OPTICAL_EFF_BASE → CDNC_OCEAN_CM3 (Bennartz 2007).
-// Date: [October 30, 2026]
+// Date: [November 3, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -37,11 +38,6 @@ window.TUNING_BIBLIO = {
         // 2026-10-12 elle porte sur chaque couche du profil nuageux (radiative/calculations.js).
     },
     SOLVER: {
-        TOL_MIN_WM2: {
-            value: 0.05,
-            source: "Choix numerique de convergence (stabilite/temps de calcul)",
-            effect_on_warming_when_increased: "neutral_on_physics"
-        },
         MAX_SEARCH_STEP_K: {
             value: 100,
             source: "Choix numerique solveur Search",

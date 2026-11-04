@@ -3,8 +3,9 @@
 // Desc: Trois mécanismes distincts, chacun chiffré par une publication différente :
 //       fertilisation CO₂ pondérée par l'âge des peuplements, dépôt d'azote, repousse forestière.
 //       Séparé du puits océan (ocean/sinks_ocean.js) : deux physiques sans rapport.
-// Version 1.2.0
-// Date: 2026-09-20
+// Version 1.3.0
+// - v1.3.0 (2026-11-04): LAND_SINK.etat / poser — l'état d'un calcul gardé remis tel quel (progression au F5).
+// Date: 2026-11-04
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
@@ -98,7 +99,22 @@ function landStocks() {
     return { fert: landStocksKg.fert, ndep: landStocksKg.ndep, regrow: landStocksKg.regrow };
 }
 
+/** L'état du puits que garde la progression (CO2 static/ui/progression.js) : les trois stocks (kg CO₂) et les années
+ *  écoulées, dont dépend la repousse. */
+function etatLandSink() {
+    return { stocks: landStocks(), ans: landElapsedYears };
+}
+
+/** L'état d'un calcul gardé remis tel quel : sans lui, syncLandStocks mettrait tout le total en fertilisation, et la
+ *  repousse repartirait de son flux initial. */
+function poserLandSink(e) {
+    landStocksKg = { fert: e.stocks.fert, ndep: e.stocks.ndep, regrow: e.stocks.regrow };
+    landElapsedYears = e.ans;
+}
+
 window.LAND_SINK = {};
+window.LAND_SINK.etat = etatLandSink;
+window.LAND_SINK.poser = poserLandSink;
 window.LAND_SINK.syncLandStocks = syncLandStocks;
 window.LAND_SINK.advanceLandSinkStep = advanceLandSinkStep;
 window.LAND_SINK.effectiveBeta = effectiveBeta;

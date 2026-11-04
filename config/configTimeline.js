@@ -1,10 +1,10 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.11.0
+// Version 1.13.0
+// - v1.13.0 (2026-11-04): 📱 : 973 GtCO₂ mesurés en 2000 (🛢), puis chaque bouton multiplie la tranche précédente.
+// - v1.12.0 (2026-11-03): plancher de la tolérance par époque (🧲🔬⌊) : 0,10 W/m², 0,01 pour 📱.
 // - v1.11.0 (2026-11-02): fourchettes du banc à la date du clic (benchLitA, BENCH_LIT_DATEES : NOAA 2025 pour 📱).
-// - v1.10.9 (2026-11-01): 🐾 : premier pas jusqu'à 805 ka aux masses de la racine, puis 5 ka jusqu'à 800 ka.
-// - v1.10.8 (2026-10-31): frontière F1 remesurée : 1a et ⛄ à 4 250 ppm de CO₂.
-// Date: [November 2, 2026]
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -218,6 +218,7 @@ const timeline = [
         '▶': 5.0e9, // Départ
         '◀': 4510e6, // v-2026-09-24 : vraie date — impact géant / formation de la Lune ~4,51 Ga (Barboni et al. 2017) (était 4.5e9) ‖ Fin
         '🧲🔬': 0.3,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 5096.8, // Rayon de la planète en km (Terre : 6371 km)
         '🍎': 8.3, // Gravité en m/s²
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -269,6 +270,7 @@ const timeline = [
         '▶': 4510e6, // v-2026-09-24 : vraie date — impact géant ~4,51 Ga (était 4.5e9)
         '◀': 4031e6, // v-2026-09-24 : vraie date — base de l'Archéen, ICS 2023 (était 4.0e9)
         '🧲🔬': 1.7,//596,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         // 🌡️🌕 : CONDITION INITIALE de l'intérieur (geology/interieur.js) — l'histoire thermique commence au ▶ de
         //   l'époque qui la porte (une seule). Après l'impact géant la surface EST l'océan de magma : 2300–2800 °C
         //   (Sleep, Zahnle & Neuhoff 2001, PNAS 98:3666) → milieu, 2550 °C. Le flux n'est plus posé (il était de
@@ -341,6 +343,7 @@ const timeline = [
         //   Albédo effectif 🪩 : [0.20, 0.30] (colonne CSV « Albedo », pas une clé TIMELINE séparée)
         //
         '🧲🔬': 0.01,  // Précision stricte (tol ~0.4 W/m²) pour stabilité anim même époque
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         // ⚾ OBLIQUITÉ ε — plages acceptables (cf. commentaire global '⚾' en bas de fichier) :
@@ -446,6 +449,7 @@ const timeline = [
         '▶': 2.5e9,
         '◀': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -565,6 +569,7 @@ const timeline = [
         '▶': 720e6, // v-2026-09-24 : vraie date — base du Cryogénien, ICS 2023 (était 750e6)
         '◀': 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman et al. 2017) (était 720e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -676,6 +681,7 @@ const timeline = [
     "▶": 717e6, // v-2026-09-24 : vraie date — début du Sturtien (Hoffman 2017) (était 72e7)
     "◀": 659e6, // v-2026-09-24 : vraie date — fin du Sturtien, U-Pb 659,3–658,5 (Hoffman 2017) (était 69e7)
     "🧲🔬": 0.01,
+    "🧲🔬⌊": 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
     "📐": 6371,
     "🍎": 9.81,
     "⚾": window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -757,6 +763,7 @@ const timeline = [
         '▶': 659e6, // v-2026-09-24 : vraie date — fin du Sturtien (Hoffman 2017) (était 690e6)
         '◀': 639e6, // v-2026-09-24 : vraie date — début du Marinoen, ≥ 639,0 (Hoffman 2017) (était 600e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -826,6 +833,7 @@ const timeline = [
     "▶": 639e6, // début du Marinoen, ≥ 639,0 Ma (Hoffman 2017)
     "◀": 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
     "🧲🔬": 0.01,
+    "🧲🔬⌊": 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
     "📐": 6371,
     "🍎": 9.81,
     "⚾": window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -903,6 +911,7 @@ const timeline = [
         '▶': 635.2e6, // fin du Marinoen, U-Pb 635,2 Ma (Hoffman 2017)
         '◀': 538.8e6, // base du Cambrien, ICS 2023 (l'Édiacarien)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -964,6 +973,7 @@ const timeline = [
         '▶': 538.8e6, // v-2026-09-24 : vraie date — base du Cambrien, ICS 2023 (était 600e6)
         '◀': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -993,6 +1003,7 @@ const timeline = [
         '▶': 419.2e6, // v-2026-09-24 : vraie date — base du Dévonien, ICS 2023 (était 420e6)
         '◀': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (trapps de Sibérie) (était 280e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -1035,6 +1046,7 @@ const timeline = [
         '▶': 252.2e6, // v-2026-09-24 : vraie date — début de la crise P/T (était 280e6)
         '◀': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -1071,6 +1083,7 @@ const timeline = [
         '▶': 251.902e6, // v-2026-09-24 : vraie date — limite Permien/Trias, ICS 2023 (était 250e6)
         '◀': 66.0e6, // v-2026-09-24 : vraie date — limite K/Pg, ICS 2023 (était 66e6)
         '🧲🔬': 0.1,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -1117,6 +1130,7 @@ const timeline = [
         '◀': 56.0e6, // v-2026-09-24 : vraie date — PETM / base de l'Éocène, ICS 2023 (était 50e6)
         '⛄': 0,
         '🧲🔬': 0.1,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -1152,6 +1166,7 @@ const timeline = [
         '◀': 34.4e6, // v-2026-09-24 : vraie date — début de la transition Éocène-Oligocène (était 35e6)
         '⛄': 0,
         '🧲🔬': 0.1,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
@@ -1191,6 +1206,7 @@ const timeline = [
         '◀': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '⛄': 0.02,
         '🧲🔬': 0.08,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '🗻': {
@@ -1226,6 +1242,7 @@ const timeline = [
         '▶': 33.9e6, // v-2026-09-24 : vraie date — limite Éocène/Oligocène, ICS 2023 (était 33e6)
         '◀': 2.58e6, // v-2026-09-24 : vraie date — base du Quaternaire, ICS 2023 (était 2e6)
         '🧲🔬': 0.05,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_OLIGOCENE },
@@ -1258,6 +1275,7 @@ const timeline = [
         '▶': BASE_QUATERNAIRE_AGE, // base du Quaternaire, ICS 2023
         '◀': window.AN_PRESENT - BASE_HOLOCENE_AN, // base de l'Holocène, ▶ de 🛖 en âge : 11 725 ans avant 2025 (11 700 b2k)
         '🧲🔬': 0.04,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.11, '🍰🗻🌍': 0.19, '🍰🗻🧊': CALOTTES_ACTUELLES }, // ⚠️ état actuel posé : pas de reconstruction d'aire à 2,58 Ma trouvée (Antarctique depuis 34 Ma, Groenland depuis ≥ 2,7 Ma)
@@ -1483,6 +1501,7 @@ const timeline = [
         '▶': BASE_HOLOCENE_AN, // base de l'Holocène (11 700 b2k = −9700), ICS 2023
         '◀': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
         '🧲🔬': 0.03,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         //'🗻': { '🍰🗻🌊': 0.71, '🍰🗻🏔': 0.09, '🍰🗻🌍': 0.20 },
@@ -1514,6 +1533,7 @@ const timeline = [
         '▶': 1750, // v-2026-09-24 : vraie date — préindustriel GIEC (était 1800)
         '◀': 2000,
         '🧲🔬': 0.01,
+        '🧲🔬⌊': 0.10,   // [W/m²] plancher de la tolérance en flux de l'époque (computeToleranceWm2)
         '📐': 6371,
         '🍎': 9.81,
         '🗻': { '🍰🗻🌊': 0.70, '🍰🗻🏔': 0.13, '🍰🗻🌍': 0.17, '🍰🗻🧊': CALOTTES_ACTUELLES },
@@ -1542,7 +1562,11 @@ const timeline = [
         '📅': '📱', // Aujourd'hui (▶=2000 : clic 📱 = position 2000 ; fin de frise = 2100 en organigramme)
         '▶': 2000,
         '◀': 2100, // ticTime forward : 2000+25a/tic → 2025 après 1 tic, 2100 terminus
-        '🧲🔬': 0.010,
+        // Tolérance : le plancher mord, 0,01 W/m². Autour de l'actuel le bilan ne varie que de ≈ 0,6 W/m² par K (glace, vapeur,
+        //   nuages), pas des 3,8 de Planck seul : 0,01 W/m² laisse ≈ 0,02 K sur T, là où 0,10 en laissait 0,16 — deux chemins
+        //   arrivés en 1875 dans le même état finissent ensemble en 2000 et 2025.
+        '🧲🔬': 0.002,
+        '🧲🔬⌊': 0.01,   // [W/m²]
         '📐': 6371, // Rayon de la planète en km
         '🍎': 9.81, // Gravité en m/s²
         // Surfaces géologiques (Couche A - géologie/relief)
@@ -1594,7 +1618,7 @@ const timeline = [
         // Note: Les % seront calculés via calculations_atm.js
         // Note: cloud_coverage, ocean_coverage, ice_coverage seront calculés dynamiquement
         // Échelle récente : 🔺⏳ = 0.000025 Ma → 25 ans par pas
-        // 🕰 indexé par année : clic ⛽/🛢 injecte 🔺⚖️🏭 (masse CO₂) ; pas encore de cycle complet (airborne / océan → TODO)
+        // 🕰 indexé par année : un clic injecte 🔺⚖️🏭 (masse CO₂) ; les puits océan et forêts en reprennent une part.
         // 🔺⚖️🏭 en kg de CO₂ émis sur la tranche de 25 ans (1 Gt = 1e12 kg ; affichage events.js = kg/1e12).
         // [v1.4.80] ×1000 : les valeurs étaient en « N·1e9 » (850e9 kg = 0,85 Gt) → aucun effet climatique.
         // Refs : Friedlingstein et al. 2023 ESSD 15:5301 (Global Carbon Budget) : fossile+usage des sols ≈ 40 GtCO₂/an
@@ -1609,27 +1633,14 @@ const timeline = [
             // la face à l'ombre, EN MÊME TEMPS que le jour (pas d'alternance). Vaut pour toute l'époque (≥ 2000).
             // Image NASA « Earth at night » : la seule chose qui distingue visuellement l'ère industrielle vue de l'espace.
             '🌙': 'fonds/_002000n.png',
-            2000: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 973e12 } }, // +973 GtCO₂ MESURÉS (2000–2024, GCB cumulé)
-            // Quatre scénarios qui DIVERGENT, chacun réglé sur le rythme actuel (~41,6 GtCO₂/an en 2024, fossile + usage
-            // des sols, Global Carbon Budget 2024 → 1040 GtCO₂ par tranche de 25 ans) et une règle par tranche :
-            //   ⛽ optimiste : ×0,5 tous les 25 ans, tend vers 0 (≈ 21 GtCO₂/an en 2025–2050, < 0,1 après 2250) ;
-            //   🛢 comme maintenant : 1040 GtCO₂ par tranche, constant ;
-            //   🪾 le pire : 1,5 × le bidon en 2025–2050, puis ×1,1 tous les 25 ans, sans fin (1560, puis 4050 en 2275–2300) ;
-            //   🌈 (à partir de 2100) : zéro émission, les puits océan et forêts continuent seuls.
-            // Ce sont des règles mécaniques, pas des prévisions : 🪾 cumule ~29 000 GtCO₂ d'ici 2300 — la borne « on ne
-            // s'arrête jamais ».
-            // Tranches explicites jusqu'à la borne de la frise (window.TIMELINE_FUTUR ◀ = 2300).
-            2025: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 520e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1560e12 } },
-            2050: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 260e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1716e12 } },
-            2075: { '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 130e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1887.6e12 } },
-            2100: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 65e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2076.36e12 } },
-            2125: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 32.5e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2284e12 } },
-            2150: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 16.25e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2512.4e12 } },
-            2175: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 8.125e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2763.64e12 } },
-            2200: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 4.062e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 3040e12 } },
-            2225: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 2.031e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 3344e12 } },
-            2250: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1.016e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 3678.4e12 } },
-            2275: { '🌈': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0 }, '⛽': { '🔺⏳': 0.000025, '🔺⚖️🏭': 0.5078e12 }, '🛢': { '🔺⏳': 0.000025, '🔺⚖️🏭': 1040e12 }, '🪾': { '🔺⏳': 0.000025, '🔺⚖️🏭': 4046.24e12 } },
+            '🔺⏳': 0.000025,   // [Ma] 25 ans par clic, toutes les tranches
+            // 2000–2025 : les émissions MESURÉES, 973 GtCO₂ (cumul 2000–2024 du Global Carbon Budget). Le clic passe au suivant
+            // la référence 🔺⚖️🏭⏮ = 1 000 GtCO₂ par tranche, le rythme actuel (≈ 40 GtCO₂/an ; 41,6 mesurés en 2024).
+            2000: { '🛢': { '🔺⚖️🏭': 973e12, '🔺⚖️🏭⏮': 1000e12 } },
+            // À partir de 2025, chaque bouton multiplie l'émission de la tranche précédente (📜🔺⚖️🏭⏮, CLICS.trancheActive) :
+            // 🌈 la moitié, ⛽ les trois quarts, 🛢 la même, 🪾 une fois et demie. Des règles mécaniques, pas des prévisions ; les
+            // facteurs restent à régler. Jusqu'à la borne de la frise (window.TIMELINE_FUTUR ◀ = 2300).
+            2025: { '🌈': { '×': 0.5 }, '⛽': { '×': 0.75 }, '🛢': { '×': 1 }, '🪾': { '×': 1.5 } },
             '◀': {
                 // ⚖️🏭 volontairement absent : CO₂ géré par accumulation manuelle (🔺⚖️🏭_cum)
                 // ⚠️ TODO ⚖️🐄 CH4 2100 : ~3000 ppb → 8.6e12 kg (à recalibrer)
@@ -1792,7 +1803,7 @@ window.epochIndex = function () {
 //   🐧 hystérésis 2 (prélude glaciaire, 35 Ma) — absente du tableau jusqu'au 2026-09-23, d'où le « — » au banc.
 //   🚂 1800 — tC v-2026-09-23 : [13 ; 15] → [13,0 ; 14,0]. Centre = 13,5 °C, le préindustriel
 //   1850-1900 (Copernicus ESOTC 2024 : 0,88 °C sous 1991-2020 = 14,4 °C). Largeur ±0,5 comme 📱.
-//   📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat des clics ⛽.
+//   📱 ▶ = 2000 : repères = OBSERVATIONS an 2000 (NOAA : CO₂ 369,7 ppm Mauna Loa ; CH₄ 1,77 ppm global). 2025 (424 ppm) = résultat du clic 🛢 de 2000.
 //   co2 [365, 375] : NOAA an 2000 = 369,7 ppm en AIR SEC. Le banc affiche l'air sec depuis le 2026-09-23
 //   (demo/js/epoch_bench_format.js v1.1.0) ; avant, il sortait l'air humide et 📱 tombait à 363.
 //   tC v-2026-09-23 : [14,5 ; 15,5] → [13,9 ; 14,9]. Centre = 14,4 °C (GISTEMP v4, anomalie 2000
@@ -2124,9 +2135,9 @@ window.CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit = 1;              // [EQ/NUM]
 
 // ===================== [SOLVER] ===================== source unique SOLVER (v1.4.13)
 // Statiques (pas d'UI, pas d'interpolation bary) → CONFIG_COMPUTE directement, pas dans DATA/DEFAULT.
-// Lus par calculations_flux.js (computeToleranceWm2, computeSearchIncrement, cap 1er pas Search),
+// Lus par calculations_flux.js (computeSearchIncrement, cap 1er pas Search) ; le plancher de tolérance est celui de
+// chaque époque (🧲🔬⌊),
 // physicsAll.js / calculations_h2o.js (🔺⏳ = accélération pas temps).
-window.CONFIG_COMPUTE.tolMinWm2 = 0.10;                  // [EQ/NUM] tolérance plancher flux (W/m²)
 // Pas maximal de la recherche de racine (phase Search). Une planète qui refroidit (ou se réchauffe) traverse toutes les
 // températures intermédiaires et s'arrête au PREMIER équilibre stable rencontré : le pas doit être plus fin que la fenêtre
 // d'une branche chaude. v-2026-10-14 : 140 K (200 K si grand déséquilibre) → 20 K, un seul plafond. À 140 K, l'arrivée de 🔥
@@ -2199,7 +2210,7 @@ window.CONFIG_COMPUTE.logRnDNotes = true;
         }
         const B = window.BENCH_LIT_BY_EPOCH_ID[EP['📅']];
         Object.defineProperty(B, 'tC', { enumerable: true, get: () => { const c = cyan(EP, EP['▶']); return [c[1], c[3]]; } });
-        Object.defineProperty(B.src, 'tC', { enumerable: true, get: () => '📈 courbe cyan d\'Histoire à ▶ (± 1σ) : ' + cyan(EP, EP['▶'])[4] });
+        Object.defineProperty(B.src, 'tC', { enumerable: true, get: () => '📈 bande de la courbe cyan d\'Histoire à ▶ : ' + cyan(EP, EP['▶'])[4] });
     }
     // Fourchettes d'une ligne du banc arrivée à date (unité de ▶ de son époque : âge ou année) : à ▶, celles de l'époque ;
     // ailleurs, la littérature À CETTE DATE — la courbe cyan (tC) et les fourchettes datées (BENCH_LIT_DATEES) —, une
@@ -2211,7 +2222,7 @@ window.CONFIG_COMPUTE.logRnDNotes = true;
         if (age(EP, an) >= 0) {
             const c = cyan(EP, an);
             L.tC = [c[1], c[3]];
-            L.src.tC = '📈 courbe cyan d\'Histoire à la date du clic (± 1σ) : ' + c[4];
+            L.src.tC = '📈 bande de la courbe cyan d\'Histoire à la date du clic : ' + c[4];
         }
         if (id in window.BENCH_LIT_DATEES && an in window.BENCH_LIT_DATEES[id]) {
             const D = window.BENCH_LIT_DATEES[id][an];

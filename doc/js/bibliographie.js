@@ -3,7 +3,9 @@
 //       en deux parties lues dans ces mêmes liens : PHYSIQUE (au moins un usage entre dans le calcul) et OBSERVATIONS (la courbe
 //       cyan d'Histoire, ou une comparaison 🎯 seulement). Les thèmes du fichier restent, à l'intérieur de chaque partie.
 //       Chargé en fin de <body> (après les <article class="ref">).
-// Version 2.0.0 — 2026-10-25 : parties Physique / Observations.
+// Version 2.1.0
+// - v2.0.0 (2026-10-25): parties Physique / Observations.
+// - v2.1.0 (2026-11-03): la carte des températures mesurées de la Terre en fond (CO2) (iss:) range ses sources en Observations.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 'use strict';
 
@@ -15,14 +17,16 @@
         if (l.ref !== null && !document.getElementById(l.ref)) throw new Error('[bibliographie] episteme.js cite [' + l.ref + '], absente de la bibliographie');
         if (!E.STATUTS.includes(l.statut) || !E.USAGES.includes(l.usage)) throw new Error('[bibliographie] statut ou usage inconnu : ' + JSON.stringify(l));
     }
-    // Un lien d'observation : la courbe cyan, ou une cible à valider qui n'entre pas dans le calcul.
-    const observation = (l) => l.cible.startsWith('histoire:') || l.usage === '🎯';
+    // Un lien d'observation : la courbe cyan, la carte des températures mesurées de la Terre en fond (CO2), ou une cible à valider qui
+    // n'entre pas dans le calcul.
+    const observation = (l) => l.cible.startsWith('histoire:') || l.cible.startsWith('iss:') || l.usage === '🎯';
     const PARTIES = {
         physique: { titre: 'Ⅰ. Physique — ce qui entre dans le calcul',
             texte: 'Équations, constantes, mesures et reconstructions que le modèle pose, parcourt ou dont il part : au moins un usage 🛠 '
                 + 'entre dans le bilan radiatif. Une référence qui sert aussi de comparaison porte la mention « aussi observation ».' },
         observations: { titre: 'Ⅱ. Observations — ce à quoi le modèle se compare',
-            texte: 'La courbe cyan de l’onglet Histoire (températures publiées sur 5 Ga) et les cibles 🎯 : fourchettes du banc, seuils '
+            texte: 'La courbe cyan de l’onglet Histoire (températures publiées sur 5 Ga), la carte des températures mesurées de la Terre en fond (CO2) '
+                + '(depuis 1850) et les cibles 🎯 : fourchettes du banc, seuils '
                 + 'publiés, bilans mesurés. Aucune n’entre dans le calcul — le modèle est là pour les valider ou les invalider.' }
     };
 

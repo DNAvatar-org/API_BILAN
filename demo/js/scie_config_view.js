@@ -257,7 +257,6 @@ function renderTuningParamLine(logo, key, value, label) {
 
 function getTuningLineLogo(groupKey, key) {
     if (groupKey === 'SOLVER') {
-        if (key === 'TOL_MIN_WM2') return '🔬';
         if (key === 'LARGE_DELTA_FACTOR') return '🔺🧲';
         if (key === 'MAX_SEARCH_STEP_K' || key === 'MAX_SEARCH_STEP_LARGE_K') return '🌡️';
         return '🧮';
