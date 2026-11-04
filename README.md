@@ -15,6 +15,67 @@ glace-albédo (Snowball néoprotérozoïque, calotte antarctique) et les cycles 
 > charge la configuration d'une époque, les champs la rendent modifiable (température attendue,
 > masses, orbite), et ▶️ fait converger. Même moteur, même résultat que le banc : l'Archéen y
 > donne 18,748 °C dans les deux.
+>
+> **Pour voir comment le moteur s'enchaîne : [`demo/graphe.html`](demo/graphe.html)** — le graphe
+> d'appels, lu dans le code (ci-dessous).
+
+---
+
+## Graphe d'appels
+
+![Graphe d'appels du moteur : computeRadiativeTransfer choisi, son père run en orange, ses 28 appelées en cyan](doc/img/graphe_appels.png)
+
+Le moteur décrit lui-même son algorithme. `graphe/` charge les scripts du manifeste et note ce que
+chacun pose sur `window`. Il lit ensuite le source de chaque fonction (`Function.prototype.toString`)
+pour y relever trois choses :
+
+- ses **appels** : appels directs (`calculateT0(…)`, `window.calculateFluxForT0(…)`), membres de
+  module (`ALBEDO.calculateAlbedo`, un alias local `const S = window.SAISONS`), `this.…` dans un
+  module ;
+- les **fonctions qu'elle passe en argument** (`INTERIEUR.avancer(olrNetA)`, `map(continuumH2OCs)`) ;
+- les **clés du dico** qu'elle lit ou écrit (`DATA['🪩']['🍰🪩🧊']`), avec leur sens tiré de `DESC`.
+
+Une variable locale qui porte le nom d'une globale la masque, comme en JavaScript. Aucune liste n'est
+écrite à la main : une fonction ajoutée au moteur apparaît dans le graphe, une fonction retirée en
+disparaît.
+
+- **265 fonctions, 312 liaisons.** 158 fonctions sont atteintes depuis
+  `BilanRadiatifAPI.prototype.run`, sur 7 niveaux. Les 107 autres sont des « orphelines » :
+  diagnostics, bancs, accesseurs que `run` n'appelle pas.
+- **Arbre** (`graphe/graphe_arbre.js`) : parcours en largeur depuis `run`. Chaque fonction a pour
+  père le premier appelant qui l'atteint (plus court chemin). Ses fils sont rangés dans l'ordre où le
+  source les appelle. Les autres appels restent des liens croisés.
+- **Liens.** La couleur dit le type de liaison : bleu pour père → fils, violet tireté pour un appel
+  croisé. Le trait dit la nature : plein pour un appel, pointillé fin pour une fonction passée en
+  argument, tirets longs pour un alias déduit. Au survol, les appelées passent en cyan, les appelants
+  en orange, et le père en orange épais.
+- **Cellules.** Le logo de l'alphabet précède le nom quand l'alphabet nomme le module
+  (`CHARS.ALBEDO` = 🪩), puis viennent les trois clés du dico les plus citées. La taille grandit avec
+  le nombre de fils (1 + taille × √fils).
+- **Disposition dynamique** (`demo/js/graphe_forces.js`) : les cellules se repoussent (charge en
+  1/d², d mesurée de bord à bord, plus la collision de leurs rectangles). Des ressorts les lient à
+  leur père et à leurs fils, et plus faiblement à ce qu'elles appellent hors de l'arbre. Plus un père
+  a de fils, plus ils s'en écartent : le ressort ne descend pas sous le rayon où ils tiennent côte à
+  côte (somme de leurs tailles / 2π, curseur « éventail »).
+- **Interaction.** Le bouton +/− ou un double-clic replie ou déplie les appelées. Glisser une cellule
+  entraîne ses voisines, et Maj au lâcher l'épingle. Les légendes sont des boutons on/off : liens
+  d'arbre, liens croisés, orphelines, et chaque dossier du moteur (les fils d'un dossier masqué se
+  rattachent au plus proche ancêtre visible). Un clic sur une cellule ouvre son fichier, ses
+  appelants, ses appelées, ses clés du dico et son source.
+
+Ce que le graphe ne voit pas : les fonctions privées des modules (fermées dans un IIFE, jamais posées
+sur `window`), et donc les appels qui passent par elles. Un alias posé hors de la fonction, au niveau
+de l'IIFE (`const A = window.astronomie`), n'est pas lisible non plus : `A.orbite` est résolu, en
+« alias déduit », seulement quand un seul module a un membre `orbite`.
+
+```js
+// Depuis n'importe quel hôte : relever pendant le chargement, extraire après.
+const relever = GRAPHE_EXTRACTION.releveur(apiBase, before.length);
+BILAN_LOADER.load({ apiBase, before, after, cacheBust: '', onLoaded: relever }).then(function () {
+    GRAPHE_EXTRACTION.extraire();   // GRAPHE.noeuds : appels, natures, appelants, logo, cles, source
+    GRAPHE_ARBRE.construire();      // parent, enfants, profondeur, croises, GRAPHE.racines
+});
+```
 
 ---
 
@@ -232,8 +293,9 @@ dessine.
 | **radiative/** | Transfert radiatif couche par couche |
 | **convergence/** | `compute.js` (masses, config d'époque), `calculations_flux.js` (solveur) |
 | **workers/** | Pool de web workers pour le calcul spectral (N−1 threads) |
+| **graphe/** | Graphe d'appels du moteur, lu dans son code : `graphe_appels.js` (`GRAPHE_EXTRACTION`), `graphe_arbre.js` (`GRAPHE_ARBRE`) |
 | **doc/** | Documentation détaillée : formules, algorithmes, bibliographie |
-| **demo/** | Pages exécutables : banc d'époques, vue scientifique, alphabet, dictionnaire — le dépôt se teste sans CO2 |
+| **demo/** | Pages exécutables : banc d'époques, vue scientifique, graphe d'appels, alphabet, dictionnaire — le dépôt se teste sans CO2 |
 
 Découpage détaillé par catégorie de calcul : **[STRUCTURE.md](STRUCTURE.md)**.
 

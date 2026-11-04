@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!-- File: API_BILAN/demo/graphe.html
+     Desc: Le graphe d'appels du moteur, lu dans son code (API_BILAN/graphe/), en cellules qui se repoussent
+           tout en restant liées à leur parent et à leurs enfants.
+     Version 1.1.0 · Date: November 4, 2026
+     Copyright 2026 DNAvatar.org - Arnaud Maignan -->
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphe du moteur</title>
+    <link rel="stylesheet" href="css/graphe.css">
+</head>
+<body>
+    <header id="barre">
+        <h1>Graphe d'appels du moteur</h1>
+        <label>répulsion <input type="range" id="repulsion" min="0" max="12000" step="100"><output for="repulsion"></output></label>
+        <label>ressort <input type="range" id="ressort" min="0.005" max="0.4" step="0.005"><output for="ressort"></output></label>
+        <label>longueur <input type="range" id="longueur" min="5" max="200" step="1"><output for="longueur"></output></label>
+        <label>niveau <input type="range" id="niveau" min="0" max="0.4" step="0.01"><output for="niveau"></output></label>
+        <label title="éloigne les fils de leur père selon leur nombre : assez pour tenir côte à côte">éventail <input type="range" id="eventail" min="0" max="2.5" step="0.05"><output for="eventail"></output></label>
+        <label>croisés <input type="range" id="croise" min="0" max="0.05" step="0.001"><output for="croise"></output></label>
+        <label title="échelle d'une cellule = 1 + taille × √(nombre de fils)">taille <input type="range" id="taille" min="0" max="0.6" step="0.02"><output for="taille"></output></label>
+        <span class="boutons">
+            <button id="toutDeplier">tout déplier</button>
+            <button id="replier">replier dès</button><input type="number" id="niveauPli" value="3" min="0" max="12">
+            <button id="desepingler">désépingler</button>
+            <button id="agiter">agiter</button>
+            <button id="recentrer">recentrer</button>
+        </span>
+        <div id="legende"></div>
+        <p id="statut"></p>
+        <p class="aide">+ / − ou double-clic : replier / déplier les appelées · glisser une cellule : le reste suit · Maj au lâcher : épingler ·
+            clic : détails · molette : zoom · glisser le fond : déplacer</p>
+    </header>
+    <main>
+        <div id="scene"><canvas id="graphe"></canvas><p id="chargement">Chargement du moteur…</p></div>
+        <aside id="panneau"></aside>
+    </main>
+
+    <!-- Le graphe (API) puis sa vue (démo), avant le moteur : le relevé de ce que pose chaque script commence avec lui. -->
+    <script src="../graphe/graphe_appels.js"></script>
+    <script src="../graphe/graphe_arbre.js"></script>
+    <script src="js/graphe_etat.js"></script>
+    <script src="js/graphe_cellules.js"></script>
+    <script src="js/graphe_forces.js"></script>
+    <script src="js/graphe_rendu.js"></script>
+    <script src="js/graphe_entrees.js"></script>
+    <script src="js/graphe_ui.js"></script>
+    <script src="../loader/engine_manifest.js"></script>
+    <script src="../loader/loader.js"></script>
+    <script src="js/graphe_main.js"></script>
+</body>
+</html>
