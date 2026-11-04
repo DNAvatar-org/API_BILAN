@@ -2,7 +2,7 @@
 <!-- File: API_BILAN/demo/graphe.html
      Desc: Le graphe d'appels du moteur, lu dans son code (API_BILAN/graphe/), en cellules qui se repoussent
            tout en restant liées à leur parent et à leurs enfants.
-     Version 1.3.0 · Date: November 4, 2026
+     Version 1.4.0 · Date: November 4, 2026
      Copyright 2026 DNAvatar.org - Arnaud Maignan -->
 <html lang="fr">
 <head>
@@ -32,7 +32,7 @@
         <div id="legende"></div>
         <p id="statut"></p>
         <p class="aide">+ / − ou double-clic : replier / déplier les appelées · glisser une cellule : le reste suit · Maj au lâcher : épingler ·
-            survol : fiche · clic : fiche complète et source · molette : zoom · glisser le fond : déplacer</p>
+            survol : fiche · clic : fiche complète, source et liens vers les équations · molette : zoom · glisser le fond : déplacer</p>
     </header>
     <main>
         <div id="scene"><canvas id="graphe"></canvas><div id="fiche" hidden></div><p id="chargement">Chargement du moteur…</p></div>
@@ -42,6 +42,7 @@
     <!-- Le graphe (API) puis sa vue (démo), avant le moteur : le relevé de ce que pose chaque script commence avec lui. -->
     <script src="../graphe/graphe_appels.js"></script>
     <script src="../graphe/graphe_arbre.js"></script>
+    <script src="../graphe/graphe_doc.js"></script>
     <script src="js/graphe_etat.js"></script>
     <script src="js/graphe_cellules.js"></script>
     <script src="js/graphe_forces.js"></script>

@@ -353,6 +353,10 @@
       "dest": "pages/bilan_radiatif/API_BILAN/graphe/graphe_arbre.js"
     },
     {
+      "src": "graphe/graphe_doc.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/graphe/graphe_doc.js"
+    },
+    {
       "src": "demo/graphe.html",
       "dest": "pages/bilan_radiatif/API_BILAN/demo/graphe.html"
     },

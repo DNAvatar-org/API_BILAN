@@ -2,11 +2,12 @@
 // Desc: Page doc/equation.html — configuration MathJax, source LaTeX sous chaque formule, compte des classes
 //       (P / M / F / C / N / ⚠️) lu sur la page elle-même, hauteur envoyée à la modale parente (iframe).
 //       Chargé AVANT le script MathJax (window.MathJax doit exister quand MathJax démarre).
-// Version 1.1.0
-// Date: [October 14, 2026]
+// Version 1.2.0
+// Date: [November 4, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+//   - v1.2.0 (2026-11-04): cartes envoyées sur demande (« cartes? ») au graphe d'appels (API_BILAN/graphe/graphe_doc.js).
 //   - v1.1.0 (2026-10-14): liens épistémiques 🧭 / 🛠 sous chaque carte (data/episteme.js, js/episteme_rendu.js).
 //   - v1.0.0 (2026-10-13): sorti des scripts en ligne de equation.html ; compte des classes ajouté.
 
@@ -75,3 +76,21 @@ window.MathJax = {
 };
 
 window.addEventListener('resize', envoyerHauteur);
+
+/** Le graphe d'appels (demo/graphe.html) lit la page dans un iframe caché et demande ses cartes : il relie chaque
+ *  fonction aux cartes qui la nomment (ligne « code »). Seule une demande « cartes? » reçoit une réponse. */
+window.addEventListener('message', (e) => {
+    if (e.data.type !== 'cartes?') return;
+    const cartes = Array.from(document.querySelectorAll('.eq[id]')).map((c) => {
+        const titre = c.querySelector('.titre');
+        const cl = titre.querySelector('.cl');
+        return {
+            id: c.id,
+            classe: cl.classList[1],      // P M F C N X
+            marque: cl.textContent,       // la lettre, ou ⚠️ pour X
+            titre: titre.textContent.slice(cl.textContent.length).trim(),
+            code: c.querySelector('.code').textContent
+        };
+    });
+    e.source.postMessage({ type: 'cartes', cartes: cartes }, '*');
+});

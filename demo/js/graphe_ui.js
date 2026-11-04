@@ -1,8 +1,8 @@
 // File: API_BILAN/demo/js/graphe_ui.js
 // Desc: Bandeau (curseurs des forces : l'id de chaque curseur est sa clé dans GRAPHE_VUE.CONFIG), légendes en
 //       boutons on/off (liaisons, orphelines, dossiers rangés par thèmes avec bascule globale), et panneau de la fonction choisie : fichier, appelants,
-//       appelées, source.
-// Version 1.3.0
+//       appelées, clés du dico, équations qui la documentent, source.
+// Version 1.4.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -189,6 +189,19 @@ window.GRAPHE_UI = {
         }).join('') + (nd.cles.length > max ? '<dt>…</dt><dd>' + (nd.cles.length - max) + ' de plus</dd>' : '') + '</dl>';
     },
 
+    /** Les cartes de doc/equation.html qui nomment la fonction (GRAPHE_DOC) : liens dans le panneau, simple texte dans
+     *  la fiche du survol (elle ne prend pas la souris). */
+    docs: function (nd, max, complete) {
+        const U = window.GRAPHE_UI;
+        if (nd.docs.length === 0) return '<p class="vide">—</p>';
+        return '<ul class="docs">' + nd.docs.slice(0, max).map(function (c) {
+            const texte = '<span class="cl ' + c.classe + '">' + c.marque + '</span>' + U.echapper(c.titre);
+            return '<li>' + (complete
+                ? '<a href="' + window.GRAPHE_DOC.lien(c) + '" target="_blank" rel="noopener" title="ouvrir la carte dans la page des équations">' + texte + '</a>'
+                : '<span>' + texte + '</span>') + '</li>';
+        }).join('') + (nd.docs.length > max ? '<li class="plus">… ' + (nd.docs.length - max) + ' de plus</li>' : '') + '</ul>';
+    },
+
     /** La fiche d'une fonction : complète dans le panneau (tout, et le source), courte au survol (listes écourtées). */
     fiche: function (c, complete) {
         const U = window.GRAPHE_UI;
@@ -204,8 +217,9 @@ window.GRAPHE_UI = {
             + '<h3>Appelée par <small>' + nd.appelants.length + '</small></h3>' + U.liste(nd.appelants, nd, 'entrant', max)
             + '<h3>Appelle <small>' + nd.appels.length + '</small></h3>' + U.liste(nd.appels, nd, 'sortant', max)
             + '<h3>Clés du dico <small>' + nd.cles.length + '</small></h3>' + U.cles(nd, max)
+            + '<h3>Équations <small>' + nd.docs.length + '</small></h3>' + U.docs(nd, max, complete)
             + (complete ? '<h3>Source <small>' + lignes.length + ' lignes</small></h3><pre>' + U.echapper(extrait) + '</pre>'
-                : '<p class="aide-fiche">clic : fiche complète et source</p>');
+                : '<p class="aide-fiche">clic : fiche complète, source et liens vers les équations</p>');
     },
 
     montrer: function (c) {

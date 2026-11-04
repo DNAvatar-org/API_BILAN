@@ -60,7 +60,11 @@ disparaît.
   côte (somme de leurs tailles / 2π, curseur « éventail »).
 - **Interaction.** Le bouton +/− ou un double-clic replie ou déplie les appelées. Glisser une cellule
   entraîne ses voisines, et Maj au lâcher l'épingle. Le survol montre la fiche courte de la fonction ;
-  le clic ouvre la fiche complète (fichier, appelants, appelées, clés du dico, source).
+  le clic ouvre la fiche complète (fichier, appelants, appelées, clés du dico, équations, source).
+- **Documentation** (`graphe/graphe_doc.js`) : chaque fiche liste les cartes de `doc/equation.html`
+  qui nomment la fonction au bas de leur carte (`fichier.js → fonction`). La page des équations est
+  lue dans un iframe caché, qui répond par `postMessage` (marche aussi en `file://`). Au survol, les
+  titres seuls ; dans la fiche complète, des liens qui ouvrent la carte.
 - **Légendes en boutons on/off.** On trouve d'abord les liens d'arbre, les appels croisés (masqués au
   départ) et les orphelines. Les dossiers suivent, rangés en trois thèmes : *physique* (physics,
   radiative, spectroscopy), *moteur* (api, config, workers, data, convergence) et *terre* (geology et
@@ -305,7 +309,7 @@ dessine.
 | **radiative/** | Transfert radiatif couche par couche |
 | **convergence/** | `compute.js` (masses, config d'époque), `calculations_flux.js` (solveur) |
 | **workers/** | Pool de web workers pour le calcul spectral (N−1 threads) |
-| **graphe/** | Graphe d'appels du moteur, lu dans son code : `graphe_appels.js` (`GRAPHE_EXTRACTION`), `graphe_arbre.js` (`GRAPHE_ARBRE`) |
+| **graphe/** | Graphe d'appels du moteur, lu dans son code : `graphe_appels.js` (`GRAPHE_EXTRACTION`), `graphe_arbre.js` (`GRAPHE_ARBRE`), `graphe_doc.js` (`GRAPHE_DOC`, cartes d'équations par fonction) |
 | **doc/** | Documentation détaillée : formules, algorithmes, bibliographie |
 | **demo/** | Pages exécutables : banc d'époques, vue scientifique, graphe d'appels, alphabet, dictionnaire — le dépôt se teste sans CO2 |
 

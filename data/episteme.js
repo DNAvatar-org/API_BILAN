@@ -515,7 +515,7 @@
         { cible: 'eq:eq-puits-co2-injecte', ref: 'osullivan2019', statut: '💻', usage: '📌', quoi: 'dépôt d\'azote' },
         { cible: 'eq:eq-puits-co2-injecte', ref: 'pugh2019', statut: '💻', usage: '📌', quoi: 'repousse des forêts' },
         { cible: 'eq:eq-forcages-convention-organigramme', ref: 'myhre1998', statut: '💻', usage: '🎯', quoi: 'ΔF = 5,35 ln(C/C₀) : affichage seulement, le modèle calcule raie par raie' },
-        { cible: 'eq:eq-capacites-radiatives-indice', ref: 'sundqvist1989', statut: '💻', usage: '🎯', quoi: 'indice de Sundqvist : diagnostic affiché, ne pilote plus la couverture' },
+        { cible: 'eq:eq-capacites-radiatives-indice', ref: 'sundqvist1989', statut: '💻', usage: '🎯', quoi: 'indice de Sundqvist : diagnostic affiché, il ne pilote pas la couverture' },
 
         // ── Intérieur, transfert, nuages : sources des cartes qui les citent ─────────────────────────────────────────────
         { cible: 'eq:eq-chaleur-radiogenique', ref: 'mcdonoughSun1995', statut: '📡', usage: '📌', quoi: 'concentrations de la Terre silicatée : U 20,3 ppb, Th 79,5 ppb, K 240 ppm' },

@@ -1,8 +1,8 @@
 // File: API_BILAN/demo/js/graphe_main.js
 // Desc: Amorce de graphe.html : charge le moteur par BILAN_LOADER en relevant ce que pose chaque script,
-//       extrait le graphe d'appels (API_BILAN/graphe/), crée les cellules (état gardé s'il y en a un), puis boucle : un pas de forces et un
+//       lit la page des équations (documentation de chaque fonction), extrait le graphe d'appels (API_BILAN/graphe/), crée les cellules (état gardé s'il y en a un), puis boucle : un pas de forces et un
 //       dessin par image tant que la simulation n'est pas au repos.
-// Version 1.2.0
+// Version 1.3.0
 // Date: November 4, 2026
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 
@@ -36,6 +36,7 @@ window.GRAPHE_MAIN = {
         const M = window.GRAPHE_MAIN;
         window.GRAPHE_EXTRACTION.extraire();
         window.GRAPHE_ARBRE.construire();
+        window.GRAPHE_DOC.lier();
         V.canvas = document.getElementById('graphe');
         V.ctx = V.canvas.getContext('2d');
         window.GRAPHE_RENDU.lireCouleurs();
@@ -66,7 +67,7 @@ window.GRAPHE_MAIN = {
         const avant = ['js/demo_host.js'];
         const etat = document.getElementById('chargement');
         const relever = window.GRAPHE_EXTRACTION.releveur(api, avant.length);
-        window.BILAN_LOADER.load({
+        const moteur = window.BILAN_LOADER.load({
             apiBase: api,
             before: avant,
             after: [],
@@ -75,7 +76,9 @@ window.GRAPHE_MAIN = {
                 relever(src, rang);
                 etat.textContent = 'Chargement du moteur… ' + (rang + 1) + ' / ' + total;
             }
-        }).then(window.GRAPHE_MAIN.demarrer);
+        });
+        // Le moteur et la page des équations (documentation des fonctions) se chargent ensemble.
+        Promise.all([moteur, window.GRAPHE_DOC.charger('../doc/equation.html')]).then(window.GRAPHE_MAIN.demarrer);
     }
 };
 

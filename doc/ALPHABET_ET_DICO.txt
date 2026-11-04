@@ -48,7 +48,7 @@ UNITÉS:
 🌍  Continents
 🫧  Atmosphère
 ☀️  Soleil
-🎱  Géometrie
+🎱  Géométrie
 🌈  Spectre
 
 CALCULS:
@@ -106,12 +106,12 @@ PARTIE 2: DICO (CLÉS ET DESCRIPTIONS)
 🔘💧📛  H₂O EDS on/off
 🔘🐄📛  CH₄ EDS on/off
 🔘🏭📛  CO₂ EDS on/off
-🔘🪩  Albedo on/off
+🔘🪩  Albédo on/off
 🔘🎞  Animation on/off
 
 📜 CONFIG ÉVÉNEMENTS:
-🌡️🧮  t° attendu (t° config)
-📿☄️  Nombre de météore
+🌡️🧮  t° attendue (t° config)
+📿☄️  Nombre de météores
 🔺⚖️💧☄️  Masse H₂O / météore
 🔺🌡️💫  Delta t° / ticTime
 🔺🧲🌕💫  Delta Geoth / ticTime
