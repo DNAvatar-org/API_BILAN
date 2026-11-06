@@ -131,3 +131,58 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - Cause visible (⚛) : la parcelle monte de la surface MOYENNE, non saturée — adiabatique sèche (9,8 K/km) jusqu'à
   la condensation, puis humide. La troposphère réelle n'est pas la parcelle de la surface moyenne.
 - (a) − (c) = 6,2 W/m² ; c'est l'essentiel du ciel clair trop opaque de 📱 (C11, C13).
+
+## C15 — Profil moyen des zones dans UNE colonne : réfuté (`sondes/controles.js`, essai retiré, `bb036be`)
+- **mesuré** : températures et densités des trois zones du bilan méridien (même humidité relative de surface) moyennées
+  couche par couche, puis un seul transfert. À 14,26 °C : OLR ciel clair **240,9** (colonne de la surface moyenne 256,1 ;
+  CERES 266,85), eau 20,2 kg/m² ; équilibre de 📱 **36,5 °C**.
+- **réfuté** : ⚛ la moyenne par couche fabrique une colonne qui n'existe pas — la vapeur d'altitude vient des tropiques chauds,
+  la température d'altitude est tirée vers le bas par les pôles : froide ET humide, opaque, elle émet depuis un niveau froid.
+  Une moyenne n'est légitime que sur les FLUX (Σ f_z OLR_z : un transfert par zone, ×3).
+
+## C16 — Un transfert par zone : ne change rien (`sondes/zones_transfert.js`, `bb036be`)
+- **mesuré** (📱, 14,26 °C, chaque zone à T̄ − dT_z avec l'humidité du modèle à sa T) : OLR ciel clair trop 276,7 / mid 244,3 /
+  pol 213,2 ; Σ f_z = **256,35** contre colonne unique **256,12** (tous ciels 227,05 / 226,49). Eau : 32,1 / 9,9 / 2,8 kg/m².
+- Confirme C2 : dans la physique du modèle, l'OLR est presque linéaire en T ; trois zones ne rapportent que 0,2 W/m² pour ×3
+  de CPU. **Réfuté** comme correction.
+- L'écart à CERES (−10,5 W/m² en ciel clair) est donc dans la COLONNE elle-même : sa troposphère libre est trop froide pour
+  sa surface (C14). Zone tropicale du modèle à 23,7 °C : 276,7 W/m² ; profil AFGL tropical à 26,5 °C dans le même transfert :
+  288,5 W/m².
+- **hypothèse** (⚛, à lire avant de coder) : la troposphère libre n'est pas la parcelle de sa propre surface. Tropiques :
+  quasi-équilibre convectif, adiabatique humide de la couche limite (et faibles gradients horizontaux, WTG) ; latitudes
+  moyennes : ajustement barocline (Stone 1978, J. Atmos. Sci. 35:561), le gradient vertical tenu par le gradient méridien.
+
+## C17 — Troposphère tropicale : la parcelle du modèle n'est PAS trop froide (lecture et loi du modèle, `bb036be`)
+- **mesuré** : loi adiabatique du modèle (RADIATIVE.loiAdiabatique().ascension), parcelle de 299,7 K à 80 % d'humidité,
+  contre le profil AFGL tropical à 3 / 6 / 9 / 12 km : 284,5 / 270,3 / 253,1 / 229,0 contre 283,7 / 263,6 / 243,6 / 223,6 K —
+  la parcelle est même PLUS CHAUDE en altitude (+7 à +10 K). L'hypothèse « troposphère tropicale trop froide » (C16) ne tient
+  pas pour la loi ; le froid de C14 vient de la parcelle de la surface MOYENNE, pas d'une loi fausse.
+- Stone 1978 (ajustement barocline) : non lu — AMS refuse le PDF (403), NTRS ne l'a pas. Lu à sa place : Solomon & Lindzen
+  2000 (J. Atmos. Sci. 57:3799) : le cisaillement des latitudes moyennes reste proche du critique du modèle à deux niveaux
+  de Phillips (1954) ; Stone & Branscome 1992 : proportionnel, légèrement supercritique. Forme et constante du critère non
+  lues : pas de fermeture codée.
+- **hypothèse** (à mesurer, sonde AFGL) : la STRATOSPHÈRE du modèle — isotherme à ~210 K, ozone mélangé dès la tropopause —
+  émet trop peu au centre de la bande du CO₂ (15 µm) et dans celle de l'O₃ (9,6 µm), que la vraie stratosphère, chaude en
+  altitude (250–270 K vers 40–50 km), émet davantage.
+
+## C18 — La stratosphère isotherme retire 5 à 9 W/m² d'OLR (`sondes/stratosphere_afgl.js`, `bb036be`)
+- **mesuré** (ciel clair, 2000 points ; V0 vraie stratosphère, V1 isotherme à la tropopause, V2 + ozone mélangé, V3 isotherme
+  à la température de la stratosphère du modèle, 214 K) :
+  tropical (tropopause 17 km, 194,8 K) : V0 **288,46**, V1 280,68, V2 **279,11**, V3 283,98 ;
+  été latitudes moyennes (13 km, 215,8 K) : V0 **281,33**, V1 276,35, V2 **274,60**, V3 273,89.
+- V0 − V2 = **9,4** (tropical) et **6,7** W/m² (latitudes moyennes) ; dont l'ozone mélangé ~1,5–1,7 W/m².
+- ⚛ La vraie stratosphère se réchauffe en altitude (ozone : chauffage solaire) : le centre de la bande du CO₂ (15 µm) et la
+  bande de l'O₃ (9,6 µm), qui émettent de là-haut, y émettent plus chaud. Une stratosphère isotherme les fait émettre froid.
+- C'est l'essentiel du ciel clair trop opaque de 📱 (−10,5 W/m², C16) : **la cause physique est trouvée**.
+- À faire (⚛, coût linéaire) : stratosphère en plusieurs couches, chacune en équilibre radiatif (flux montant ET descendant
+  dans la stratosphère), le chauffage solaire de l'ozone réparti selon le profil vertical de l'ozone.
+
+## C19 — Stratosphère en 8 couches en équilibre radiatif (`sondes/controles.js`, travail sur `bb036be`)
+- **mesuré** (📱, 14,26 °C) : températures des couches, de la tropopause à 1 hPa puis au-dessus : 207,5 / 204,8 / 207,3 /
+  214,2 / 223,3 / 235,4 / **252,8** / 249,4 K — la stratosphère se réchauffe en altitude (atmosphère standard US 1976 :
+  ~217 K à 20 km, ~250 K à 40 km, ~271 K à 47 km ; le modèle est plus froid de ~15 K à la stratopause).
+- OLR ciel clair **256,1 → 259,1** (+3,0 W/m²), tous ciels 226,5 → 229,0 ; équilibre de 📱 **25,3 → 23,8 °C**.
+  Coût : sonde 85 → 97 s (+14 %).
+- Reste du ciel clair : −7,8 W/m² contre CERES. Le gain (3,0) est en deçà des 6,7–9,4 de C18 : la basse stratosphère du modèle
+  reste froide (205–207 K) et sa tropopause basse (~10,5 km, 213 K ; profil moyen AFGL ~15 km) — la parcelle de la surface
+  moyenne (C14).

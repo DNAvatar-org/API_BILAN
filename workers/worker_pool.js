@@ -4,7 +4,7 @@
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
 // Version 1.5.0
-// - v1.5.0 (2026-11-06): spectra.tStrato, transmission de la stratosphère par λ.
+// - v1.5.0 (2026-11-06): spectra.tStrates, transmission de chaque couche de stratosphère par λ.
 // - v1.4.0 (2026-10-30): tables σ(λ, T, P) : nP transmis, lignes iT·nP + iP.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -79,7 +79,7 @@
             H2O:    new Float64Array(nL),
             CH4:    new Float64Array(nL),
             clouds: new Float64Array(nL),
-            tStrato: new Float64Array(nL)   // transmission de la stratosphère (pas une attribution : son équilibre radiatif)
+            tStrates: new Float64Array(params.nStrates * nL)   // transmission de chaque couche de stratosphère [k·nL + j] (son équilibre radiatif)
         };
 
         return new Promise(function (resolve, reject) {
@@ -105,13 +105,15 @@
                         var bCH4 = new Float64Array(msg.blk_CH4);
                         var bCld = new Float64Array(msg.blk_cld);
                         var tStr = new Float64Array(msg.t_strato);
+                        for (var ks = 0; ks < params.nStrates; ks++) {
+                            for (var js = 0; js < sliceNL; js++) spectra.tStrates[ks * nL + msg.jStart + js] = tStr[ks * sliceNL + js];
+                        }
                         for (var jj = 0; jj < sliceNL; jj++) {
                             var ja = msg.jStart + jj;
                             spectra.CO2[ja]    = bCO2[jj];
                             spectra.H2O[ja]    = bH2O[jj];
                             spectra.CH4[ja]    = bCH4[jj];
                             spectra.clouds[ja] = bCld[jj];
-                            spectra.tStrato[ja] = tStr[jj];
                             sums.CO2    += bCO2[jj];
                             sums.H2O    += bH2O[jj];
                             sums.CH4    += bCH4[jj];
@@ -152,6 +154,7 @@
                     // Données z partagées (toutes les couches, lecture seule, petites ~50 couches)
                     layers:              params.layers,
                     i_trop:              params.i_trop,
+                    nStrates:            params.nStrates,
                     effective_delta_lambda: params.effective_delta_lambda,
                     diffusivite:         params.diffusivite,
                     T_surf:              params.T_surf,

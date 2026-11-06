@@ -244,7 +244,8 @@ function calculateT0() {
     DATA['🧮']['🧮🌡️'] = DATA['🧮']['🧮🌡️🚩'];
     // Stratosphère : graine grise de peau, (S̄(1 − A)/2σ)^¼ ; chaque transfert la remplace par son équilibre radiatif raie par
     // raie (RADIATIVE.equilibreStratosphere), qui suit l'itération du solveur.
-    DATA['🫧']['🌡️🫧🛩'] = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
+    const peau = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
+    DATA['🫧']['🌡️🫧🛩'] = Array.from({ length: window.RADIATIVE.N_STRATES }, () => peau);   // une graine par couche
     DATA['🧮']['🧲🔬'] = computeToleranceWm2(window.CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4), DATA['📜']['🧲🔬']);
 }
 

@@ -1,7 +1,7 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
 // Version 0.15.0
-// - v0.15.0 (2026-11-06): transmission de la stratosphère par λ (son équilibre radiatif) ; O₃ et N₂O (raies HITRAN).
+// - v0.15.0 (2026-11-06): transmission de chaque couche de stratosphère par λ (leur équilibre radiatif) ; O₃ et N₂O (raies HITRAN).
 // - v0.14.0 (2026-10-30): σ à la (T, P) de la couche : tables σ[iT·nP + iP], ln σ linéaire en ln P (au lieu de σ·√(P/P₀)).
 // - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -72,9 +72,10 @@ function spectralSliceWorkerMain() {
         var blk_CO2 = new Float64Array(nL), blk_H2O = new Float64Array(nL);
         var blk_CH4 = new Float64Array(nL), blk_cld = new Float64Array(nL);
         var sum_blocked_cont = 0;
-        // Transmission de la stratosphère (couches i ≥ i_trop) par λ : son émissivité 1 − t sert à son équilibre radiatif
-        // (RADIATIVE.equilibreStratosphere, calculations.js).
-        var t_strato = new Float64Array(nL).fill(1);
+        // Transmission de CHAQUE couche de stratosphère par λ (layout [k·nL + j]) : leurs émissivités 1 − t servent à leur équilibre
+        // radiatif (equilibreStratosphere, calculations.js). L.strate : la couche de la stratosphère, −1 dans la troposphère.
+        var nS = p.nStrates;
+        var t_strato = new Float64Array(nS * nL).fill(1);
 
         for (var i = 0; i < nZ; i++) {
             var L = layers[i];
@@ -122,7 +123,7 @@ function spectralSliceWorkerMain() {
                     sum_blocked_cont += flux_in[j] * (1 - Math.exp(-Math.max(0, D * kappa_cont * delta_z_real)));
                     blk_CH4[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, D * kappa_CH4 * delta_z_real)));
                     blk_cld[j] += flux_in[j] * (1 - Math.exp(-D * tau_cloud_layer));
-                    if (!is_trop) t_strato[j] *= transmission;
+                    if (L.strate >= 0) t_strato[L.strate * nL + j] *= transmission;
                 }
                 resultBuf[i * nL + j] = upval;
                 flux_in[j] = upval;

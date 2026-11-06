@@ -41,6 +41,7 @@ window.ENGINE_SCRIPTS = [
     'data/hitran_tips.js',      // fonctions de partition TIPS 2021, lues par hitran.js
     'data/cia_CO2_CO2.js',
     'data/mtckd_h2o.js',        // continuum de la vapeur d'eau MT_CKD 4.3 (AER)
+    'data/ozone_afgl.js',       // forme verticale de l'ozone (AFGL 1986, atmosphère standard)
     'spectroscopy/hitran.js',
     // Avant le pool : publie la source du worker pour le repli blob: (pages ouvertes en file://).
     'workers/spectral_slice_worker.js',

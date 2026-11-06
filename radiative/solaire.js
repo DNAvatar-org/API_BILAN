@@ -531,6 +531,7 @@
     }
 
     window.SOLAIRE = {
+        aOz: aOz,              // absorption de l'ozone (Lacis & Hansen 1974) : chauffage des couches de stratosphère (calculations.js)
         albedo: albedo,
         albedoMu: albedoMu,
         facteurRayleigh: facteurRayleigh,

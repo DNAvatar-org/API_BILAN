@@ -1,6 +1,8 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.17.0
+// Version 1.18.0
+// - v1.18.0 (2026-11-06): stratosphère en N_STRATES couches en équilibre radiatif (flux montant et descendant), ozone à la
+//   forme verticale mesurée (data/ozone_afgl.js).
 // - v1.17.0 (2026-11-06): continuum H₂O MT_CKD 4.3 (tablesContinuum) au lieu de Roberts 1976 ; stratosphère en équilibre radiatif raie par raie, ozone compris (equilibreStratosphere) : le
 //   forçage équilibré est le forçage ajusté ; pas saturé hydrostatique (la vapeur suit p_sat, pas le mélange).
 // - v1.16.0 (2026-10-30): sections efficaces à la pression de la couche (tables σ(λ, T, P), ln σ linéaire en ln P) au lieu de
@@ -255,8 +257,9 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, n_N2O, x_v, dz, ta
  *       d ln T / d ln p_a = (R_a/c_pa)·[1 + L r/(R_a T)] / [1 + (c_pc/c_pa + (L/(R_c T) − 1)·L/(c_pa T))·r],
  *       r = (R_a/R_c)·p_c/p_a,  p_c = p_sat(T) (IAPWS),  L = R_c T² · d ln p_sat/dT (même courbe) ;
  *     elle tend vers l'adiabatique sèche quand la vapeur est rare et vers la courbe de saturation quand elle domine ;
- *   · STRATOSPHÈRE : isotherme à sa température d'équilibre radiatif 🌡️🫧🛩 (equilibreStratosphere, raie par raie, ozone
- *     compris), vapeur figée à sa fraction de la tropopause (piège froid). Le plancher est min(🌡️🫧🛩, T_surface).
+ *   · STRATOSPHÈRE : N_STRATES couches, chacune à sa température d'équilibre radiatif 🌡️🫧🛩[k] (equilibreStratosphere, raie
+ *     par raie, ozone compris), vapeur figée à sa fraction de la tropopause (piège froid), ozone à la forme mesurée. La
+ *     tropopause : la parcelle atteint min(🌡️🫧🛩[0], T_surface).
  * c_p(T) de chaque gaz : NIST-JANAF (PHYS.cpMolaire). Densités MOLAIRES (n_i = x_i · p/kT) : l'ancien profil
  * multipliait n_air par des fractions MASSIQUES (CO₂ compté ×1,5, H₂O ×0,6).
  * Remplace : gradient de config 6,5 K/km sous une tropopause RT/Mg × facteur, vapeur en exp(−z/H_vap), isotherme
@@ -336,6 +339,42 @@ function loiAdiabatique() {
         gammaSec: gammaSec, penteHumide: penteHumide, ascension: ascension };
 }
 
+// STRATOSPHÈRE EN COUCHES : N_STRATES couches de température chacune en équilibre radiatif (equilibreStratosphere). Les
+// N_STRATES − 1 premières découpent la stratosphère en parts égales de ln p, de la tropopause à P_STRATOPAUSE_PA ; la dernière
+// prend tout ce qui est au-dessus (mésosphère). 🔢 8 couches : choix numérique. 📡 Stratopause vers 1 hPa (atmosphère standard
+// US 1976 : 47–51 km). Une stratosphère isotherme retirait 6,7 à 9,4 W/m² d'OLR à des profils mesurés (doc/CONSTATS.md C18).
+const N_STRATES = 8;
+const P_STRATOPAUSE_PA = 100;
+/** Couche de stratosphère [0, N_STRATES − 1] d'une pression p [Pa], au-dessus d'une tropopause à pTrop [Pa]. */
+function strateDe(p, pTrop) {
+    if (!(pTrop > P_STRATOPAUSE_PA) || p <= P_STRATOPAUSE_PA) return N_STRATES - 1;
+    return Math.min(N_STRATES - 2, Math.max(0, Math.floor((N_STRATES - 1) * Math.log(pTrop / p) / Math.log(pTrop / P_STRATOPAUSE_PA))));
+}
+/** FORME de l'ozone (data/ozone_afgl.js) : rapport de mélange x(p) [mol/mol], interpolé en ln p, et ∫₀^p x dp [Pa], qui
+ *  normalise la forme à une colonne : N(au-dessus de p) = I(p)·N_A/(M̄ g). Hors de la table : la valeur de son bord. */
+const OZONE_FORME = (function () {
+    const O = window.OZONE_AFGL;
+    const p = O.p_hPa.map((v) => v * 100).reverse(), x = O.x.slice().reverse();   // p croissant
+    const I = [p[0] * x[0]];
+    for (let i = 1; i < p.length; i++) I.push(I[i - 1] + 0.5 * (x[i] + x[i - 1]) * (p[i] - p[i - 1]));
+    const lnp = p.map(Math.log);
+    const cherche = (P) => { let i = 0; while (i < p.length - 2 && p[i + 1] < P) i++; return i; };
+    return {
+        x: (P) => {
+            if (P <= p[0]) return x[0];
+            if (P >= p[p.length - 1]) return x[x.length - 1];
+            const i = cherche(P), u = (Math.log(P) - lnp[i]) / (lnp[i + 1] - lnp[i]);
+            return x[i] + u * (x[i + 1] - x[i]);
+        },
+        I: (P) => {
+            if (P <= p[0]) return P * x[0];
+            if (P >= p[p.length - 1]) return I[I.length - 1] + x[x.length - 1] * (P - p[p.length - 1]);
+            const i = cherche(P), u = (P - p[i]) / (p[i + 1] - p[i]);
+            return I[i] + u * (I[i + 1] - I[i]);
+        }
+    };
+})();
+
 function profilAtmosphere(z_range) {
     const DATA = window.DATA;
     const CONST = window.CONST;
@@ -357,19 +396,22 @@ function profilAtmosphere(z_range) {
     const x_N2O = DATA['🫧']['🍰🧪🍳'];                               // N₂O : rapport molaire d'air sec, déclaré par l'époque
     if (!(x_N2O >= 0)) throw new Error('[profilAtmosphere] 🍰🧪🍳 (N₂O) absent de l\'époque ' + DATA['📅']['📅'] + ' : ' + x_N2O);   // fractions molaires PARMI les non condensables (CO₂, CH₄)
     const g = LOI.g;
-    const T_strato = Math.min(DATA['🫧']['🌡️🫧🛩'], T_s);   // équilibre radiatif de la stratosphère (equilibreStratosphere)
+    const TS = DATA['🫧']['🌡️🫧🛩'];                          // [K] × N_STRATES : équilibre radiatif (equilibreStratosphere)
+    const T_strato = Math.min(TS[0], T_s);                       // la tropopause : là où la parcelle atteint la 1ʳᵉ couche
     // Surface : pression partielle de vapeur depuis la fraction massique 🍰🫧💧 (humidité de surface du modèle).
     const x_c0 = (w_c / M_c) / (w_c / M_c + nA * (1 - w_c) / wA);
     let T = T_s, p_c = x_c0 * P_s, p_a = P_s - p_c;
-    // OZONE : toute la colonne de l'époque (SOLAIRE.colonneOzone, cm STP — la même que le transfert solaire, qui la met au-dessus
-    // de tout) au-dessus de la tropopause, à rapport de mélange constant x_O₃ = N_O₃ / N_air(au-dessus) ; N_air = p·N_A/(M̄ g).
+    // OZONE : toute la colonne de l'époque (SOLAIRE.colonneOzone, cm STP — la même que le transfert solaire) au-dessus de la
+    // tropopause, avec la FORME verticale mesurée (OZONE_FORME) : x_O₃(p) = f·x_forme(p), f tel que la colonne au-dessus de la
+    // tropopause soit N_O₃ — N(au-dessus de p_t) = f·I(p_t)·N_A/(M̄ g).
     const N_O3 = window.SOLAIRE.colonneOzone() * 1e-2 * CONV.STANDARD_ATMOSPHERE_PA / (CONST.BOLTZMANN_KB * CONST.KELVIN_TO_CELSIUS);   // [molécules/m²]
-    const melangeOzone = () => {
+    const facteurOzone = () => {
         const p = p_a + p_c;
-        return N_O3 / (p * (CONST.R_GAS / CONST.BOLTZMANN_KB) / ((p_a * M_a + p_c * M_c) / p * g));
+        return N_O3 / (OZONE_FORME.I(p) * (CONST.R_GAS / CONST.BOLTZMANN_KB) / ((p_a * M_a + p_c * M_c) / p * g));
     };
     let strato = T <= T_strato, x_c_strato = p_c / (p_a + p_c);
-    let x_O3 = strato ? melangeOzone() : 0;
+    let pTrop = strato ? P_s : NaN;                                 // [Pa] pression de la tropopause (posée en y entrant)
+    let f_O3 = strato ? facteurOzone() : 0;
     const couches = [];
     let iTrop = z_range.length;
     // ── VAPEUR MOYENNE ET NUAGE (physics.js EARTH.NUAGES) ───────────────────────────────────────────────────────────
@@ -502,7 +544,9 @@ function profilAtmosphere(z_range) {
         const n = p / (CONST.BOLTZMANN_KB * T);
         const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
         const x_v = strato ? x_v_strato : vapeurMoyenne();
-        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? x_O3 * n : 0, x_N2O * (1 - x_v) * n, x_v, dz, 0));
+        const c = coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? f_O3 * OZONE_FORME.x(p) * n : 0, x_N2O * (1 - x_v) * n, x_v, dz, 0);
+        c.strate = strato ? strateDe(p, pTrop) : -1;            // couche de stratosphère (son équilibre radiatif) ; −1 : troposphère
+        couches.push(c);
     };
     let x_v_strato = x_c_strato;                        // surface déjà au plancher stratosphérique : la parcelle
     pousser(0);
@@ -515,9 +559,11 @@ function profilAtmosphere(z_range) {
             z += dz;
             const p = p_a + p_c;
             const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
-            if (strato) {                                   // isotherme, composition figée
+            if (strato) {                                   // température de sa couche, composition figée
                 const pn = p * Math.exp(-g * rho / p * dz);
                 p_c = x_c_strato * pn; p_a = pn - p_c;
+                const k = strateDe(pn, pTrop);
+                T = k === 0 ? T_strato : TS[k];
                 wTotal += wEff(x_v_strato, dz);
                 continue;
             }
@@ -557,7 +603,7 @@ function profilAtmosphere(z_range) {
                 p_c = PHYS.pSatEau(T);
             }
             if (T <= T_strato) {
-                T = T_strato; x_c_strato = p_c / (p_a + p_c); x_O3 = melangeOzone();
+                T = T_strato; x_c_strato = p_c / (p_a + p_c); pTrop = p_a + p_c; f_O3 = facteurOzone();
                 x_v_strato = vapeurMoyenne();               // piège froid : la vapeur MOYENNE de la tropopause, figée
                 strato = true;
                 continue;
@@ -637,7 +683,8 @@ window.RADIATIVE = {
     profilAtmosphere: profilAtmosphere,  // diagnostic : profil T, vapeur, nuages couche par couche
     loiAdiabatique: loiAdiabatique,      // loi du gradient vertical (profil, temperatureAtZ, vapeur, colonne d'une calotte)
     gradientSurface: gradientSurface,    // [K/m] gradient de la parcelle de surface de la colonne moyenne
-    colonneNuageuse: colonneNuageuse     // τ_SW du nuage pour l'albédo (calculations_albedo), même condensat que l'IR
+    colonneNuageuse: colonneNuageuse,    // τ_SW du nuage pour l'albédo (calculations_albedo), même condensat que l'IR
+    N_STRATES: N_STRATES                 // couches de la stratosphère (graine : calculateT0)
 };
 
 // ============================================================================
@@ -684,32 +731,60 @@ const RETRAIT_COUCHE = {
  * Réf : Fels, Mahlman, Schwarzkopf & Sinclair 1980, J. Atmos. Sci. 37:2265 ; Manabe & Wetherald 1967, J. Atmos. Sci. 24:241 ;
  *       Lacis & Hansen 1974, J. Atmos. Sci. 31:118 (ozone) — doc/equation.html#eq-stratosphere-temperature-peau
  */
-function equilibreStratosphere(resultBuf, tStrato, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda) {
-    const DATA = window.DATA;
-    const nL = lambda_range.length;
-    const Q = DATA['☀️']['🧲☀️🎱'] * DATA['🫧']['🍰☀️🫧🛩'];   // posée par calculateAlbedo, avant chaque transfert
-    if (!(Q >= 0)) throw new Error('[equilibreStratosphere] chauffage solaire de l\'ozone non posé : ' + Q);
-    const eps = new Float64Array(nL), F = new Float64Array(nL), poids = new Float64Array(nL);
-    let epsTotal = 0;
+function equilibreStratosphere(resultBuf, tStrates, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda, couches) {
+    const DATA = window.DATA, CONST = window.CONST;
+    const nL = lambda_range.length, K = N_STRATES;
+    const Qtot = DATA['☀️']['🧲☀️🎱'] * DATA['🫧']['🍰☀️🫧🛩'];   // posée par calculateAlbedo, avant chaque transfert
+    if (!(Qtot >= 0)) throw new Error('[equilibreStratosphere] chauffage solaire de l\'ozone non posé : ' + Qtot);
+    // Chauffage de chaque couche : la part du solaire de l'ozone qu'elle absorbe, a_oz(M·u) de Lacis & Hansen 1974 entre la colonne
+    // au-dessus de son bas et celle au-dessus de son haut ; M = 2 (angle solaire moyen de 60°, ❔ déclaré).
+    const u = new Float64Array(K);
+    const cmSTP = 1e-2 * CONV.STANDARD_ATMOSPHERE_PA / (CONST.BOLTZMANN_KB * CONST.KELVIN_TO_CELSIUS);   // [molécules/m²] par cm STP
+    for (const c of couches) if (c.strate >= 0) u[c.strate] += c.n_O3 * c.delta_z_real / cmSTP;
+    const dessus = new Float64Array(K + 1);                        // colonne au-dessus du haut de la couche k
+    for (let k = K - 1; k >= 0; k--) dessus[k] = dessus[k + 1] + u[k];
+    const aOz = window.SOLAIRE.aOz, M = 2, aTot = aOz(M * dessus[0]);
+    const Q = new Float64Array(K);
+    for (let k = 0; k < K; k++) Q[k] = aTot > 0 ? Qtot * (aOz(M * dessus[k]) - aOz(M * dessus[k + 1])) / aTot : 0;
+    const Ftrop = new Float64Array(nL), poids = new Float64Array(nL);
     for (let j = 0; j < nL; j++) {
-        eps[j] = 1 - tStrato[j];
-        F[j] = i_trop > 0 ? resultBuf[(i_trop - 1) * nL + j] : earth_flux[j];
+        Ftrop[j] = i_trop > 0 ? resultBuf[(i_trop - 1) * nL + j] : earth_flux[j];
         poids[j] = Math.PI * effective_delta_lambda * lambda_weights[j];
-        epsTotal += eps[j];
     }
-    if (!(epsTotal > 0)) return DATA['🫧']['🌡️🫧🛩'];
-    const bilan = (T) => {
-        let b = Q;
-        for (let j = 0; j < nL; j++) if (eps[j] > 0) b += eps[j] * (F[j] - 2 * poids[j] * window.PHYS.planckFunction(lambda_range[j], T));
-        return b;
-    };
-    let bas = 1, haut = 3000;
-    if (bilan(haut) > 0) throw new Error('[equilibreStratosphere] la stratosphère chauffe encore à 3000 K (Q = ' + Q + ' W/m²)');
-    for (let n = 0; n < 40; n++) {
-        const m = 0.5 * (bas + haut);
-        if (bilan(m) > 0) bas = m; else haut = m;
+    const T = DATA['🫧']['🌡️🫧🛩'].slice();
+    const E = (k) => { const e = new Float64Array(nL); for (let j = 0; j < nL; j++) e[j] = poids[j] * window.PHYS.planckFunction(lambda_range[j], T[k]); return e; };
+    // Gauss-Seidel : flux montant au bas de chaque couche, descendant au haut, à partir des températures courantes ; chaque couche
+    // résout Σ_λ ε_k,λ [F↑ + F↓ − 2πB_λ(T_k)] + Q_k = 0 (ε = 1 − t, sa transmission diffuse, calculée par le transfert).
+    for (let balayage = 0; balayage < 4; balayage++) {
+        const Es = []; for (let k = 0; k < K; k++) Es.push(E(k));
+        const haut = []; let d = new Float64Array(nL);              // F↓ au haut de la couche k (rien ne vient de l'espace)
+        for (let k = K - 1; k >= 0; k--) {
+            haut[k] = d;
+            const t = tStrates.subarray(k * nL, (k + 1) * nL), dn = new Float64Array(nL);
+            for (let j = 0; j < nL; j++) dn[j] = d[j] * t[j] + (1 - t[j]) * Es[k][j];
+            d = dn;
+        }
+        let up = Ftrop;                                             // F↑ au bas de la couche k
+        for (let k = 0; k < K; k++) {
+            const t = tStrates.subarray(k * nL, (k + 1) * nL), D = haut[k], U = up;
+            let epsTotal = 0; for (let j = 0; j < nL; j++) epsTotal += 1 - t[j];
+            if (epsTotal > 0) {                                     // une couche vide (rien au-dessus de la grille) garde sa T
+                const bilan = (Tk) => {
+                    let b = Q[k];
+                    for (let j = 0; j < nL; j++) { const e = 1 - t[j]; if (e > 0) b += e * (U[j] + D[j] - 2 * poids[j] * window.PHYS.planckFunction(lambda_range[j], Tk)); }
+                    return b;
+                };
+                let bas = 1, hautT = 3000;
+                if (bilan(hautT) > 0) throw new Error('[equilibreStratosphere] la couche ' + k + ' chauffe encore à 3000 K (Q = ' + Q[k] + ' W/m²)');
+                for (let n = 0; n < 30; n++) { const m = 0.5 * (bas + hautT); if (bilan(m) > 0) bas = m; else hautT = m; }
+                T[k] = 0.5 * (bas + hautT);
+            }
+            const Ek = E(k), nu = new Float64Array(nL);
+            for (let j = 0; j < nL; j++) nu[j] = U[j] * t[j] + (1 - t[j]) * Ek[j];
+            up = nu;
+        }
     }
-    return 0.5 * (bas + haut);
+    return T;
 }
 
 async function calculateFluxForT0(retrait, sonde) {
@@ -1051,7 +1126,7 @@ async function calculateFluxForT0(retrait, sonde) {
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
             sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, sigma_O3: tab.O3, sigma_N2O: tab.N2O, nP: tab.nP, cia_CO2: tablesCIA(lambda_range), cont_self: continuum.self, cont_foreign: continuum.foreign,
-            earth_flux, layers: layers_w, i_trop,
+            earth_flux, layers: layers_w, i_trop, nStrates: N_STRATES,
             effective_delta_lambda,
             diffusivite: window.EARTH.DIFFUSIVITE,
             T_surf: DATA['🧮']['🧮🌡️'],
@@ -1063,7 +1138,7 @@ async function calculateFluxForT0(retrait, sonde) {
         sum_blocked_cont = sums.continuum;   // continuum H₂O (déjà compté dans sums.H2O)
         // Stratosphère : son équilibre radiatif sous ce transfert, pour le profil de l'évaluation suivante (ni sous un retrait :
         // l'attribution garde le profil de l'état courant, ni pour une sonde hors du calcul de l'époque).
-        if (!retrait && !sonde) DATA['🫧']['🌡️🫧🛩'] = equilibreStratosphere(resultBuf, spectra.tStrato, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda);
+        if (!retrait && !sonde) DATA['🫧']['🌡️🫧🛩'] = equilibreStratosphere(resultBuf, spectra.tStrates, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda, layers_w);
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
         for (let j = 0; j < nL; j++) {

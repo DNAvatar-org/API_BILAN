@@ -93,6 +93,10 @@
       "dest": "pages/bilan_radiatif/API_BILAN/data/mtckd_h2o.js"
     },
     {
+      "src": "data/ozone_afgl.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/ozone_afgl.js"
+    },
+    {
       "src": "data/initDATA.js",
       "dest": "pages/bilan_radiatif/API_BILAN/data/initDATA.js"
     },
