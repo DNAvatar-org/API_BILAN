@@ -118,6 +118,7 @@
      *  sur l'intervalle, un échantillon par ligne de la table ; hors de la solution, l'obliquité de l'époque (📜⚾ ; ❔ pour un
      *  intervalle à cheval sur −51 Ma, celle que 📜⚾ porte à la date du calcul). Lue par la part ancienne d'un clic
      *  (physics/calottes.js) ; la dernière est gardée (un clic la relit à chaque itération). */
+    // Réf : Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-fonte-insolation-orbite
     function moyenne(ageDebut, ageFin) {
         const eps0 = window.DATA['📜']['⚾'], c = ageDebut + ':' + ageFin + ':' + eps0;
         if (_moyenne === null || _moyenne.c !== c) {
@@ -144,6 +145,7 @@
      * (ORBITE.insolationCumulee) — aucune phase de précession n'y est connue, et la moyenne sur la précession efface les termes en
      * e cos(λ − ϖ) (❔ termes en e² négligés ; l'orbite de 1950, périhélie en janvier, donnerait un été austral plus fort à toutes
      * les époques anciennes).
+     * Réf : Berger 1978, J. Atmos. Sci. 35:2362 ; Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-fonte-insolation-orbite
      */
     function reference(o) {
         if (!o.hors) return window.ORBITE.REFERENCE;
@@ -170,6 +172,7 @@
      *   f_i = [Λ(x_i + Δx) − Λ(x_i)] / Δx,   Λ(x) = terre de la bande entre x0 et x [part de la bande × (x1 − x0)],
      * d'où Σ f_i Δx = Λ(x1) = E (x1 − x0) : la moyenne des points est la terre E de la bande. Hors de la carte (avant son premier âge,
      * CALOTTES.geographie pose toute la terre au milieu de la bande), la terre de la bande partout.
+     * Réf : Scotese & Wright 2018, PALEOMAP PaleoDEMs (doi:10.5281/zenodo.5460860) — doc/equation.html#eq-cycle-saisonnier-calcule
      */
     function terreLatitudes(b, gb, E) {
         const G = window.PALEOGEO, nT = G.tranches, nK = G.socle_bornes_m.length + 1, DEG = Math.PI / 180;
@@ -197,6 +200,7 @@
     /** [K] Température annuelle d'un point de latitude x = sin |φ| de la bande b, sur une surface de moyenne annuelle Tboite (boîte
      *  terre ou mer de la bande) : Tboite + T₂ (P₂(x) − ⟨P₂⟩_zone), le profil méridien du bilan de North dans la bande (sa moyenne de
      *  bande est nulle), T₂ = DATA['🧮']['🌡️🎱']. La seule température d'un point : glace saisonnière (arcs) et calottes. */
+    // Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 — doc/equation.html#eq-cycle-saisonnier-calcule
     const temperaturePoint = (Tboite, b, x) => Tboite + window.DATA['🧮']['🌡️🎱'] * (window.MERIDIEN.P2(x) - window.MERIDIEN.P2_MOYEN[b.zone]);
 
     const _trig = new Map();
@@ -279,6 +283,7 @@
     /**
      * Forçage solaire de chaque bande à la date o = { k, w, hors } (ORBITE.encadrement, hors = date hors de la solution) :
      * { cle: { S0, F1, F2 } } [W/m², Soleil actuel] — référence + écart de la ligne k + w × (écart de la ligne k + 1 − celui de k).
+     * Réf : Berger 1978, J. Atmos. Sci. 35:2362 ; Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-fonte-insolation-orbite
      */
     function forcage(o) {
         const r = reference(o), c = o.hors ? 'h' + o.obliquite.toFixed(8) : '1950';
@@ -304,6 +309,7 @@
     }
     /** [W/m²] Insolation moyenne (Soleil actuel) de chacun des n nœuds de l'année à la latitude entière lat, à la date o :
      *  référence + écarts des deux lignes de la table qui encadrent la date. */
+    // Réf : Berger 1978, J. Atmos. Sci. 35:2362 ; Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-fonte-insolation-orbite
     function noeuds(o, lat, n) {
         const R = sommesNoeuds(reference(o), lat, n), A0 = sommesNoeuds(window.ORBITE.anomalieLigne(o.k), lat, n);
         const A1 = sommesNoeuds(window.ORBITE.anomalieLigne(o.k + 1), lat, n);
@@ -321,6 +327,7 @@
      *   L : (Z + κ' + ν/E) T_L − κ' T_C − (ν/E) T_M = F_L       M : (Z_M + κ' + ν p_L/(E p_M)) T_M − κ' T_C − (ν p_L/(E p_M)) T_L = F_M
      * Une boîte sans aire n'a pas d'équation : la terre libre prend l'air de la mer et inversement, la calotte celui de l'air hors
      * calotte. Élimination de Gauss sur les boîtes présentes (trois au plus). Renvoie { calotte, terre, mer } [complexes].
+     * Réf : McKinnon, Stine & Huybers 2013, J. Climate 26:7852 ; North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 — doc/equation.html#eq-cycle-saisonnier-calcule
      */
     function systeme(Z, ZM, F, p, kap, nu, rL) {
         // Terre libre ↔ mer : l'air traverse le continent (calotte comprise, p_C + p_L : la glace ne déplace pas la côte) sur la
@@ -386,6 +393,7 @@
      * EARTH.T_FREEZE_SEAWATER_K) } ; terre.latitudes : la terre de la latitude de chaque point { x, poids, T, G1, G2 } ;
      * glace = part de l'année où la mer est gelée (moyenne de ses
      * latitudes), h_glace [m] épaisseur de Stefan moyenne de sa glace.
+     * Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 ; McKinnon, Stine & Huybers 2013, J. Climate 26:7852 ; Carslaw & Jaeger 1959, Conduction of Heat in Solids (Oxford University Press) — doc/equation.html#eq-cycle-saisonnier-calcule ; Stefan 1891, Ann. Phys. Chem. 42:269 — doc/equation.html#eq-mer-gelee
      */
     function cycles(coA) {
         const D = window.DATA, NCC = window.MERIDIEN.NORTH1981, dT = window.MERIDIEN.ecarts();

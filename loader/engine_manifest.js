@@ -36,6 +36,8 @@ window.ENGINE_SCRIPTS = [
     'data/hitran_lines_CO2.js',
     'data/hitran_lines_H2O.js',
     'data/hitran_lines_CH4.js',
+    'data/hitran_lines_O3.js',
+    'data/hitran_tips.js',      // fonctions de partition TIPS 2021, lues par hitran.js
     'data/cia_CO2_CO2.js',
     'spectroscopy/hitran.js',
     // Avant le pool : publie la source du worker pour le repli blob: (pages ouvertes en file://).

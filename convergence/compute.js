@@ -61,6 +61,7 @@ function getMasses() {
 
 /** Date courante, graine, voile, rayon, obliquité, états 🔁, images, interpolation 🔀, puis masses. L'époque est celle posée par
  *  CLICS (frise / passer) : getEpochDateConfig n'en change jamais — le passage est décidé par le clic. */
+// Réf : Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-orbite-date
 function getEpochDateConfig() {
     const DATA = window.DATA;
     const H = DATA['📜'];
@@ -182,6 +183,7 @@ function goughLuminosity(t_ago_years) {
 }
 
 //Calcule les valeurs du soleil à l'âge courant via Gough (1981)
+// Réf : Kopp & Lean 2011, Geophys. Res. Lett. 38:L01706 — doc/equation.html#eq-flux-recu-moyenne-sur ; Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-orbite-date
 function getSoleil() {
     const DATA = window.DATA;
     // Âge courant (INTERIEUR.ageCourant, depuis 📜⏳). 🔒 Luminosité exacte via Gough.

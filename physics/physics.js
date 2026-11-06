@@ -40,6 +40,7 @@ CONST.M_O2 = 0.03200;   // [kg/mol] O₂ kg/mol
 CONST.M_CO2 = 0.04401;  // [kg/mol] CO₂ kg/mol
 CONST.M_CH4 = 0.01604;  // [kg/mol] CH₄ kg/mol
 CONST.M_H2O = 0.01802;  // [kg/mol] H₂O kg/mol
+CONST.M_O3 = 0.04800;   // [kg/mol] O₃ kg/mol
 CONST.RHO_WATER = 1000;  // [kg/m³] Densité eau kg/m³
 CONST.RHO_EAU_MER = 1025;  // [kg/m³] eau de mer de surface (S = 35 g/kg, ~20 °C ; TEOS-10, IOC et al. 2010)
 // ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
@@ -528,6 +529,7 @@ var PHYS = window.PHYS = {};
 // - Cette formule est exacte et utilisée dans tous les modèles de transfert radiatif
 // - Les constantes utilisées (h, c, k) sont des constantes fondamentales mesurées avec précision
 // - Cap numérique : pour T très élevé (ex. Hadéen 2450 K) et λ court, term1/term2 peut overflow → plafonner
+// Réf : Tiesinga, Mohr, Newell & Taylor 2021, Rev. Mod. Phys. 93:025010 (h, k_B de CODATA 2018) — doc/equation.html#eq-loi-planck
 function planckFunction(lambda, T) {
     const term1 = (2 * CONST.PLANCK_H * CONST.SPEED_OF_LIGHT * CONST.SPEED_OF_LIGHT) / Math.pow(lambda, 5);
     const term2 = Math.exp((CONST.PLANCK_H * CONST.SPEED_OF_LIGHT) / (lambda * CONST.BOLTZMANN_KB * T)) - 1;
@@ -555,6 +557,7 @@ const EAU = {
 };
 PHYS.EAU = EAU;
 
+// Réf : Wagner & Pruß 2002, J. Phys. Chem. Ref. Data 31:387 ; Wagner, Riethmann, Feistel & Harvey 2011, J. Phys. Chem. Ref. Data 40:043103 — doc/equation.html#eq-pression-vapeur-saturante-eau
 /** [Pa] Pression de vapeur saturante de l'eau à T [K] (sur glace sous le point triple). +∞ au-delà de T_c. */
 function pSatEau(T) {
     if (T >= EAU.T_C) return Infinity;
@@ -593,6 +596,7 @@ function dLnPSatLiquide(T) {
 PHYS.dLnPSatLiquide = dLnPSatLiquide;
 
 
+// Réf : Wagner & Pruß 2002, J. Phys. Chem. Ref. Data 31:387 ; Wagner, Riethmann, Feistel & Harvey 2011, J. Phys. Chem. Ref. Data 40:043103 — doc/equation.html#eq-pression-vapeur-saturante-eau
 /** [1/K] d(ln p_sat)/dT, dérivée analytique des deux mêmes formules (T < T_c). */
 function dLnPSatEau(T) {
     if (T >= CONST.T_TRIPLE_WATER) {

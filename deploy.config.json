@@ -77,6 +77,14 @@
       "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_H2O.js"
     },
     {
+      "src": "data/hitran_lines_O3.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_O3.js"
+    },
+    {
+      "src": "data/hitran_tips.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_tips.js"
+    },
+    {
       "src": "data/initDATA.js",
       "dest": "pages/bilan_radiatif/API_BILAN/data/initDATA.js"
     },

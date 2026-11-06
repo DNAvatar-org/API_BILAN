@@ -24,11 +24,10 @@
 //       qu'après le climat, que l'intérieur précède ; au clic où le magma se fige, celle d'avant est celle du magma,
 //       plus chaude que l'intérieur. Solidus/liquidus à 0 GPa.
 //       Âges : années avant window.AN_PRESENT (config/configTimeline.js, la seule origine) ; année julienne et R : CONST.
-// Version 1.2.1
+// Version 1.3.0
+// - v1.3.0 (2026-11-06): chaleur latente de fusion comptée seulement tant que l'intérieur est fondu (plus dans le manteau solide).
 // - v1.2.1 (2026-10-29): T_S0 = T̄ de la Terre actuelle, lue aussi par le partage du CO₂ (T_ref de Van 't Hoff).
-// - v1.2.0 (2026-10-29): origine des âges, année julienne et constante des gaz lues à leur seule source ; ageCourant lit DATA.
-// - v1.1.0 (2026-10-12): rayonKm : le rayon (📜📐) suit la température de l'intérieur (dilatation α_V, gonflement de fusion).
-// Date: [October 29, 2026]
+// Date: [November 6, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 (function () {
     'use strict';
@@ -91,6 +90,7 @@
     /** [s] Une année julienne (les âges se comptent en années juliennes). */
     const secondesAn = () => window.CONST.AN_JULIEN_JOURS * window.CONV.SECONDS_PER_DAY;
 
+    // Réf : McDonough & Sun 1995, Chem. Geol. 120:223 ; Turcotte & Schubert 2014, Geodynamics (3ᵉ éd., Cambridge UP), table 4.2 — doc/equation.html#eq-chaleur-radiogenique
     /** [W] Chaleur radiogénique à tAgo années avant 2025 (plus d'isotopes dans le passé : exp(+λ t)). */
     function puissanceRadiogenique(tAgo) {
         let H = 0;
@@ -100,6 +100,7 @@
         return H;
     }
 
+    // Réf : Turcotte & Schubert 2014, Geodynamics (3ᵉ éd., Cambridge UP), §6.21 ; Karato & Wu 1993, Science 260:771 ; Jaupart et al. 2015, Treatise on Geophysics (2ᵉ éd., Elsevier), p. 223 ; Herzberg et al. 2007, Geochem. Geophys. Geosyst. 8:Q02006 — doc/equation.html#eq-convection-sous-couche-limite
     /** [W] Chaleur perdue par convection sous couche limite (intérieur solide). */
     function puissanceConvective(T) {
         const dT = T - K.T_S0, dT0 = K.T0 - K.T_S0;
@@ -107,15 +108,19 @@
         return K.Q0 * Math.pow(dT / dT0, 1 + K.BETA) * Math.exp(K.BETA * K.E_ACTIVATION / window.CONST.R_GAS * (1 / K.T0 - 1 / T));
     }
 
-    /** [J/K] Capacité thermique effective : sensible + latente dans l'intervalle de fusion. */
-    function capacite(T) {
-        const latent = (T > K.T_SOLIDUS && T < K.T_LIQUIDUS) ? K.M_BSE * K.L_FUSION / (K.T_LIQUIDUS - K.T_SOLIDUS) : 0;
+    // Réf : Stevenson, Spohn & Schubert 1983, Icarus 54:466 ; Solomatov 2000, Origin of the Earth and Moon (Univ. Arizona Press), p. 323 — doc/equation.html#eq-capacites-thermiques-chaleur-latente
+    /** [J/K] Capacité thermique effective : sensible, plus la latente dans l'intervalle de fusion TANT QUE l'intérieur est fondu.
+     *  Solidus et liquidus sont ceux de 0 GPa : le manteau solide est sous son solidus parce que celui-ci monte avec la pression,
+     *  il ne fond pas à 1 086 °C. Le même critère que rayonKm (φ = 0 une fois solide). */
+    function capacite(T, fondu) {
+        const latent = (fondu && T > K.T_SOLIDUS && T < K.T_LIQUIDUS) ? K.M_BSE * K.L_FUSION / (K.T_LIQUIDUS - K.T_SOLIDUS) : 0;
         return K.C_SENSIBLE + latent;
     }
 
+    // Réf : Yoder 1995, AGU Reference Shelf 1:1 (masse du noyau) — doc/equation.html#eq-refroidissement-interieur
     /** Intérieur solide : intègre dT/dt = (H − Q)/C de tAgo0 à tAgo1 (< tAgo0), RK4, pas ≤ 1 Ma et |ΔT| ≲ 1 K. */
     function integrerSolide(T, tAgo0, tAgo1) {
-        const f = (T_, tAgo) => (puissanceRadiogenique(tAgo) - puissanceConvective(T_)) / capacite(T_) * secondesAn();   // [K/an]
+        const f = (T_, tAgo) => (puissanceRadiogenique(tAgo) - puissanceConvective(T_)) / capacite(T_, false) * secondesAn();   // [K/an]
         let t = tAgo0;
         while (t > tAgo1) {
             const pente = Math.abs(f(T, t));
@@ -132,6 +137,7 @@
      * par le transfert radiatif du modèle (async). Échantillonné sur N températures entre T et T_RHEO,
      * interpolé en log (l'OLR varie de plusieurs ordres de grandeur), intégré finement.
      * Renvoie { T, dureeAn, solide } : T atteinte, durée écoulée, et si la transition rhéologique est franchie.
+     * Réf : Katz, Spiegelman & Langmuir 2003, Geochem. Geophys. Geosyst. 4:1073 ; Abe 1997, Phys. Earth Planet. Inter. 100:27 ; Lebrun et al. 2013, J. Geophys. Res. Planets 118:1155 — doc/equation.html#eq-ocean-magma-rayonnement-vide
      */
     async function refroidirMagma(T, tAgo, dureeMaxAn, aireM2, olrNet) {
         const N = 8, ech = [];
@@ -155,7 +161,7 @@
         for (let i = 0; i < PAS; i++) {
             const Tm = T - (i + 0.5) * dT;
             const perte = aireM2 * netA(Tm) - puissanceRadiogenique(tAgo - t);   // [W]
-            const dt = capacite(Tm) * dT / perte / secondesAn();                  // [an]
+            const dt = capacite(Tm, true) * dT / perte / secondesAn();                  // [an]
             if (t + dt > dureeMaxAn) return { T: T - i * dT - dT * (dureeMaxAn - t) / dt, dureeAn: dureeMaxAn, solide: false };
             t += dt;
         }
@@ -197,6 +203,7 @@
      * R_froid = EPOCH['📐'] : le rayon de la config à T₀ (aujourd'hui, 1 350 °C). φ = fraction fondue (solidus →
      * liquidus) tant que le manteau est un océan de magma ; 0 ensuite (manteau solide — le solidus à 0 GPa ne vaut
      * pas pour tout le manteau). Avant l'intérieur (⚫, proto-Terre) : le rayon de la config, tel quel.
+     * Réf : Chopelas & Boehler 1992, Geophys. Res. Lett. 19:1983 ; Stolper, Walker, Hager & Hays 1981, J. Geophys. Res. 86:6261 — doc/equation.html#eq-rayon-planete-fonction-temperature
      */
     function rayonKm() {
         const DATA = window.DATA;

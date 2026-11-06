@@ -23,7 +23,7 @@ const KEYS = {
     // Masses
     '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
     // Composition atmosphérique
-    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈'],   // 🍰💭 retirée le 2026-09-23 avec sa formule (pas de physique CCN dans la couverture nuageuse)
+    '🫧': ['🎈', '🧪', '📏🫧🧿', '📏🫧🛩', '🌡️🫧🛩', '🍰☀️🫧🛩', '🍰🫧🏭', '🍰🫧🐄', '🍰🫧🫁', '🍰🫧✈', '🍰🫧💨', '🍰🫧📿🌈', '🍰🫧🏭🌈', '🍰🫧💧🌈', '🍰🫧🐄🌈'],   // 🍰💭 retirée le 2026-09-23 avec sa formule (pas de physique CCN dans la couverture nuageuse)
     // Cycle de l'eau
     '💧': ['🍰💧🧊', '🍰💧🌊', '🍰🧪🌧', '🍰🫧💧', '🍰🌧💧', '🧲⚖️💦', '💭☔', '🔺⏳💦'],
     // Albédo
@@ -102,6 +102,8 @@ const DESC = {
         '🧪': '!Masse molaire (kg/mol)',
         '📏🫧🧿': 'Ligne de Kármán',
         '📏🫧🛩': 'Tropopause',
+        '🌡️🫧🛩': 'Stratosphère : température (isotherme, équilibre radiatif)',
+        '🍰☀️🫧🛩': 'Stratosphère : part du flux solaire absorbée (ozone)',
         '🍰🫧❀': 'Prop.Rad.EDS<sub>❀∈{🏭, 🐄, 🫁, 💨}</sub>',
         '🍰🫧🏭': '!CO₂',
         '🍰🫧🐄': '!CH₄',
@@ -254,6 +256,8 @@ const FORM = {
         '🧪': '!Masse molaire (kg/mol)',
         '📏🫧🧿': 'H × ln(P₀ / P_limit) où H = RT/(Mg) [von Kármán] - Ligne de Kármán (altitude où P = 0.01 Pa)',
         '📏🫧🛩': 'RT/(Mg) [équation hydrostatique] - Tropopause (échelle de hauteur atmosphérique)',
+        '🌡️🫧🛩': 'Racine en T de Σ_λ ε_λ (F↑_λ(tropopause) − 2πB_λ(T)) + 🧲☀️🎱 × 🍰☀️🫧🛩 = 0 : la stratosphère isotherme, d\'émissivité ε_λ = 1 − e^(−Dτ_λ) (transfert), absorbe le flux montant de la troposphère et le solaire de l\'ozone, et émet vers le haut et vers le bas (RADIATIVE.equilibreStratosphere, après chaque transfert ; graine (🧲☀️🎱(1 − 🍰🪩📿)/2σ)^¼ au début du calcul)',
+        '🍰☀️🫧🛩': 'Lacis & Hansen 1974 éq. 14, moyennée sur μ₀ : a_oz(M u) + A(μ₀)·[a_oz(M u + M̄ u) − a_oz(M u)] — faisceau direct, puis la lumière renvoyée vers le haut qui retraverse l\'ozone (SOLAIRE.albedo, absOzone)',
         '🍰🫧❀': 'Proportion radiative EDS - ∀ ❀ ∈ {🏭, 🐄, 🫁, 💨}',
         '🍰🫧❀🌈': 'Capacité radiative IR de ❀ - ∀ ❀ ∈ {🏭, 🐄, 💧}',
         '🍰🫧📿🌈': 'Σ(🍰🫧❀🌈) - ∀ ❀ ∈ {🏭, 🐄, 💧} (pour normalisation)',

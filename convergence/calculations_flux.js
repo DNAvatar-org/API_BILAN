@@ -1,10 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.7.4
+// Version 1.8.0
+// - v1.8.0 (2026-11-06): graine de la stratosphère (🫧 🌡️🫧🛩) au début du calcul.
 // - v1.7.4 (2026-11-04): premier pas de Search sous Planck écrit tel quel (les configs frontière en dépendent).
-// - v1.7.3 (2026-11-03): plancher de la tolérance lu dans l'époque (📅 🧲🔬⌊).
-// Date: [November 4, 2026]
+// Date: [November 6, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -242,6 +242,9 @@ function calculateT0() {
     // On doit mettre à jour DATA['🧮']['🧮🌡️'] pour que la convergence utilise cette nouvelle valeur
     // Pour la convergence, c'est TOUJOURS DATA['🧮']['🧮🌡️'] qui est utilisé
     DATA['🧮']['🧮🌡️'] = DATA['🧮']['🧮🌡️🚩'];
+    // Stratosphère : graine grise de peau, (S̄(1 − A)/2σ)^¼ ; chaque transfert la remplace par son équilibre radiatif raie par
+    // raie (RADIATIVE.equilibreStratosphere), qui suit l'itération du solveur.
+    DATA['🫧']['🌡️🫧🛩'] = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
     DATA['🧮']['🧲🔬'] = computeToleranceWm2(window.CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4), DATA['📜']['🧲🔬']);
 }
 
@@ -271,6 +274,7 @@ function initForConfig() {
     // poser), par la loi du partage (co2/calculations_co2.js) : r = co2OceanRatioRef mesuré à T_ref = INTERIEUR.CONST.T_S0,
     // pente 2 400 K, eau liquide au plus froid au gel de l'eau de mer. Le premier partage trouve l'océan à l'équilibre : il ne
     // déplace le CO₂ que de ce que T s'écarte de T₀. Nul sans mer (⚖️💧 = 0 : ⚫ 🔥) ou sans pompe (EPOCH['🌊🏭'] = 0 : ⛄).
+    // Réf : Sander 2015, Atmos. Chem. Phys. 15:4399 ; Sarmiento & Gruber 2006, Ocean Biogeochemical Dynamics (Princeton University Press) — doc/equation.html#eq-partage-ocean-atmosphere ; T_ref (14,4 °C absolu) : Réf : aucune source mesurée (voir validation 2026-11-06)
     const EPOCH = DATA['📅'];
     const hasOceanWaterGate = (DATA['⚖️']['⚖️💧'] > 0) ? 1.0 : 0.0;
     const epochPumpGate = (EPOCH['🌊🏭'] > 0) ? 1.0 : 0.0;
@@ -434,6 +438,7 @@ function logDiag(flag, msg) {
 
 /**
  * Convergence radiative depuis l'état préparé par initForConfig (🧮🔄🌊 = 0, previous = []).
+ * Contrôle 🎯 (pas une source du calcul) : Sherwood et al. 2020, Rev. Geophys. 58:e2019RG000678 ; Loeb et al. 2021, Geophys. Res. Lett. 48:e2021GL093047 — doc/equation.html#eq-equilibre-sommet-atmosphere
  * @param {function(string, object)} callback - reçoit 'convergenceStep' et 'cycleCalcul'
  */
 async function computeRadiativeTransfer(callback) {
@@ -1090,7 +1095,7 @@ async function olrNetA(T_K) {
     };
     try {
         pin(T_K); preparer(); pin(T_K);
-        if (await window.calculateFluxForT0() !== true) throw new Error('[olrNetA] calculateFluxForT0 a échoué à ' + T_K + ' K');
+        if (await window.calculateFluxForT0(null, true) !== true) throw new Error('[olrNetA] calculateFluxForT0 a échoué à ' + T_K + ' K');
         const OLR = window.RADIATIVE.getSpectralResultFromDATA().total_flux;
         const Sabs = DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']);
         return OLR - Sabs;

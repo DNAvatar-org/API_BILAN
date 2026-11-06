@@ -1,7 +1,7 @@
 // File: API_BILAN/spectroscopy/hitran.js - Formules HITRAN (Q(T), S(T), γ(T,P), Voigt)
 // Desc: En français, module de calcul LBL selon doc/HITRAN.txt (sections efficaces à partir des lignes).
-// Version 1.5.0
-// Date: 2026-10-30
+// Version 1.6.0
+// Date: 2026-11-06
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -14,6 +14,7 @@
 //   γ_D = (ν/c)√(2RT/M), demi-largeur à 1/e (M en kg/mol entrait dans une formule en g/mol : ×26).
 // - v1.5.0 (2026-10-30): crossSectionsFromLines — σ à une liste de pressions en un passage sur les raies (tables σ(λ, T, P)) ;
 //   raies coupées à la fenêtre ±5 cm⁻¹ seule, la même à toute pression.
+// - v1.6.0 (2026-11-06): Q(T) = tables TIPS 2021 (data/hitran_tips.js) au lieu des rotateurs rigides ; O₃.
 
 (function (global) {
     'use strict';
@@ -59,12 +60,17 @@
      * Fonction de partition Q(T) (approximation compacte par molécule).
      * Suffisant pour 200–400 K et diagnostic ; évite le placeholder Q=1 constant.
      */
+    // Réf : Gamache et al. 2021, JQSRT 271:107713 (TIPS 2021) — doc/equation.html#eq-fonctions-partition
     function partitionFunctionQ(T_K, molecule) {
-        var x = T_K / HITRAN_T_REF_K;
-        if (molecule === 'CO2') return 286.09 * x;
-        if (molecule === 'H2O') return 174.58 * Math.pow(x, 1.5);
-        if (molecule === 'CH4') return 590.40 * Math.pow(x, 1.5);
-        return 1;
+        var t = global.HITRAN_TIPS[molecule];
+        var x = T_K - t.T0, i = Math.floor(x);
+        if (!(i >= 0 && i + 1 < t.Q.length)) throw new Error('[HITRAN] T = ' + T_K + ' K hors de la table TIPS de ' + molecule + ' (' + t.T0 + '–' + (t.T0 + t.Q.length - 1) + ' K)');
+        return t.Q[i] + (x - i) * (t.Q[i + 1] - t.Q[i]);
+    }
+    /** [K] Plus haute température de la table TIPS de la molécule. */
+    function tMaxTips(molecule) {
+        var t = global.HITRAN_TIPS[molecule];
+        return t.T0 + t.Q.length - 1;
     }
 
     /**
@@ -171,6 +177,7 @@
      * Profil Voigt normalisé : ∫ f(Δν) dν = 1.
      * f(Δν) = Re(w(z)) / (γ_D * √π), z = (Δν + i*γ_L)/γ_D.
      * Δν, γ_L, γ_D en cm⁻¹. Retourne f en 1/cm⁻¹.
+     * Réf : Humlíček 1982, JQSRT 27:437 — doc/equation.html#eq-profil-voigt-largeurs
      */
     function voigtNormalized(delta_nu_cm, gamma_L_cm, gamma_D_cm) {
         if (gamma_D_cm < 1e-15 * gamma_L_cm) {
@@ -248,6 +255,7 @@
      * γ_L = P·[X_self γ_self + (1 − X_self) γ_air], donc la Voigt, est évaluée à chaque pression. Renvoie un Float64Array.
      * lines = tableau de lignes trié par nu. X_self = fraction molaire du gaz (0 pour CO2/CH4 en air, >0 pour H2O humide).
      * n_self non dans JSON → on utilise n_air.
+     * Réf : Humlíček 1982, JQSRT 27:437 ; Perrin & Hartmann 1989, JQSRT 42:311 — doc/equation.html#eq-profil-voigt-largeurs ; doc/equation.html#eq-tables-grille-spectrale
      */
     function crossSectionsFromLines(lines, lambda_m, T_K, P_Pa_list, M_kg_mol, X_self, molecule) {
         var nu_cm = wavelengthToWavenumber(lambda_m);
@@ -278,7 +286,7 @@
         return crossSectionsFromLines(lines, lambda_m, T_K, [P_Pa], M_kg_mol, X_self, molecule)[0];
     }
 
-    /** σ(λ, T, P) [m²/molécule] du gaz molecule ('CO2' | 'H2O' | 'CH4') dans l'air (X_self = 0) aux pressions P_Pa_list. */
+    /** σ(λ, T, P) [m²/molécule] du gaz molecule ('CO2' | 'H2O' | 'CH4' | 'O3') dans l'air (X_self = 0) aux pressions P_Pa_list. */
     function crossSectionsInAir(molecule, lambda_m, T_K, P_Pa_list) {
         return crossSectionsFromLines(getSortedLines(molecule), lambda_m, T_K, P_Pa_list, CONST['M_' + molecule], 0, molecule);
     }
@@ -405,6 +413,7 @@
     global.HITRAN.wavenumberToWavelength = wavenumberToWavelength;
     global.HITRAN.pressurePaToAtm = pressurePaToAtm;
     global.HITRAN.partitionFunctionQ = partitionFunctionQ;
+    global.HITRAN.tMaxTips = tMaxTips;
     global.HITRAN.lineIntensityS = lineIntensityS;
     global.HITRAN.gammaLorentzAir = gammaLorentzAir;
     global.HITRAN.gammaLorentzSelf = gammaLorentzSelf;

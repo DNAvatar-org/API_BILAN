@@ -13,6 +13,7 @@
 // - v1.4.2: T_ref de Van 't Hoff = T̄ de la Terre actuelle, où r = 50 est mesuré (INTERIEUR.CONST.T_S0), et non la T de l'époque.
 // ============================================================================
 
+// Réf : Sander 2015, Atmos. Chem. Phys. 15:4399 ; Sarmiento & Gruber 2006, Ocean Biogeochemical Dynamics (Princeton UP) — doc/equation.html#eq-partage-ocean-atmosphere
 function calculateCO2Partition() {
     const DATA = window.DATA;
     // Crash-first: DATA['⚖️'] doit exister, sinon ça doit planter.

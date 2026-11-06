@@ -1,11 +1,12 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.14.0
+// Version 0.15.0
+// - v0.15.0 (2026-11-06): transmission de la stratosphère par λ (son équilibre radiatif) ; O₃ (raies HITRAN).
 // - v0.14.0 (2026-10-30): σ à la (T, P) de la couche : tables σ[iT·nP + iP], ln σ linéaire en ln P (au lieu de σ·√(P/P₀)).
 // - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: [October 30, 2026]
+// Date: [November 6, 2026]
 
 
 /**
@@ -35,6 +36,7 @@ function spectralSliceWorkerMain() {
     // runSliceTransfer : écrit dans un Float32Array local
     // puis transfère l'ownership au main thread (Transferable, zero-copy, sans SharedArrayBuffer).
     // Layout: resultBuf[i * nL + j] pour la tranche de taille nL = jEnd - jStart.
+    // Réf : Elsasser 1942, Harvard Meteorological Studies n° 6 ; Goody & Yung 1989, Atmospheric Radiation (Oxford University Press) ; Liou 2002, An Introduction to Atmospheric Radiation (Academic Press) — doc/equation.html#eq-epaisseur-optique-une-couche ; doc/equation.html#eq-equation-schwarzschild-flux-montant
     function runSliceTransfer(p) {
         var cstUse = p.constants;
         var lambda_range = p.lambda_range;
@@ -45,6 +47,7 @@ function spectralSliceWorkerMain() {
         var sigma_CO2 = p.sigma_CO2;
         var sigma_H2O = p.sigma_H2O;
         var sigma_CH4 = p.sigma_CH4;
+        var sigma_O3 = p.sigma_O3;   // O₃ : stratosphère seulement (n_O3 = 0 dessous)
         var continuum_H2O = p.continuum_H2O;   // C_s(ν, 296 K) [cm²/molécule/atm], Roberts 1976
         var cia_CO2 = p.cia_CO2;               // k(λ, T) [cm⁵/molécule²], HITRAN CIA CO₂–CO₂ (tables par T, comme σ)
         var earth_flux = p.earth_flux;
@@ -68,16 +71,20 @@ function spectralSliceWorkerMain() {
         var blk_CO2 = new Float64Array(nL), blk_H2O = new Float64Array(nL);
         var blk_CH4 = new Float64Array(nL), blk_cld = new Float64Array(nL);
         var sum_blocked_cont = 0;
+        // Transmission de la stratosphère (couches i ≥ i_trop) par λ : son émissivité 1 − t sert à son équilibre radiatif
+        // (RADIATIVE.equilibreStratosphere, calculations.js).
+        var t_strato = new Float64Array(nL).fill(1);
 
         for (var i = 0; i < nZ; i++) {
             var L = layers[i];
-            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4;
+            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4, n_O3 = L.n_O3;
             var T = L.T;
             var delta_z_real = L.delta_z_real;
             var a = L.iT, w = L.wT;
             var r = a * nP + L.iP, v = L.wP, rH = a * nP + L.iPH2O, vH = L.wPH2O;   // lignes (T bas, P bas) ; T haut : + nP
             var sC00 = sigma_CO2[r], sC01 = sigma_CO2[r + 1], sC10 = sigma_CO2[r + nP], sC11 = sigma_CO2[r + nP + 1];
             var sM00 = sigma_CH4[r], sM01 = sigma_CH4[r + 1], sM10 = sigma_CH4[r + nP], sM11 = sigma_CH4[r + nP + 1];
+            var sO00 = sigma_O3[r], sO01 = sigma_O3[r + 1], sO10 = sigma_O3[r + nP], sO11 = sigma_O3[r + nP + 1];
             var sH00 = sigma_H2O[rH], sH01 = sigma_H2O[rH + 1], sH10 = sigma_H2O[rH + nP], sH11 = sigma_H2O[rH + nP + 1];
             var cC0 = cia_CO2[a], cC1 = cia_CO2[a + 1];
             var nCO2cm3 = n_CO2 * 1e-6;                  // [molécules/cm³]
@@ -93,11 +100,12 @@ function spectralSliceWorkerMain() {
                 var kappa_cont = continuum_H2O[j] * cont_layer;   // continuum H₂O, m⁻¹
                 // CIA CO₂–CO₂ : κ [cm⁻¹] = k·n², ×100 → m⁻¹. Comptée avec le CO₂ (attribution EDS).
                 var kappa_CIA = (cC0[j] + w * (cC1[j] - cC0[j])) * nCO2cm3 * nCO2cm3 * 100;
-                var kappa = kappa_CO2 + kappa_CIA + kappa_H2O + kappa_CH4 + kappa_cont;
+                var kappa_O3 = n_O3 > 0 ? enPression(sO00[j] + w * (sO10[j] - sO00[j]), sO01[j] + w * (sO11[j] - sO01[j]), v) * n_O3 : 0;
+                var kappa = kappa_CO2 + kappa_CIA + kappa_H2O + kappa_CH4 + kappa_cont + kappa_O3;
                 var tau = Math.min(Math.max(D * (kappa * delta_z_real + tau_cloud_layer), TAU_EFF_MIN), TAU_EFF_MAX);
                 var transmission = Math.exp(-tau);
                 var emissivity = 1 - transmission;
-                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (tau_cloud_layer > 1e-10);
+                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (n_O3 > 0) || (tau_cloud_layer > 1e-10);
                 var upval;
                 if (!has_absorption) {
                     upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);
@@ -110,6 +118,7 @@ function spectralSliceWorkerMain() {
                     sum_blocked_cont += flux_in[j] * (1 - Math.exp(-Math.max(0, D * kappa_cont * delta_z_real)));
                     blk_CH4[j] += flux_in[j] * (1 - Math.exp(-Math.max(0, D * kappa_CH4 * delta_z_real)));
                     blk_cld[j] += flux_in[j] * (1 - Math.exp(-D * tau_cloud_layer));
+                    if (!is_trop) t_strato[j] *= transmission;
                 }
                 resultBuf[i * nL + j] = upval;
                 flux_in[j] = upval;
@@ -127,8 +136,9 @@ function spectralSliceWorkerMain() {
             blk_H2O: blk_H2O.buffer,
             blk_CH4: blk_CH4.buffer,
             blk_cld: blk_cld.buffer,
+            t_strato: t_strato.buffer,
             sum_blocked_cont: sum_blocked_cont
-        }, [resultBuf.buffer, blk_CO2.buffer, blk_H2O.buffer, blk_CH4.buffer, blk_cld.buffer]);
+        }, [resultBuf.buffer, blk_CO2.buffer, blk_H2O.buffer, blk_CH4.buffer, blk_cld.buffer, t_strato.buffer]);
     }
 
     self.onmessage = function (e) {

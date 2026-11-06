@@ -212,6 +212,7 @@
      *  deux cartes de 5 Ma : aire interpolée, latitude et socle moyens des deux cartes pondérés par leurs aires (une cellule vide
      *  n'existe pas à cette date). Avant la première carte : terre de l'époque (1 − 🍰🗻🌊), répartie par classe de socle comme la
      *  terre émergée de la carte la plus ancienne, dans la tranche du milieu de la bande, à la latitude de ce milieu (❔). */
+    // Réf : Scotese & Wright 2018, PALEOMAP PaleoDEMs (doi:10.5281/zenodo.5460860) — doc/equation.html#eq-calottes-bilan-integre
     function geographie() {
         const G = window.PALEOGEO, A = G.ages_Ma, ageMa = window.INTERIEUR.ageCourant() / 1e6, N = nCellules(), K = nClasses(), out = {};
         const avant = ageMa > A[A.length - 1];
@@ -269,8 +270,10 @@
     /** Aire de la bande d'un hémisphère [m²]. */
     const aireBande = (bande) => 2 * Math.PI * Math.pow(window.DATA['📜']['📐'] * 1000, 2) * (bande.x1 - bande.x0);
     /** Loi plastique sur socle d'Airy, H = C √s [s en m] : C = √(2 τ / (ρ_i g (1 − ρ_i/ρ_m))) [m^½], τ de la table. */
+    // Réf : Nye 1952, Nature 169:529 — doc/equation.html#eq-calottes-bilan-integre
     const plastique = () => Math.sqrt(2 * window.PALEOGEO.tau_Pa / (window.CONST.RHO_GLACE * window.DATA['📅']['🍎'] * (1 - isostasie())));
     /** Volume [m³] du dôme de rayon R [m] : (8π/15) C R^(5/2). */
+    // Réf : Nye 1952, Nature 169:529 ; Paterson 1972, Rev. Geophys. Space Phys. 10:885 — doc/equation.html#eq-calottes-bilan-integre
     const volumeDome = (R) => 8 * Math.PI / 15 * plastique() * Math.pow(R, 2.5);
 
     /** Rang des cellules par la terre émergée d'abord, puis par le socle : le rang d'une charge portée hors d'un monde à océan,
@@ -288,6 +291,7 @@
     }
     /** Nombre effectif de dômes d'une calotte de fraction a de la bande : PALEOGEO.n_morceaux à la part a / continent (une calotte est
      *  d'un seul tenant : ses morceaux connexes sur la carte) ; aire nulle : un dôme. */
+    // Réf : Scotese & Wright 2018, PALEOMAP PaleoDEMs (doi:10.5281/zenodo.5460860) — doc/equation.html#eq-calottes-bilan-integre
     const nDomes = (gb, a) => a === 0 ? 1 : selonPart(gb.nMorceaux, a / gb.continent);
 
     /** Géométrie de la calotte de fraction a de la bande (a ≤ continent) : N = nDomes dômes égaux (⚠️ des morceaux de même aire), de
@@ -296,6 +300,7 @@
      *  cellules couvertes (du sommet à la marge), épaisseur moyenne H [m] de leur partie couverte — moyenne exacte de C √(R − ρ)
      *  sur l'anneau ρ₀ … ρ₁ qu'elle occupe, écrite sans soustraction de grands nombres —, nombre de dômes N, rayon R [m] d'un dôme et
      *  volume V [m³] des N dômes. */
+    // Réf : Nye 1952, Nature 169:529 ; Paterson 1972, Rev. Geophys. Space Phys. 10:885 — doc/equation.html#eq-calottes-bilan-integre
     function geometrie(a, bande, gb) {
         const N = nDomes(gb, a), Ab = aireBande(bande), A = a * Ab / N, R = Math.sqrt(A / Math.PI), C = plastique();
         const f = new Float64Array(gb.N), H = new Float64Array(gb.N), couvertes = [];
@@ -327,6 +332,7 @@
     }
 
     /** Charge d'équilibre d'Airy [m], moyenne de chaque cellule : (ρ_i/ρ_m) f H (0 hors de la calotte). */
+    // Réf : Le Meur & Huybrechts 1996, Ann. Glaciol. 23:309 — doc/equation.html#eq-calottes-rebond-socle
     function charge(g, N) {
         const L = new Float64Array(N);
         for (const i of g.couvertes) L[i] = isostasie() * g.f[i] * g.H[i];
@@ -424,6 +430,7 @@
      *   · marge(z), le dernier anneau de la calotte : la même lecture partie de la terre libre, T_inv(0) = max(Tl0, 0,67 Tl0 + 88,9) ;
      *   · libre(z), SOL SANS GLACE : la surface suit l'air libre parti de Tl0 → { Ts = T(z), dI = 0, rapport = p_sat(T(z))/p_sat(Tl0), p }.
      *     J&M est mesurée sur la surface enneigée de la calotte antarctique (en-tête) : un sol nu est hors de son domaine.
+     * Réf : Jouzel & Merlivat 1984, JGR 89:11749 — doc/equation.html#eq-calottes-bilan-integre
      */
     function colonne(bande, x, c) {
         const D = window.DATA, PHYS = window.PHYS, sb = c.saisons[bande.cle];
@@ -470,6 +477,7 @@
      * moyenne H̄ [m], l'altitude, la latitude et la température moyennes, la distance du sommet à la marge (rayon d'un dôme, marge
      * [km]), les degrés-jours, la fonte possible d'une neige et d'une glace (contrôle 🎯 des facteurs degrés-jours) et l'albédo
      * annuel. o : orbite de la date.
+     * Réf : Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 — doc/equation.html#eq-calottes-bilan-integre
      */
     function bilanCalotte(a, bande, geo, c, e, o) {
         const g = geometrie(a, bande, geo);
@@ -550,6 +558,7 @@
      *   · a0 > 0 et sommet porté dont la cellule existe à la date (aire > 0) : la calotte garde son sommet ;
      *   · a0 > 0 sans sommet (posée par la config) ou dont la cellule n'existe plus à la date (la carte a changé) : la calotte, d'aire
      *     connue, a le sommet du meilleur bilan intégré B̄(a0), sur son socle porté e, à l'orbite oDepart du départ du clic.
+     * Réf : Weertman 1976, Nature 261:17 — doc/equation.html#eq-calottes-bilan-integre
      */
     function rangBilan(bande, geo, c, r, a0, porte, e, oDepart, oFin) {
         const zero = new Float64Array(geo.N), cand = sommets(r);
@@ -580,6 +589,7 @@
      *  annulation, plafond = continent. Le chemin est lu aux N pas de la grille ET aux bords des cellules du dôme (aires cumulées
      *  du rang geo.rang) : un creux du bilan plus étroit qu'un pas — la marge mince d'une cellule nouvellement gagnée — arrête la
      *  calotte, qui ne le franchit pas. */
+    // Réf : Weertman 1976, Nature 261:17 — doc/equation.html#eq-calottes-bilan-integre
     function equilibre(a0, bande, geo, c, e, o) {
         const cap = geo.continent;
         const B = (a) => bilanCalotte(a, bande, geo, c, e, o).B;
@@ -618,6 +628,7 @@
      * la gravité, le rayon et l'humidité de surface se lisent dans DATA. Renvoie les fonctions lues par bilanCalotte : P − E
      * (Siler), bilan d'énergie de surface seb(p), colonnes des cellules d'une bande, cycle de la boîte du point (calotte, ou terre libre) et insolation des nœuds à
      * une date.
+     * Réf : Siler, Roe & Armour 2018, J. Climate 31:7481 — doc/equation.html#eq-neige-des-calottes
      */
     function contexte(saisons, absorbe) {
         const D = window.DATA, CONST = window.CONST, PHYS = window.PHYS, S = window.SAISONS, CONV = window.CONV, dx = 1e-4;
@@ -697,6 +708,7 @@
 
     /** Temps de rebond du demi-espace visqueux de la bande [an], τ_b = 4π η / (ρ_m g λ), λ = (3 000/1 350) × largeur de la calotte
      *  qui couvre son continent, deux fois le rayon du dôme unique qui le couvrirait (en-tête). */
+    // Réf : Haskell 1935, Physics 6:265 ; Schubert, Turcotte & Olson 2001, Mantle Convection in the Earth and Planets (Cambridge University Press), ch. 5 — doc/equation.html#eq-calottes-rebond-socle
     const tempsRebond = (bande, gb) => 4 * Math.PI * K.VISCOSITE_MANTEAU
         / (K.RHO_MANTEAU * window.DATA['📅']['🍎'] * K.LAMBDA_SUR_LARGEUR * 2 * Math.sqrt(gb.continent * aireBande(bande) / Math.PI))
         / (window.CONST.AN_TROPIQUE_JOURS * window.CONV.SECONDS_PER_DAY);
@@ -709,6 +721,7 @@
      * gradient de surface et sommet d'une calotte sans objet (null). La glace portée, s'il y en avait, n'est plus : le socle relaxe sans charge
      * depuis son enfoncement porté, d(t) = (L₀ + e₀) e^(−t/τ_b) (L₀ : charge d'Airy de la calotte portée, e₀ : écart porté) ; sans
      * neige ni bilan, la charge portée est rangée par le socle (rangSocle).
+     * Réf : Le Meur & Huybrechts 1996, Ann. Glaciol. 23:309 — doc/equation.html#eq-calottes-rebond-socle
      */
     function sansCalotte(geo, dureeAns) {
         const D = window.DATA, depart = D['🗻']['🍰🗻🧊'], socle = D['🗻']['🔺📏🗻🧊'], res = {};
@@ -756,6 +769,7 @@
      * (distance du sommet à la marge, rayon du dôme, km), degrés-jours, fonte / degrés-jours d'une neige et d'une glace (contrôle
      * 🎯) et albédo annuel sont ceux de la calotte portée a, sur son socle porté, à la fin du clic (aire nulle : ceux du sommet nu) ;
      * Gamma_s [K/km] : gradient de surface au sommet.
+     * Réf : Weertman 1976, Nature 261:17 ; Pollard 1978, Nature 272:233 — doc/equation.html#eq-calottes-bilan-integre ; Le Meur & Huybrechts 1996, Ann. Glaciol. 23:309 — doc/equation.html#eq-calottes-rebond-socle ; Marshall & Clark 2002, GRL 29:2214 (contrôle 🎯 de tau) — doc/equation.html#eq-inertie-calottes
      */
     function calculer(saisons, absorbe) {
         const D = window.DATA, CONST = window.CONST, depart = D['🗻']['🍰🗻🧊'], socle = D['🗻']['🔺📏🗻🧊'], portes = D['🗻']['📿🗻🧊'];

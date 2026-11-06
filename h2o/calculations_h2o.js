@@ -42,6 +42,7 @@ function calculateSaturatedVaporPressure() {
 
 // Point d'ébullition de l'eau à la pression totale P [atm] : la saturation IAPWS inversée. Au-delà de la pression
 // critique (218 atm), l'eau ne bout plus : elle passe continûment au fluide supercritique (T_c).
+// Réf : Wagner & Pruß 2002, J. Phys. Chem. Ref. Data 31:387 — doc/equation.html#eq-pression-vapeur-saturante-eau
 function getBoilingPointKFromPressure(P_atm) {
     const P_Pa = P_atm * CONV.STANDARD_ATMOSPHERE_PA;
     return P_Pa >= window.PHYS.EAU.P_C ? window.PHYS.EAU.T_C : window.PHYS.tSatEau(P_Pa);
@@ -110,6 +111,7 @@ function mondeOcean() {
  * le plateau continental prise à la mer) ; aire de la bande : CALOTTES.aireBande.
  * ⚠️ DÉCLARÉ : l'épaisseur de fin de saison de gel est tenue sur toute la part gelée de l'année (borne haute d'une glace saisonnière) ;
  * une glace pérenne n'a que l'épaisseur d'une année de Stefan (borne basse : elle s'épaissit d'année en année).
+ * Réf : Stefan 1891, Ann. Phys. Chem. 42:269 — doc/equation.html#eq-mer-gelee
  */
 function masseGlaceMer(saisons) {
     const S = window.MERIDIEN.surfacesBandes(), g = window.DATA['🪩']['🍰📅🧊'];
@@ -269,6 +271,7 @@ function calculatePrecipitationFeedback() {
 // 4. Réduire la vapeur effective : 🍰🫧💧 = vapeur_potentielle × (1 - ☁️ × efficacité_condensation)
 // 5. Mettre l'eau condensée dans 🌊 ou 🧊
 // 6. Recalculer RH et ☁️ (itération)
+// Réf : Manabe & Wetherald 1967, J. Atmos. Sci. 24:241 ; Dai 2006, J. Climate 19:3589 ; Hersbach et al. 2020, Q. J. R. Meteorol. Soc. 146:1999 — doc/equation.html#eq-vapeur-surface
 function calculateH2OParametersWithIteration() {
     const DATA = window.DATA;
     const CONST = window.CONST;
@@ -409,6 +412,7 @@ function dryMolarMass() {
 var H2O = window.H2O = {};
 
 //Fonction principale : calcule tous les paramètres H2O
+// Réf : Manabe & Wetherald 1967, J. Atmos. Sci. 24:241 ; Dai 2006, J. Climate 19:3589 ; Hersbach et al. 2020, Q. J. R. Meteorol. Soc. 146:1999 — doc/equation.html#eq-vapeur-surface
 H2O.calculateH2OParameters = function () {
     const DATA = window.DATA;
     //const EPOCH = DATA['📅'];

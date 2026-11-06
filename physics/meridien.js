@@ -76,6 +76,7 @@
     const DEG = Math.PI / 180;
 
     const _cacheJ = {};
+    // Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 (J_z de la solution à deux modes) — doc/equation.html#eq-bilan-energie-meridien ; insolation journalière : Berger 1978, J. Atmos. Sci. 35:2362 — doc/equation.html#eq-orbite-date
     /** Intégrales de l'insolation annuelle sur chaque zone, pour le Soleil actuel (astronomie.SOLAR_CONSTANT), par ε ; année en
      *  ORBITE.N_PAS longitudes égales (orbite circulaire) : { J: { zone: ∫ P₂(x) I(x) dx }, I: { zone: ∫ I(x) dx } } [W/m²]. */
     function integrales(eps) {
@@ -101,6 +102,7 @@
     }
     /** J_z = ∫_zone P₂(x) I(x) dx [W/m²] (integrales). */
     const integralesJ = (eps) => integrales(eps).J;
+    // Réf : Berger 1978, J. Atmos. Sci. 35:2362 — doc/equation.html#eq-orbite-date
     /** Part de l'insolation annuelle du globe reçue par chaque zone, w_z = ∫_zone I dx / ∫₀¹ I dx (integrales) : le poids d'une zone
      *  dans la lumière que la planète réfléchit. */
     function poidsInsolation(eps) {
@@ -183,6 +185,7 @@
     const TOLERANCE_K = 0.01;   // [K] point fixe glace ↔ gradient : erreur tolérée sur T₂ (lue aussi par les calottes)
     const ITERATIONS_MAX = 100; // [-] itérations du point fixe : au-delà, il ne converge pas et le calcul s'arrête — numérique
 
+    // Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 — doc/equation.html#eq-bilan-energie-meridien
     /** Écarts des zones à la moyenne [K], dT_z = T̄ − T_z = −T₂ ⟨P₂⟩_z, T₂ = DATA['🧮']['🌡️🎱'] : la seule lecture des écarts de
      *  zone (glace saisonnière, calottes, puits océaniques, cycle saisonnier). */
     function ecarts() {
@@ -235,6 +238,7 @@
         return moyenneBandes((b) => S[b.cle].calotte + S[b.cle].terre * t[b.cle].terre + S[b.cle].mer * t[b.cle].mer);
     }
 
+    // Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 (T₂ observé de l'hémisphère nord) — doc/equation.html#eq-bilan-energie-meridien
     /** Clic frise : T₂ repart de la condition initiale (NORTH1981.T2_DEPART), pas de l'état laissé par le calcul précédent ; la
      *  forêt des bandes (🗻.🍰🗻🌳) de zéro (le point fixe la pose à sa première itération, puis elle est portée d'un calcul à l'autre). */
     function depuisConfig() {
@@ -272,6 +276,7 @@
      * Renvoie { coAlbedo, Rg, A, RgSoleil, poids, calottes, absorbe, saisons, colonnes, iterations, pente } — A : albédo planétaire au
      * sommet avant voile, Σ_z w_z (1 − a_z), w_z part de l'insolation du globe reçue par la zone (poidsInsolation) : l'albédo que lit
      * le solveur (calculateAlbedo) ; RgSoleil = Σ_z w_z Rg_z —, et T2, dT en lecture de DATA.
+     * Réf : North, Cahalan & Coakley 1981, Rev. Geophys. Space Phys. 19:91 ; Wegstein 1958, Commun. ACM 1(6):9 — doc/equation.html#eq-bilan-energie-meridien
      */
     function resoudre(colonne) {
         const DATA = window.DATA, M = DATA['🪩🍰'];

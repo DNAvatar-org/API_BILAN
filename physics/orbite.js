@@ -111,6 +111,7 @@
      * Insolation journalière [W/m²] d'une orbite o = { obliquite, excentricite, varpi } sur son calendrier de Kepler (longitudes), en
      * sommes CUMULÉES par pas à la latitude entière demandée : { ligne(lat) }, ligne(lat)[j] = Σ_{i<j} S[i], j = 0 … N_PAS (la forme
      * que lit sommeAnomalie), calculée à la première lecture de chaque latitude.
+     * Réf : Berger 1978, J. Atmos. Sci. 35:2362 ; Laskar et al. 2004, A&A 428:261 — doc/equation.html#eq-orbite-date
      */
     function insolationCumulee(o) {
         const lam = longitudes(o), lignes = [];
@@ -137,6 +138,7 @@
      * Anomalie d'insolation de la ligne k de la table La2004 (an 2000 − k ka) : pour la latitude entière demandée, les sommes
      * CUMULÉES de (S − S₁₉₅₀) sur les pas, P.ligne(lat)[j] = Σ_{i<j} ΔS[i] [W/m²], j = 0 … 73 (lues par sommeAnomalie),
      * calculées à la première lecture de chaque latitude. Au-delà de la dernière ligne (avant −51 Ma) : zéro partout.
+     * Réf : Laskar et al. 2004, A&A 428:261 ; Berger 1978, J. Atmos. Sci. 35:2362 — doc/equation.html#eq-orbite-date ; doc/equation.html#eq-fonte-insolation-orbite
      */
     function anomalieLigne(k) {
         if (k >= N_LIGNES) return ZERO;

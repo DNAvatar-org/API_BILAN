@@ -1,14 +1,16 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.16.1
-// - v1.16.1 (2026-10-31): commentaire des sections efficaces au présent.
+// Version 1.17.0
+// - v1.17.0 (2026-11-06): stratosphère en équilibre radiatif raie par raie, ozone compris (equilibreStratosphere) : le
+//   forçage équilibré est le forçage ajusté ; pas saturé hydrostatique (la vapeur suit p_sat, pas le mélange).
 // - v1.16.0 (2026-10-30): sections efficaces à la pression de la couche (tables σ(λ, T, P), ln σ linéaire en ln P) au lieu de
 //   σ(1 atm)·√(P/P₀).
-// Date: [October 31, 2026]
+// Date: [November 6, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
 
+// Réf : Chase 1998, J. Phys. Chem. Ref. Data Monograph 9 — doc/equation.html#eq-hydrostatique-adiabatique-seche ; Pierrehumbert 2010, Principles of Planetary Climate (Cambridge University Press), éq. 2.33 — doc/equation.html#eq-adiabatique-humide-non-diluee
 /** [K/m] Gradient vertical de la parcelle de surface de la colonne moyenne : la loi adiabatique du profil (loiAdiabatique) au sol,
  *  sèche — la parcelle part de l'humidité de surface du modèle (🍰🫧💧), sous la saturation. Lu par temperatureAtZ et par la
  *  hauteur d'échelle de la vapeur (PHYS.computeH2OScaleHeight). */
@@ -94,15 +96,20 @@ const T_GRILLE_SIGMA = [20, 50, 100, 160, 220, 280, 350, 500, 800, 1300, 2000, 3
 // 10⁻⁵ atm vaut. Au-dessus de 10⁴ atm : hors domaine (erreur).
 const P_GRILLE_SIGMA = Array.from({ length: 19 }, (_, k) => Math.pow(10, k / 2 - 5));
 const _tablesSigma = {};
-/** Tables σ [m²/molécule] : t[gaz][iT·nP + iP][j] à T_GRILLE_SIGMA[iT], P_GRILLE_SIGMA[iP], lambda_range[j]. */
+// Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-elargissement-par-pression
+/** Tables σ [m²/molécule] : t[gaz][iT·nP + iP][j] à T_GRILLE_SIGMA[iT], P_GRILLE_SIGMA[iP], lambda_range[j].
+ *  Au-dessus de sa table TIPS (O₃ 1000 K, CH₄ 2500 K), une molécule a σ = 0 : elle s'y dissocie (O₃ dès quelques centaines de
+ *  kelvins, CH₄ par pyrolyse), sa fonction de partition n'y est d'ailleurs pas publiée. */
 function tablesSigma(lambda_range) {
     const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
     if (cle in _tablesSigma) return _tablesSigma[cle];
     const P_Pa = P_GRILLE_SIGMA.map((p) => p * CONV.STANDARD_ATMOSPHERE_PA);
-    const t = { nP: P_GRILLE_SIGMA.length, CO2: [], H2O: [], CH4: [] };
-    for (const gaz of ['CO2', 'H2O', 'CH4']) {
+    const t = { nP: P_GRILLE_SIGMA.length, CO2: [], H2O: [], CH4: [], O3: [] };
+    for (const gaz of ['CO2', 'H2O', 'CH4', 'O3']) {
         for (const T of T_GRILLE_SIGMA) {
-            const parPoint = lambda_range.map((l) => window.HITRAN.crossSectionsInAir(gaz, l, T, P_Pa));   // [j][iP]
+            const parPoint = T <= window.HITRAN.tMaxTips(gaz)
+                ? lambda_range.map((l) => window.HITRAN.crossSectionsInAir(gaz, l, T, P_Pa))   // [j][iP]
+                : lambda_range.map(() => P_Pa.map(() => 0));
             for (let iP = 0; iP < t.nP; iP++) t[gaz].push(parPoint.map((s) => s[iP]));
         }
     }
@@ -124,6 +131,7 @@ function indexPressionSigma(P_atm) {
 // grille de températures que σ, en cm⁵/molécule² ; le worker en tire κ = k·n_CO₂² (n en molécules/cm³). Interpolation
 // linéaire en ν (pas de 1 cm⁻¹) puis en T entre les jeux mesurés ; hors de l'intervalle de T mesuré d'une bande, la
 // valeur du jeu le plus proche (⚠️ extrapolation à T constante, déclarée). Hors des bandes : 0.
+// Réf : Karman et al. 2019, Icarus 328:160 — doc/equation.html#eq-absorption-induite-par-collisions
 const _tablesCIA = {};
 function tablesCIA(lambda_range) {
     const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
@@ -161,6 +169,7 @@ function indexTemperatureSigma(T) {
 // Auto-élargissement de H₂O : une molécule d'eau élargit les raies d'eau bien plus qu'une molécule d'air
 // (γ_self / γ_air ≈ 5). Négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur. Le rapport est tiré
 // des raies elles-mêmes (moyenne pondérée par S), pas posé.
+// Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-auto-elargissement-vapeur
 let _rapportSelfH2O = null;
 function rapportAutoElargissementH2O() {
     if (_rapportSelfH2O !== null) return _rapportSelfH2O;
@@ -181,8 +190,9 @@ function continuumH2OCs(lambda) {
  * Une couche pour le worker. x_v : fraction MOLAIRE de vapeur ; n_H2O_mol = x_v·n_total (continuum, molaire par
  * définition). Sections efficaces à la (T, P) de la couche (tablesSigma) ; pour H₂O, l'auto-élargissement donne la pression
  * effective P·(1 + x_v·(R_self − 1)). CONFIG_COMPUTE.pressureBroadening = false : tables de 1 atm à toutes les couches.
+ * Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-elargissement-par-pression ; Roberts, Selby & Biberman 1976, Appl. Opt. 15:2085 — doc/equation.html#eq-continuum-vapeur-eau
  */
-function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz, tauNuage) {
+function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, x_v, dz, tauNuage) {
     const C = window.EARTH.CONTINUUM_H2O;
     const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
     const pb = window.CONFIG_COMPUTE.pressureBroadening;
@@ -191,10 +201,10 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz, tauNuage) {
     const ip = indexPressionSigma(pb ? P_atm : 1);
     const ipH2O = indexPressionSigma(pb ? P_atm * (1 + x_v * (rapportAutoElargissementH2O() - 1)) : 1);
     return {
-        T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, delta_z_real: dz,
+        T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, n_O3: n_O3, delta_z_real: dz,
         tauNuage: tauNuage,   // τ_eff d'absorption IR des nuages de la couche (gris), profilAtmosphere
         iT: it.iT, wT: it.wT,
-        iP: ip.iP, wP: ip.wP,                 // CO₂, CH₄
+        iP: ip.iP, wP: ip.wP,                 // CO₂, CH₄, O₃
         iPH2O: ipH2O.iP, wPH2O: ipH2O.wP,     // H₂O (pression effective de l'auto-élargissement)
         // κ_cont [m⁻¹] = C_s[cm²/molécule/atm]·1e-4 · (e + γ_f·(P − e))[atm] · n_H₂O[m⁻³] · exp(T₀(1/T − 1/296))
         continuum: 1e-4 * P_atm * (x_v + C.GAMMA_FOREIGN * (1 - x_v)) * x_v * n_air * Math.exp(C.T0 * (1 / T - 1 / 296))
@@ -210,13 +220,14 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, x_v, dz, tauNuage) {
  *       d ln T / d ln p_a = (R_a/c_pa)·[1 + L r/(R_a T)] / [1 + (c_pc/c_pa + (L/(R_c T) − 1)·L/(c_pa T))·r],
  *       r = (R_a/R_c)·p_c/p_a,  p_c = p_sat(T) (IAPWS),  L = R_c T² · d ln p_sat/dT (même courbe) ;
  *     elle tend vers l'adiabatique sèche quand la vapeur est rare et vers la courbe de saturation quand elle domine ;
- *   · STRATOSPHÈRE : isotherme à la température de peau (S_abs / 2σ)^¼ (équilibre radiatif gris), vapeur figée à
- *     sa fraction de la tropopause (piège froid). Le plancher est min(peau, T_surface).
+ *   · STRATOSPHÈRE : isotherme à sa température d'équilibre radiatif 🌡️🫧🛩 (equilibreStratosphere, raie par raie, ozone
+ *     compris), vapeur figée à sa fraction de la tropopause (piège froid). Le plancher est min(🌡️🫧🛩, T_surface).
  * c_p(T) de chaque gaz : NIST-JANAF (PHYS.cpMolaire). Densités MOLAIRES (n_i = x_i · p/kT) : l'ancien profil
  * multipliait n_air par des fractions MASSIQUES (CO₂ compté ×1,5, H₂O ×0,6).
  * Remplace : gradient de config 6,5 K/km sous une tropopause RT/Mg × facteur, vapeur en exp(−z/H_vap), isotherme
  * au-dessus — calés sur la Terre actuelle, hors domaine dans une atmosphère chaude et humide.
  * Renvoie { couches, iTrop } (iTrop = 1ʳᵉ couche stratosphérique, pour les nuages).
+ * Réf : U.S. Standard Atmosphere 1976, NOAA-S/T 76-1562 — doc/equation.html#eq-humidite-moyenne-altitude ; Stubenrauch et al. 2024, Surv. Geophys. 45:1999 — doc/equation.html#eq-fractions-nuages-bas-hauts ; Marley, Saumon & Goldblatt 2010, ApJL 723:L117 — doc/equation.html#eq-couverture-partielle-dans-transfert ; Hartmann & Larson 2002, GRL 29:1951 ; Kuang & Hartmann 2007, J. Climate 20:2051 ; Young et al. 2018, Earth Syst. Sci. Data 10:583 — doc/equation.html#eq-nuages-hauts-altitude-epaisseurs
  */
 /**
  * LOI ADIABATIQUE DU PROFIL, pour la composition et la gravité de DATA (🫧 fractions massiques, 📅 🍎) : la seule loi du gradient
@@ -274,8 +285,11 @@ function loiAdiabatique() {
                 }
                 T = e.T; p_c = Math.min(x * e.pn, PHYS.pSatEau(e.T)); p_a = e.pn - p_c;
             } else {                                        // saturé : adiabatique humide non diluée
-                const dpa = -rho * g * dz / (1 + p_c * M_c / (p_a * M_a));
-                T = T + penteHumide(T, p_a, p_c) * T * dpa / p_a;
+                // Hydrostatique : dp_a + dp_c = −ρ g dz, avec dp_c = p_c (d ln p_sat/d ln T)(d ln T/d ln p_a) dp_a/p_a
+                // (la vapeur suit la saturation, pas le mélange) : dp_a = −ρ g dz / [1 + (p_c/p_a)·T·d ln p_sat/dT·γ].
+                const gam = penteHumide(T, p_a, p_c);
+                const dpa = -rho * g * dz / (1 + p_c / p_a * T * PHYS.dLnPSatEau(T) * gam);
+                T = T + gam * T * dpa / p_a;
                 p_a = p_a + dpa;
                 p_c = PHYS.pSatEau(T);
             }
@@ -297,7 +311,7 @@ function profilAtmosphere(z_range) {
     const T_s = DATA['🧮']['🧮🌡️'];
     const P_s = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
-        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
+        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
                 populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }, tauSW: 0, W: 0, sommet: 0 }],
                 wTotal: 0, wSousBase: 0, wSousMoyen: 0,
@@ -306,12 +320,19 @@ function profilAtmosphere(z_range) {
     const M_a = LOI.M_a, M_c = LOI.M_c;
     const xa = [DATA['🫧']['🍰🫧🏭'] / CONST.M_CO2 / nA, DATA['🫧']['🍰🫧🐄'] / CONST.M_CH4 / nA];   // fractions molaires PARMI les non condensables (CO₂, CH₄)
     const g = LOI.g;
-    const T_peau = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
-    const T_strato = Math.min(T_peau, T_s);
+    const T_strato = Math.min(DATA['🫧']['🌡️🫧🛩'], T_s);   // équilibre radiatif de la stratosphère (equilibreStratosphere)
     // Surface : pression partielle de vapeur depuis la fraction massique 🍰🫧💧 (humidité de surface du modèle).
     const x_c0 = (w_c / M_c) / (w_c / M_c + nA * (1 - w_c) / wA);
     let T = T_s, p_c = x_c0 * P_s, p_a = P_s - p_c;
+    // OZONE : toute la colonne de l'époque (SOLAIRE.colonneOzone, cm STP — la même que le transfert solaire, qui la met au-dessus
+    // de tout) au-dessus de la tropopause, à rapport de mélange constant x_O₃ = N_O₃ / N_air(au-dessus) ; N_air = p·N_A/(M̄ g).
+    const N_O3 = window.SOLAIRE.colonneOzone() * 1e-2 * CONV.STANDARD_ATMOSPHERE_PA / (CONST.BOLTZMANN_KB * CONST.KELVIN_TO_CELSIUS);   // [molécules/m²]
+    const melangeOzone = () => {
+        const p = p_a + p_c;
+        return N_O3 / (p * (CONST.R_GAS / CONST.BOLTZMANN_KB) / ((p_a * M_a + p_c * M_c) / p * g));
+    };
     let strato = T <= T_strato, x_c_strato = p_c / (p_a + p_c);
+    let x_O3 = strato ? melangeOzone() : 0;
     const couches = [];
     let iTrop = z_range.length;
     // ── VAPEUR MOYENNE ET NUAGE (physics.js EARTH.NUAGES) ───────────────────────────────────────────────────────────
@@ -364,6 +385,7 @@ function profilAtmosphere(z_range) {
     // Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous 🚂). L'effet Twomey
     // (même eau, gouttes plus petites, τ plus grand) reste entier : r_eff prend N de l'époque (× rapport de CCN).
     const rCCN = window.ALBEDO.rapportCCN();
+    // Réf : aucune source mesurée (voir validation 2026-11-06) — doc/equation.html#eq-phase-liquide-glace
     /** Part liquide du condensat à la température Tc (Hu & Stamnes 1993 : linéaire de T_TOUT_GLACE à CONST.T0_WATER). */
     const fLiquide = (Tc) => Math.max(0, Math.min(1, (Tc - N.T_TOUT_GLACE) / (CONST.T0_WATER - N.T_TOUT_GLACE)));
     const nuagesBas = [
@@ -395,6 +417,7 @@ function profilAtmosphere(z_range) {
         const p = p_a + p_c;
         return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * echelleCS(p, T);
     };
+    // Réf : Stephens 1978, J. Atmos. Sci. 35:2123 — doc/equation.html#eq-epaisseurs-optiques-nuage ; Twomey 1977, J. Atmos. Sci. 34:1149 — doc/equation.html#eq-rayon-effectif-gouttes ; Rosenfeld & Gutman 1994, Atmos. Res. 34:259 ; Freud & Rosenfeld 2012, J. Geophys. Res. 117 ; Braga et al. 2021, Atmos. Chem. Phys. 21:14079 — doc/equation.html#eq-sommet-nuage-seuil-pluie
     /** Pas de longueur pas du nuage adiabatique c (océan ou continent) : ses épaisseurs optiques DANS le nuage, à la couche ic ; le
      *  pas où le condensat franchit le seuil de pluie est coupé au sommet. */
     const nuage = (c, pas, ic) => {
@@ -442,7 +465,7 @@ function profilAtmosphere(z_range) {
         const n = p / (CONST.BOLTZMANN_KB * T);
         const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
         const x_v = strato ? x_v_strato : vapeurMoyenne();
-        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, x_v, dz, 0));
+        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? x_O3 * n : 0, x_v, dz, 0));
     };
     let x_v_strato = x_c_strato;                        // surface déjà au plancher stratosphérique : la parcelle
     pousser(0);
@@ -490,15 +513,14 @@ function profilAtmosphere(z_range) {
                 T = e.T;
                 p_c = Math.min(e.pc, PHYS.pSatEau(e.T)); p_a = e.pn - p_c;
             } else {                                        // saturé : adiabatique humide non diluée
-                const q = p_c * M_c / (p_a * M_a);
                 const gam = LOI.penteHumide(T, p_a, p_c);
-                const dpa = -rho * g * dz / (1 + q);
+                const dpa = -rho * g * dz / (1 + p_c / p_a * T * PHYS.dLnPSatEau(T) * gam);   // hydrostatique (ascension)
                 T = T + gam * T * dpa / p_a;
                 p_a = p_a + dpa;
                 p_c = PHYS.pSatEau(T);
             }
             if (T <= T_strato) {
-                T = T_strato; x_c_strato = p_c / (p_a + p_c);
+                T = T_strato; x_c_strato = p_c / (p_a + p_c); x_O3 = melangeOzone();
                 x_v_strato = vapeurMoyenne();               // piège froid : la vapeur MOYENNE de la tropopause, figée
                 strato = true;
                 continue;
@@ -603,13 +625,57 @@ function methaneFractionAtZ(z) {
 // Les "forcing" (calculateCO2Forcing, etc.) sont calculés ailleurs pour affichage uniquement (climate.js).
 // retrait : '🏭' | '💧' | '🐄' | '⛅' — cet absorbeur ne compte plus dans le TRANSFERT, le profil (T, vapeur, nuages) restant
 // celui de l'état courant (attribution par retrait, computeEdsRemovalShares) ; absent : tous les absorbeurs comptent.
+// sonde : true pour un transfert hors du calcul de l'époque (CONVERGE.olrNetA, océan de magma) — la stratosphère y garde sa
+// température : l'équilibre n'a de sens que pour l'état que le solveur cherche.
 const RETRAIT_COUCHE = {
     '🏭': (c) => { c.n_CO2 = 0; },                      // raies et CIA CO₂–CO₂
     '💧': (c) => { c.n_H2O = 0; c.continuum = 0; },     // raies et continuum
     '🐄': (c) => { c.n_CH4 = 0; },
     '⛅': (c) => { c.tauNuage = 0; }                    // nuages bas, moyens et hauts
 };
-async function calculateFluxForT0(retrait) {
+// Réf : Schmidt et al. 2010, J. Geophys. Res. 115:D20106 ; Lacis et al. 2010, Science 330:356 — doc/equation.html#eq-olr-effet-serre-repartition
+/**
+ * [K] STRATOSPHÈRE EN ÉQUILIBRE RADIATIF. Isotherme, d'émissivité ε_λ = 1 − t_λ (t_λ : sa transmission diffuse, produit des
+ * couches au-dessus de la tropopause, calculée par le transfert), elle absorbe ε_λ F↑_λ du flux montant qui sort de la
+ * troposphère, plus le solaire de l'ozone S̄·🍰☀️🫧🛩, et émet ε_λ πB_λ(T) vers le haut ET vers le bas :
+ *     Σ_λ ε_λ [F↑_λ(tropopause) − 2 πB_λ(T)] + S̄·🍰☀️🫧🛩 = 0.
+ * C'est l'équilibre que Fels et al. 1980 et Manabe & Wetherald 1967 donnent à la stratosphère : quand le CO₂ croît, ε croît là
+ * où la stratosphère émet plus qu'elle ne reçoit (15 µm), elle se refroidit, et le forçage au sommet devient le forçage AJUSTÉ.
+ * ε dépend de T par σ(T) : il est pris à la T du transfert, la racine suit l'itération du solveur (aucun transfert de plus).
+ * Racine par dichotomie entre 1 K et 3000 K (bord des tables σ) : le bilan décroît avec T.
+ * Sans stratosphère (pas de couche au-dessus de la tropopause, ou rien n'y absorbe) : la température reste celle d'avant.
+ * Réf : Fels, Mahlman, Schwarzkopf & Sinclair 1980, J. Atmos. Sci. 37:2265 ; Manabe & Wetherald 1967, J. Atmos. Sci. 24:241 ;
+ *       Lacis & Hansen 1974, J. Atmos. Sci. 31:118 (ozone) — doc/equation.html#eq-stratosphere-temperature-peau
+ */
+function equilibreStratosphere(resultBuf, tStrato, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda) {
+    const DATA = window.DATA;
+    const nL = lambda_range.length;
+    const Q = DATA['☀️']['🧲☀️🎱'] * DATA['🫧']['🍰☀️🫧🛩'];   // posée par calculateAlbedo, avant chaque transfert
+    if (!(Q >= 0)) throw new Error('[equilibreStratosphere] chauffage solaire de l\'ozone non posé : ' + Q);
+    const eps = new Float64Array(nL), F = new Float64Array(nL), poids = new Float64Array(nL);
+    let epsTotal = 0;
+    for (let j = 0; j < nL; j++) {
+        eps[j] = 1 - tStrato[j];
+        F[j] = i_trop > 0 ? resultBuf[(i_trop - 1) * nL + j] : earth_flux[j];
+        poids[j] = Math.PI * effective_delta_lambda * lambda_weights[j];
+        epsTotal += eps[j];
+    }
+    if (!(epsTotal > 0)) return DATA['🫧']['🌡️🫧🛩'];
+    const bilan = (T) => {
+        let b = Q;
+        for (let j = 0; j < nL; j++) if (eps[j] > 0) b += eps[j] * (F[j] - 2 * poids[j] * window.PHYS.planckFunction(lambda_range[j], T));
+        return b;
+    };
+    let bas = 1, haut = 3000;
+    if (bilan(haut) > 0) throw new Error('[equilibreStratosphere] la stratosphère chauffe encore à 3000 K (Q = ' + Q + ' W/m²)');
+    for (let n = 0; n < 40; n++) {
+        const m = 0.5 * (bas + haut);
+        if (bilan(m) > 0) bas = m; else haut = m;
+    }
+    return 0.5 * (bas + haut);
+}
+
+async function calculateFluxForT0(retrait, sonde) {
     const DATA = window.DATA;
     const EPOCH = DATA['📅'];
     // 🔒 Partition eau déjà mise à jour par le caller (calculateH2OParameters avant chaque calculateFluxForT0 dans la boucle radiatif)
@@ -618,7 +684,10 @@ async function calculateFluxForT0(retrait) {
     // Credence ~70%. Plage lit. 20–100 m (LBL 20–50 m, GCM ~100 m). 30 m (après fix delta_z_real → épaisseur réelle par couche).
     const delta_z = 30;
     const lambda_min = 0.1e-6;
-    const lambda_max = 100e-6;
+    // Jusqu'à 1000 µm (10 cm⁻¹) : la bande de rotation de H₂O, opaque, émet depuis la haute troposphère ; s'arrêter à 100 µm
+    // retirait ~1,6 W/m² d'OLR (π∫B au-delà de 100 µm : 2,06 W/m² à 288 K) et autant au flux de surface. Au-delà de 1000 µm :
+    // < 0,02 W/m².
+    const lambda_max = 1000e-6;
     const delta_lambda = 0.1e-6;
     const z_max = DATA['🫧']['📏🫧🧿'] * 1000; // km → m
     
@@ -665,13 +734,18 @@ async function calculateFluxForT0(retrait) {
                 [8.0e-6, 12.0e-6, 0.08],
                 [12.0e-6, 17.0e-6, 0.25],
                 [17.0e-6, 25.0e-6, 0.15],
-                [25.0e-6, 100.0e-6, 0.22]
+                [25.0e-6, 100.0e-6, 0.22],
+                [100.0e-6, 1000.0e-6, 0.03]
             ];
             // Répartition homogène par défaut (poids = largeur en λ) → même Δλ/bin, bandes visuellement uniformes. Désactiver avec CONFIG spectralGridHomogeneous = false pour forcer plus de bins en IR thermique.
+            // L'infrarouge lointain (100–1000 µm, 2 W/m² sur ~390) garde son poids : à la largeur en λ il prendrait 90 % des bins.
             if (window.CONFIG_COMPUTE.spectralGridHomogeneous) {
-                for (let i = 0; i < regions.length; i++) {
+                let largeur = 0;
+                for (let i = 0; i < regions.length - 1; i++) {
                     regions[i][2] = regions[i][1] - regions[i][0];
+                    largeur += regions[i][2];
                 }
+                regions[regions.length - 1][2] = 0.03 * largeur;   // ~3 % des bins
             }
             const filtered = regions.map(r => [Math.max(lambda_min, r[0]), Math.min(lambda_max, r[1]), r[2]]).filter(r => r[1] > r[0]);
             if (filtered.length === 0) return [];
@@ -939,7 +1013,7 @@ async function calculateFluxForT0(retrait) {
         const i_trop = profil.iTrop;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, nP: tab.nP, cia_CO2: tablesCIA(lambda_range), continuum_H2O,
+            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, sigma_O3: tab.O3, nP: tab.nP, cia_CO2: tablesCIA(lambda_range), continuum_H2O,
             earth_flux, layers: layers_w, i_trop,
             effective_delta_lambda,
             diffusivite: window.EARTH.DIFFUSIVITE,
@@ -950,6 +1024,9 @@ async function calculateFluxForT0(retrait) {
         sum_blocked_CH4 = sums.CH4; sum_blocked_clouds = sums.clouds;
         edsSpectra = spectra;
         sum_blocked_cont = sums.continuum;   // continuum H₂O (déjà compté dans sums.H2O)
+        // Stratosphère : son équilibre radiatif sous ce transfert, pour le profil de l'évaluation suivante (ni sous un retrait :
+        // l'attribution garde le profil de l'état courant, ni pour une sonde hors du calcul de l'époque).
+        if (!retrait && !sonde) DATA['🫧']['🌡️🫧🛩'] = equilibreStratosphere(resultBuf, spectra.tStrato, i_trop, earth_flux, lambda_range, lambda_weights, effective_delta_lambda);
         // Extraire flux_final (dernière ligne de resultBuf) + calculer Ychange — O(nZ × nL), pas de copie 2D
         let OLR_w = 0;
         for (let j = 0; j < nL; j++) {

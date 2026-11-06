@@ -3,12 +3,12 @@
 //       Expose window.spectralWorkerPool.dispatch(params, nZ, nL) → Promise<{resultBuf, sums}>.
 //       Transferable objects : chaque worker alloue son Float32Array, transfère l'ownership au main thread
 //       (zero-copy, pas de duplication mémoire). Fonctionne sans headers COOP/COEP → compatible prod.
-// Version 1.4.0
+// Version 1.5.0
+// - v1.5.0 (2026-11-06): spectra.tStrato, transmission de la stratosphère par λ.
 // - v1.4.0 (2026-10-30): tables σ(λ, T, P) : nP transmis, lignes iT·nP + iP.
-// - v1.3.3 (2026-10-13): ch4_eds_scale n'est plus transmis.
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: October 30, 2026
+// Date: November 6, 2026
 
 (function () {
     'use strict';
@@ -78,7 +78,8 @@
             CO2:    new Float64Array(nL),
             H2O:    new Float64Array(nL),
             CH4:    new Float64Array(nL),
-            clouds: new Float64Array(nL)
+            clouds: new Float64Array(nL),
+            tStrato: new Float64Array(nL)   // transmission de la stratosphère (pas une attribution : son équilibre radiatif)
         };
 
         return new Promise(function (resolve, reject) {
@@ -103,12 +104,14 @@
                         var bH2O = new Float64Array(msg.blk_H2O);
                         var bCH4 = new Float64Array(msg.blk_CH4);
                         var bCld = new Float64Array(msg.blk_cld);
+                        var tStr = new Float64Array(msg.t_strato);
                         for (var jj = 0; jj < sliceNL; jj++) {
                             var ja = msg.jStart + jj;
                             spectra.CO2[ja]    = bCO2[jj];
                             spectra.H2O[ja]    = bH2O[jj];
                             spectra.CH4[ja]    = bCH4[jj];
                             spectra.clouds[ja] = bCld[jj];
+                            spectra.tStrato[ja] = tStr[jj];
                             sums.CO2    += bCO2[jj];
                             sums.H2O    += bH2O[jj];
                             sums.CH4    += bCH4[jj];
@@ -140,6 +143,7 @@
                     sigma_CO2:         params.sigma_CO2.map(function (r) { return r.slice(jStart, jEnd); }),
                     sigma_H2O:         params.sigma_H2O.map(function (r) { return r.slice(jStart, jEnd); }),
                     sigma_CH4:         params.sigma_CH4.map(function (r) { return r.slice(jStart, jEnd); }),
+                    sigma_O3:          params.sigma_O3.map(function (r) { return r.slice(jStart, jEnd); }),
                     continuum_H2O:     params.continuum_H2O.slice(jStart, jEnd),
                     cia_CO2:           params.cia_CO2.map(function (r) { return r.slice(jStart, jEnd); }),
                     earth_flux:        params.earth_flux.slice(jStart, jEnd),

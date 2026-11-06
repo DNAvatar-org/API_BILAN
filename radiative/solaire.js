@@ -135,6 +135,7 @@
         F_KING: { N2: 1.0351, O2: 1.0967, CO2: 1.1453, CH4: 1.0000, H2O: 1.0005, AIR: 1.0477 }                       // [-]
     };
     /** Section efficace de Rayleigh du gaz, au facteur 24π³ν⁴/N² près. */
+    // Réf : He et al. 2021, Atmos. Chem. Phys. 21:14927 (table 1) — doc/equation.html#eq-diffusion-rayleigh
     const sectionRayleigh = (gaz) => {
         const n2 = (1 + RAYLEIGH.N_MOINS_1[gaz]) * (1 + RAYLEIGH.N_MOINS_1[gaz]), q = (n2 - 1) / (n2 + 2);
         return q * q * RAYLEIGH.F_KING[gaz];
@@ -150,6 +151,7 @@
     const N_POPULATION_MOYENS = 3;
 
     /** Fraction du flux solaire total absorbée par une colonne d'ozone x [cm STP] (8, 9). */
+    // Réf : Lacis & Hansen 1974, J. Atmos. Sci. 31:118 — doc/equation.html#eq-ozone-chemin-optique
     function aOz(x) {
         const vis = 0.02118 * x / (1 + 0.042 * x + 0.000323 * x * x);
         const uv = 1.082 * x / Math.pow(1 + 138.6 * x, 0.805) + 0.0658 * x / (1 + Math.pow(103.6 * x, 3));
@@ -230,6 +232,7 @@
     /** Facteur de colonne de Rayleigh : épaisseur optique de la colonne rapportée à celle de l'état de référence,
      *  s = Σ_i N_i σ_i / (N₀ σ_air), N_i = (p_s/g)·w_i/M_i moles de chaque gaz par m² (fractions MASSIQUES w_i de l'air
      *  humide, vapeur comprise, comme 🎈 et 🧪). Sans atmosphère (⚫) : p_s = 0, rien ne diffuse. */
+    // Réf : Lacis & Hansen 1974, J. Atmos. Sci. 31:118 (éq. 41) — doc/equation.html#eq-diffusion-rayleigh
     function facteurRayleigh() {
         const DATA = window.DATA, CONST = window.CONST, f = DATA['🫧'];
         const r = SIGMA_RELATIVE;
@@ -239,6 +242,7 @@
     }
     /** Albédo d'une couche conservative en deux flux, R = aτ/(1 + aτ), rapporté au flux qui l'éclaire : épaisseur multipliée
      *  par s à partir de R₁ (valeur à s = 1). */
+    // Réf : Sagan & Pollack 1967, J. Geophys. Res. 72:469 ; Lacis & Hansen 1974, J. Atmos. Sci. 31:118 — doc/equation.html#eq-diffusion-rayleigh
     function rayleigh(R1, s) {
         const t1 = R1 / (1 - R1);
         return s * t1 / (1 + s * t1);
@@ -259,6 +263,7 @@
     /** Sol d'albédo Rg sous la couche d'aérosol de fond (visible) : réflexion R du système et flux Db qui descend jusqu'au sol,
      *  par unité de ce qui y entre (réflexions multiples comprises) ; le sol en absorbe (1 − Rg) Db, l'aérosol le reste
      *  1 − R − (1 − Rg) Db. Sans atmosphère : le sol nu. */
+    // Réf : Kinne 2019, Atmos. Chem. Phys. 19:10919 — doc/equation.html#eq-aerosol-de-fond
     function solAerosol(Rg) {
         const tau = window.DATA['🫧']['🎈'] === 0 ? 0 : AEROSOL.TAU;
         const a = couche(tau, AEROSOL.OMEGA, AEROSOL.G);
@@ -267,6 +272,7 @@
     }
 
     /** Colonne d'ozone [cm STP] (OZONE ci-dessus). */
+    // Réf : Segura et al. 2003, Astrobiology 3:689 ; Cooke et al. 2022, Royal Society Open Science 9:211165 — doc/equation.html#eq-colonne-ozone-selon-oxygene
     function colonneOzone() {
         const DATA = window.DATA;
         const CONST = window.CONST;
@@ -287,6 +293,7 @@
         for (let j = 0; j < N_HAUTS; j++) t.push(Math.exp(a + (b - a) * (j + 0.5) / N_HAUTS));
         return t;
     }
+    // Réf : Stubenrauch et al. 2024, Surv. Geophys. 45:1999 — doc/equation.html#eq-nuages-hauts-altitude-epaisseurs
     function moyenneHauts(fn) {
         const T = tausHauts();
         return T.reduce((s, t) => s + fn(t), 0) / T.length;
@@ -308,6 +315,7 @@
 
     /** Couche nuageuse de poids p (état c du profil, null pour un nuage haut) : optique par combinaison (optique(q) → [τ, ω, g])
      *  et son diffus [R̄, T̄] = [∫ R(μ) 2μ dμ, ∫ T(μ) 2μ dμ] du δ-Eddington (GL8) ; dir : le faisceau direct (eclairer). */
+    // Réf : Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452 ; Briegleb & Light 2007, NCAR/TN-472+STR — doc/equation.html#eq-delta-eddington
     function nuageDeColonne(poids, c, optique) {
         const opt = new Float64Array(3 * N_COMBOS), dif = new Float64Array(2 * N_COMBOS);
         for (let q = 0; q < N_COMBOS; q++) {
@@ -324,6 +332,7 @@
         return { poids: poids, c: c, opt: opt, dif: dif, dir: new Float64Array(3 * N_COMBOS) };
     }
     /** Faisceau direct de cosinus μ sur la couche, par combinaison : [R(μ), transmis diffus, transmis direct]. */
+    // Réf : Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452 — doc/equation.html#eq-delta-eddington
     function eclairer(n, mu) {
         for (let q = 0; q < N_COMBOS; q++) {
             const d = deltaEddington(n.opt[3 * q], n.opt[3 * q + 1], n.opt[3 * q + 2], mu);
@@ -337,6 +346,7 @@
      * (N_POPULATION profondeurs par population) et moyens (N_POPULATION_MOYENS), nuages hauts (tausHauts) ; leur diffus ne
      * dépend pas de μ₀ et sert à tous les angles solaires de la colonne. Bas et moyens : extinction τ_c + k·w_saturé,
      * diffusion τ_c(1 − a_b), asymétrie g_b ; hauts : cristaux seuls, quasi pas de vapeur au-dessus de l'enclume.
+     * Réf : Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452 ; Chou & Suarez 1999, NASA TM-104606 vol. 15 — doc/equation.html#eq-delta-eddington ; doc/equation.html#eq-schema
      */
     function nuagesColonne(colonne) {
         if (_nuages.has(colonne)) return _nuages.get(colonne);
@@ -371,6 +381,7 @@
      * Rm = R(μ₀) + U·T̄/(1 − R̄·Rd), Dm = e·Dm + (t_d + U·R̄/(1 − R̄·Rd))·Dd, Rd = R̄ + T̄²·Rd/(1 − R̄·Rd), Dd = T̄·Dd/(1 − R̄·Rd) ;
      * vapeur pure : faisceau direct sur le chemin M, diffus 5/3. Renvoie [albédo, flux descendant au sol] (le sol en absorbe
      * (1 − Rg) : il est lambertien).
+     * Réf : Lacis & Hansen 1974, J. Atmos. Sci. 31:118 (éq. 33) ; Chou & Suarez 1999, NASA TM-104606 vol. 15 — doc/equation.html#eq-addition-couches-moyenne-sur ; doc/equation.html#eq-vapeur-chou-suarez
      */
     function colonneNuageuse(M, ozDescente, ozRemontee, Rg, SA, colonne, H, B, Mo) {
         const W = colonne.wTotal;
@@ -427,6 +438,7 @@
     /**
      * Albédo au sommet pour UN cosinus d'angle solaire μ₀ : ciels clair, bas, haut, bas + haut (populations), et leur
      * mélange en recouvrement aléatoire. s, u : facteur de Rayleigh et colonne d'ozone (calculés une fois par l'appelant).
+     * Réf : Lacis & Hansen 1974, J. Atmos. Sci. 31:118 ; Chou & Suarez 1999, NASA TM-104606 vol. 15 — doc/equation.html#eq-schema ; doc/equation.html#eq-absorption-o2
      */
     function albedoMu(mu, Rg, colonne, s, u) {
         const W = colonne.wTotal;
@@ -486,7 +498,10 @@
         const melange = (i) => (1 - fM) * ((1 - fB) * (1 - fH) * clair[i] + fB * (1 - fH) * aBas[i] + (1 - fB) * fH * aHaut[i] + fB * fH * aDeux[i])
             + fM * ((1 - fB) * (1 - fH) * aMoyen[i] + fB * (1 - fH) * aBasMoyen[i] + (1 - fB) * fH * aMoyenHaut[i] + fB * fH * aTrois[i]);
         // Absorbé au sol = (1 − Rg) × descendant (sol lambertien).
-        return { A: melange(0), S: (1 - Rg) * melange(1), Aclair: clair[0], Sclair: (1 - Rg) * clair[1], Abas: aBas[0], Ahaut: aHaut[0], Amoyen: aMoyen[0] };
+        // Ozone (au-dessus de tout, Lacis & Hansen 1974 éq. 14) : faisceau direct, puis la part renvoyée vers le haut par ce qui est
+        // dessous (l'albédo du mélange) qui le retraverse en diffus. C'est le chauffage solaire de la stratosphère.
+        return { A: melange(0), S: (1 - Rg) * melange(1), Aclair: clair[0], Sclair: (1 - Rg) * clair[1], Abas: aBas[0], Ahaut: aHaut[0], Amoyen: aMoyen[0],
+            ozone: ozDescente + melange(0) * ozRemontee };
     }
 
     /**
@@ -494,11 +509,12 @@
      * (RADIATIVE.colonneNuageuse : vapeur, populations de nuages bas, fractions fBas / fMoyen / fHaut). Sous-colonnes en
      * recouvrement aléatoire : clair, bas, moyen, haut et leurs combinaisons. Moyenne GLOBALE : ∫ A(μ₀)·2μ₀ dμ₀ (Gauss-Legendre).
      * Renvoie aussi les ciels pour le diagnostic.
+     * Réf : Lacis & Hansen 1974, J. Atmos. Sci. 31:118 ; Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452 ; Chou & Suarez 1999, NASA TM-104606 vol. 15 — doc/equation.html#eq-schema
      */
     function albedo(Rg, colonne) {
         const s = facteurRayleigh();
         const u = colonneOzone();
-        let A = 0, Aclair = 0, Abas = 0, Ahaut = 0, S = 0, Sclair = 0;
+        let A = 0, Aclair = 0, Abas = 0, Ahaut = 0, S = 0, Sclair = 0, ozone = 0;
         for (let q = 0; q < GL_X.length; q++) {
             const r = albedoMu(GL_X[q], Rg, colonne, s, u);
             const poids = GL_W[q] * 2 * GL_X[q];
@@ -508,9 +524,10 @@
             Ahaut += poids * r.Ahaut;
             S += poids * r.S;
             Sclair += poids * r.Sclair;
+            ozone += poids * r.ozone;
         }
-        // S : part du flux solaire au sommet absorbée par le SOL ; l'atmosphère absorbe 1 − A − S.
-        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, S: S, Sclair: Sclair, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
+        // S : part du flux solaire au sommet absorbée par le SOL ; l'atmosphère absorbe 1 − A − S, dont absOzone par l'ozone.
+        return { A: A, Aclair: Aclair, Abas: Abas, Ahaut: Ahaut, S: S, Sclair: Sclair, absOzone: ozone, couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) * (1 - colonne.fHaut), ozone: u, rayleigh: s };
     }
 
     window.SOLAIRE = {

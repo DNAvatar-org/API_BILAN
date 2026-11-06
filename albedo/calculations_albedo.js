@@ -75,6 +75,7 @@ function syncStratosphericVeil01() {
 // latitude (CALOTTES.parts : PALEOGEO à la date, la source du bilan méridien et des calottes ; avant la première carte, la terre
 // de l'époque), moyennée sur le globe ; hautes terres 🍰🗻🏔 posées par l'époque, terres basses 🍰🗻🌍 le reste de la terre
 // émergée. Les parts de l'époque doivent faire 1 : sinon, c'est une erreur de la config.
+// Réf : Scotese & Wright 2018, PALEOMAP PaleoDEMs (Zenodo, 10.5281/zenodo.5460860) — doc/equation.html#eq-melange-surfaces
 function calculateGeologySurfaces() {
     const DATA = window.DATA;
     const EPOCH = DATA['📅'];
@@ -154,6 +155,7 @@ function calculateCloudFormationIndex() {
     // suivies par le modèle. McCoy 2018 publie leurs exposants ; il manque leurs masses.
     //
     // 🔒 FORMULE SUNDQVIST (1989) : ☁️ = 1 − (1 − min(🍰🌧💧, 1))^0.6, humidité relative seule.
+    // Réf : aucune source mesurée (voir validation 2026-11-06) — doc/equation.html#eq-capacites-radiatives-indice
     DATA['🪩']['☁️'] = Math.max(0, Math.min(1, 1 - Math.pow(1 - Math.min(DATA['💧']['🍰🌧💧'], 1), 0.6)));
     
     // ⏳☔ (= 1 / CONV.TAU_VAPOR_GLOBAL_S) retirée le 2026-09-23 : écrite ici, lue nulle part (ses deux
@@ -164,6 +166,7 @@ function calculateCloudFormationIndex() {
     DATA['💧']['🔺⏳💦'] = CONV.SECONDS_PER_DAY;
     
     // 🔒 CALCUL DE 🧲⚖️💦 (Taux de précipitation en kg/m²/s). P = W/τ ; rampe (RH−💭☔)/0.2. Réf. GPCP ~2,7 mm/j.
+    // Réf : van der Ent & Tuinenburg 2017, Hydrol. Earth Syst. Sci. 21:779 — doc/equation.html#eq-precipitations
     const rh_excess = DATA['💧']['🍰🌧💧'] - DATA['💧']['💭☔'];
     const ramp = rh_excess <= 0 ? 0 : Math.min(1, rh_excess / 0.2);
     DATA['💧']['🧲⚖️💦'] = ramp * (DATA['💧']['🍰🫧💧'] * DATA['⚖️']['⚖️🫧']) / (4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2)) / CONV.TAU_VAPOR_GLOBAL_S;
@@ -226,6 +229,7 @@ function dessus(a, b) {
  *  6,4 °C). Une marge est linéaire entre deux points voisins (prolongée au bord de la bande) : la part de la cellule de chaque point
  *  où elle est ≥ 0 ; sous la ligne, les deux à la fois (la plus petite des deux parts : dans une bande, les points ne diffèrent que
  *  par leur moyenne annuelle). Les cellules ont la même aire (points uniformes en sin φ). */
+// Réf : Paulsen & Körner 2014, Alp. Bot. 124:1 — doc/equation.html#eq-foret-ligne-des-arbres
 function partSousLigneArbres(arcs) {
     const n = arcs[0].T.length, demi = window.CONST.AN_TROPIQUE_JOURS / (2 * n), Tj = window.CONST.T0_WATER + FORET.T_JOUR_C;
     const mL = [], mT = [];
@@ -253,6 +257,7 @@ function partSousLigneArbres(arcs) {
  *  terre (poids des arcs, SAISONS.cycles), est posée dans DATA['🗻']['🍰🗻🌳'][b.cle] : celle de sa terre libre hors de la neige
  *  (terresLibres). Les poids d'une bande somment à sa terre (SAISONS.cycles : N_X × E, ou N_X pour une bande toute mer ou toute
  *  terre) : une somme nulle est une terre perdue entre la carte et les points, crash. */
+// Réf : FAO 2020 ; Williams 2006 ; Stein et al. 2007, Nature 446:904 ; Stein et al. 2012, Nature 483:78 — doc/equation.html#eq-foret-ligne-des-arbres
 function poserForet(b, arcs) {
     const f = window.H2O.mondeOcean() && window.INTERIEUR.ageCourant() <= FORET.AGE_PREMIERS_ARBRES
         ? partSousLigneArbres(arcs).map((p) => FORET.PART_PREAGRICOLE * p) : arcs.map(() => 0);
@@ -269,6 +274,7 @@ function poserForet(b, arcs) {
  *  maximum glaciaire (🎯 67–72° N et ~5 Mkm² de toundra, Walker et al. 2005 : ~2 Mkm² dans le modèle), l'été de 61–68° N du
  *  modèle étant trop chaud (moyenne annuelle de la zone polaire du bilan méridien) ; c'est la forêt qui masque la neige qui pèse sur
  *  l'albédo (forêt enneigée 0,25 contre neige ~0,8 ; forêt 0,17 contre sol 0,18 hors de la neige). */
+// Réf : FAO 2020 — doc/equation.html#eq-albedo-glace-selon-temperature
 function foretSousNeige() {
     return window.H2O.mondeOcean() && window.INTERIEUR.ageCourant() <= FORET.AGE_PREMIERS_ARBRES
         ? FORET.PART_2020 * Math.max(FORET.MASQUE_MIN, Math.min(1, (window.DATA['🧮']['🧮🌡️'] - FORET.MASQUE_T0_K) / FORET.MASQUE_DT_K)) : 0;
@@ -609,6 +615,7 @@ function calculateAlbedo() {
     const sol = window.SOLAIRE.albedo(meridien.RgSoleil, colonne);
     const cloud_fraction = sol.couverture;
     DATA['🪩']['🍰🪩⛅'] = cloud_fraction;
+    DATA['🫧']['🍰☀️🫧🛩'] = sol.absOzone;   // chauffage solaire de la stratosphère (profilAtmosphere : son équilibre radiatif)
     window._hystDiag.preCloudAlbedo = albedo;            // albédo de SURFACE (moyenne par la surface)
     window._hystDiag.albedoSurfaceSoleil = meridien.RgSoleil;   // albédo de surface pondéré par l'insolation
     window._hystDiag.albedoCielClair = sol.Aclair;       // au sommet, ciel clair

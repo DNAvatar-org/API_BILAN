@@ -1990,13 +1990,14 @@ window.CONFIG_COMPUTE.co2OceanEffPump01 = 0.1;
 //         Nature 514:213). β_eff = f_jeune·β_jeune + (1−f_jeune)·β_mature — voir sinks_land.js.
 //         β_jeune = 0,605 : Norby et al. 2005 PNAS 102:18052, +23 % de NPP à 550 ppm pour un ambiant
 //           FACE de ~376 ppm → 0,23/ln(550/376). Ces parcelles avaient 10-20 ans.
-//         β_mature = 0,15 : sur forêt MATURE le CO₂ enrichi ne donne aucun gain de biomasse — EucFACE
-//           (Jiang et al. 2020 Nature 580:227) et Web-FACE (Körner et al. 2005 Science 309:1360).
+//         β_mature = 0 : sur forêt MATURE le CO₂ enrichi ne donne aucun gain de biomasse — EucFACE
+//           (Jiang et al. 2020 Nature 580:227 : +12 % de photosynthèse, rendus au sol par la respiration) et
+//           Web-FACE (Körner et al. 2005 Science 309:1360). Le stock ne gagne rien : 0, la valeur mesurée.
 //         f_jeune = 0,358 : part de forêt de moins de 30 ans en 2000, agrégée depuis GFADv1.1
 //           (Poulter et al. 2019, PANGAEA doi:10.1594/PANGAEA.897392) par scripts/gfad_young_forest_fraction.py
 //           du dépôt CO2. Bornes du jeu de données : 0,30 – 0,48. La fenêtre de 30 ans vient de Tang
 //           et al. 2014 PNAS 111:8856 (la NPP culmine entre 10 et 40 ans puis redescend).
-//         → β_eff = 0,313. Appliquer 0,605 à toute la forêt mondiale, dont les deux tiers ne sont pas
+//         → β_eff = 0,217. Appliquer 0,605 à toute la forêt mondiale, dont les deux tiers ne sont pas
 //           jeunes, c'était le biais d'échelle classique des FACE.
 //      2. DÉPÔT D'AZOTE — 0,7 GtC/an après 2000, soit ~20 % du puits terrestre (O'Sullivan et al. 2019
 //         Glob. Biogeochem. Cycles 33:163). Flux NET, cumulé sans relaxation. Indexé sur les émissions
@@ -2034,7 +2035,7 @@ window.CONFIG_COMPUTE.CARBON_SINKS = {
     landTauYears: 23,             // Carvalhais 2014
     // Fertilisation pondérée par l'âge — c'est ce qui corrige le biais d'échelle des FACE.
     landBetaYoung: 0.605,         // Norby 2005 (parcelles de 10-20 ans)
-    landBetaMature: 0.15,         // Jiang 2020 EucFACE + Körner 2005 Web-FACE (aucun gain de biomasse)
+    landBetaMature: 0,            // Jiang 2020 EucFACE + Körner 2005 Web-FACE : aucun gain de biomasse mesuré
     landYoungFraction0: 0.358,    // GFADv1.1 [0,30–0,48] — scripts/gfad_young_forest_fraction.py (dépôt CO2)
     // Dépôt d'azote : 0,7 GtC/an pour 38,9 GtCO₂/an émis (O'Sullivan 2019). Indexé sur les émissions
     // pour rester nul dans une époque sans combustion ni agriculture industrielle.
