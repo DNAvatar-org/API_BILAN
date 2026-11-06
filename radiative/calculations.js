@@ -375,6 +375,58 @@ const OZONE_FORME = (function () {
     };
 })();
 
+/**
+ * TEMPÉRATURE DE L'ENVIRONNEMENT DE LA COLONNE [K] en fonction de z [m] : moyenne, pondérée par l'aire (EARTH.ZONES), des
+ * profils des trois zones du bilan méridien (surface T_s − dT_z, MERIDIEN.ecarts ; même humidité relative de surface) :
+ *   · TROPIQUES : la parcelle de surface (adiabatique sèche puis humide, LOI.ascension) — quasi-équilibre convectif, la parcelle
+ *     garde son énergie statique humide jusqu'à la tropopause (Held 1982, J. Atmos. Sci. 39:412, éq. 9) ;
+ *   · LATITUDES MOYENNES : le plus CHAUD de la parcelle et du gradient critique de l'ajustement barocline (Stone 1978, J. Atmos.
+ *     Sci. 35:561, éq. 4 : ∂T/∂φ = −H (θ₁ − θ₃)/(z₁ − z₃) cot φ, le gradient observé y colle en toutes saisons) inversé : la
+ *     stabilité dθ/dz = −(∂T/∂φ) tan φ / H, à l'interface σ = 0,6 (600 hPa chez Stone), ∂T/∂φ = 3 T₂ sin φ cos φ (mode P₂ du
+ *     bilan méridien, T₂ = 🧮 🌡️🎱) à la latitude centrale de la zone — Held 1982 §4 : la contrainte qui donne la plus grande
+ *     stabilité l'emporte ;
+ *   · PÔLES : la parcelle (❔ déclaré : au-delà de ~70° le critère de Stone perd sa signification, Stone 1978 §2).
+ * Chaque profil s'arrête à la stratosphère (min T_strato). Une moyenne de TEMPÉRATURES (pas de densités : C15) ; la vapeur suit
+ * ensuite la loi d'humidité sur cette température. Par pas de 100 m jusqu'à la tropopause de chaque zone, interpolé.
+ * Sonde : doc/CONSTATS.md C22–C23 (la colonne de la parcelle de la surface moyenne était trop froide de 4–10 K en altitude).
+ */
+function temperatureEnvironnement(T_s, x_c0, P_s, T_strato, zMax) {
+    const LOI = loiAdiabatique(), PHYS = window.PHYS, CONST = window.CONST;
+    const dT = window.MERIDIEN.ecarts(), T2 = window.DATA['🧮']['🌡️🎱'];
+    const Tc = PHYS.EAU.T_C, PAS = 100;
+    const ascension = (T0) => {                                     // profil de parcelle par pas de 100 m : { z, T, p }
+        const x0 = (T0 < Tc && T_s < Tc) ? Math.min(1, x_c0 * PHYS.pSatEau(T0) / PHYS.pSatEau(T_s)) : x_c0;
+        const pts = [{ z: 0, T: T0, p: P_s }];
+        let e = { T: T0, p: P_s, pc: x0 * P_s };
+        for (let z = PAS; e.T > T_strato && z <= zMax; z += PAS) {
+            e = LOI.ascension(e.T, e.p, e.pc / e.p, PAS);
+            pts.push({ z: z, T: e.T, p: e.p });
+        }
+        return pts;
+    };
+    const aZ = (pts, z) => {                                        // T(z) d'un profil, la stratosphère au-dessus de son sommet
+        const k = Math.floor(z / PAS);
+        if (k + 1 >= pts.length) return T_strato;
+        const u = z / PAS - k;
+        return Math.max(T_strato, pts[k].T + u * (pts[k + 1].T - pts[k].T));
+    };
+    const zones = window.EARTH.ZONES.map((zn) => {
+        const Ts = T_s - dT[zn.cle], pts = ascension(Ts);
+        if (zn.cle !== 'mid') return { f: zn.f, T: (z) => aZ(pts, z) };
+        // Stone : interface à σ = 0,6 ; H, c_p et T/θ à la température de la parcelle de la zone à cette pression.
+        const pI = 0.6 * P_s;
+        let iI = pts.findIndex((q) => q.p <= pI); if (iI < 0) iI = pts.length - 1;
+        const TI = pts[iI].T, phi = Math.asin((zn.x0 + zn.x1) / 2);
+        const H = CONST.R_GAS * TI / (LOI.M_a * LOI.g);
+        const gSec = LOI.gammaSec(TI, 0), cp = LOI.g / gSec, kappa = CONST.R_GAS / (LOI.M_a * cp);
+        const dTdPhi = 3 * T2 * Math.sin(phi) * Math.cos(phi);
+        const dThetaDz = -dTdPhi * Math.tan(phi) / H;
+        const gammaStone = gSec - Math.pow(pI / P_s, kappa) * dThetaDz;   // [K/m]
+        return { f: zn.f, T: (z) => Math.max(aZ(pts, z), T_strato, Ts - gammaStone * z), gammaStone: gammaStone };
+    });
+    return (z) => zones.reduce((s, zn) => s + zn.f * zn.T(z), 0);
+}
+
 function profilAtmosphere(z_range) {
     const DATA = window.DATA;
     const CONST = window.CONST;
@@ -401,6 +453,10 @@ function profilAtmosphere(z_range) {
     // Surface : pression partielle de vapeur depuis la fraction massique 🍰🫧💧 (humidité de surface du modèle).
     const x_c0 = (w_c / M_c) / (w_c / M_c + nA * (1 - w_c) / wA);
     let T = T_s, p_c = x_c0 * P_s, p_a = P_s - p_c;
+    // T : la PARCELLE (saturation, condensat et sommet des nuages bas) ; Te : l'ENVIRONNEMENT de la colonne (couches du transfert,
+    // hydrostatique, vapeur, tropopause, enclumes) — temperatureEnvironnement, la moyenne des zones.
+    const TeDe = temperatureEnvironnement(T_s, x_c0, P_s, T_strato, z_range[z_range.length - 1]);
+    let Te = T_s;
     // OZONE : toute la colonne de l'époque (SOLAIRE.colonneOzone, cm STP — la même que le transfert solaire) au-dessus de la
     // tropopause, avec la FORME verticale mesurée (OZONE_FORME) : x_O₃(p) = f·x_forme(p), f tel que la colonne au-dessus de la
     // tropopause soit N_O₃ — N(au-dessus de p_t) = f·I(p_t)·N_A/(M̄ g).
@@ -409,7 +465,7 @@ function profilAtmosphere(z_range) {
         const p = p_a + p_c;
         return N_O3 / (OZONE_FORME.I(p) * (CONST.R_GAS / CONST.BOLTZMANN_KB) / ((p_a * M_a + p_c * M_c) / p * g));
     };
-    let strato = T <= T_strato, x_c_strato = p_c / (p_a + p_c);
+    let strato = Te <= T_strato, x_c_strato = p_c / (p_a + p_c);
     let pTrop = strato ? P_s : NaN;                                 // [Pa] pression de la tropopause (posée en y entrant)
     let f_O3 = strato ? facteurOzone() : 0;
     const couches = [];
@@ -423,25 +479,28 @@ function profilAtmosphere(z_range) {
     // TROPOPAUSE DU PROFIL, σ_t = p/p_s où la parcelle atteint T_strato : la parcelle monte d'abord seule (sa température ne
     // dépend pas de la vapeur moyenne), par pas de 100 m comme le profil, au plus jusqu'au sommet de la grille (au-delà, la
     // troposphère remplit la colonne). Sans troposphère (T_s ≤ T_strato), la loi d'humidité ne sert pas.
-    let haut = { T: T_s, p: P_s, pc: p_c }, bas = haut;
-    for (let zt = 0; haut.T > T_strato && zt < z_range[z_range.length - 1]; zt += 100) {
+    // (hydrostatique de l'environnement, air sec, par pas de 100 m)
+    let haut = { T: T_s, p: P_s }, bas = haut;
+    for (let zt = 100; haut.T > T_strato && zt <= z_range[z_range.length - 1]; zt += 100) {
         bas = haut;
-        haut = LOI.ascension(bas.T, bas.p, bas.pc / bas.p, 100);
+        const Tn = TeDe(zt);
+        haut = { T: Tn, p: bas.p * Math.exp(-g * M_a / (CONST.R_GAS * 0.5 * (bas.T + Tn)) * 100) };
     }
     const sigmaTrop = (haut.T > T_strato ? haut.p : bas.p + (haut.p - bas.p) * (bas.T - T_strato) / (bas.T - haut.T)) / P_s;
     // La loi de Manabe & Wetherald a été mesurée sous une tropopause à σ_t,réf (EARTH.NUAGES.MW_SIGMA_TROPOPAUSE) ; elle se
     // déplace avec la troposphère, étirée entre la surface et σ_t : σ* = 1 − (1 − σ)·(1 − σ_t,réf)/(1 − σ_t). Humidité de
     // surface et de tropopause invariantes (Sherwood et al. 2010 ; Singh & O'Gorman 2012).
     const etirement = (1 - N.MW_SIGMA_TROPOPAUSE) / (1 - sigmaTrop);
-    /** Vapeur MOYENNE au niveau courant (fraction molaire), bornée par la parcelle (l'air n'a pas plus d'eau que la surface). */
+    /** Vapeur MOYENNE au niveau courant (fraction molaire), à la température de l'environnement, bornée par la surface (l'air n'a
+     *  pas plus d'eau que la surface qui l'alimente). */
     const vapeurMoyenne = () => {
         const p = p_a + p_c;
-        if (T >= PHYS.EAU.T_C || T_s >= PHYS.EAU.T_C) return p_c / p;
+        if (Te >= PHYS.EAU.T_C || T_s >= PHYS.EAU.T_C) return p_c / p;
         // Humidité relative de radiosonde : par rapport à l'eau LIQUIDE, même sous 0 °C (PHYS.pSatLiquide). Appliquée
         // par rapport à la glace (avant le 2026-10-13), elle privait la haute troposphère de 30–40 % de sa vapeur.
         const sigmaEtire = 1 - (1 - p / P_s) * etirement;
         const r = RH_s * (sigmaEtire - N.MW_P_RESIDU) / (1 - N.MW_P_RESIDU);
-        return Math.min(p_c / p, r * PHYS.pSatLiquide(T) / p);
+        return Math.min(x_c0, r * PHYS.pSatLiquide(Te) / p);
     };
     // NUAGE : la parcelle qui sature au niveau de condensation forme le nuage. Au-dessus, son eau en excès condense
     // (adiabatique : q_c = x_surface − x_sat) ; elle reste en gouttes tant que leur rayon effectif est sous le seuil de
@@ -494,7 +553,7 @@ function profilAtmosphere(z_range) {
     /** Eau précipitable effective d'une tranche dz de fraction molaire de vapeur x [g/cm²]. */
     const wEff = (x, dz) => {
         const p = p_a + p_c;
-        return x * p * M_c / (CONST.R_GAS * T) * dz / 10 * echelleCS(p, T);
+        return x * p * M_c / (CONST.R_GAS * Te) * dz / 10 * echelleCS(p, Te);
     };
     // Réf : Stephens 1978, J. Atmos. Sci. 35:2123 — doc/equation.html#eq-epaisseurs-optiques-nuage ; Twomey 1977, J. Atmos. Sci. 34:1149 — doc/equation.html#eq-rayon-effectif-gouttes ; Rosenfeld & Gutman 1994, Atmos. Res. 34:259 ; Freud & Rosenfeld 2012, J. Geophys. Res. 117 ; Braga et al. 2021, Atmos. Chem. Phys. 21:14079 — doc/equation.html#eq-sommet-nuage-seuil-pluie
     /** Pas de longueur pas du nuage adiabatique c (océan ou continent) : ses épaisseurs optiques DANS le nuage, à la couche ic ; le
@@ -541,10 +600,10 @@ function profilAtmosphere(z_range) {
     };
     const pousser = (i) => {
         const p = p_a + p_c;
-        const n = p / (CONST.BOLTZMANN_KB * T);
+        const n = p / (CONST.BOLTZMANN_KB * Te);
         const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
         const x_v = strato ? x_v_strato : vapeurMoyenne();
-        const c = coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? f_O3 * OZONE_FORME.x(p) * n : 0, x_N2O * (1 - x_v) * n, x_v, dz, 0);
+        const c = coucheWorker(Te, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? f_O3 * OZONE_FORME.x(p) * n : 0, x_N2O * (1 - x_v) * n, x_v, dz, 0);
         c.strate = strato ? strateDe(p, pTrop) : -1;            // couche de stratosphère (son équilibre radiatif) ; −1 : troposphère
         couches.push(c);
     };
@@ -558,12 +617,12 @@ function profilAtmosphere(z_range) {
             reste -= dz;
             z += dz;
             const p = p_a + p_c;
-            const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * T);
+            const rho = (p_a * M_a + p_c * M_c) / (CONST.R_GAS * Te);   // hydrostatique : la masse de l'ENVIRONNEMENT
             if (strato) {                                   // température de sa couche, composition figée
                 const pn = p * Math.exp(-g * rho / p * dz);
                 p_c = x_c_strato * pn; p_a = pn - p_c;
                 const k = strateDe(pn, pTrop);
-                T = k === 0 ? T_strato : TS[k];
+                Te = T = k === 0 ? T_strato : TS[k];
                 wTotal += wEff(x_v_strato, dz);
                 continue;
             }
@@ -602,13 +661,14 @@ function profilAtmosphere(z_range) {
                 p_a = p_a + dpa;
                 p_c = PHYS.pSatEau(T);
             }
-            if (T <= T_strato) {
-                T = T_strato; x_c_strato = p_c / (p_a + p_c); pTrop = p_a + p_c; f_O3 = facteurOzone();
+            Te = TeDe(z);
+            if (Te <= T_strato) {
+                Te = T = T_strato; x_c_strato = p_c / (p_a + p_c); pTrop = p_a + p_c; f_O3 = facteurOzone();
                 x_v_strato = vapeurMoyenne();               // piège froid : la vapeur MOYENNE de la tropopause, figée
                 strato = true;
                 continue;
             }
-            if (iEnclume < 0 && T <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = T; }
+            if (iEnclume < 0 && Te <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = Te; }
             if (iMoyen < 0 && (p_a + p_c) / P_s <= N.SIGMA_MOYEN) { iMoyen = i - 1; wSousMoyen = wTotal; }
             const dw = wEff(vapeurMoyenne(), pas);
             wTotal += dw;

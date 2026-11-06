@@ -186,3 +186,54 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - Reste du ciel clair : −7,8 W/m² contre CERES. Le gain (3,0) est en deçà des 6,7–9,4 de C18 : la basse stratosphère du modèle
   reste froide (205–207 K) et sa tropopause basse (~10,5 km, 213 K ; profil moyen AFGL ~15 km) — la parcelle de la surface
   moyenne (C14).
+
+## C20 — Décomposition refaite avec la stratosphère en couches (`afgl_heterogeneite.js`, `zones_transfert.js`, `67eaac8`)
+- **mesuré**, ciel clair, surface 289,98 K : (a) moyenne des OLR AFGL 268,95 ; (b) profil moyen AFGL 266,34 ; (c) colonne du
+  modèle **265,21** (avant les couches : 262,80). Colonne du modèle contre profil mesuré : **−1,1 W/m²** (était −3,5).
+- 📱 à 14,26 °C, un transfert par zone : 259,12 contre colonne 259,07 (toujours sans effet, C16).
+- Ce qui reste contre CERES (ciel clair −7,8 W/m²) n'est plus dans l'équation ni dans la colonne (≤ 1,1 W/m²) :
+  · hétérogénéité de l'HUMIDITÉ, réelle (+2,6 W/m² entre profils AFGL ; les zones du modèle, de même humidité relative,
+    ne la voient pas) — régions sèches des subtropiques ;
+  · le relevé AFGL lui-même, ramené à 14,3 °C (~263,7 W/m²), est ~3 W/m² plus opaque que CERES : les vraies colonnes claires
+    sont plus sèches que ces climatologies.
+- Côté solaire, l'écart est du même ordre et de signe opposé : ciel clair qui réfléchit +7,6 W/m² de trop (albédo de surface),
+  nuages qui réfléchissent 5,5 W/m² de moins (C11).
+
+## C21 — Ciel clair solaire : décomposition contre CERES EBAF-Surface (sonde ponctuelle, `67eaac8`)
+- 📡 Kato et al. 2018 (J. Climate 31:4501, table 5, Ed4, 2005–2015), ciel clair : solaire descendant en surface 243,8,
+  remonté 29,8 (albédo de surface effectif **0,122**), absorbé par l'atmosphère **73,0**, réfléchi au sommet 53,1 W/m² ;
+  infrarouge émis par la surface 397,6 (tous ciels 398,3 — le modèle émet σT̄⁴ = 387,7).
+- **mesuré** (📱, 14,26 °C, nuages retirés) : descendant en surface **261,2**, remonté **43,3** (albédo de surface vu par le
+  Soleil **0,166**), absorbé par l'atmosphère **60,9**, réfléchi au sommet 61,1 W/m².
+- Deux écarts de même sens au sommet, un de chaque côté : l'atmosphère absorbe **12 W/m² de trop peu** (vapeur : 15,4 kg/m²
+  contre ~25 — CS99 suit l'eau), la surface renvoie **13,5 W/m² de trop**.
+- Surface du modèle (parts × albédos) : océan 0,650 × 0,066 ; forêt 0,099 × 0,17 ; désert 0,069 × 0,30 ; autres terres
+  0,052 × 0,18 ; **glace 0,131 × 0,795** — la glace porte plus de la moitié de l'albédo de surface.
+
+## C22 — Le manque de vapeur vient surtout de la température de la colonne (calcul hors moteur, Magnus, `67eaac8`)
+- **mesuré** (loi d'humidité du modèle, Manabe & Wetherald, humidité de surface 0,73, intégrée hors moteur) : sur la
+  température du profil moyen AFGL **26,9 kg/m²** (0,80 en surface : 29,4) ; sur la température de la colonne du modèle
+  **23,0 kg/m²** ; le moteur, sur sa colonne, **18,7 kg/m²** (C20). Mesure globale ~25 (C6).
+- La loi d'humidité n'est pas la cause principale : sur une troposphère réelle elle donne la bonne eau. La troposphère du
+  modèle est trop froide (3 / 6 / 9 km : 271,4 / 252,5 / 226,8 K contre 275,9 / 256,8 / 237,4) et l'air froid porte moins d'eau
+  (−3,9 kg/m²) ; 4,3 kg/m² de plus se perdent dans le moteur lui-même (étirement de la loi à la tropopause basse, borne par la
+  parcelle — à mesurer).
+- Racine commune des défauts restants (vapeur, absorption solaire, ciel clair IR) : la structure en température de la
+  troposphère libre, fixée dans la vraie atmosphère par la dynamique 3D (convection tropicale, tourbillons baroclines).
+  Deux fermetures 1D seulement : la théorie (Stone 1978, Held 1982 — PDF refusés par l'AMS, non lus) ou le gradient mesuré
+  (6,5 K/km, Manabe & Wetherald 1967, atmosphère standard), qui fige la rétroaction du gradient vertical.
+
+## C23 — Environnement de la colonne = moyenne des zones (Held 1982 éq. 9, Stone 1978 éq. 4) (`sondes/controles.js`)
+- Lu : Held 1982 (J. Atmos. Sci. 39:412) et Stone 1978 (J. Atmos. Sci. 35:561), PDF posés par l'utilisateur dans
+  `bilan_radiatif/sources_pdf/` (non publiés). Stone : le gradient méridien à 600 hPa reste au critique du modèle à deux
+  niveaux de Phillips aux latitudes moyennes et hautes, en toutes saisons ; au-delà de ~70° le critère perd son sens. Held :
+  aux tropiques, la parcelle garde son énergie statique humide jusqu'à la tropopause (éq. 9) ; la contrainte qui donne la plus
+  grande stabilité l'emporte (§4) ; sa contrainte des latitudes moyennes (éq. 7) est jugée qualitative par l'auteur.
+- Codé (radiative/calculations.js, temperatureEnvironnement) : la température de l'environnement est la moyenne, par l'aire,
+  de la parcelle tropicale, du plus chaud de la parcelle et du gradient critique de Stone aux latitudes moyennes (T₂ du bilan
+  méridien), et de la parcelle polaire (❔) ; la parcelle de la surface moyenne ne sert plus qu'aux nuages bas.
+- **mesuré** (📱, 14,26 °C) : OLR ciel clair **259,1 → 263,5** (CERES 266,85 : −3,3, l'ordre de l'hétérogénéité C20) ; eau
+  15,4 → 17,8 kg/m² ; tous ciels 229,0 → 230,3 ; effet LW des nuages **30,1 → 33,2** (mesure 26,65) — un ciel clair plus
+  chaud augmente le contraste avec des sommets de nuages hauts à température fixée (T_ENCLUME). Équilibre 24,2 °C.
+  Coût : sonde 97 → 77 s (moins d'itérations).
+- L'écart dominant devient les NUAGES : LW +6,6, SW +5,5 W/m² (trop peu réfléchissants), et le ciel clair solaire +7,3.
