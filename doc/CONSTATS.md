@@ -237,3 +237,14 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   chaud augmente le contraste avec des sommets de nuages hauts à température fixée (T_ENCLUME). Équilibre 24,2 °C.
   Coût : sonde 97 → 77 s (moins d'itérations).
 - L'écart dominant devient les NUAGES : LW +6,6, SW +5,5 W/m² (trop peu réfléchissants), et le ciel clair solaire +7,3.
+
+## C24 — Population MESURÉE des nuages hauts (CALIPSO sous-visibles + classes ISCCP-H) (`nuages_types.js`, `controles.js` v1.0.1)
+- Avant (ln τ uniforme 0,04–11,9, vue ISCCP recalculée — C8–C11 lisaient la vue de l'état convergé, erreur de sonde corrigée) :
+  hauts vus 0,078 / 0,109 / 0,021 (fins / moyens / épais) contre ISCCP-H 0,140 / 0,068 / 0,040 ; effets SW / LW des hauts −8,4 / +18,4.
+- Codé : 0,13 sous-visibles (CALIPSO, τ < 0,3) + les trois classes vues d'ISCCP-H (0,140 à τ 0,79, 0,068 à 8,27, 0,040 à 47,3) :
+  somme 0,378 ≈ total CALIPSO 0,37 ; F_HAUT en fixe le total. ⚠️ Les classes hautes d'ISCCP-H deviennent une ENTRÉE.
+- **mesuré** (📱, 14,26 °C) : effets SW / LW des hauts **−11,9** / +18,4 ; tous **−43,5** / +31,6 (CERES −45,6 / +26,65) ;
+  OLR tous ciels 231,4, réfléchi 104,3 ; équilibre de 📱 **24,2 → 19,9 °C**.
+- La vue ISCCP des hauts (0,081 / 0,083 / 0,053) ne retrouve pas ses entrées : ISCCP classe le τ de la COLONNE (nuages
+  dessous compris), le modèle donne au nuage haut le τ de la classe — double compte déclaré, à reprendre.
+- Restent : ciel clair solaire +7,3 (albédo de surface, glace), effet LW des nuages +4,9, ciel clair IR −3,9 (hétérogénéité).

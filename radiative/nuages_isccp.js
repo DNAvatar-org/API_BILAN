@@ -42,9 +42,7 @@
             }
             return out;
         };
-        const hauts = [];
-        S.moyenneHauts((t) => { hauts.push({ tau: t, w: 0 }); return 0; });
-        hauts.forEach((h) => { h.w = 1 / hauts.length; });
+        const hauts = S.populationHauts().map((h) => ({ tau: h.tau, w: h.poids }));
         return { bas: tirer(10), moyens: tirer(N_MOYENS), hauts: hauts };
     }
 

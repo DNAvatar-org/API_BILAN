@@ -283,20 +283,20 @@
         return OZONE.COLONNE_ACTUELLE_CM * Math.pow(pO2 / OZONE.P_O2_ACTUELLE_ATM, OZONE.EXPOSANT);
     }
 
-    // Nuages hauts : N_HAUTS valeurs de τ visible, ln τ uniforme sur [TAU_HAUT_MIN, TAU_HAUT_MAX] (physics.js).
-    const N_HAUTS = 8;
-    /** Moyenne d'une grandeur sur la population de nuages hauts. */
-    function tausHauts() {
-        const N = window.EARTH.NUAGES;
-        const a = Math.log(N.TAU_HAUT_MIN), b = Math.log(N.TAU_HAUT_MAX);
-        const t = [];
-        for (let j = 0; j < N_HAUTS; j++) t.push(Math.exp(a + (b - a) * (j + 0.5) / N_HAUTS));
-        return t;
+    /** Population MESURÉE des nuages hauts [{ tau, poids }], poids de somme 1 (physics.js, EARTH.NUAGES) : les sous-visibles de
+     *  CALIPSO en deux nœuds (ln τ uniforme, milieux géométriques des deux moitiés), puis les trois classes vues par ISCCP-H
+     *  (quantité, τ moyen radiatif). */
+    function populationHauts() {
+        const SV = window.EARTH.NUAGES.HAUTS_SOUS_VISIBLES, C = window.ISCCP_H_2010.niveaux.H.classes;
+        const a = Math.log(SV.TAU_MIN), b = Math.log(SV.TAU_MAX);
+        const pop = [{ tau: Math.exp(a + 0.25 * (b - a)), a: SV.PART / 2 }, { tau: Math.exp(a + 0.75 * (b - a)), a: SV.PART / 2 }]
+            .concat(C.map((c) => ({ tau: c.tau, a: c.a })));
+        const total = pop.reduce((s, p) => s + p.a, 0);
+        return pop.map((p) => ({ tau: p.tau, poids: p.a / total }));
     }
     // Réf : Stubenrauch et al. 2024, Surv. Geophys. 45:1999 — doc/equation.html#eq-nuages-hauts-altitude-epaisseurs
     function moyenneHauts(fn) {
-        const T = tausHauts();
-        return T.reduce((s, t) => s + fn(t), 0) / T.length;
+        return populationHauts().reduce((s, p) => s + p.poids * fn(p.tau), 0);
     }
 
     /** Couche nuageuse conservative dans le visible (19), facteur d'asymétrie g : { R, T = 1 − R } — réflectance diffuse de
@@ -343,7 +343,7 @@
     const _nuages = new WeakMap();
     /**
      * Nuages d'une colonne du profil (RADIATIVE.colonneNuageuse), une fois par colonne : états des populations de nuages bas
-     * (N_POPULATION profondeurs par population) et moyens (N_POPULATION_MOYENS), nuages hauts (tausHauts) ; leur diffus ne
+     * (N_POPULATION profondeurs par population) et moyens (N_POPULATION_MOYENS), nuages hauts (populationHauts) ; leur diffus ne
      * dépend pas de μ₀ et sert à tous les angles solaires de la colonne. Bas et moyens : extinction τ_c + k·w_saturé,
      * diffusion τ_c(1 − a_b), asymétrie g_b ; hauts : cristaux seuls, quasi pas de vapeur au-dessus de l'enclume.
      * Réf : Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452 ; Chou & Suarez 1999, NASA TM-104606 vol. 15 — doc/equation.html#eq-delta-eddington ; doc/equation.html#eq-schema
@@ -363,9 +363,9 @@
             }
             return out;
         };
-        const hauts = tausHauts().map((tauH) => {
-            const o = optiqueNuage(tauH, 0, 0);
-            return nuageDeColonne(1 / N_HAUTS, null, (q) => [tauH, 1 - o[q.b].a, o[q.b].g]);
+        const hauts = populationHauts().map((h) => {
+            const o = optiqueNuage(h.tau, 0, 0);
+            return nuageDeColonne(h.poids, null, (q) => [h.tau, 1 - o[q.b].a, o[q.b].g]);
         });
         const N = { bas: populations(N_POPULATION), moyens: populations(N_POPULATION_MOYENS), hauts: hauts };
         N.tous = N.bas.concat(N.moyens, N.hauts);
@@ -538,6 +538,7 @@
         colonneOzone: colonneOzone,
         moyennePopulation: moyennePopulation,
         moyenneHauts: moyenneHauts,
+        populationHauts: populationHauts,
         nuageVisible: nuageVisible,
         etatNuage: etatNuage
     };

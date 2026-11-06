@@ -447,10 +447,16 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     //     ⚠️ Épaisseurs optiques : la POPULATION des nuages bas (même parcelle, mêmes τ ; τ moyen ≈ 10, dans la classe
     //     altostratus ISCCP 3,6–23) — pas de microphysique propre aux nuages moyens (phase mixte plus froide), déclaré.
     // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
-    //     s'amincit à mesure que la glace tombe ; à amincissement exponentiel, une population en régime établi a ln τ
-    //     uniformément réparti. CALIPSO (Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 ont τ < 0,3, 0,15
-    //     entre 0,3 et 3 et 0,09 sont opaques (τ ≳ 3). Bornes [τ_min, τ_max] de ln τ uniforme qui donnent ces trois parts :
-    //     ln(τ_max/τ_min) = ln 10 · 0,37/0,15 ; τ_min = 0,3·e^(−(0,13/0,37)·ln(τ_max/τ_min)) ; τ_max = 3·e^((0,09/0,37)·ln(τ_max/τ_min)).
+    //     s'amincit à mesure que la glace tombe. POPULATION MESURÉE, deux capteurs qui se complètent sans se recouvrir :
+    //       · CALIPSO (lidar, Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 sont sous-visibles (τ < 0,3) — ceux
+    //         que les capteurs passifs ne voient pas (HAUTS_SOUS_VISIBLES, ln τ uniforme sur [TAU_MIN ; 0,3]) ;
+    //       · ISCCP-H 2010 (Young et al. 2018 ; data/isccp_h_2010.js, niveaux.H.classes) : les nuages hauts VUS, trois classes de τ
+    //         (≤ 3,55 / ≤ 22,63 / au-delà) avec leur quantité et leur τ moyen radiatif : 0,140 à 0,79, 0,068 à 8,27, 0,040 à 47,3.
+    //       Somme 0,378 ≈ le total de CALIPSO (0,37). Les parts de la population en sont tirées (radiative/solaire.js,
+    //       populationHauts) ; F_HAUT (jauge) en fixe le total. Remplace (2026-11-06) une loi ln τ uniforme sur [0,0408 ; 11,9]
+    //       tirée des seules parts CALIPSO : le lidar ne mesure pas τ au-delà de ~3, la loi écrasait les tours convectives
+    //       (τ ≈ 47) en nuages de τ 3–12, presque opaques en infrarouge et sombres au soleil (doc/CONSTATS.md C24).
+    //       ⚠️ Les classes hautes d'ISCCP-H sont donc une ENTRÉE : elles ne contrôlent plus les nuages hauts (les effets CERES, si).
     // Altitude des enclumes : la convection se détend là où la vapeur devient trop rare pour refroidir l'air par
     // rayonnement ; ce niveau est fixé par la pression de vapeur saturante, donc par une TEMPÉRATURE (« fixed anvil
     // temperature », Hartmann & Larson 2002, GRL 29:1951). ⚠️ MESURE posée EN ATTENDANT le niveau calculé par le modèle (là où
@@ -459,8 +465,8 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // Young et al. 2018) : 226,3 K sur le globe (tropiques 225,1, latitudes moyennes 228,9, pôles 222,0). Si la tropopause
     // est plus chaude, l'enclume est à la tropopause.
     T_ENCLUME: 226.3,          // [K]
-    TAU_HAUT_MIN: 0.0408,      // [-]
-    TAU_HAUT_MAX: 11.9,        // [-]
+    // Sous-visibles : PART 📡 (CALIPSO) ; TAU_MIN ❔ (borne basse de l'ancienne loi uniforme, le lidar détecte vers τ ~ 0,01–0,03).
+    HAUTS_SOUS_VISIBLES: { PART: 0.13, TAU_MIN: 0.0408, TAU_MAX: 0.3 },   // [m²/m²], [-], [-]
     F_MOYEN: 0.23,             // [m²/m²] Stubenrauch et al. 2024 (CAMcol, ISCCP-CVL)
     SIGMA_MOYEN: 560 / 1013.25 // [-] p/p_s du niveau des nuages moyens (milieu de 440–680 hPa)
     // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².

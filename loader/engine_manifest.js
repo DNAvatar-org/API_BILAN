@@ -58,7 +58,7 @@ window.ENGINE_SCRIPTS = [
     'radiative/calculations.js',
     'radiative/solaire.js',
     'radiative/nuages_isccp.js',   // simulateur ISCCP (nuages vus d'en haut) : diagnostic seul
-    'data/isccp_h_2010.js',        // sa référence mesurée (ISCCP-H 2010)
+    'data/isccp_h_2010.js',        // sa référence mesurée (ISCCP-H 2010) ; ses classes de nuages hauts : une entrée (solaire.js)
     'data/controles_mesures.js',   // contrôles 🎯 de la Terre actuelle (CERES EBAF, eau précipitable) : jamais lus par le calcul
     'data/paleogeo_zones.js',   // paléogéographie zonale (PaleoDEM Scotese & Wright 2018), lue par physics/calottes.js
     'physics/calottes.js',      // calottes continentales (profil plastique + bilan de masse)

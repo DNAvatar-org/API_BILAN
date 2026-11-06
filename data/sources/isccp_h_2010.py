@@ -55,7 +55,9 @@ entete = """// File: API_BILAN/data/isccp_h_2010.js
 // Desc: Nuages VUS D'EN HAUT, Terre 2010, MESURÉS par ISCCP-H (moyennes mensuelles HGM, NOAA NCEI ; Young et al. 2018, ESSD
 //       10:583) : par niveau de sommet L (> 680 hPa), M (440–680), H (< 440) et classe de τ visible (≤ 3,55 ; ≤ 22,63 ; > 22,63),
 //       quantité vue d'en haut `a` et τ moyen RADIATIF `tau` (liquide + glace). Référence du simulateur radiative/nuages_isccp.js,
-//       affichée au banc pour 📱 : un CONTRÔLE, pas une cible. Engendré par data/sources/isccp_h_2010.py — ne pas éditer.
+//       affichée au banc pour 📱 : un CONTRÔLE, pas une cible —
+//       SAUF les classes des nuages HAUTS (niveaux.H.classes), ENTRÉE du moteur depuis le 2026-11-06 (population des nuages
+//       hauts, radiative/solaire.js populationHauts) : elles ne contrôlent plus rien. Engendré par data/sources/isccp_h_2010.py — ne pas éditer.
 //       ⚠️ ISCCP : jour seulement (τ visible), cirrus fins parfois placés plus bas ; le τ d'un type est celui de la COLONNE.
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 'use strict';
