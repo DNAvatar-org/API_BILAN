@@ -14,7 +14,8 @@
 //   γ_D = (ν/c)√(2RT/M), demi-largeur à 1/e (M en kg/mol entrait dans une formule en g/mol : ×26).
 // - v1.5.0 (2026-10-30): crossSectionsFromLines — σ à une liste de pressions en un passage sur les raies (tables σ(λ, T, P)) ;
 //   raies coupées à la fenêtre ±5 cm⁻¹ seule, la même à toute pression.
-// - v1.6.0 (2026-11-06): Q(T) = tables TIPS 2021 (data/hitran_tips.js) au lieu des rotateurs rigides ; O₃.
+// - v1.6.0 (2026-11-06): Q(T) = tables TIPS 2021 (data/hitran_tips.js) au lieu des rotateurs rigides ; O₃ ; raies de H₂O à
+//   ±25 cm⁻¹ moins la plinthe (convention du continuum MT_CKD).
 
 (function (global) {
     'use strict';
@@ -216,6 +217,10 @@
     // sans source. (Une coupure en nombre de largeurs, 100 (γ_L + γ_D), retirait à basse pression des ailes de Lorentz situées à
     // moins de 5 cm⁻¹ du centre ; à 1 atm elle dépassait déjà la fenêtre.)
     var HALF_WINDOW_CM = 5;
+    // H₂O : la convention de son continuum MT_CKD (Clough et al. 1989, Atmos. Res. 23:229 ; Mlawer et al. 2012) — raies de Voigt
+    // jusqu'à ±25 cm⁻¹, privées de leur valeur à 25 cm⁻¹ (la « plinthe ») ; tout le reste est dans le continuum. Les deux vont
+    // ensemble : avec une autre coupure, raies et continuum comptent deux fois, ou pas du tout, la même absorption.
+    var DEMI_FENETRE_PLINTHE_H2O = 25;
     var _sortedCache = { CO2: null, H2O: null, CH4: null };
 
     function getSortedLines(key) {
@@ -259,8 +264,10 @@
      */
     function crossSectionsFromLines(lines, lambda_m, T_K, P_Pa_list, M_kg_mol, X_self, molecule) {
         var nu_cm = wavelengthToWavenumber(lambda_m);
-        var i0 = binarySearchGe(lines, nu_cm - HALF_WINDOW_CM);
-        var i1 = binarySearchGe(lines, nu_cm + HALF_WINDOW_CM + 1e-9);
+        var plinthe = molecule === 'H2O';
+        var demi = plinthe ? DEMI_FENETRE_PLINTHE_H2O : HALF_WINDOW_CM;
+        var i0 = binarySearchGe(lines, nu_cm - demi);
+        var i1 = binarySearchGe(lines, nu_cm + demi + 1e-9);
         var Q_ref = partitionFunctionQ(HITRAN_T_REF_K, molecule);
         var Q_T = partitionFunctionQ(T_K, molecule);
         var nP = P_Pa_list.length;
@@ -275,7 +282,9 @@
             var delta_nu = nu_cm - line.nu;
             var S_T = lineIntensityS(T_K, line.sw, Q_ref, Q_T, line.elower, line.nu, HITRAN_T_REF_K);
             for (var p = 0; p < nP; p++) {
-                sum_cm2[p] += lineCrossSectionCm2(S_T, delta_nu, gammaLorentzTotal(P_atm[p], g_air_T, g_self_T, X_self, X_air), gamma_D);
+                var gL = gammaLorentzTotal(P_atm[p], g_air_T, g_self_T, X_self, X_air);
+                sum_cm2[p] += lineCrossSectionCm2(S_T, delta_nu, gL, gamma_D)
+                    - (plinthe ? lineCrossSectionCm2(S_T, DEMI_FENETRE_PLINTHE_H2O, gL, gamma_D) : 0);
             }
         }
         return sum_cm2.map(sigmaCm2ToM2);

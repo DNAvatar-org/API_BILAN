@@ -185,6 +185,13 @@ const N_PAS_CAROTTES = Math.ceil((CAROTTES_AGE - (window.AN_PRESENT - BASE_HOLOC
 // mesure continue du CO₂ ; le premier pas de 🐾 garde celles de la racine jusqu'à 805 ka (❔), puis un pas de 5 ka entre dans 800 ka.
 const QUATERNAIRE_CO2_KG = 2.1742e15;   // [kg] CO₂ ≈ 282 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024), Gélasien / Plaisancien
 const QUATERNAIRE_CH4_KG = 1.9550e12;   // [kg] CH₄ ≈ 0,695 ppm : préindustriel moderne de Beerling et al. 2011 (encadré « CH₄ DES ÉPOQUES »)
+// N₂O (🍰🧪🍳, rapport MOLAIRE d'air sec) : seule la troposphère de 1860 et de 2000 est lue dans une source — RTMIP (Collins et al.
+// 2006, J. Geophys. Res. 111:D14317, table 1). Règle des époques sans N₂O mesuré : celui de 1860 (❔ ; 🚂 est 1750, ~5 ppb plus bas,
+// ~0,02 W/m²). ⚫ et 🔥 : 0 (⚛ sources biologiques, nitrification et dénitrification ; pas encore de vie) ; 🦠 : 0 (pas de couche
+// d'ozone, N₂O photolysé). Constant dans
+// l'époque : ni 🔀, ni état 🔁 (Quaternaire glaciaire ~200 ppb : non représenté, ~0,3 W/m²), ni émissions de 📱 après 2000.
+const N2O_1860 = 275e-9;   // [mol/mol] Collins et al. 2006, table 1
+const N2O_2000 = 316e-9;   // [mol/mol] Collins et al. 2006, table 1
 // Sturtien : ☃ (hysteresis 1a, ◀ = 717 Ma) et ⛄ (▶ = 717 Ma) sont la MÊME planète au même instant — même CO₂, même CH₄,
 // deux états (branche chaude / snowball). FRONTIÈRE mesurée le 2026-10-14, CO₂ et CH₄ descendus ENSEMBLE dans leurs fourchettes
 // (CO₂ = 500 + 1 500 s, CH₄ = 10 + 40 s ppm d'air sec), dichotomie bornée à 12 pas, critère « frise = clic » : ☃ chaud au CLIC
@@ -237,6 +244,7 @@ const timeline = [
         // Simulation parameters - Quantités en kg (pas de ppm/%)
         '⚖️🏭': 0, // co2_kg (Quantité de CO2 en kg)
         '⚖️🐄': 0, // ch4_kg (Quantité de CH4 en kg)
+        '🍰🧪🍳': 0,   // N₂O [mol/mol d'air sec] — ⚛ pas encore de vie
         '⚖️💧': 0, // h2o_kg (Quantité totale d'eau en kg)
         '⚖️🫁': 0, // o2_kg (Quantité de O2 en kg)
         // ⚖️✈ : 0 — pas d'atmosphère (⚖️🫧 = 0 sur cette fiche), donc pas d'aérosol. Ce n'est pas
@@ -298,6 +306,7 @@ const timeline = [
         //   Sleep, Zahnle & Neuhoff 2001 PNAS 98:3666 : 40–210 bar CO₂ après l'impact lunaire ; Zahnle et al. 2010 CSH Persp. Biol. 2:a004895.
         '⚖️🏭': 3.5e20, // co2_kg
         '⚖️🐄': 2.369e16, // v-2026-09-23 (était 5.0e15) : CH₄ ≈ 55 ppm air sec = milieu de [10,100] ‖ avant : ch4_kg (~1000 ppm)
+        '🍰🧪🍳': 0,   // N₂O [mol/mol d'air sec] — ⚛ pas encore de vie
         '⚖️💧': EAU_ACCRETEE_KG, // h2o_kg = l'eau apportée par les ☄️ de ⚫ = un océan (Matsui & Abe 1986 ; Zahnle et al. 2010) ;
         //   v1.5.3 : 6e20 → 1,4e21 (6e20 visait 15 % mol de vapeur, grille [10,20], sans source) ; ☄️ ajoute ensuite.
         '⚖️🫁': 0, // o2_kg
@@ -382,6 +391,7 @@ const timeline = [
         // — si snowball persiste, prochaine étape : N₂ → 1.0e19 (2 bar, Som 2012 bornes hautes).
         '⚖️🏭': 7.1705e+17, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 7.396e17 // v-2026-10-13 : ×0,4 avec N₂ (même ≈ 100 000 ppm). Avant : 1.849e18, v-2026-09-23 (était 2.6e18) : CO₂ ≈ 100 000 ppm air sec = milieu de [50k,150k] ‖ avant : co2_kg — [v1.4.81] ~143k ppm (bench affichait 152k > max 150k). Était 2.75e18.
         '⚖️🐄': 1.4376e+16, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.4828e16 // v-2026-10-13 : ×0,4 avec N₂ (même ≈ 5 500 ppm). Avant : 3.707e16, v-2026-09-23 (était 6.3e16) : CH₄ ≈ 5 500 ppm air sec = milieu de [1k,10k] ‖ avant : ch4_kg — [v1.4.81] ~9 500 ppm (bench affichait 10 150 > max 10k). Était 6.7e16. CH₄/CO₂=0.024<0.1.
+        '🍰🧪🍳': 0,   // N₂O [mol/mol d'air sec] — ⚛ pas d'oxygène, donc pas de couche d'ozone : N₂O photolysé par l'UV < 240 nm (❔ ordre de grandeur, 0 déclaré)
         '⚖️💧': 1.65e21, // h2o_kg hydrosphère — moyenne plage 🔒 [0.8e21, 2.5e21] ; vapeur atm reste dynamique.
         '⚖️🫁': 2.0e15, // o2_kg — traces pré-GOE [0, 1e16] ; ×0,4 avec N₂ (v-2026-10-13, était 5.0e15).
         // ⚖️💨 v-2026-10-13 : 1,0e19 (2,2 atm, le MAXIMUM, posé « pour lutter contre le faint sun », v1.4.50 / v1.4.76) →
@@ -471,6 +481,7 @@ const timeline = [
         //   (seuil vers 65 mbar) ; le modèle n'a pas encore le dégazage qui ferait sortir d'une boule de neige (CO₂ imposé par la config).
         '⚖️🏭': 6.2430e+17, // pCO₂ = 79,4 mbar (🔧 ci-dessus) ; avant 4.4818e+17 (57 mbar)
         '⚖️🐄': 5.4957e+14, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 7.20e14  // ch4_kg — 250 ppm (était 3.0e14 = 102 ppm)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.19e21, // h2o_kg (~85% de 1.4e21 kg)
         '⚖️🫁': 1.5e16,       // o2_kg (GOE ~2.4 Ga puis O2 bas pendant le Protérozoïque)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ (Tsigaridis et al. 2006 ACP 6:5143, Table 5).
@@ -611,6 +622,7 @@ const timeline = [
         // CH₄ : Fourchette lit. Néoprotérozoïque 1-30 ppm (Kasting 2005 ; Olson 2016 ; Daines & Lenton 2016).
         //   v-2026-07-14b : 8.57e13 = 30 ppm (haut de fourchette, serre nécessaire pour tenir la branche chaude à ~55 ppm CO₂).
         '⚖️🐄': STURTIEN_CH4_KG, // v-2026-10-14 (avant 6,48e13 = 29,1 ppm)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         // H₂O : océan Protérozoïque ≈ 1.2-1.4e21 kg (Pope et al. 2012). Inchangé.
         '⚖️💧': 1.2e21,
         // O₂ : v-2026-07-14b 1.5e16 (aligné vecteur warm scan = serre/nuages suppl. ; 1.3 % PAL, borne haute Sturtien).
@@ -798,6 +810,7 @@ const timeline = [
         // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
         '⚖️🏭🔝': 1.31e18,
         '⚖️🐄': 2.409799e+14, // v-2026-10-14 : 97,58 ppm, avec la frontière F2 (CO₂ ci-dessus). Avant 1,2379e14
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -946,6 +959,7 @@ const timeline = [
         // déglaciation Marinoen passe par l'albédo (mudball). Le scan lit ce champ génériquement (clampX).
         '⚖️🏭🔝': 1.31e18,
         '⚖️🐄': 2.356994e+14, // v-2026-10-14 : 95,65 ppm, avec la frontière F4 (CO₂ ci-dessus). Avant 1,2379e14
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.5e16,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -980,6 +994,7 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 1.1494e+16, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.38e16 // co2_kg — léger − (bench 🪼)
         '⚖️🐄': 1.7042e+12, // CH₄ ≈ 0,697 ppm d'air sec, celui de 🚂 (Law Dome 1750) : règle des époques sans CH₄ mesuré ni simulé (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.3e21,
         '⚖️🫁': 4.3900e+17, // O₂ = 9 % de l'air (milieu de [2 ; 16] % : 2–11 % Cambrien–Ordovicien moyen (Krause et al. 2018, Nat. Commun. 9:4081, GEOCARBSULFOR + proxys), > 16 % dès le Silurien (Glasspool & Gastaldo 2024)) ; avant 1.5e17 (13 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1010,6 +1025,7 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.75, '🍰🗻🏔': 0.07, '🍰🗻🌍': 0.18, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 1.1351e+16, // CO₂ ≈ 1 451 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Pragian/Lochkovian et Pridoli (comme la courbe cyan)
         '⚖️🐄': 1.0307e+13, // CH₄ ≈ 3,614 ppm d'air sec : Éocène 4 × CO₂ de Beerling et al. 2011, l'expérience la plus proche (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.3e21,
         '⚖️🫁': 1.2511e+18, // O₂ = 22 % de l'air (milieu de [14,5 ; 30] % : minimum dévonien 14,5 %, pic permo-carbonifère 25–30 % (Krause et al. 2018 ; Glasspool & Scott 2010, Nat. Geosci. 3:627, charbon de bois)) ; avant 2.0e17 (17 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1053,6 +1069,7 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.72, '🍰🗻🏔': 0.08, '🍰🗻🌍': 0.20, '🍰🗻🧊': CALOTTES_SANS },
         '⚖️🏭': 6.0746e+15, // CO₂ ≈ 757 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Induen et Changhsingien (comme la courbe cyan)
         '⚖️🐄': 8.8613e+12, // CH₄ ≈ 3,03 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.35e21,
         '⚖️🫁': 1.4007e+18, // O₂ = 24 % de l'air (milieu de [18 ; 30] % : > 18 % après le pic permo-carbonifère, ~30 % au Trias (GEOCARBSULFOR), 18,5 % (inertinites) — Krause et al. 2018) ; avant 1.5e17 (13 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — MALGRÉ les Trapps sibériens.
@@ -1095,6 +1112,7 @@ const timeline = [
         },
         '⚖️🏭': 5.9883e+15, // CO₂ ≈ 746 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Induen et Changhsingien (comme la courbe cyan)
         '⚖️🐄': 8.7992e+12, // CH₄ ≈ 3,01 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.33e21,
         '⚖️🫁': 1.4011e+18, // O₂ = 24 % de l'air (milieu de [18 ; 30] % : > 18 % tout le Mésozoïque, ~30 % au Trias (GEOCARBSULFOR), 18,5 % (inertinites) — Krause et al. 2018 ; pic mi-Crétacé (Glasspool & Scott 2010)) ; avant 0 (0 % PAL, sans source, masqué par le N₂ « reste »)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1142,6 +1160,7 @@ const timeline = [
         },
         '⚖️🏭': 6.7699e+15, // CO₂ ≈ 877 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Sélandien/Danien et Maastrichtien (comme la courbe cyan)
         '⚖️🐄': 9.1435e+12, // CH₄ ≈ 3,25 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1180,6 +1199,7 @@ const timeline = [
         // CH₄ : Beerling et al. 2011 (PNAS 108:9770, tableau 1), modèle du système Terre de l'Éocène précoce (55 Ma) avec ses zones
         //   humides et sa chimie : 3 614 ppb à 4 × CO₂ (1 120 ppm), l'expérience la plus proche du CO₂ de l'époque (1 241 ppm), 💻.
         '⚖️🐄': 1.0176e+13, // CH₄ ≈ 3,614 ppm d'air sec (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1217,6 +1237,7 @@ const timeline = [
         },
         '⚖️🏭': 5.0481e+15, // ≈ 654 ppm d'air sec, sous la fourchette PhanDA Priabonien [711 ; 907] : config frontière, à poser par la dichotomie de naissance de l'Antarctique
         '⚖️🐄': 7.9104e+12, // CH₄ ≈ 2,811 ppm d'air sec : la règle de 🏔 au CO₂ de la frontière (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1248,6 +1269,7 @@ const timeline = [
         '🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15, '🍰🗻🧊': CALOTTES_OLIGOCENE },
         '⚖️🏭': 5.6531e+15, // CO₂ ≈ 732 ppm d'air sec : CO2_50 de PhanDA (Judd et al. 2024) interpolé en ln entre les âges moyens des étages Rupélien et Priabonien (comme la courbe cyan)
         '⚖️🐄': 8.3859e+12, // CH₄ ≈ 2,98 ppm d'air sec : Éocène de Beerling et al. 2011, interpolé en ln CO₂ (encadré « CH₄ DES ÉPOQUES »)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1283,6 +1305,7 @@ const timeline = [
         // Racine (2,58 Ma, avant la première carotte) : le CO₂ de PhanDA, comme la courbe cyan à cette date.
         '⚖️🏭': QUATERNAIRE_CO2_KG,   // CO₂ ≈ 282 ppm (QUATERNAIRE_CO2_KG)
         '⚖️🐄': QUATERNAIRE_CH4_KG,   // CH₄ ≈ 0,695 ppm (QUATERNAIRE_CH4_KG)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1512,6 +1535,7 @@ const timeline = [
         //   73 mesures ; CH₄ : EPICA Dome C, Loulergue et al. 2008 (Nature 453:383), 27 mesures, à cheval sur le saut du Dryas récent.
         '⚖️🏭': 1.9781e+15, // CO₂ ≈ 256,3 ppm d'air sec
         '⚖️🐄': 1.6428e+12, // CH₄ ≈ 0,584 ppm d'air sec
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,
         // ⚖️✈ : fond naturel préindustriel, 4,0e8 kg SO₄ — aucune contrainte propre à cette
@@ -1540,6 +1564,7 @@ const timeline = [
         //'🗻': { '🍰🗻🌊': 0.69, '🍰🗻🏔': 0.16, '🍰🗻🌍': 0.15 },
         '⚖️🏭': 2.1365e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.139e15 // v-2026-09-24 : ≈ 276,8 ppm air sec = Law Dome 1750 (MacFarling Meure 2006) ‖ avant : 2.191e15
         '⚖️🐄': 1.9607e+12, // CH₄ ≈ 0,697 ppm d'air sec = Law Dome 1750 (MacFarling Meure et al. 2006)
+        '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.4e21,
         '⚖️🫁': 1.18e18,   // O₂ = 21,0 % de l'air sec, celui de 📱 (mesure ; aucune source ne le baisse à cette date)
         // ⚖️✈ : 4,0e8 kg SO₄ = charge PRÉINDUSTRIELLE simulée (Tsigaridis et al. 2006 ACP 6:5143,
@@ -1584,6 +1609,7 @@ const timeline = [
         //    bloc « AIR SEC vs AIR HUMIDE ». Cette masse est juste — ne pas la retoucher pour recoller à 369.
         '⚖️🏭': 2.8555e+15, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 2.909e15 // v-2026-09-23 (était 2.887e15) : CO₂ ≈ 370 ppm air sec = NOAA an 2000 (369,7) = milieu de [365,375] ‖ avant : ~369 ppm CO2 an 2000 [OBS] NOAA (air sec)
         '⚖️🐄': 4.8982e+12, // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 4.99e12 // ~1750 ppb CH4 an 2000 [OBS] NOAA
+        '🍰🧪🍳': N2O_2000,   // N₂O [mol/mol d'air sec] — 📡 2000
         '⚖️💧': 1.4e21, // h2o_kg (100% de 1.4e21 kg)
         '⚖️🫁': 1.18e18, // O2 ~23% masse air sec
         // ⚖️✈ : 1,05e9 kg SO₄ = charge atmosphérique MESURÉE/simulée d'aujourd'hui.

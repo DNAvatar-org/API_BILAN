@@ -178,6 +178,8 @@ function calculateAtmosphereComposition() {
     
     const mass_CO2 = DATA['⚖️']['⚖️🏭'];
     const mass_CH4 = DATA['⚖️']['⚖️🐄'];
+    // N₂O : une trace (10⁻⁷), déclarée par l'époque en rapport MOLAIRE d'air sec, hors des sommes de masse et de moles (comme ✈).
+    DATA['🫧']['🍰🧪🍳'] = DATA['📅']['🍰🧪🍳'];
     const mass_O2 = DATA['⚖️']['⚖️🫁'];
     const mass_N2 = DATA['⚖️']['⚖️💨'];
     const mass_SULFATE = DATA['⚖️']['⚖️✈'];

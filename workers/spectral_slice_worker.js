@@ -1,7 +1,7 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
 // Version 0.15.0
-// - v0.15.0 (2026-11-06): transmission de la stratosphère par λ (son équilibre radiatif) ; O₃ (raies HITRAN).
+// - v0.15.0 (2026-11-06): transmission de la stratosphère par λ (son équilibre radiatif) ; O₃ et N₂O (raies HITRAN).
 // - v0.14.0 (2026-10-30): σ à la (T, P) de la couche : tables σ[iT·nP + iP], ln σ linéaire en ln P (au lieu de σ·√(P/P₀)).
 // - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
@@ -48,7 +48,8 @@ function spectralSliceWorkerMain() {
         var sigma_H2O = p.sigma_H2O;
         var sigma_CH4 = p.sigma_CH4;
         var sigma_O3 = p.sigma_O3;   // O₃ : stratosphère seulement (n_O3 = 0 dessous)
-        var continuum_H2O = p.continuum_H2O;   // C_s(ν, 296 K) [cm²/molécule/atm], Roberts 1976
+        var sigma_N2O = p.sigma_N2O;
+        var cont_self = p.cont_self, cont_foreign = p.cont_foreign;   // MT_CKD [iT][λ] (calculations.js, tablesContinuum)
         var cia_CO2 = p.cia_CO2;               // k(λ, T) [cm⁵/molécule²], HITRAN CIA CO₂–CO₂ (tables par T, comme σ)
         var earth_flux = p.earth_flux;
         var layers = p.layers;
@@ -77,7 +78,7 @@ function spectralSliceWorkerMain() {
 
         for (var i = 0; i < nZ; i++) {
             var L = layers[i];
-            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4, n_O3 = L.n_O3;
+            var n_air = L.n_air, n_CO2 = L.n_CO2, n_H2O = L.n_H2O, n_CH4 = L.n_CH4, n_O3 = L.n_O3, n_N2O = L.n_N2O;
             var T = L.T;
             var delta_z_real = L.delta_z_real;
             var a = L.iT, w = L.wT;
@@ -85,10 +86,12 @@ function spectralSliceWorkerMain() {
             var sC00 = sigma_CO2[r], sC01 = sigma_CO2[r + 1], sC10 = sigma_CO2[r + nP], sC11 = sigma_CO2[r + nP + 1];
             var sM00 = sigma_CH4[r], sM01 = sigma_CH4[r + 1], sM10 = sigma_CH4[r + nP], sM11 = sigma_CH4[r + nP + 1];
             var sO00 = sigma_O3[r], sO01 = sigma_O3[r + 1], sO10 = sigma_O3[r + nP], sO11 = sigma_O3[r + nP + 1];
+            var sN00 = sigma_N2O[r], sN01 = sigma_N2O[r + 1], sN10 = sigma_N2O[r + nP], sN11 = sigma_N2O[r + nP + 1];
             var sH00 = sigma_H2O[rH], sH01 = sigma_H2O[rH + 1], sH10 = sigma_H2O[rH + nP], sH11 = sigma_H2O[rH + nP + 1];
             var cC0 = cia_CO2[a], cC1 = cia_CO2[a + 1];
             var nCO2cm3 = n_CO2 * 1e-6;                  // [molécules/cm³]
-            var cont_layer = L.continuum;
+            var cS0 = cont_self[a], cS1 = cont_self[a + 1], cF0 = cont_foreign[a], cF1 = cont_foreign[a + 1];
+            var cs = L.contSelf, cf = L.contForeign;
             var is_trop = (i < i_trop);
             var tau_cloud_layer = L.tauNuage;   // nuages de la couche (profilAtmosphere : condensat adiabatique, Martin et al. 1994)
 
@@ -97,15 +100,16 @@ function spectralSliceWorkerMain() {
                 var kappa_CO2 = enPression(sC00[j] + w * (sC10[j] - sC00[j]), sC01[j] + w * (sC11[j] - sC01[j]), v) * n_CO2;
                 var kappa_H2O = enPression(sH00[j] + w * (sH10[j] - sH00[j]), sH01[j] + w * (sH11[j] - sH01[j]), vH) * n_H2O;
                 var kappa_CH4 = enPression(sM00[j] + w * (sM10[j] - sM00[j]), sM01[j] + w * (sM11[j] - sM01[j]), v) * n_CH4;
-                var kappa_cont = continuum_H2O[j] * cont_layer;   // continuum H₂O, m⁻¹
+                var kappa_cont = (cS0[j] + w * (cS1[j] - cS0[j])) * cs + (cF0[j] + w * (cF1[j] - cF0[j])) * cf;   // continuum H₂O, m⁻¹
                 // CIA CO₂–CO₂ : κ [cm⁻¹] = k·n², ×100 → m⁻¹. Comptée avec le CO₂ (attribution EDS).
                 var kappa_CIA = (cC0[j] + w * (cC1[j] - cC0[j])) * nCO2cm3 * nCO2cm3 * 100;
                 var kappa_O3 = n_O3 > 0 ? enPression(sO00[j] + w * (sO10[j] - sO00[j]), sO01[j] + w * (sO11[j] - sO01[j]), v) * n_O3 : 0;
-                var kappa = kappa_CO2 + kappa_CIA + kappa_H2O + kappa_CH4 + kappa_cont + kappa_O3;
+                var kappa_N2O = n_N2O > 0 ? enPression(sN00[j] + w * (sN10[j] - sN00[j]), sN01[j] + w * (sN11[j] - sN01[j]), v) * n_N2O : 0;
+                var kappa = kappa_CO2 + kappa_CIA + kappa_H2O + kappa_CH4 + kappa_cont + kappa_O3 + kappa_N2O;
                 var tau = Math.min(Math.max(D * (kappa * delta_z_real + tau_cloud_layer), TAU_EFF_MIN), TAU_EFF_MAX);
                 var transmission = Math.exp(-tau);
                 var emissivity = 1 - transmission;
-                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (n_O3 > 0) || (tau_cloud_layer > 1e-10);
+                var has_absorption = (n_CO2 > 0) || (n_H2O > 1e-10) || (n_CH4 > 1e-10) || (n_O3 > 0) || (n_N2O > 0) || (tau_cloud_layer > 1e-10);
                 var upval;
                 if (!has_absorption) {
                     upval = Math.min(Math.max(flux_in[j], -MAX_FLUX_PER_BAND), MAX_FLUX_PER_BAND);

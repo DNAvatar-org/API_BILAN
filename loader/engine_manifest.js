@@ -37,8 +37,10 @@ window.ENGINE_SCRIPTS = [
     'data/hitran_lines_H2O.js',
     'data/hitran_lines_CH4.js',
     'data/hitran_lines_O3.js',
+    'data/hitran_lines_N2O.js',
     'data/hitran_tips.js',      // fonctions de partition TIPS 2021, lues par hitran.js
     'data/cia_CO2_CO2.js',
+    'data/mtckd_h2o.js',        // continuum de la vapeur d'eau MT_CKD 4.3 (AER)
     'spectroscopy/hitran.js',
     // Avant le pool : publie la source du worker pour le repli blob: (pages ouvertes en file://).
     'workers/spectral_slice_worker.js',
@@ -56,6 +58,7 @@ window.ENGINE_SCRIPTS = [
     'radiative/solaire.js',
     'radiative/nuages_isccp.js',   // simulateur ISCCP (nuages vus d'en haut) : diagnostic seul
     'data/isccp_h_2010.js',        // sa référence mesurée (ISCCP-H 2010)
+    'data/controles_mesures.js',   // contrôles 🎯 de la Terre actuelle (CERES EBAF, eau précipitable) : jamais lus par le calcul
     'data/paleogeo_zones.js',   // paléogéographie zonale (PaleoDEM Scotese & Wright 2018), lue par physics/calottes.js
     'physics/calottes.js',      // calottes continentales (profil plastique + bilan de masse)
     'physics/saisons.js',       // cycle annuel calculé des terres et des mers par bande (North 1981) : diagnostic de meridien.js

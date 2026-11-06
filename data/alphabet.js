@@ -195,6 +195,7 @@ const CHARS_DESC = {
     '💧': 'H₂O',
     '🐄': 'CH₄',
     '🏭': 'CO₂',
+    '🍳': 'N₂O',
     '🫁': 'O₂',
     '✈': 'SO₄²⁻ (aérosols sulfate)',
     '🧊': 'Glace',

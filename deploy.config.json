@@ -81,8 +81,16 @@
       "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_O3.js"
     },
     {
+      "src": "data/hitran_lines_N2O.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_lines_N2O.js"
+    },
+    {
       "src": "data/hitran_tips.js",
       "dest": "pages/bilan_radiatif/API_BILAN/data/hitran_tips.js"
+    },
+    {
+      "src": "data/mtckd_h2o.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/mtckd_h2o.js"
     },
     {
       "src": "data/initDATA.js",
@@ -311,6 +319,10 @@
     {
       "src": "data/isccp_h_2010.js",
       "dest": "pages/bilan_radiatif/API_BILAN/data/isccp_h_2010.js"
+    },
+    {
+      "src": "data/controles_mesures.js",
+      "dest": "pages/bilan_radiatif/API_BILAN/data/controles_mesures.js"
     },
     {
       "src": "physics/meridien.js",

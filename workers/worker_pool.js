@@ -144,7 +144,9 @@
                     sigma_H2O:         params.sigma_H2O.map(function (r) { return r.slice(jStart, jEnd); }),
                     sigma_CH4:         params.sigma_CH4.map(function (r) { return r.slice(jStart, jEnd); }),
                     sigma_O3:          params.sigma_O3.map(function (r) { return r.slice(jStart, jEnd); }),
-                    continuum_H2O:     params.continuum_H2O.slice(jStart, jEnd),
+                    sigma_N2O:         params.sigma_N2O.map(function (r) { return r.slice(jStart, jEnd); }),
+                    cont_self:         params.cont_self.map(function (r) { return r.slice(jStart, jEnd); }),
+                    cont_foreign:      params.cont_foreign.map(function (r) { return r.slice(jStart, jEnd); }),
                     cia_CO2:           params.cia_CO2.map(function (r) { return r.slice(jStart, jEnd); }),
                     earth_flux:        params.earth_flux.slice(jStart, jEnd),
                     // Données z partagées (toutes les couches, lecture seule, petites ~50 couches)

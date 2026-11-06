@@ -1,7 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
 // Version 1.17.0
-// - v1.17.0 (2026-11-06): stratosphère en équilibre radiatif raie par raie, ozone compris (equilibreStratosphere) : le
+// - v1.17.0 (2026-11-06): continuum H₂O MT_CKD 4.3 (tablesContinuum) au lieu de Roberts 1976 ; stratosphère en équilibre radiatif raie par raie, ozone compris (equilibreStratosphere) : le
 //   forçage équilibré est le forçage ajusté ; pas saturé hydrostatique (la vapeur suit p_sat, pas le mélange).
 // - v1.16.0 (2026-10-30): sections efficaces à la pression de la couche (tables σ(λ, T, P), ln σ linéaire en ln P) au lieu de
 //   σ(1 atm)·√(P/P₀).
@@ -104,8 +104,8 @@ function tablesSigma(lambda_range) {
     const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
     if (cle in _tablesSigma) return _tablesSigma[cle];
     const P_Pa = P_GRILLE_SIGMA.map((p) => p * CONV.STANDARD_ATMOSPHERE_PA);
-    const t = { nP: P_GRILLE_SIGMA.length, CO2: [], H2O: [], CH4: [], O3: [] };
-    for (const gaz of ['CO2', 'H2O', 'CH4', 'O3']) {
+    const t = { nP: P_GRILLE_SIGMA.length, CO2: [], H2O: [], CH4: [], O3: [], N2O: [] };
+    for (const gaz of ['CO2', 'H2O', 'CH4', 'O3', 'N2O']) {
         for (const T of T_GRILLE_SIGMA) {
             const parPoint = T <= window.HITRAN.tMaxTips(gaz)
                 ? lambda_range.map((l) => window.HITRAN.crossSectionsInAir(gaz, l, T, P_Pa))   // [j][iP]
@@ -179,11 +179,43 @@ function rapportAutoElargissementH2O() {
     return _rapportSelfH2O;
 }
 
-/** Continuum H₂O de Roberts et al. 1976 à 296 K [cm² molécule⁻¹ atm⁻¹] ; 0 hors du domaine mesuré (physics.js). */
-function continuumH2OCs(lambda) {
-    const C = window.EARTH.CONTINUUM_H2O;
-    const nu = 0.01 / lambda;   // [cm⁻¹]
-    return (nu >= C.NU_MIN && nu <= C.NU_MAX) ? C.A + C.B * Math.exp(-C.BETA * nu) : 0;
+/**
+ * CONTINUUM DE LA VAPEUR D'EAU MT_CKD 4.3 (data/mtckd_h2o.js ; Mlawer et al. 2012, Phil. Trans. R. Soc. A 370:2520) : ce qui
+ * absorbe au-delà des raies de Voigt coupées à ±25 cm⁻¹ et privées de leur valeur à 25 cm⁻¹ (la « plinthe », hitran.js) — la
+ * convention dans laquelle il a été mesuré. Tables [iT][j] sur T_GRILLE_SIGMA, en cm² molécule⁻¹ par unité de densité réduite :
+ *     self(ν, T)    = C_self(ν, 296 K)·(296/T)^texp(ν) · R(ν, T)
+ *     foreign(ν, T) = C_foreign(ν, 296 K) · R(ν, T),          R(ν, T) = ν·tanh(c₂ν / 2T) (terme de rayonnement)
+ * et κ [cm⁻¹] = n_w·[self·(n_w/n_ref) + foreign·(n_f/n_ref)], n_ref = P_ref/(k T_ref) (1013 hPa, 296 K) : le facteur de couche
+ * est dans coucheWorker. Coefficients interpolés linéairement en ν (pas de 10 cm⁻¹). ⚠️ (296/T)^texp est mesuré aux
+ * températures atmosphériques : au-dessus de ~350 K et sous ~200 K c'est une extrapolation (atmosphère de vapeur hadéenne).
+ */
+const _tablesContinuum = {};
+function tablesContinuum(lambda_range) {
+    const cle = lambda_range.length + ':' + lambda_range[0] + ':' + lambda_range[lambda_range.length - 1];
+    if (cle in _tablesContinuum) return _tablesContinuum[cle];
+    const M = window.MTCKD_H2O, c2 = window.HITRAN.C2_CMK;
+    // Au-delà de la table (ν > 20 000 cm⁻¹, λ < 0,5 µm) : continuum non publié, et sans objet pour l'infrarouge thermique
+    // (le solaire de la vapeur est le schéma de Chou & Suarez, solaire.js) : 0, déclaré. En deçà de nu0 : impossible (grille ≥ 10 cm⁻¹).
+    const nuMax = M.nu0 + (M.n - 1) * M.pas;
+    const coef = (tab, nu) => {
+        if (nu >= nuMax) return 0;
+        const x = (nu - M.nu0) / M.pas, k = Math.floor(x);
+        if (!(k >= 0)) throw new Error('[MT_CKD] ν = ' + nu + ' cm⁻¹ sous la table');
+        return tab[k] + (x - k) * (tab[k + 1] - tab[k]);
+    };
+    const t = { self: [], foreign: [] };
+    for (const T of T_GRILLE_SIGMA) {
+        t.self.push(lambda_range.map((l) => {
+            const nu = 0.01 / l, R = nu * Math.tanh(c2 * nu / (2 * T));
+            return coef(M.self, nu) * Math.pow(M.tRef / T, coef(M.texp, nu)) * R;
+        }));
+        t.foreign.push(lambda_range.map((l) => {
+            const nu = 0.01 / l;
+            return coef(M.foreign, nu) * nu * Math.tanh(c2 * nu / (2 * T));
+        }));
+    }
+    _tablesContinuum[cle] = t;
+    return t;
 }
 
 /**
@@ -192,8 +224,10 @@ function continuumH2OCs(lambda) {
  * effective P·(1 + x_v·(R_self − 1)). CONFIG_COMPUTE.pressureBroadening = false : tables de 1 atm à toutes les couches.
  * Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-elargissement-par-pression ; Roberts, Selby & Biberman 1976, Appl. Opt. 15:2085 — doc/equation.html#eq-continuum-vapeur-eau
  */
-function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, x_v, dz, tauNuage) {
-    const C = window.EARTH.CONTINUUM_H2O;
+function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, n_N2O, x_v, dz, tauNuage) {
+    const M = window.MTCKD_H2O;
+    const n_ref = M.pRefHpa * 100 / (CONST.BOLTZMANN_KB * M.tRef) * 1e-6;   // [cm⁻³]
+    const n_cm3 = n_air * 1e-6, n_w = x_v * n_cm3;
     const P_REF = CONV.STANDARD_ATMOSPHERE_PA;
     const pb = window.CONFIG_COMPUTE.pressureBroadening;
     const it = indexTemperatureSigma(T);
@@ -201,13 +235,14 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, x_v, dz, tauNuage)
     const ip = indexPressionSigma(pb ? P_atm : 1);
     const ipH2O = indexPressionSigma(pb ? P_atm * (1 + x_v * (rapportAutoElargissementH2O() - 1)) : 1);
     return {
-        T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, n_O3: n_O3, delta_z_real: dz,
+        T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, n_O3: n_O3, n_N2O: n_N2O, delta_z_real: dz,
         tauNuage: tauNuage,   // τ_eff d'absorption IR des nuages de la couche (gris), profilAtmosphere
         iT: it.iT, wT: it.wT,
-        iP: ip.iP, wP: ip.wP,                 // CO₂, CH₄, O₃
+        iP: ip.iP, wP: ip.wP,                 // CO₂, CH₄, O₃, N₂O
         iPH2O: ipH2O.iP, wPH2O: ipH2O.wP,     // H₂O (pression effective de l'auto-élargissement)
-        // κ_cont [m⁻¹] = C_s[cm²/molécule/atm]·1e-4 · (e + γ_f·(P − e))[atm] · n_H₂O[m⁻³] · exp(T₀(1/T − 1/296))
-        continuum: 1e-4 * P_atm * (x_v + C.GAMMA_FOREIGN * (1 - x_v)) * x_v * n_air * Math.exp(C.T0 * (1 / T - 1 / 296))
+        // Continuum MT_CKD : κ [m⁻¹] = 100·n_w·[self(T)·n_w/n_ref + foreign(T)·n_f/n_ref] (tablesContinuum), n en cm⁻³
+        contSelf: 100 * n_w * n_w / n_ref,
+        contForeign: 100 * n_w * (n_cm3 - n_w) / n_ref
     };
 }
 
@@ -311,14 +346,16 @@ function profilAtmosphere(z_range) {
     const T_s = DATA['🧮']['🧮🌡️'];
     const P_s = DATA['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA;
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
-        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
+        return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
                 populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }, tauSW: 0, W: 0, sommet: 0 }],
                 wTotal: 0, wSousBase: 0, wSousMoyen: 0,
                 fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
     const M_a = LOI.M_a, M_c = LOI.M_c;
-    const xa = [DATA['🫧']['🍰🫧🏭'] / CONST.M_CO2 / nA, DATA['🫧']['🍰🫧🐄'] / CONST.M_CH4 / nA];   // fractions molaires PARMI les non condensables (CO₂, CH₄)
+    const xa = [DATA['🫧']['🍰🫧🏭'] / CONST.M_CO2 / nA, DATA['🫧']['🍰🫧🐄'] / CONST.M_CH4 / nA];
+    const x_N2O = DATA['🫧']['🍰🧪🍳'];                               // N₂O : rapport molaire d'air sec, déclaré par l'époque
+    if (!(x_N2O >= 0)) throw new Error('[profilAtmosphere] 🍰🧪🍳 (N₂O) absent de l\'époque ' + DATA['📅']['📅'] + ' : ' + x_N2O);   // fractions molaires PARMI les non condensables (CO₂, CH₄)
     const g = LOI.g;
     const T_strato = Math.min(DATA['🫧']['🌡️🫧🛩'], T_s);   // équilibre radiatif de la stratosphère (equilibreStratosphere)
     // Surface : pression partielle de vapeur depuis la fraction massique 🍰🫧💧 (humidité de surface du modèle).
@@ -465,7 +502,7 @@ function profilAtmosphere(z_range) {
         const n = p / (CONST.BOLTZMANN_KB * T);
         const dz = (i + 1 < z_range.length) ? (z_range[i + 1] - z_range[i]) : (z_range[i] - z_range[i - 1]);
         const x_v = strato ? x_v_strato : vapeurMoyenne();
-        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? x_O3 * n : 0, x_v, dz, 0));
+        couches.push(coucheWorker(T, p, n, xa[0] * (1 - x_v) * n, x_v * n, xa[1] * (1 - x_v) * n, strato ? x_O3 * n : 0, x_N2O * (1 - x_v) * n, x_v, dz, 0));
     };
     let x_v_strato = x_c_strato;                        // surface déjà au plancher stratosphérique : la parcelle
     pousser(0);
@@ -629,7 +666,7 @@ function methaneFractionAtZ(z) {
 // température : l'équilibre n'a de sens que pour l'état que le solveur cherche.
 const RETRAIT_COUCHE = {
     '🏭': (c) => { c.n_CO2 = 0; },                      // raies et CIA CO₂–CO₂
-    '💧': (c) => { c.n_H2O = 0; c.continuum = 0; },     // raies et continuum
+    '💧': (c) => { c.n_H2O = 0; c.contSelf = 0; c.contForeign = 0; },   // raies et continuum MT_CKD
     '🐄': (c) => { c.n_CH4 = 0; },
     '⛅': (c) => { c.tauNuage = 0; }                    // nuages bas, moyens et hauts
 };
@@ -922,7 +959,7 @@ async function calculateFluxForT0(retrait, sonde) {
 
     // Sections efficaces : tables σ(λ) sur la grille de températures (interpolées à la T de chaque couche).
     const tab = tablesSigma(lambda_range);
-    const continuum_H2O = lambda_range.map(continuumH2OCs);          // continuum H₂O (Roberts 1976), 0 hors 8–25 µm
+    const continuum = tablesContinuum(lambda_range);                 // continuum H₂O MT_CKD 4.3, tables [iT][j]
 
     // DIAGNOSTIC CO2 (temporaire) : vérifier l'échantillonnage de la bande 15 µm.
     // Activé seulement en mode diagnostic pour éviter un bruit excessif en exécution normale.
@@ -1013,7 +1050,7 @@ async function calculateFluxForT0(retrait, sonde) {
         const i_trop = profil.iTrop;
         const { resultBuf, sums, spectra } = await window.spectralWorkerPool.dispatch({
             lambda_range, lambda_weights,
-            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, sigma_O3: tab.O3, nP: tab.nP, cia_CO2: tablesCIA(lambda_range), continuum_H2O,
+            sigma_CO2: tab.CO2, sigma_H2O: tab.H2O, sigma_CH4: tab.CH4, sigma_O3: tab.O3, sigma_N2O: tab.N2O, nP: tab.nP, cia_CO2: tablesCIA(lambda_range), cont_self: continuum.self, cont_foreign: continuum.foreign,
             earth_flux, layers: layers_w, i_trop,
             effective_delta_lambda,
             diffusivite: window.EARTH.DIFFUSIVITE,

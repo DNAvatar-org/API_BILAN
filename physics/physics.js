@@ -41,6 +41,7 @@ CONST.M_CO2 = 0.04401;  // [kg/mol] CO₂ kg/mol
 CONST.M_CH4 = 0.01604;  // [kg/mol] CH₄ kg/mol
 CONST.M_H2O = 0.01802;  // [kg/mol] H₂O kg/mol
 CONST.M_O3 = 0.04800;   // [kg/mol] O₃ kg/mol
+CONST.M_N2O = 0.04401;  // [kg/mol] N₂O kg/mol
 CONST.RHO_WATER = 1000;  // [kg/m³] Densité eau kg/m³
 CONST.RHO_EAU_MER = 1025;  // [kg/m³] eau de mer de surface (S = 35 g/kg, ~20 °C ; TEOS-10, IOC et al. 2010)
 // ─── POINT TRIPLE DE L'EAU — la condition aux limites de Clausius-Clapeyron ───────────────
@@ -381,26 +382,9 @@ EARTH.PRECIP_CONVECTIVE_RH_EXPONENT = 1.0; // [sans dimension (exposant)] exposa
 // Seuil Haqq-Misra 2008 : 0.1. NB : modèles plus récents (Arney et al. 2016) suggèrent plutôt 0.2.
 // Actuellement INFORMATIF UNIQUEMENT — non-lu par le worker spectral. Hook futur pour SW haze.
 
-// ─── CONTINUUM H₂O (self + foreign), spectral ────────────────────────────────────────────────
-// Absorption continue de la vapeur entre les raies (dimères, ailes lointaines) — c'est elle qui ferme la fenêtre
-// 8–12 µm dans une atmosphère humide, et qui fait la couverture d'une atmosphère de vapeur.
-// Roberts, Selby & Biberman 1976, Appl. Opt. 15:2085 (forme reprise par Pierrehumbert 2010, Principles of
-// Planetary Climate §4.4) :
-//   C_s(ν, 296 K) = a + b·exp(−β ν)            [cm² molécule⁻¹ atm⁻¹]
-//   κ = C_s(ν,T) · (e + γ_f·(P − e)) · n_H₂O     (e : pression partielle de vapeur [atm])
-//   C_s(ν,T) = C_s(ν,296)·exp[T₀ (1/T − 1/296)]   (dépendance en T négative : plus fort à froid)
-// DOMAINE DE LA MESURE : 400–1250 cm⁻¹ (8–25 µm). Ailleurs (fenêtres de 4 µm et du proche IR, qui comptent sur
-// un océan de magma), le continuum n'est PAS représenté : absence déclarée, pas une valeur inventée.
-// Remplace le « piégeage » MT_CKD scalaire (W/m² ∝ PWV², calé à 12 W/m², désactivé).
-EARTH.CONTINUUM_H2O = {   // [objet — unité de chaque champ sur sa ligne]
-    A: 1.25e-22,          // [cm² molécule⁻¹ atm⁻¹]
-    B: 1.67e-19,          // [cm² molécule⁻¹ atm⁻¹]
-    BETA: 7.87e-3,        // [cm]
-    T0: 1800,             // [K]
-    GAMMA_FOREIGN: 0.002, // [-] efficacité d'un collisionneur étranger rapportée à H₂O
-    NU_MIN: 400,          // [cm⁻¹] domaine de la mesure
-    NU_MAX: 1250          // [cm⁻¹]
-};
+// ─── CONTINUUM H₂O : MT_CKD 4.3 (data/mtckd_h2o.js, radiative/calculations.js → tablesContinuum), dans la convention de
+// ses raies (±25 cm⁻¹ moins la plinthe, spectroscopy/hitran.js). Il remplace Roberts et al. 1976, 44 % plus fort dans la
+// fenêtre à 1000 cm⁻¹ et limité à 400–1250 cm⁻¹ (validation et sonde RTMIP du 2026-11-06, doc/CONSTATS.md C9).
 
 // ─── FACTEUR DE DIFFUSIVITÉ ─────────────────────────────────────────────────────────────────────────────────────────
 // Le transfert est calculé en flux, pas en luminance : un rayonnement isotrope qui traverse une couche d'épaisseur
