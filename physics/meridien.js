@@ -294,6 +294,12 @@
         // rayonnement descendant sur la neige.
         const absorbe = { couverture: 1 - (1 - colonne.fBas) * (1 - colonne.fMoyen) };
         for (const z of ZONES) absorbe[z.cle] = { sec: tab[z.cle].S(M['🪩🍰❄️']), neige: tab[z.cle].S(M['🪩🍰🧊']), glace: tab[z.cle].S(M['🪩🍰🏊']) };
+        // Banquise des pôles (|φ| > 60°) : sous la couverture bas + moyens MESURÉE sur la mer polaire en saison de fonte
+        // (EARTH.NUAGES.F_POLAIRE_MER), nuages moyens de la colonne et nuages bas complétés, mêmes populations ; ailleurs, la colonne.
+        const nPol = window.EARTH.NUAGES.F_POLAIRE_MER;
+        const tabPol = tableColonne(Object.assign({}, colonne, { fBas: 1 - (1 - nPol) / (1 - colonne.fMoyen) }), Q, window.SOLAIRE.facteurRayleigh(), window.SOLAIRE.colonneOzone()).pol;
+        absorbe.mer = { pol: { couverture: nPol, sec: tabPol.S(M['🪩🍰❄️']), neige: tabPol.S(M['🪩🍰🧊']), glace: tabPol.S(M['🪩🍰🏊']) } };
+        for (const z of ['mid', 'trop']) absorbe.mer[z] = Object.assign({ couverture: absorbe.couverture }, absorbe[z]);
         // Surfaces de la planète sans glace (ALBEDO.surfacesSansGlace, la seule) : lave l, part du bassin à sec, terres libres et leur
         // partage forêt / désert / sol — celles de l'albédo planétaire.
         const SG = window.ALBEDO.surfacesSansGlace(), l = SG.lave, lave = l * M['🪩🍰🎾'];

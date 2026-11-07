@@ -111,7 +111,6 @@ CONST.SOLAR_CONSTANT = CONST.L_SOLEIL_W / (4 * Math.PI * CONV.AU_M * CONV.AU_M);
 CONV.RAYLEIGH_G_REF = 9.80665;      // [m/s²] pesanteur normale (CGPM 1901)
 CONV.RAYLEIGH_M_AIR_REF = 0.02897;  // [kg/mol] air sec de l'atmosphère standard
 CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;  // [s]
-CONV.P_ANN_SCALE_MM_AN = 200000;  // [mm/an]
 // CONV.O2_REF_MASS (1e18 kg) et CONV.CH4_REF_MASS (1e13 kg) SUPPRIMÉES le 2026-09-22 :
 // deux masses de référence sans source (des ordres de grandeur ronds) et surtout **lues nulle
 // part** — grep sur tout le projet : zéro usage hors leur propre définition. Du code mort qui
@@ -196,14 +195,14 @@ EARTH.orbiteCirculaire = function (eps_deg) {
 // sur la part de la saison de fonte que couvre la neige de l'année (P − E de Siler, Roe & Armour 2018 les jours de gel, contre la
 // fonte possible : Reeh 1991), puis ce qu'elle découvre : glace nue à mares de fonte 🪩🍰🏊 (Perovich et al. 2002, JGR 107:8044,
 // SHEBA) sur la mer — jusqu'à ce que la fonte possible d'une glace nue ait fondu sa masse de Stefan, ρ_i h : la mer est alors libre
-// pour le reste de la saison —, le sol 🪩🍰🌍 sur la terre. Sur la terre, la forêt sous la neige (ALBEDO.foretSousNeige, la même à
-// toutes les latitudes) masque la neige toute la saison : forêt enneigée 🪩🍰🌳❄️ ; la forêt de chaque latitude (ALBEDO.poserForet :
-// part préagricole sous la ligne des arbres de sa saison de croissance, à son arc de l'année) est posée ici, pour la terre libre.
+// pour le reste de la saison —, le sol 🪩🍰🌍 sur la terre. Sur la terre, la forêt de chaque latitude (ALBEDO.poserForet :
+// part préagricole sous la ligne des arbres de sa saison de croissance, à son arc de l'année) masque la neige toute la saison :
+// forêt enneigée 🪩🍰🌳❄️ ; elle est posée ici, aussi pour la terre libre.
 // Sans phase liquide possible (hors d'un monde à océan, H2O.mondeOcean : eau au-dessus
 // de son point critique, ou pas d'atmosphère, sous le point triple), la glace ne fond pas, elle se sublime : neige sèche toute l'année.
 // ⚠️ Déclaré : neige des terres dès que la surface est sous la fusion, sans bilan de chute et de fonte pour sa présence (la fonte
-// n'en règle que l'albédo) ; ⚠️ vent et rugosité du bilan de fonte : ceux du Groenland ouest (calottes) ; ⚠️ 🔧 forêt sous la neige
-// la même à toutes les latitudes, forme sans source (ALBEDO.foretSousNeige).
+// n'en règle que l'albédo) ; ⚠️ vent et rugosité du bilan de fonte : ceux du Groenland ouest (calottes) ; ❔ la forêt d'une latitude
+// suit sa saison de croissance du cycle courant (l'été de la zone polaire du modèle est trop chaud : ligne des arbres vers 73° N).
 /**
  * Glace SAISONNIÈRE des bandes, aux boîtes saisons = SAISONS.cycles (et leurs arcs gelés) et à l'absorption absorbe du bilan
  * méridien (part de l'insolation absorbée au sol par une neige qui fond, et nuages ; physics/meridien.js) — grandeurs de travail de
@@ -247,19 +246,16 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
     var o = S.date(window.INTERIEUR.ageCourant()), sol = S.soleil(), insolation = {};
     var h = CONST.AN_TROPIQUE_JOURS / n;   // [jour]
     // Fonte possible : dans un monde à océan seulement (phase liquide), au bilan d'énergie d'une neige qui fond au niveau de la mer.
-    var liquide = window.H2O.mondeOcean(), c, seb;
-    if (liquide) {
-        c = window.CALOTTES.contexte(saisons, absorbe);
-        seb = c.seb(DATA['🫧']['🎈'] * window.CONV.STANDARD_ATMOSPHERE_PA);
-    }
+    // Sur la mer, la couverture et l'absorption de la mer de la zone (absorbe.mer : mesurées sur la banquise des pôles).
+    var liquide = window.H2O.mondeOcean(), c, pNiveauMer = DATA['🫧']['🎈'] * window.CONV.STANDARD_ATMOSPHERE_PA;
+    if (liquide) c = window.CALOTTES.contexte(saisons, absorbe);
     for (i = 0; i < BANDES.length; i++) {
         b = BANDES[i];
-        var aSec = window.ALBEDO.albedoGlaceSeche(b.zone), ab = absorbe[b.zone];
-        // Forêt de chaque latitude de la bande (ALBEDO.poserForet → 🗻.🍰🗻🌳) ; part masquée par la canopée (forêt enneigée 🪩🍰🌳❄️) :
-        // la forêt sous la neige sur la terre, rien sur la mer.
-        window.ALBEDO.poserForet(b, saisons[b.cle].terre.arcs);
-        var fN = window.ALBEDO.foretSousNeige();
-        var foret = { terre: saisons[b.cle].terre.arcs.map(function () { return fN; }), mer: saisons[b.cle].mer.arcs.map(function () { return 0; }) };
+        var aSec = window.ALBEDO.albedoGlaceSeche(b.zone), abMer = absorbe.mer[b.zone];
+        var bilan = { terre: { ab: absorbe[b.zone], seb: liquide ? c.seb(pNiveauMer) : null }, mer: { ab: abMer, seb: liquide ? c.bilanSous(abMer.couverture)(pNiveauMer) : null } };
+        // Forêt de chaque latitude de la bande (ALBEDO.poserForet → 🗻.🍰🗻🌳) : elle masque la neige de sa latitude (forêt enneigée
+        // 🪩🍰🌳❄️) ; rien sur la mer.
+        var foret = { terre: window.ALBEDO.poserForet(b, saisons[b.cle].terre.arcs), mer: saisons[b.cle].mer.arcs.map(function () { return 0; }) };
         energie[b.cle] = {};
         reflet[b.cle] = {};
         for (s = 0; s < SURFACES.length; s++) {
@@ -279,7 +275,7 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
                         // terre de sa latitude au point ; sur la banquise, la surface de la dalle (Tglace) avec son palier de fusion — une glace
                         // qui fond reste à 0 °C, l'excès d'énergie la fond (Maykut & Untersteiner 1971), et l'air d'été au-dessus
                         // d'elle est à ~0 °C (❔ air de la dalle froide = sa surface, sans inversion).
-                        var r = window.CALOTTES.fonteJour(SURFACES[s] === 'mer' ? Math.min(pt.Tglace[k] - T0, 0) : pt.T[k] - T0, Sn[k], ab, seb);
+                        var r = window.CALOTTES.fonteJour(SURFACES[s] === 'mer' ? Math.min(pt.Tglace[k] - T0, 0) : pt.T[k] - T0, Sn[k], bilan[SURFACES[s]].ab, bilan[SURFACES[s]].seb);
                         sFP += Sn[k] * pt.f[k] * r.p;
                         mN += pt.f[k] * h * r.neige;           // [kg m⁻²] fonte possible d'une neige
                         mG += pt.f[k] * h * r.glace;           // [kg m⁻²] … d'une glace nue
@@ -444,19 +440,18 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     //     nuages masqués compris, MESURÉE comme F_BAS et F_HAUT : CAMcol = 0,23 ± 0,03 (Stubenrauch et al. 2024, Surv. Geophys.
     //     45:1999, ISCCP-CVL ; CloudSat-CALIPSO 0,26–0,31). Niveau : milieu de 440–680 hPa rapporté à la surface actuelle,
     //     σ = p/p_s = 560/1013,25 (autre pression de surface : même σ). Recouvrement aléatoire avec les nuages bas et hauts.
-    //     ⚠️ Épaisseurs optiques : la POPULATION des nuages bas (même parcelle, mêmes τ ; τ moyen ≈ 10, dans la classe
+    //     ⚠️ Épaisseurs optiques : la POPULATION des nuages bas (même parcelle, mêmes τ ; τ moyen ≈ 12 sur 📱, dans la classe
     //     altostratus ISCCP 3,6–23) — pas de microphysique propre aux nuages moyens (phase mixte plus froide), déclaré.
     // ─── Nuages HAUTS (enclumes et cirrus) : glace au niveau T_ENCLUME du profil (sortie de la convection). Épaisseur optique visible : une enclume naît opaque et
-    //     s'amincit à mesure que la glace tombe. POPULATION MESURÉE, deux capteurs qui se complètent sans se recouvrir :
-    //       · CALIPSO (lidar, Stubenrauch et al. 2024 §3.1) : sur 0,37 de nuages hauts, 0,13 sont sous-visibles (τ < 0,3) — ceux
-    //         que les capteurs passifs ne voient pas (HAUTS_SOUS_VISIBLES, ln τ uniforme sur [TAU_MIN ; 0,3]) ;
-    //       · ISCCP-H 2010 (Young et al. 2018 ; data/isccp_h_2010.js, niveaux.H.classes) : les nuages hauts VUS, trois classes de τ
-    //         (≤ 3,55 / ≤ 22,63 / au-delà) avec leur quantité et leur τ moyen radiatif : 0,140 à 0,79, 0,068 à 8,27, 0,040 à 47,3.
-    //       Somme 0,378 ≈ le total de CALIPSO (0,37). Les parts de la population en sont tirées (radiative/solaire.js,
-    //       populationHauts) ; F_HAUT (jauge) en fixe le total. Remplace (2026-11-06) une loi ln τ uniforme sur [0,0408 ; 11,9]
-    //       tirée des seules parts CALIPSO : le lidar ne mesure pas τ au-delà de ~3, la loi écrasait les tours convectives
-    //       (τ ≈ 47) en nuages de τ 3–12, presque opaques en infrarouge et sombres au soleil (doc/CONSTATS.md C24).
-    //       ⚠️ Les classes hautes d'ISCCP-H sont donc une ENTRÉE : elles ne contrôlent plus les nuages hauts (les effets CERES, si).
+    //     s'amincit à mesure que la glace tombe. POPULATION MESURÉE par les capteurs ACTIFS (radar CloudSat + lidar CALIPSO,
+    //     produit DARDAR 2007–2010, glace seule sans eau surfondue) : Hong & Liu 2015, J. Climate 28:3880, §3a et table 1 — parts
+    //     des nuages de glace par classe de τ visible : < 0,03 : 9 % ; 0,03–0,3 : 31 % ; 0,3–3 : 39 % ; 3–20 : 16 % ; > 20 : 5 %
+    //     (dont > 100 : 0,5 %) ; moyenne conditionnelle ≈ 4. Le τ est celui de la GLACE seule : pas les nuages liquides dessous,
+    //     que les classes ISCCP-H comptaient (elles classent le τ de la colonne, double compte, doc/CONSTATS.md C24 et C28).
+    //     Dans chaque classe, ln τ uniforme : nœud au milieu géométrique des bornes (radiative/solaire.js, populationHauts).
+    //     ⚠️ Bornes ❔ : TAU_MIN 0,01 (seuil de détection du lidar, ordre de grandeur) ; la dernière classe est bornée à 100,
+    //     le 0,5 % au-delà y est compté. ⚠️ Les nuages de glace de DARDAR comprennent ceux des latitudes moyennes et hautes
+    //     sous 5 km (Hong & Liu fig. 8) ; le modèle les met tous au niveau T_ENCLUME. F_HAUT (jauge) fixe le total.
     // Altitude des enclumes : la convection se détend là où la vapeur devient trop rare pour refroidir l'air par
     // rayonnement ; ce niveau est fixé par la pression de vapeur saturante, donc par une TEMPÉRATURE (« fixed anvil
     // temperature », Hartmann & Larson 2002, GRL 29:1951). ⚠️ MESURE posée EN ATTENDANT le niveau calculé par le modèle (là où
@@ -465,9 +460,17 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // Young et al. 2018) : 226,3 K sur le globe (tropiques 225,1, latitudes moyennes 228,9, pôles 222,0). Si la tropopause
     // est plus chaude, l'enclume est à la tropopause.
     T_ENCLUME: 226.3,          // [K]
-    // Sous-visibles : PART 📡 (CALIPSO) ; TAU_MIN ❔ (borne basse de l'ancienne loi uniforme, le lidar détecte vers τ ~ 0,01–0,03).
-    HAUTS_SOUS_VISIBLES: { PART: 0.13, TAU_MIN: 0.0408, TAU_MAX: 0.3 },   // [m²/m²], [-], [-]
+    // Classes de τ des nuages de glace (Hong & Liu 2015) : bornes [-] et parts [-] (somme 1).
+    HAUTS_GLACE: { BORNES: [0.01, 0.03, 0.3, 3, 20, 100], PARTS: [0.09, 0.31, 0.39, 0.16, 0.05] },
     F_MOYEN: 0.23,             // [m²/m²] Stubenrauch et al. 2024 (CAMcol, ISCCP-CVL)
+    // ─── Couverture bas + moyens sur la MER POLAIRE (|φ| > 60°) en saison de fonte, MESURÉE : la seule que voit la banquise qui
+    //     fond (EARTH.glaceSaisonniere, rayonnement descendant et soleil au sol ; physics/meridien.js absorbe.mer). Arctique,
+    //     SHEBA mai–août 1998 : occurrence radar + lidar 0,88–0,93 (Intrieri et al. 2002a, JGR 107(C10), doi:10.1029/2000JC000423, fig. 5), fraction
+    //     verticale ≈ 0,88 (Intrieri et al. 2002b, JGR 107:8039, fig. 3) ; climatologies de surface et ISCCP-D ≈ 0,80 (même
+    //     fig. 5, sous-détectées sur la glace selon les auteurs). Antarctique : > 0,80 sur les mers d'Amundsen et Bellingshausen,
+    //     nuages bas plus fréquents l'été (Adhikari et al. 2012, JGR 117:2011JD016719, CALIPSO + CloudSat, résumé). Milieu de 0,80–0,90.
+    //     ⚠️ Une seule année à SHEBA ; nuages noirs (ε = 1) ; la vapeur reste celle de la colonne globale.
+    F_POLAIRE_MER: 0.85,       // [m²/m²]
     SIGMA_MOYEN: 560 / 1013.25 // [-] p/p_s du niveau des nuages moyens (milieu de 440–680 hPa)
     // Contrôles (pas des entrées) : MODIS 0,67 (King et al. 2013) ; effets nuages CERES −47 (SW) / +26–28 (LW) W/m².
 };
@@ -477,6 +480,11 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
 // n de l'eau MESURÉ au laboratoire (Hale & Querry 1973, Appl. Opt. 12:555 : 1,333 à 589 nm). ⚠️ DÉCLARÉ : mer plane — les
 // vagues et la lumière rétrodiffusée sous la surface ne sont pas comptées ; une seule valeur pour tous les μ₀. Contrôle 🎯 :
 // mesures d'avion 0,057 en moyenne sur le disque (Taylor et al. 1996), 0,06 en lumière diffuse (Briegleb et al. 1986).
+// Part de DÉSERT des terres libres de glace de chaque bande (le désert de terresLibres, albedo/calculations_albedo.js) : carte de
+// végétation de Matthews 1983 (J. Clim. Appl. Meteor. 22:474), 1° × 1°, NASA GISS, type 30 (désert) sur les terres hors type 31
+// (glace), aire ∝ cos φ — data/sources/matthews_desert.py. Global 0,12, comme les terres nues de MODIS (9,5–12,8 %). Remplace une
+// part uniforme dans toutes les bandes (0,31 à 📱) tirée d'une formule à facteurs posés. ❔ la géographie actuelle à toute époque.
+EARTH.DESERT_PAR_BANDE = { S_pol: 0, S_mid: 0.006, S_trop: 0.05, N_trop: 0.264, N_mid: 0.088, N_pol: 0.038 };   // [m²/m²]
 EARTH.INDICE_EAU = 1.333;   // [-]
 EARTH.albedoFresnel = function (n) {
     var N = 2000, s = 0;
@@ -489,7 +497,10 @@ EARTH.albedoFresnel = function (n) {
 };
 EARTH['🪩🍰'] = {
     // 🌊 = océan libre : Fresnel (ci-dessus).
-    '🪩🍰🎾': 0.05, '🪩🍰🌊': EARTH.albedoFresnel(EARTH.INDICE_EAU), '🪩🍰🌳': 0.17, '🪩🍰🏜️': 0.30,
+    // 🌳 forêt et 🌍 sol (prairie, arbustes, cultures) sans neige : albédo MODIS en ciel réel, climatologie de 20 ans (Jia et al. 2022,
+    // JGR Atmos. 127:e2021JD035987, fig. 8, lu sur la figure) — conifères sempervirents 0,09–0,12, feuillus sempervirents 0,12–0,13,
+    // caducs 0,10–0,15 → 0,12 ; arbustes 0,18–0,21, prairies 0,15–0,22, cultures 0,15–0,19 → 0,18. ⚠️ 🏜️ désert 0,30 sans source.
+    '🪩🍰🎾': 0.05, '🪩🍰🌊': EARTH.albedoFresnel(EARTH.INDICE_EAU), '🪩🍰🌳': 0.12, '🪩🍰🏜️': 0.30,
     '🪩🍰🧊': 0.70, '🪩🍰🌍': 0.18,
     // ⛅ retiré (2026-10-12) : la réflectance du nuage n'est plus une constante réglée (0,42) mais le résultat du
     // condensat calculé (deux-flux, EARTH.NUAGES) — DATA['🪩']['🪩🍰⛅'].
@@ -498,9 +509,11 @@ EARTH['🪩🍰'] = {
     '🪩🍰❄️': 0.85,
     // 🏊 = bare ice + melt ponds (segment haut Briegleb, T ≥ 0 °C) — Perovich (2002) SHEBA ; Briegleb et al. NCAR/TN-463 §5.
     '🪩🍰🏊': 0.50,
-    // 🌳❄️ = forêt enneigée : la canopée masque la neige du sol. ⚠️ FOURCHETTE MESURÉE, milieu : canopée boréale enneigée ~0,2–0,3
-    // (Robock 1980, Mon. Weather Rev. 108:267 ; Betts & Ball 1997, JGR 102:28901 ; Qu & Hall 2007, J. Climate 20:3971) → 0,25.
-    '🪩🍰🌳❄️': 0.25
+    // 🌳❄️ = forêt enneigée : la canopée masque la neige du sol. MODIS en ciel réel, saison enneigée à 50–70° N (Jia et al. 2022, fig. 8,
+    // lu sur la figure) : conifères sempervirents ~0,33, conifères caducs ~0,40, feuillus caducs ~0,45 → 0,35 (la forêt boréale est
+    // surtout de conifères sempervirents) ; plus clair que les canopées seules, ~0,2–0,3, citées sans relevé (Robock 1980 ; Betts &
+    // Ball 1997 ; Qu & Hall 2007) : un pixel de forêt voit aussi la neige des trouées.
+    '🪩🍰🌳❄️': 0.35
 };
 
 // ========== STATE (état solver partagé) ==========

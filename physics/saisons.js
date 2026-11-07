@@ -88,6 +88,13 @@
                                    //     d'eau, 4,18e6 J m⁻² K⁻¹, du jeu de McKinnon et al. 2013 (Table 1, avec u et la couche de
                                    //     mélange), rapportée à la colonne de 1 atm, c_p p₀/g = 1005 × 101 325 / 9,81 = 1,038e7 J m⁻² K⁻¹ ;
                                    //     ⚠️ la même part de la colonne à toute époque
+        // Part de l'OCÉAN dans le transport de chaleur vers le pôle à 60° : océan 0,22–0,25 PW (N) et 0,21–0,24 PW (S) ± 0,04–0,05
+        // (💻 résidu de réanalyses NCEP / ECMWF sous ERBE, Trenberth & Caron 2001, J. Climate 14:3433, fichier
+        // mht_TrenberthCaron.NoAtm_20180710.nc), total requis par ERBE ≈ 3,5 PW (N) et 3,1 PW (S) (📡, même article, fig. 7, lu sur
+        // la figure) : 0,063–0,071 (N), 0,068–0,077 (S). Contrôle 📡 : 175 ± 48 TW aux portes de l'océan Arctique, mouillages 2005–06
+        // (Tsubouchi et al. 2018, J. Phys. Oceanogr. 48:2029), 0,14 PW à 65° N (Aagaard & Greisman 1975). ❔ la même part à toute
+        // époque et quelle que soit la mer de la bande.
+        PART_OCEAN_60: 0.07,       // [-]
         EFFUSIVITE_SOL: 1500,      // [J m⁻² K⁻¹ s^-½] ⚠️ effusivité √(kρc) d'un sol minéral : ordre de grandeur, sans source
         GLACE_MAX: 200,            // évaluations du point fixe de l'épaisseur de la glace de mer : au-delà, crash — numérique
         GLACE_SIMPLE: 8,           // itérations simples de ce point fixe avant l'encadrement (pente proche de 1) — numérique
@@ -432,10 +439,15 @@
             // u = (a_T − a_M) S₀ / (B + κ' + ν/((p_C + p_L) r) + ν p_L/((p_C + p_L) r p_M)). Une bande sans terre libre ou sans mer libre n'a pas d'écart terre–mer ; sans
             // air (ν = κ = 0, ⚫) chaque boîte est à son équilibre radiatif.
             const Tbande = D['🧮']['🧮🌡️'] - dT[b.zone] + T1 * b.h * xm;
-            const thC = p.C === 0 || pA === 0 ? 0 : (aC - aB[b.cle]) * sol * Fb.S0 / (NCC.B + kap / pA);
+            // Bande polaire : la part de l'océan dans le transport qui y converge (tout ce qui passe 60° : F(1) = 0), F(x₀) =
+            // −2πR² D (1 − x₀²) dT/dx, dT/dx = 3 T₂ x₀, par m² de bande 2πR² (1 − x₀) — Q [W/m² de bande] va à la MER seule (Q/p_M par m²
+            // de mer), l'air de la bande en porte d'autant moins (−Q par m² partout) : somme nulle sur la bande. Sans mer, pas
+            // d'océan. Hors des pôles, le transport reste celui de la bande (⚠️ déclaré).
+            const Q = b.zone === 'pol' && p.M > 0 ? K.PART_OCEAN_60 * NCC.D * (1 - b.x0 * b.x0) * 3 * -D['🧮']['🌡️🎱'] * b.x0 / (1 - b.x0) : 0;
+            const thC = p.C === 0 || pA === 0 ? 0 : ((aC - aB[b.cle]) * sol * Fb.S0 - Q) / (NCC.B + kap / pA);
             const thA = pA === 0 ? 0 : -p.C * thC / pA;
             const rL = p.L > 0 ? distanceLibre(P[b.cle].rLibre, p.C / (p.C + p.L)) : 1;   // sans terre libre : sans objet
-            const u = p.L === 0 || p.M === 0 ? 0 : (aT - aM) * sol * Fb.S0 / (NCC.B + kp + nu / ((p.C + p.L) * rL) + nu * p.L / ((p.C + p.L) * rL * p.M));
+            const u = p.L === 0 || p.M === 0 ? 0 : ((aT - aM) * sol * Fb.S0 - Q / p.M) / (NCC.B + kp + nu / ((p.C + p.L) * rL) + nu * p.L / ((p.C + p.L) * rL * p.M));
             const Tcal = Tbande + thC, Tterre = pA === 0 ? Tbande : Tbande + thA + p.M / pA * u, Tmer = pA === 0 ? Tbande : Tbande + thA - p.L / pA * u;
             const pts = points(b), Tf = window.EARTH.T_FREEZE_SEAWATER_K, TmerP = pts.map((q) => temperaturePoint(Tmer, b, q.x));
             // Un harmonique n : impédances de la calotte et de la terre libre (⚠️ la même) et de la mer, système des trois boîtes ;
@@ -533,7 +545,7 @@
                         [f * (Dn + K.EFFUSIVITE_SOL * r + kp) + nuL, f * (wn * Cair + K.EFFUSIVITE_SOL * r)]);
                 };
                 return fT === 0 || fT === 1 || p.L === 0 || p.M === 0 ? { T: Tterre, G1: m1.terre, G2: m2.terre }
-                    : { T: (f * ((aT - aB[b.cle]) * sol * Fb.S0 + NCC.B * Tbande + kp * Tcal) + nuL * Tmer) / (f * (NCC.B + kp) + nuL), G1: z(1, m1), G2: z(2, m2) };
+                    : { T: (f * ((aT - aB[b.cle]) * sol * Fb.S0 - Q + NCC.B * Tbande + kp * Tcal) + nuL * Tmer) / (f * (NCC.B + kp) + nuL), G1: z(1, m1), G2: z(2, m2) };
             };
             const terresLat = fL.map((f, i) => lat(f, pts[i].x));
             const terre = Object.assign({ T: Tterre, G1: m1.terre, G2: m2.terre, latitudes: terresLat.map((l, i) => Object.assign({ x: pts[i].x, poids: fL[i] }, l)),

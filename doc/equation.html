@@ -487,10 +487,13 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq X" id="eq-population-nuages-bas">
         <div class="titre"><span class="cl X">⚠️</span> Population de nuages bas</div>
-        <div class="f" data-tex="\bar\varepsilon = \frac{1}{10}\sum_{j=1}^{10}\left(1-e^{-D\,\tau_{\text{IR}}(u_j)}\right),\quad u_j = \frac{j-\frac12}{10}"></div>
-        <p>Chaque nuage naît à la base et s'épaissit jusqu'à la pluie ; toutes les profondeurs sont supposées également
-            représentées (hypothèse de cycle de vie déclarée ; contrôle : τ moyen MODIS ≈ 12).</p>
-        <p class="code">radiative/solaire.js → moyennePopulation</p>
+        <div class="f" data-tex="\bar\varepsilon = \frac{1}{5}\sum_{j=1}^{5}\left(1-e^{-D\,\tau_{\text{IR}}(u_j)}\right),\quad q_j = \frac{j-\frac12}{5},\quad u_j^{\text{terre}} = q_j,\quad u_j^{\text{mer}} = \sqrt{-\ln(1-q_j)}"></div>
+        <p>Chaque nuage naît à la base et s'épaissit jusqu'à la pluie (u = 1). Sur continent, toutes les profondeurs sont supposées
+            également représentées (hypothèse de cycle de vie déclarée). Sur mer, l'eau liquide est celle que mesure MODIS (Wood &amp;
+            Hartmann 2006) : loi exponentielle (Gamma de forme ≈ 1) dans la scène, de moyenne l'eau au seuil de pluie (⚠️ déclaré ;
+            scènes mesurées 25–150 g/m²) ; nuage adiabatique, W ∝ u², le dernier nœud dépasse le sommet (bruine). Nuages moyens :
+            mêmes populations, 3 nœuds. Contrôle : τ des stratocumulus marins MODIS ≈ 10–12 (King et al. 2013).</p>
+        <p class="code">radiative/solaire.js → profondeurs, etatNuage, moyennePopulation</p>
     </div>
     <div class="eq P" id="eq-couverture-partielle-dans-transfert">
         <div class="titre"><span class="cl P">P</span> Couverture partielle dans le transfert infrarouge</div>
@@ -501,19 +504,22 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq M" id="eq-nuages-hauts-altitude-epaisseurs">
         <div class="titre"><span class="cl M">M</span> Nuages hauts : altitude et épaisseurs</div>
-        <div class="f" data-tex="T_{\text{enclume}} = 226{,}3\ \text{K},\qquad \ln\tau \sim \mathcal U[\ln 0{,}0408\ ;\ \ln 11{,}9],\qquad \tau_{\text{IR}} = \tau/2"></div>
+        <div class="f" data-tex="T_{\text{enclume}} = 226{,}3\ \text{K},\qquad \tau_i = \sqrt{b_i\,b_{i+1}},\ \ b = 0{,}01\,/\,0{,}03\,/\,0{,}3\,/\,3\,/\,20\,/\,100,\ \ p = 9\,/\,31\,/\,39\,/\,16\,/\,5\ \%,\qquad \tau_{\text{IR}} = \tau/2"></div>
         <p>Température fixe des enclumes (Hartmann &amp; Larson 2002, loi physique) ; ⚠️ sa valeur est encore MESURÉE, en
             attendant le niveau calculé par le modèle (convergence de la subsidence de ciel clair, Zelinka &amp; Hartmann 2010) :
-            température d'émission des sommets des nuages hauts, ISCCP-H 2010 (tropiques 225,1 K, latitudes moyennes 228,9 K). Distribution
-            en ln τ : amincissement exponentiel (P), bornes qui redonnent les parts CALIPSO de τ &lt; 0,3, de 0,3 à 3 et de τ
-            &gt; 3 : 0,13, 0,15 et 0,09 sur 0,37 (Stubenrauch 2024).</p>
+            température d'émission des sommets des nuages hauts, ISCCP-H 2010 (tropiques 225,1 K, latitudes moyennes 228,9 K).
+            Épaisseurs : population MESURÉE par les capteurs actifs (radar CloudSat + lidar CALIPSO, DARDAR 2007–2010, Hong &amp; Liu
+            2015, table 1) : parts des nuages de glace par classe de τ visible, ln τ uniforme dans chaque classe, nœud au milieu
+            géométrique de ses bornes. Le τ est celui de la glace seule : les classes ISCCP-H, qui comptent le τ de toute la colonne,
+            ne sont plus qu'un contrôle. ⚠️ Bornes 0,01 et 100 ❔ (détection du lidar ; le 0,5 % au-delà de 100 est dans la dernière
+            classe) ; DARDAR compte aussi la glace des latitudes moyennes et hautes sous 5 km, que le modèle place à T_ENCLUME.</p>
         <p>Le niveau T_ENCLUME tombe entre deux couches de la grille : τ y est réparti linéairement en température entre elles, le
             nuage émet à T_ENCLUME ; à la tropopause s'il fait plus chaud, dans la dernière couche de la troposphère ; une colonne
             partie sous T_ENCLUME (boule de neige) n'a pas ce niveau, le nuage reste dans sa première couche. Nuages MOYENS (fraction
             0,23, carte des fractions) au niveau σ = 560/1 013,25, milieu de 440–680 hPa, s'il est sous la tropopause : τ réparti
             linéairement en σ entre les deux couches qui l'encadrent (N). Recouvrement aléatoire des nuages bas, moyens et hauts.</p>
-        <p class="code">EARTH.NUAGES.T_ENCLUME, TAU_HAUT_*, F_MOYEN, SIGMA_MOYEN ; calculations.js → profilAtmosphere ; solaire.js →
-            moyenneHauts</p>
+        <p class="code">EARTH.NUAGES.T_ENCLUME, HAUTS_GLACE, F_MOYEN, SIGMA_MOYEN ; calculations.js → profilAtmosphere ; solaire.js →
+            populationHauts, moyenneHauts</p>
     </div>
 </div>
 
@@ -704,13 +710,14 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq M" id="eq-albedos-surfaces">
         <div class="titre"><span class="cl M">M</span> Albédos des surfaces</div>
-        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}066\ (\text{Fresnel})\quad\text{forêt } 0{,}17\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50\quad\text{forêt enneigée } 0{,}25"></div>
+        <div class="f" data-tex="\alpha:\ \text{océan } 0{,}066\ (\text{Fresnel})\quad\text{forêt } 0{,}12\quad\text{terres } 0{,}18\quad\text{désert } 0{,}30\quad\text{glace } 0{,}70\quad\text{neige } 0{,}85\quad\text{glace fondante } 0{,}50\quad\text{forêt enneigée } 0{,}35"></div>
         <p>Océan : réflexion de Fresnel d'une mer plane, \(R(\mu) = \tfrac12(r_s^2 + r_p^2)\), moyennée sur le disque éclairé
             \(\int_0^1 R\,2\mu\,d\mu\), indice de l'eau 1,333 (Hale &amp; Querry 1973, laboratoire) ; ⚠️ mer plane (ni vagues, ni
             lumière rétrodiffusée sous la surface), une seule valeur pour tous les \(\mu_0\). 🎯 mesures d'avion : 0,057 sur le
             disque (Taylor et al. 1996), 0,06 en lumière diffuse (Briegleb et al. 1986).
-            Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA). Forêt enneigée : ⚠️ 0,25, milieu de la
-            fourchette 0,2–0,3 de la canopée boréale enneigée (Robock 1980 ; Betts &amp; Ball 1997 ; Qu &amp; Hall 2007). ⚠️ lave 0,05 et albédo « boue de neige »
+            Neige : Warren &amp; Wiscombe 1980 ; glace fondante : Perovich 2002 (SHEBA) ; forêt et terres sans neige : MODIS, Jia et al. 2022 (fig. 8) ; désert : sans source. Forêt enneigée : 0,35, MODIS en saison enneigée à
+            50–70° N (Jia et al. 2022, fig. 8 : conifères sempervirents ~0,33, caducs 0,40–0,45) ; les canopées seules, ~0,2–0,3 (Robock 1980 ;
+            Betts &amp; Ball 1997 ; Qu &amp; Hall 2007), ne voient pas la neige des trouées. ⚠️ lave 0,05 et albédo « boue de neige »
             0,48 des snowballs : sans source.</p>
         <p class="code">physics.js → EARTH['🪩🍰'] ; configTimeline.js → '🌫️❄️' ; calculations_albedo.js → poserAlbedosMateriaux
             (DATA['🪩🍰'], écrit une fois par calcul, lu par l'albédo planétaire, le bilan méridien et les calottes)</p>
@@ -740,23 +747,20 @@ Licensed under Apache License 2.0 with Commons Clause.
             fusion, l'excès d'énergie fond la glace, et l'air d'été au-dessus d'une banquise qui fond est à ~0 °C (Maykut &amp;
             Untersteiner 1971) ; σ et les jours de gel lisent la dalle sans palier. ❔ 🔧 Cette lecture de la banquise a été retenue
             en regardant le co-albédo polaire observé, l'albédo de banquise attendu et les étendues NSIDC : le co-albédo des pôles n'en
-            est plus un contrôle (carte du bilan méridien). Sur les terres, la forêt masque la neige toute la saison : la forêt sous
-            la neige \(f_F\) = 0,31 × clamp((T̄ − 268,15 K)/25 K, 0,4, 1) des terres (ALBEDO.foretSousNeige : la forêt de 2020, FAO
-            2020, au plus), la même à toutes les latitudes, dans un monde à océan depuis les premiers arbres ; 0 sur la mer ; elle est
-            une forêt enneigée, 🪩🍰🌳❄️ = 0,25. ⚠️ 🔧 Forme et trois nombres sans source, qui ne savent pas où passe la ligne des
-            arbres : elle tient lieu, pour le masquage, de la forêt de chaque latitude, dont le 🎯 de la ligne des arbres n'est pas
-            atteint (carte de la forêt) ; deux forêts dans une bande, déclaré (sur 📱 : 0,24 des terres sous la neige). Sans phase liquide (hors d'un
+            est plus un contrôle (carte du bilan méridien). Sur les terres, la forêt masque la neige toute la saison : \(f_F\) = la forêt de la
+            latitude du point (ALBEDO.poserForet, sous sa ligne des arbres) ; 0 sur la mer ; elle est une forêt enneigée, 🪩🍰🌳❄️ = 0,35.
+            ❔ La ligne des arbres du modèle est trop au nord (carte de la forêt) : la neige est masquée jusque vers 73° N. Sans phase liquide (hors d'un
             monde à océan), la glace ne fond pas, elle se sublime : neige sèche toute l'année. La part \(r_b\) de l'énergie solaire
             annuelle de la bande que sa glace réfléchit (🪩.🍰☀️🪩🧊) est calculée une fois et lue partout : co-albédos de zone et
             colonnes des boîtes du bilan méridien, albédo planétaire ; \(r/e\) est l'albédo moyen de la glace.</p>
         <p>⚠️ Forêt enneigée 0,25 : milieu de la fourchette 0,2–0,3 de la canopée boréale enneigée (Robock 1980 ; Betts &amp; Ball
             1997 ; Qu &amp; Hall 2007). ⚠️ σ, vent et rugosité du bilan de fonte : ceux du Groenland. ⚠️ \(h\) : une seule année de croissance de Stefan, borne basse
             d'une glace pérenne. ❔ Neige mouillée à l'albédo de la glace de mer froide de CCSM3 (Briegleb et al. 2004). Sur 📱, l'albédo
-            moyen de la glace saisonnière vaut 0,70 sur les terres (sous la forêt sous la neige), 0,81 sur la banquise.</p>
+            moyen de la glace saisonnière vaut 0,63 sur les terres (sous la forêt de chaque latitude), 0,75 sur la banquise.</p>
         <p class="src">Warren &amp; Wiscombe 1980 ; Briegleb et al. 2004 ; Perovich et al. 2002, JGR 107:8044 ; Seguinot &amp; Rogozhina
             2014 ; Siler, Roe &amp; Armour 2018 ; Reeh 1991 ; Maykut &amp; Untersteiner 1971, JGR 76:1550 ; Robock 1980, Mon. Weather Rev.
             108:267 ; Betts &amp; Ball 1997, JGR 102:28901 ; Qu &amp; Hall 2007, J. Climate 20:3971</p>
-        <p class="code">physics.js → EARTH.glaceSaisonniere ; calculations_albedo.js → albedoGlaceSeche, foretSousNeige, FORET ;
+        <p class="code">physics.js → EARTH.glaceSaisonniere ; calculations_albedo.js → albedoGlaceSeche, poserForet, FORET ;
             physics/calottes.js → fonteJour, contexte, normale ; physics/saisons.js → arc, epaisseurStefan ; physics/meridien.js → etendueGlace</p>
     </div>
     <div class="eq P" id="eq-glace-saisonniere-voit-soleil">
@@ -1285,8 +1289,8 @@ Licensed under Apache License 2.0 with Commons Clause.
             sa terre libre : avec le désert et le sol, l'albédo de la terre libre de la bande hors de la neige (ALBEDO.terresLibres) ;
             l'albédo planétaire est la somme des bandes. Les forêts polaires des climats chauds (Otto-Bliesner &amp; Upchurch 1997)
             sortent de la même loi. Recalculée à chaque itération du bilan méridien ; 0 au clic frise, le point fixe part de celle du
-            calcul précédent. La neige des terres est masquée par la forêt sous la neige (🔧, carte de l'albédo de la glace saisonnière ;
-            forêt boréale : Bonan 2008), pas par celle-ci, tant que le 🎯 de la ligne des arbres n'est pas atteint.</p>
+            calcul précédent. Elle masque aussi la neige de ses latitudes (forêt enneigée, carte de l'albédo de la glace saisonnière ;
+            forêt boréale : Bonan 2008).</p>
         <p>❔ Part préagricole la même à toutes les époques qui ont des arbres (aucune carte de la forêt passée). ⚠️ Pas d'usage des
             terres : forêt préagricole aussi sur 🚂 et 📱 (FAO 2020 : 31 % des terres au lieu de 46 %). ⚠️ Pas de relief dans la ligne des
             arbres : la terre de la bande est au niveau de la mer (pas de ligne alpine). ❔ 0,458 est la forêt préagricole de TOUTES les
@@ -1298,10 +1302,10 @@ Licensed under Apache License 2.0 with Commons Clause.
             au nord : la ligne des arbres arctique observée est vers 67–72° N, avec ~5·10⁶ km² de toundra au-delà (Walker et al. 2005) ;
             celle du modèle est vers 73° N à 📱 (72° N boisé à 85 %, 75° N nu), avec ~2·10⁶ km² de terre au-delà, Groenland compris ; elle
             ne recule pas au dernier maximum glaciaire (forêt jusqu'à 72° N) : l'été de 61–68° N reste trop chaud (carte « Cycle
-            saisonnier calculé »). D'où la forêt sous la neige pour le masquage.</p>
+            saisonnier calculé ») : la neige masquée va trop au nord.</p>
         <p class="src">Paulsen &amp; Körner 2014, Alp. Bot. 124:1 ; Körner &amp; Paulsen 2004, J. Biogeogr. 31:713 ; FAO 2020 ; Williams
             2006 ; Stein et al. 2007, Nature 446:904 ; Stein et al. 2012, Nature 483:78 ; contrôle : Walker et al. 2005, J. Veg. Sci. 16:267</p>
-        <p class="code">calculations_albedo.js → ALBEDO.FORET, poserForet, foretSousNeige, terresLibres ; physics.js → EARTH.glaceSaisonniere ;
+        <p class="code">calculations_albedo.js → ALBEDO.FORET, poserForet, terresLibres ; physics.js → EARTH.glaceSaisonniere ;
             physics/meridien.js → depuisConfig ; DATA['🗻']['🍰🗻🌳']</p>
     </div>
     <div class="eq C" id="eq-forets-deserts">

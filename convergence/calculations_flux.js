@@ -312,6 +312,10 @@ function initForConfig() {
  *  pas saute 4 K, arrive avec la glace en retard et ne trouve plus l'équilibre (1a à −67 °C). Le chemin en deux pas de Planck
  *  ne coûte rien de plus : 111 calculs radiatifs contre 110 sur les frises des 21 époques. */
 let dernierPointRecherche = null;
+// Point fixe de la stratosphère à l'Init (computeRadiativeTransfer) : plus aucune couche ne bouge de 0,1 K [K] ; au plus 10 transferts
+// (au-delà, pas de point fixe : erreur, pas une sortie muette).
+const STRATO_INIT_TOL_K = 0.1;
+const STRATO_INIT_MAX = 10;
 
 /** Calcule l'incrément Search (incTemp) en K.
  * Pente MESURÉE (sécante sur les deux derniers points) quand elle est exploitable (Δ décroît avec T) : ΔT = −Δ/(dΔ/dT).
@@ -500,9 +504,23 @@ async function computeRadiativeTransfer(callback) {
     window.ALBEDO.calculateAlbedo();
     DATA['🧮']['🧮⚧'] = phaseBeforeFirstFlux;
 
+    // Stratosphère : la graine grise de peau (calculateT0) n'est pas son équilibre ; chaque transfert pose l'équilibre SOUS ce transfert
+    // pour l'évaluation suivante. Itéré ici à T₀ jusqu'à son point fixe (plus aucune couche ne bouge de STRATO_INIT_TOL_K) avant le
+    // premier Δ, l'albédo avec elle : sa colonne nuageuse lit la tropopause (la 1ʳᵉ couche). Sans cela le premier Δ portait une
+    // stratosphère grise isotherme (234 K sur 📱) : OLR faux de 8 W/m², albédo de 30,1 % au lieu de 32,5 %, puis une stratosphère qui
+    // bouge de 20 à 40 K d'une évaluation à l'autre, et le solveur bâtissait ses crochets sur ces Δ périmés (doc/CONSTATS.md C32).
+    // Coût : quelques transferts par calcul.
+    for (let k = 0; ; k++) {
+        const avant = DATA['🫧']['🌡️🫧🛩'].slice();
+        await window.calculateFluxForT0();
+        if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
+        window.ALBEDO.calculateAlbedo();
+        const ecart = Math.max(...DATA['🫧']['🌡️🫧🛩'].map((t, i) => Math.abs(t - avant[i])));
+        if (ecart < STRATO_INIT_TOL_K) break;
+        if (k + 1 >= STRATO_INIT_MAX) throw new Error('[computeRadiativeTransfer] Init : stratosphère sans point fixe après ' + STRATO_INIT_MAX
+            + ' transferts (écart ' + ecart.toFixed(2) + ' K, ' + DATA['🫧']['🌡️🫧🛩'].map((t) => t.toFixed(1)).join('/') + ')');
+    }
     const flux_solaire_absorbe_init = DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']);
-
-    await window.calculateFluxForT0();
     const spectral_result_init = window.RADIATIVE.getSpectralResultFromDATA();
     // Intérieur fondu : ce qu'il perd est ce qui part vers l'espace moins ce que le Soleil apporte (surface = magma).
     if (window.INTERIEUR.estFondu()) {

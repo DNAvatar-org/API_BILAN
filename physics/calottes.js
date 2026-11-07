@@ -650,9 +650,7 @@
         const T0 = CONST.T0_WATER, sig = CONST.STEFAN_BOLTZMANN, HR = () => D['🎚️'].H2O.H2O_SURFACE_RH_01;
         const e0 = PHYS.pSatLiquide(T0), dl0 = PHYS.dLnPSatLiquide(T0);
         const Lv = CONST.R_GAS / CONST.M_H2O * T0 * T0 * dl0;                       // [J/kg]
-        const n = absorbe.couverture;
         const eClair = K.BRUTSAERT_A * Math.pow(HR() * e0 / 100 / T0, 1 / K.BRUTSAERT_N);   // e_a en hPa
-        const epsA = eClair * (1 - n) + n, dEps = (1 - n) * eClair / K.BRUTSAERT_N * (dl0 - 1 / T0);   // [-], [1/K]
         const C = K.KARMAN * K.KARMAN / (Math.log(K.Z_VENT / K.Z0_M) * Math.log(K.Z_TEMPERATURE / K.Z0_M));
         const cp = LOI.cpa(T0);
         const sol = S.soleil();
@@ -662,19 +660,26 @@
             return cache.get(cle);
         };
         const cleDate = S.cle;
-        const c = {
-            saisons: saisons, absorbe: absorbe, LOI: LOI,
-            // ∂F_q/∂x / (2π a²), a = rayon 📐 ; par an (année tropique)
-            PmoinsE: (x) => -(Fq(x + dx) - Fq(x - dx)) / (2 * dx) / (2 * Math.PI * Math.pow(D['📜']['📐'] * 1000, 2)) * CONST.AN_TROPIQUE_JOURS * CONV.SECONDS_PER_DAY,
-            /** { c0 [W/m²], c1 [W m⁻² K⁻¹] } à la pression p [Pa] du point. */
-            seb: (p) => {
+        /** Bilan de fonte sous la couverture n [m²/m²] des nuages noirs : (p [Pa]) → { c0 [W/m²], c1 [W m⁻² K⁻¹] }. */
+        const bilanSous = (n) => {
+            const epsA = eClair * (1 - n) + n, dEps = (1 - n) * eClair / K.BRUTSAERT_N * (dl0 - 1 / T0);   // [-], [1/K]
+            return (p) => {
                 const ech = p * D['🫧']['🧪'] / (CONST.R_GAS * T0) * C * K.VENT_SURFACE_M_S;    // [kg m⁻² s⁻¹] ρ C U
                 const eps = CONST.M_H2O / D['🫧']['🧪'], den = p - (1 - eps) * e0, qs = eps * e0 / den;
                 return {
                     c0: -(1 - epsA) * sig * Math.pow(T0, 4) - ech * Lv * (1 - HR()) * qs,
                     c1: 4 * epsA * sig * Math.pow(T0, 3) + sig * Math.pow(T0, 4) * dEps + ech * cp + ech * Lv * HR() * qs * dl0 * p / den
                 };
-            },
+            };
+        };
+        const c = {
+            saisons: saisons, absorbe: absorbe, LOI: LOI,
+            // ∂F_q/∂x / (2π a²), a = rayon 📐 ; par an (année tropique)
+            PmoinsE: (x) => -(Fq(x + dx) - Fq(x - dx)) / (2 * dx) / (2 * Math.PI * Math.pow(D['📜']['📐'] * 1000, 2)) * CONST.AN_TROPIQUE_JOURS * CONV.SECONDS_PER_DAY,
+            /** { c0 [W/m²], c1 [W m⁻² K⁻¹] } à la pression p [Pa] du point, sous les nuages bas et moyens de la colonne. */
+            seb: bilanSous(absorbe.couverture),
+            /** Le même sous la couverture n [m²/m²] (mer d'une zone : absorbe.mer, physics/meridien.js). */
+            bilanSous: bilanSous,
             /** Colonnes des cellules de la bande (geo : cellules de la date du calcul), une par cellule non vide. */
             colonnes: (bande, geo) => {
                 if (!colonnes.has(bande.cle)) {

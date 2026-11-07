@@ -38,7 +38,7 @@
         const tirer = (n) => {
             const out = [];
             for (const pop of colonne.populations) {
-                for (let j = 0; j < n; j++) out.push({ tau: S.etatNuage(pop.tranches, (j + 0.5) / n).tauSW, w: pop.poids / n });
+                for (const u of S.profondeurs(pop, n)) out.push({ tau: S.etatNuage(pop.tranches, u).tauSW, w: pop.poids / n });
             }
             return out;
         };

@@ -28,7 +28,7 @@
 // terres disponibles = (1 − bassin rempli)(1 − 🎾) : lave + océan + terres = 1
 // 🍰🪩🌳 = forest_coverage = Σ_bandes forêt de la bande (poserForet : part préagricole sous la ligne des arbres) × ses terres ;
 //   0 hors d'un monde à océan et avant les premiers arbres
-// 🍰🪩🏜️ = desert_coverage = Σ_bandes min(terres − forêt, aridité × terres) de chaque bande
+// 🍰🪩🏜️ = desert_coverage = Σ_bandes min(terres − forêt, part de désert mesurée de la bande × terres)
 // 🍰🪩🌍 = land_coverage = terres − forêt − désert (continents, prairies, sols humides, albedo ~0.18)
 // Calottes et glace saisonnière sont prises sur ces surfaces : la somme vaut 1 par construction (erreur sinon).
 // 🍰🪩🧊 = calottes du pas + glace saisonnière pondérée par l'énergie : océan × ⟨e_b,mer⟩ + terres libres × ⟨e_b,terre⟩, moyennes des
@@ -200,12 +200,9 @@ function albedoGlaceSeche(cle) {
 // moyen, ~385 Ma : Stein et al. 2007, 2012), la flore basse (Rhynie, 407 Ma : Kenrick & Crane 1997) ne masque pas la neige. Une plante
 // demande de l'eau liquide et une atmosphère : pas de forêt hors d'un monde à océan (H2O.mondeOcean). Forêt boréale qui masque la neige
 // (Bonan 2008) et forêts polaires des climats chauds (Otto-Bliesner & Upchurch 1997) : la même loi, sur la saison de chaque latitude,
-// pour l'albédo de la terre libre hors de la neige. La forêt qui masque la neige est foretSousNeige (plus bas).
+// pour l'albédo de la terre libre hors de la neige. C'est aussi elle qui masque la neige de sa latitude (EARTH.glaceSaisonniere).
 const FORET = {
     PART_2020: 0.31,                       // [m²/m²] forêt de 2020 : 31 % des terres (4,06 Gha, FAO 2020)
-    MASQUE_T0_K: 268.15,                   // [K] 🔧 forêt sous la neige : T̄ où elle s'annule (sans source)
-    MASQUE_DT_K: 25,                       // [K] 🔧 … écart de T̄ sur lequel elle atteint PART_2020 (sans source)
-    MASQUE_MIN: 0.4,                       // [-] 🔧 … sa part minimale de PART_2020 (sans source)
     AGE_PREMIERS_ARBRES: 385e6,            // [an]
     T_JOUR_C: 0.9,                         // [°C] moyenne journalière d'un jour de la saison de croissance
     SAISON_JOURS: 94,                      // [jour] saison de croissance minimale
@@ -267,18 +264,6 @@ function poserForet(b, arcs) {
     return f;
 }
 
-/** [m²/m²] Part des terres dont la canopée masque la neige (forêt enneigée 🪩🍰🌳❄️, EARTH.glaceSaisonniere), la même à toutes les
- *  latitudes : FORET.PART_2020 × clamp((🧮🌡️ − MASQUE_T0_K)/MASQUE_DT_K, MASQUE_MIN, 1), dans un monde à océan depuis les premiers
- *  arbres, 0 sinon. 🔧 ❔ Forme sans source (moins de forêt quand T̄ baisse), qui ne sait pas où passe la ligne des arbres. La forêt
- *  de chaque latitude (poserForet) ne masque pas la neige : sa ligne des arbres est vers 73° N à 📱 et ne recule pas au dernier
- *  maximum glaciaire (🎯 67–72° N et ~5 Mkm² de toundra, Walker et al. 2005 : ~2 Mkm² dans le modèle), l'été de 61–68° N du
- *  modèle étant trop chaud (moyenne annuelle de la zone polaire du bilan méridien) ; c'est la forêt qui masque la neige qui pèse sur
- *  l'albédo (forêt enneigée 0,25 contre neige ~0,8 ; forêt 0,17 contre sol 0,18 hors de la neige). */
-// Réf : FAO 2020 — doc/equation.html#eq-albedo-glace-selon-temperature
-function foretSousNeige() {
-    return window.H2O.mondeOcean() && window.INTERIEUR.ageCourant() <= FORET.AGE_PREMIERS_ARBRES
-        ? FORET.PART_2020 * Math.max(FORET.MASQUE_MIN, Math.min(1, (window.DATA['🧮']['🧮🌡️'] - FORET.MASQUE_T0_K) / FORET.MASQUE_DT_K)) : 0;
-}
 
 /** [m²/m²] Part de la surface en fusion : fraction fondue de la péridotite à la température de surface COURANTE (🧮🌡️), entre son
  *  solidus et son liquidus à 0 GPa (Katz, Spiegelman & Langmuir 2003, G³ 4:1073), la même loi que l'intérieur (geology/interieur.js).
@@ -374,21 +359,8 @@ function surfacesSansGlace() {
     const rempli = window.H2O.mondeOcean() ? bassin : 0;
     const ocean = rempli * (1 - lave);
     const terres = (1 - rempli) * (1 - lave);
-    // Précipitations annuelles P_ann (mm/an) ∝ 🍰🧪🌧 × océan × F_conv × CONV.P_ANN_SCALE_MM_AN (facteur d'échelle : H ≈ 1 à 15 °C,
-    // P_ann ≈ 2 117 mm/an) ; F_conv = facteur de convection (T optimal ~15 °C).
-    const F_conv = Math.max(0.1, Math.min(2.0, 1.0 + (DATA['🧮']['🧮🌡️'] - (CONST.T0_WATER + 15)) / 50));
-    const P_ann = DATA['💧']['🍰🧪🌧'] * ocean * F_conv * CONV.P_ANN_SCALE_MM_AN;
-    // Désert : aridité moyenne (P_ann < 1000 mm/an, 🍰🌧💧 < 0,6) + variabilité régionale (~20 % de déserts même sous une moyenne
-    // humide : Sahara, Gobi).
-    const relative_humidity = DATA['💧']['🍰🌧💧'];
-    const precip_factor_desert = Math.max(0, 1 - Math.min(1, P_ann / 1000));
-    const humidity_factor_desert = Math.max(0, 1 - Math.min(1, relative_humidity / 0.6));
-    const desert_base = precip_factor_desert * humidity_factor_desert;
-    const temp_variability = Math.max(0.5, Math.min(1, (DATA['🧮']['🧮🌡️'] - (CONST.KELVIN_TO_CELSIUS + 5)) / 10));
-    const humidity_variability = Math.max(0.5, 1 - relative_humidity * 0.6);
-    const VARIABILITY_FACTOR = 0.6; // 60% des terres disponibles peuvent être arides (pondéré par les facteurs)
-    return { lave: lave, rempli: rempli, sec: bassin > 0 ? 1 - rempli / bassin : 0, ocean: ocean, terres: terres,
-        aride: desert_base + VARIABILITY_FACTOR * temp_variability * humidity_variability };
+    // Désert : la part mesurée de chaque bande (EARTH.DESERT_PAR_BANDE, terresLibres).
+    return { lave: lave, rempli: rempli, sec: bassin > 0 ? 1 - rempli / bassin : 0, ocean: ocean, terres: terres };
 }
 
 /**
@@ -396,8 +368,8 @@ function surfacesSansGlace() {
  * loi : la terre libre de chaque bande du bilan méridien (son albédo) et l'albédo planétaire (somme des bandes). SG = surfacesSansGlace,
  * S = MERIDIEN.surfacesBandes (calotte c, sa part sur la terre émergée c_T). Par bande, en part de la bande avant la lave : terres
  * Λ = E + sec (1 − E) (terre émergée E de CALOTTES.parts, part à sec du bassin) ; forêt = 🗻.🍰🗻🌳 × Λ (la forêt de la bande,
- * poserForet ; ❔ la même part de sa terre libre que de sa terre émergée), désert = min(Λ − forêt, aride × Λ) (⚠️ la part aride des
- * terres du globe dans chaque bande), sol = le reste (steppes, prairies, toundras, montagnes) ; calottes posées sur ses terres
+ * poserForet ; ❔ la même part de sa terre libre que de sa terre émergée), désert = min(Λ − forêt, aride × Λ) (aride : la part de désert
+ * des terres libres de glace de la bande, mesurée, EARTH.DESERT_PAR_BANDE), sol = le reste (steppes, prairies, toundras, montagnes) ; calottes posées sur ses terres
  * c_T + sec (c − c_T) : prises sur le sol, puis le désert, puis la forêt. Renvoie { cle: { foret, desert, sol, albedo } } — albedo =
  * albédo moyen d'un m² de terre libre de la bande (albédos des matériaux DATA['🪩🍰']). Sans terre libre (la calotte couvre toute la
  * terre de la bande, ou la bande n'en a pas), un m² de terre libre est un m² de la terre de la bande hors calotte, à sa composition
@@ -408,11 +380,12 @@ function terresLibres(SG, S) {
     const M = window.DATA['🪩🍰'], F = window.DATA['🗻']['🍰🗻🌳'], P = window.CALOTTES.parts(), out = {};
     for (const b of window.CALOTTES.BANDES) {
         const E = P[b.cle].emerge, sb = S[b.cle], L = E + SG.sec * (1 - E), ct = sb.calotteTerre + SG.sec * (sb.calotte - sb.calotteTerre);
-        const foret0 = F[b.cle] * L, desert0 = Math.min(L - foret0, SG.aride * L), sol0 = L - foret0 - desert0;
+        const aride = window.EARTH.DESERT_PAR_BANDE[b.cle];
+        const foret0 = F[b.cle] * L, desert0 = Math.min(L - foret0, aride * L), sol0 = L - foret0 - desert0;
         const sol = Math.max(0, sol0 - ct), r1 = ct - (sol0 - sol);
         const desert = Math.max(0, desert0 - r1), r2 = r1 - (desert0 - desert);
         const foret = Math.max(0, foret0 - r2);
-        const total = foret + desert + sol, fF = F[b.cle], fD = Math.min(1 - fF, SG.aride);
+        const total = foret + desert + sol, fF = F[b.cle], fD = Math.min(1 - fF, aride);
         out[b.cle] = { foret: foret, desert: desert, sol: sol,
             albedo: total === 0 ? fF * M['🪩🍰🌳'] + fD * M['🪩🍰🏜️'] + (1 - fF - fD) * M['🪩🍰🌍']
                 : (foret * M['🪩🍰🌳'] + desert * M['🪩🍰🏜️'] + sol * M['🪩🍰🌍']) / total };
@@ -747,7 +720,6 @@ ALBEDO.albedoGlaceSeche = albedoGlaceSeche;
 ALBEDO.partLave = partLave;
 ALBEDO.FORET = FORET;
 ALBEDO.poserForet = poserForet;
-ALBEDO.foretSousNeige = foretSousNeige;
 ALBEDO.surfacesSansGlace = surfacesSansGlace;
 ALBEDO.terresLibres = terresLibres;
 ALBEDO.rapportCCN = rapportCCN;

@@ -205,10 +205,17 @@
         return [R, T - e, e];
     }
 
-    /** État cumulé du nuage à la profondeur relative u (interpolation dans les tranches du profil). */
+    /** État cumulé du nuage à la profondeur relative u (interpolation dans les tranches du profil). Au-delà du sommet (u > 1 :
+     *  nuage marin qui bruine, profondeurs) le même nuage adiabatique continue : LWC ∝ hauteur, donc τ ∝ u^5/3, τ·r_eff ∝ u²,
+     *  vapeur traversée ∝ u (⚠️ phase et densité de la tranche du sommet gardées). */
     function etatNuage(tranches, u) {
         const P = tranches.profondeur;
         if (P.length === 1) return { tauSW: 0, tauIR: 0, wMoyen: 0, wSature: 0, tauLiq: 0, tauRLiq: 0 };   // pas de nuage : épaisseur nulle
+        if (u > 1) {
+            const k = P.length - 1, e = Math.pow(u, 5 / 3);
+            return { tauSW: tranches.tauSW[k] * e, tauIR: tranches.tauIR[k] * e, tauLiq: tranches.tauLiq[k] * e,
+                tauRLiq: tranches.tauRLiq[k] * u * u, wMoyen: tranches.wMoyen[k] * u, wSature: tranches.wSature[k] * u };
+        }
         const d = u * P[P.length - 1];
         let i = 1;
         while (i < P.length - 1 && P[i] < d) i++;
@@ -217,13 +224,30 @@
         return { tauSW: v('tauSW'), tauIR: v('tauIR'), wMoyen: v('wMoyen'), wSature: v('wSature'), tauLiq: v('tauLiq'), tauRLiq: v('tauRLiq') };
     }
 
+    /** Profondeurs relatives u des n nœuds d'une population de nuages bas (u = 1 : sommet, seuil de pluie), chaque nœud de poids 1/n.
+     *  · Continent : toutes les profondeurs de 0 au sommet également représentées (cycle de vie, ⚠️ déclaré) : u = (j + ½)/n.
+     *  · Mer : eau liquide MESURÉE (MODIS, Wood & Hartmann 2006, J. Climate 19:1748) — dans une scène, LWP de loi Gamma de paramètre
+     *    de forme ν ≈ 1 (fig. 11 : mode 0,6–1), donc exponentielle ; moyennes des scènes entre 25 et 150 g/m², rarement hors de là
+     *    (les nuages minces s'épaississent ou se dissipent vite, la bruine borne le haut). ⚠️ DÉCLARÉ : moyenne = eau au seuil de
+     *    pluie W_s (62 g/m² sur 📱 ; stratocumulus mesurés 58–72, leur table 2). Nuage adiabatique W ∝ u² : q au milieu de n
+     *    quantiles égaux, W/W_s = −ln(1 − q), u = √(W/W_s) — le dernier nœud dépasse le sommet (etatNuage). */
+    // Réf : Wood & Hartmann 2006, J. Climate 19:1748 — doc/equation.html#eq-population-nuages-bas
+    function profondeurs(pop, n) {
+        const u = [];
+        for (let j = 0; j < n; j++) {
+            const q = (j + 0.5) / n;
+            u.push(pop.marin ? Math.sqrt(-Math.log(1 - q)) : q);
+        }
+        return u;
+    }
+
     /** Moyenne d'une grandeur sur les populations de nuages bas (RADIATIVE : océan et continent, chacune de poids p) ; dans
-     *  chacune, toutes les profondeurs de 0 au sommet également représentées (n échantillons). */
+     *  chacune, n nœuds de profondeur (profondeurs). */
     function moyennePopulation(populations, fn, n = N_POPULATION) {
         let s = 0;
         for (const pop of populations) {
             let m = 0;
-            for (let j = 0; j < n; j++) m += fn(etatNuage(pop.tranches, (j + 0.5) / n));
+            for (const u of profondeurs(pop, n)) m += fn(etatNuage(pop.tranches, u));
             s += pop.poids * m / n;
         }
         return s;
@@ -283,16 +307,12 @@
         return OZONE.COLONNE_ACTUELLE_CM * Math.pow(pO2 / OZONE.P_O2_ACTUELLE_ATM, OZONE.EXPOSANT);
     }
 
-    /** Population MESURÉE des nuages hauts [{ tau, poids }], poids de somme 1 (physics.js, EARTH.NUAGES) : les sous-visibles de
-     *  CALIPSO en deux nœuds (ln τ uniforme, milieux géométriques des deux moitiés), puis les trois classes vues par ISCCP-H
-     *  (quantité, τ moyen radiatif). */
+    /** Population MESURÉE des nuages hauts [{ tau, poids }], poids de somme 1 (physics.js, EARTH.NUAGES.HAUTS_GLACE) : une classe
+     *  de τ de CloudSat + CALIPSO par nœud, ln τ uniforme dans la classe, nœud au milieu géométrique de ses bornes. */
+    // Réf : Hong & Liu 2015, J. Climate 28:3880 (table 1)
     function populationHauts() {
-        const SV = window.EARTH.NUAGES.HAUTS_SOUS_VISIBLES, C = window.ISCCP_H_2010.niveaux.H.classes;
-        const a = Math.log(SV.TAU_MIN), b = Math.log(SV.TAU_MAX);
-        const pop = [{ tau: Math.exp(a + 0.25 * (b - a)), a: SV.PART / 2 }, { tau: Math.exp(a + 0.75 * (b - a)), a: SV.PART / 2 }]
-            .concat(C.map((c) => ({ tau: c.tau, a: c.a })));
-        const total = pop.reduce((s, p) => s + p.a, 0);
-        return pop.map((p) => ({ tau: p.tau, poids: p.a / total }));
+        const G = window.EARTH.NUAGES.HAUTS_GLACE;
+        return G.PARTS.map((p, i) => ({ tau: Math.sqrt(G.BORNES[i] * G.BORNES[i + 1]), poids: p }));
     }
     // Réf : Stubenrauch et al. 2024, Surv. Geophys. 45:1999 — doc/equation.html#eq-nuages-hauts-altitude-epaisseurs
     function moyenneHauts(fn) {
@@ -353,8 +373,8 @@
         const populations = (n) => {
             const out = [];
             for (const pop of colonne.populations) {
-                for (let j = 0; j < n; j++) {
-                    const c = etatNuage(pop.tranches, (j + 0.5) / n), o = optiqueEtat(c);
+                for (const u of profondeurs(pop, n)) {
+                    const c = etatNuage(pop.tranches, u), o = optiqueEtat(c);
                     out.push(nuageDeColonne(pop.poids / n, c, (q) => {
                         const tau = c.tauSW + q.k * c.wSature;
                         return [tau, tau > 0 ? c.tauSW * (1 - o[q.b].a) / tau : 0, o[q.b].g];
@@ -540,6 +560,7 @@
         moyenneHauts: moyenneHauts,
         populationHauts: populationHauts,
         nuageVisible: nuageVisible,
-        etatNuage: etatNuage
+        etatNuage: etatNuage,
+        profondeurs: profondeurs
     };
 })();

@@ -424,7 +424,13 @@ function temperatureEnvironnement(T_s, x_c0, P_s, T_strato, zMax) {
         const gammaStone = gSec - Math.pow(pI / P_s, kappa) * dThetaDz;   // [K/m]
         return { f: zn.f, T: (z) => Math.max(aZ(pts, z), T_strato, Ts - gammaStone * z), gammaStone: gammaStone };
     });
-    return (z) => zones.reduce((s, zn) => s + zn.f * zn.T(z), 0);
+    // Toutes les zones dans la stratosphère : la moyenne EST T_strato. Σ f·T_strato ne vaut T_strato qu'à un arrondi près (Σ f = 1 ± 1 ulp) ;
+    // un cheveu au-dessus, le test « Te ≤ T_strato » de profilAtmosphere ne passait jamais : pas de stratosphère, humidité de troposphère
+    // jusqu'au sommet, équilibre de la stratosphère figé (3,6 W/m² d'OLR selon l'arrondi, doc/CONSTATS.md C29).
+    return (z) => {
+        const t = zones.map((zn) => zn.T(z));
+        return t.every((x) => x === T_strato) ? T_strato : zones.reduce((s, zn, i) => s + zn.f * t[i], 0);
+    };
 }
 
 function profilAtmosphere(z_range) {
@@ -439,7 +445,7 @@ function profilAtmosphere(z_range) {
     if (!(P_s > 0)) {   // sans atmosphère (⚫) : le vide, rien n'absorbe
         return { couches: z_range.map((z, i) => coucheWorker(T_s, 0, 0, 0, 0, 0, 0, 0, 0, (i + 1 < z_range.length) ? z_range[i + 1] - z : 1, 0)), iTrop: z_range.length,
             nuage: { W: 0, tauSW: 0, tauIR: 0, base: 0, sommet: 0, lwcPluie: 0,
-                populations: [{ nom: 'aucun', poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }, tauSW: 0, W: 0, sommet: 0 }],
+                populations: [{ nom: 'aucun', marin: false, poids: 1, tranches: { profondeur: [0], tauSW: [0], tauIR: [0], wMoyen: [0], wSature: [0], tauLiq: [0], tauRLiq: [0] }, tauSW: 0, W: 0, sommet: 0 }],
                 wTotal: 0, wSousBase: 0, wSousMoyen: 0,
                 fBas: 0, fMoyen: 0, fHaut: 0, tHaut: 0 } };
     }
@@ -527,10 +533,10 @@ function profilAtmosphere(z_range) {
     /** Part liquide du condensat à la température Tc (Hu & Stamnes 1993 : linéaire de T_TOUT_GLACE à CONST.T0_WATER). */
     const fLiquide = (Tc) => Math.max(0, Math.min(1, (Tc - N.T_TOUT_GLACE) / (CONST.T0_WATER - N.T_TOUT_GLACE)));
     const nuagesBas = [
-        { nom: 'océan', poids: oc, k: N.K_MARTIN_OCEAN, nActuel: DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * 1e6 },
-        { nom: 'continent', poids: 1 - oc, k: N.K_MARTIN_CONTINENT, nActuel: N.CDNC_CONTINENT_CM3 * 1e6 }
+        { nom: 'océan', marin: true, poids: oc, k: N.K_MARTIN_OCEAN, nActuel: DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * 1e6 },
+        { nom: 'continent', marin: false, poids: 1 - oc, k: N.K_MARTIN_CONTINENT, nActuel: N.CDNC_CONTINENT_CM3 * 1e6 }
     ].map((m) => ({
-        nom: m.nom, poids: m.poids, k: m.k, n: m.nActuel * rCCN,                // [m⁻³] gouttes de l'époque (Twomey)
+        nom: m.nom, marin: m.marin, poids: m.poids, k: m.k, n: m.nActuel * rCCN,                // [m⁻³] gouttes de l'époque (Twomey)
         lwcPluie: 4 / 3 * Math.PI * CONST.RHO_WATER * m.k * m.nActuel * Math.pow(DATA['🎚️'].CLOUD_SW.R_EFF_PLUIE, 3),   // [kg/m³]
         sommet: false, zSommet: 0, tauSW: 0, tauIR: 0, W: 0, tauIRCouche: z_range.map(() => 0),
         cwc: 0, ecart: 0,                                                       // condensat et écart au seuil du pas précédent (posés à la base)
@@ -678,15 +684,16 @@ function profilAtmosphere(z_range) {
         if (strato && iTrop === z_range.length) iTrop = i;
         pousser(i);
     }
-    // POPULATIONS de nuages BAS (océan, continent) : chacun naît à la base et s'épaissit jusqu'à la pluie (sommet) ; en régime
-    // établi toutes les profondeurs sont également représentées (hypothèse de cycle de vie, ⚠️ déclarée — contrôle : classes
-    // ISCCP des nuages bas vus d'en haut, radiative/nuages_isccp.js et data/isccp_h_2010.js).
+    // POPULATIONS de nuages BAS (océan, continent) : chacun naît à la base et s'épaissit jusqu'à la pluie (sommet). Profondeurs des
+    // nœuds : radiative/solaire.js, profondeurs — sur continent toutes également représentées (cycle de vie, ⚠️ déclaré), sur mer
+    // l'eau liquide mesurée par MODIS (Wood & Hartmann 2006) ; contrôle : classes ISCCP des nuages bas vus d'en haut,
+    // radiative/nuages_isccp.js et data/isccp_h_2010.js.
     // Émissivité de flux (diffusivité D, comme le worker) moyennée sur la population : ε̄ = ⟨1 − e^{−D·τ_IR(u)}⟩.
     // Couverture f, recouvrement maximal dans la couche : transmission 1 − f·ε̄, que le worker obtient avec
     // exp(−D·τ_eff), τ_eff = −ln(1 − f·ε̄)/D, réparti au prorata des τ des couches.
     const D = window.EARTH.DIFFUSIVITE;
     // Deux populations (océan, continent) pondérées : émissivité moyenne, τ_IR réparti au prorata de leur profil pondéré.
-    const populations = nuagesBas.map((c) => ({ nom: c.nom, poids: c.poids, tranches: c.tranches, tauSW: c.tauSW, W: c.W, sommet: c.zSommet }));
+    const populations = nuagesBas.map((c) => ({ nom: c.nom, marin: c.marin, poids: c.poids, tranches: c.tranches, tauSW: c.tauSW, W: c.W, sommet: c.zSommet }));
     const epsBas = window.SOLAIRE.moyennePopulation(populations, (c) => 1 - Math.exp(-D * c.tauIR));
     const tauEffBas = -Math.log(1 - fBas * epsBas) / D;
     const tauIRCouche = z_range.map((_, i) => nuagesBas.reduce((a, c) => a + c.poids * c.tauIRCouche[i], 0));
