@@ -312,9 +312,10 @@ function initForConfig() {
  *  pas saute 4 K, arrive avec la glace en retard et ne trouve plus l'équilibre (1a à −67 °C). Le chemin en deux pas de Planck
  *  ne coûte rien de plus : 111 calculs radiatifs contre 110 sur les frises des 21 époques. */
 let dernierPointRecherche = null;
-// Point fixe de la stratosphère à l'Init (computeRadiativeTransfer) : plus aucune couche ne bouge de 0,1 K [K] ; au plus 10 transferts
-// (au-delà, pas de point fixe : erreur, pas une sortie muette).
-const STRATO_INIT_TOL_K = 0.1;
+// Point fixe de la stratosphère à l'Init (computeRadiativeTransfer) : plus aucune couche ne bouge de 0,5 K [K] ; au plus 10 transferts
+// (au-delà, pas de point fixe : erreur, pas une sortie muette). L'itération oscille de quelques dixièmes de K autour du point fixe
+// (🦣 à 25 ka : 0,23 K après 10 transferts) ; la boucle du solveur continue de la relaxer à chaque évaluation.
+const STRATO_INIT_TOL_K = 0.5;
 const STRATO_INIT_MAX = 10;
 
 /** Calcule l'incrément Search (incTemp) en K.

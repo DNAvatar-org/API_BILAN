@@ -220,6 +220,11 @@ EARTH.orbiteCirculaire = function (eps_deg) {
  * Équilibre du cycle courant, sans inertie d'un calcul à l'autre : seules les calottes ont une mémoire. Sans eau (⚖️💧 = 0, corps
  * noir avant ses météorites), pas de glace.
  */
+/** [m²/m²] Concentration de la glace de la mer gelée au point pt (arc de SAISONS, t : part de l'année gelée) de la bande b : celle
+ *  de NSIDC de son hémisphère (EARTH.CONCENTRATION_BANQUISE) si la glace est saisonnière, 1 si la latitude est gelée toute l'année. */
+EARTH.concentrationBanquise = function (b, pt) {
+    return pt.t >= 1 ? 1 : EARTH.CONCENTRATION_BANQUISE[b.h > 0 ? 'N' : 'S'];
+};
 EARTH.glaceSaisonniere = function (saisons, absorbe) {
     var DATA = window.DATA, BANDES = window.CALOTTES.BANDES, SURFACES = ['terre', 'mer'], temps = {}, energie = {}, reflet = {};
     var i, j, k, b, s, pt;
@@ -239,7 +244,10 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
         var tTerre = 0, pTerre = 0, arcsT = saisons[b.cle].terre.arcs;
         for (j = 0; j < arcsT.length; j++) { tTerre += arcsT[j].poids * arcsT[j].t; pTerre += arcsT[j].poids; }
         tTerre /= pTerre;
-        temps[b.cle] = { terre: tTerre, mer: saisons[b.cle].glace };
+        // Mer : part de l'année gelée de chaque latitude × concentration de sa glace (concentrationBanquise), moyenne des latitudes.
+        var arcsM = saisons[b.cle].mer.arcs, tMer = 0;
+        for (j = 0; j < arcsM.length; j++) tMer += EARTH.concentrationBanquise(b, arcsM[j]) * arcsM[j].t;
+        temps[b.cle] = { terre: tTerre, mer: tMer / arcsM.length };
     }
     DATA['🪩']['🍰📅🧊'] = temps;   // l'étendue de la glace qu'elle donne (MERIDIEN.etendueGlace) règle la glace sèche des tropiques
     var S = window.SAISONS, CK = window.CALOTTES.K, M = DATA['🪩🍰'], T0 = CONST.T0_WATER, n = CK.NOEUDS;
@@ -264,6 +272,7 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
             for (j = 0; j < arcs.length; j++) {
                 pt = arcs[j];
                 var pw = SURFACES[s] === 'mer' ? 1 : pt.poids;   // poids de la latitude : sa part de terre (la mer, à poids égaux)
+                var cG = SURFACES[s] === 'mer' ? EARTH.concentrationBanquise(b, pt) : 1;   // glace de la mer gelée (le reste : mer libre)
                 var fF = foret[SURFACES[s]][j], aSecS = (1 - fF) * aSec + fF * M['🪩🍰🌳❄️'];
                 if (!(pt.lat in insolation)) insolation[pt.lat] = S.noeuds(o, pt.lat, n).map(function (v) { return sol * v; });   // [W/m²]
                 var Sn = insolation[pt.lat], sT = 0, sF = 0, sFP = 0, mN = 0, mG = 0, gel = 0;
@@ -283,7 +292,7 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
                     }
                 }
                 tot += pw * sT;   // même ordre de sommation que E : sous une glace de toute l'année, E = tot exactement
-                E += pw * sF;
+                E += pw * cG * sF;
                 if (liquide) {
                     // Neige de l'année les jours de gel (P − E de Siler à la latitude du point), fondue d'abord ; puis la surface
                     // découverte (Reeh 1991) : part p de la saison de fonte sous la neige. Sur la mer, la glace nue fond ensuite :
@@ -292,10 +301,10 @@ EARTH.glaceSaisonniere = function (saisons, absorbe) {
                     // la mer est libre (son albédo vient du bilan méridien, hors de la glace). Sans énergie de fonte, rien ne fond.
                     var neige = Math.max(0, c.PmoinsE(pt.x)) * gel, p = neige === 0 ? 0 : Math.min(1, neige / mN);
                     var w = SURFACES[s] === 'mer' && mG > 0 ? Math.max(0, 1 - p - CONST.RHO_GLACE * S.epaisseurStefan(pt.fdd) / mG) : 0;
-                    R += pw * (aSecS * sF - (1 - fF) * (aSec - (p * M['🪩🍰🧊'] + (1 - p - w) * aSous)) * sFP);
-                    E -= pw * w * sFP;
+                    R += pw * cG * (aSecS * sF - (1 - fF) * (aSec - (p * M['🪩🍰🧊'] + (1 - p - w) * aSous)) * sFP);
+                    E -= pw * cG * w * sFP;
                 } else {
-                    R += pw * aSecS * sF;
+                    R += pw * cG * aSecS * sF;
                 }
             }
             energie[b.cle][SURFACES[s]] = E / tot;
@@ -349,6 +358,13 @@ EARTH.EVAPORATION_T_SCALE = 20;  // [K]
 // EARTH.IRIS_STRENGTH / _T_SCALE_K / _FACTOR_MIN (« calib 2025 ») retirés le 2026-10-13 : ils divisaient la vapeur par
 // 1 + 0,02·(T − 288)/10 et coupaient la rétroaction de la vapeur ; l'iris de Lindzen porte sur les nuages.
 EARTH.T_FREEZE_SEAWATER_K = 271.15;  // [K]
+// CONCENTRATION de la banquise saisonnière : dans le pack, chenaux et polynies (divergence de la glace sous le vent : dynamique,
+// pas d'équation en 1D) laissent de l'eau libre. MESURÉE, NSIDC Sea Ice Index G02135 v4.0, moyennes 2001–2020 des fichiers
+// mensuels : AIRE (concentration comprise) / ÉTENDUE (cellules à ≥ 15 %) = 8,94 / 10,76 au nord, 8,89 / 11,69 au sud
+// (doc/CONSTATS.md C25, C33). La mer gelée d'une latitude du modèle est l'étendue ; sa glace, l'aire. ⚠️ Déclaré : la moyenne
+// annuelle pour toute saison et toute époque ; ❔ une latitude gelée toute l'année (pack pérenne, boule de neige) est couverte
+// entière — sans bord libre, la glace n'a pas où s'écarter.
+EARTH.CONCENTRATION_BANQUISE = { N: 8.94 / 10.76, S: 8.89 / 11.69 };   // [m²/m²]
 EARTH.T_WATER_CYCLE_MIN_C = -10;  // [°C]
 EARTH.T_WATER_CYCLE_MAX_C = 150;  // [°C]
 EARTH.T_WATER_CYCLE_FREEZE_K_PER_ATM = 1;  // [K/atm]

@@ -444,9 +444,32 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   (S̄(1 − A)/2σ)^¼ = 234 K ; chaque transfert ne remplace l'équilibre que pour l'évaluation SUIVANTE. Le Δ d'Init portait donc
   cette graine : OLR 257 au lieu de 230 W/m², et l'albédo (sa colonne nuageuse lit la tropopause) 30,1 % au lieu de 32,5 %. Les
   deux transferts suivants voyaient la stratosphère bouger de 20 à 40 K.
-- Correction : à l'Init, transfert + albédo itérés à T₀ jusqu'au point fixe de la stratosphère (aucune couche ne bouge de 0,1 K ;
-  au-delà de 10 transferts, erreur). Mesuré sur 📱 : Δ d'Init −0,15 W/m² (contre +7,7), recherche monotone, dichotomie en 2 pas,
+- Correction : à l'Init, transfert + albédo itérés à T₀ jusqu'au point fixe de la stratosphère (aucune couche ne bouge de 0,5 K ;
+  au-delà de 10 transferts, erreur). Seuil d'abord à 0,1 K : la chaîne s'arrêtait à 🦣 25 ka (l'itération oscille de 0,23 K). Mesuré sur 📱 : Δ d'Init −0,15 W/m² (contre +7,7), recherche monotone, dichotomie en 2 pas,
   14 transferts en tout (6 à l'Init). Coût : +4 à 5 transferts par calcul, linéaire.
 - Équilibres (hg.js) : 📱 14,14 → 14,04 ; 🏔 19,34 → 19,39 ; 🦣 13,51 → 13,44 (le retard déplaçait l'équilibre de ~0,1 K).
 - Non touché : l'attribution H₂O affichée change au dernier pas (77 → 47 % dans le journal) — c'est l'attribution par retrait,
   calculée seulement à la convergence (calculateFluxForT0(retrait)), pas un défaut du solveur.
+
+## C33 — Concentration de la banquise : la mer gelée du modèle est l'ÉTENDUE, sa glace l'AIRE (`physics/physics.js`)
+- **constat** (sonde de scratchpad `glace_T.js`, 📱 à T imposée) : près de 14 °C, 70 % de la hausse de la lumière réfléchie au sol
+  quand la planète refroidit vient de la banquise, surtout australe (12,1 → 14,8 Mkm² en 2 K) ; SW réfléchi +1,25 puis
+  +1,43 W/m² par K. Aires annuelles 11,0 (N) / 12,1 (S) Mkm² : l'ÉTENDUE de NSIDC (10,76 / 11,69), pas son AIRE (8,94 / 8,89).
+- **cause** (⚛ + 📡) : chaque latitude gelée du modèle est couverte à 100 % ; dans le pack réel, chenaux et polynies (divergence
+  de la glace sous le vent, dynamique sans équation en 1D) laissent de l'eau libre. Concentration mesurée = aire / étendue
+  (NSIDC G02135 v4.0, 2001–2020, C25) : 0,831 au nord, 0,760 au sud.
+- **correction** : EARTH.CONCENTRATION_BANQUISE, appliquée par EARTH.concentrationBanquise à la glace de mer de chaque latitude
+  (aire, part du soleil, lumière réfléchie) ; ⚠️ déclaré : la moyenne annuelle pour toute saison et toute époque ; ❔ une latitude
+  gelée toute l'année (pack pérenne, boule de neige) reste couverte entière — sans bord libre, la glace n'a pas où s'écarter.
+  Coût nul.
+- **mesuré** à T imposée (14,26 / 13,26 / 12,26 °C) : banquise N 8,80 / 9,35 / 9,78, S 8,62 / 9,62 / 12,55 Mkm² (NSIDC 8,94 / 8,89) ;
+  Rg soleil 0,132 → 0,128 (Kato 0,122) ; SW réfléchi 110,15 / 111,22 / 112,58 (+1,07 puis +1,36 W/m² par K, contre +1,25 / +1,43) ;
+  OLR −2,1 W/m² par K : rétroaction nette ≈ 1,0 W/m²/K près de 14 °C.
+- **équilibres libres** : 📱 14,04 → 14,85 °C (mesuré 14,26) ; 🏔 19,39 → 19,43 ; 🦣 13,44 → 14,40.
+- **clics 🏔 → 🦣 🐾** : 805 ka 14,54 ; 800 ka (CO₂ 200 ppm) **11,36** — plus de boule de neige ; 795 → 780 ka 11,9 / 13,0 / 13,9 / 13,6.
+  Snyder (cyan) : 7,9 / 7,1 / 8,1 °C à 805 / 800 / 795 ka — le glaciaire du modèle reste ~4 K trop chaud (calottes du nord absentes).
+- **chaîne 🏔 → 📱 complète** (après le seuil de C32 à 0,5 K) : 🏔 19,4 → 21,0 ; 🦣 160 clics, de 800 ka à 15 ka moyenne 12,45 °C,
+  écart-type 1,0 K, cycles de 10,9 à 14,1 °C au rythme du CO₂ d'EPICA ; minimum **8,51 °C à 25 ka** (Snyder, cyan : ~8–8,5 au
+  DMG) ; 🛖 13,45 ; 🚂 13,77 (Copernicus 1850–1900 : 13,5) ; **📱 14,25 °C** (mesuré 14,26). Calottes à 📱 : nord 2,94 Mkm²
+  (Groenland 1,72 mesuré), sud 15,26 (12,3). Calotte nord au plus 2,5 Mkm² au DMG (Laurentide + Fennoscandie : ~25–30) : les
+  cycles glaciaires restent trop faibles (amplitude ~3 K contre 5,5–6,6 chez Snyder), faute des calottes du nord.
