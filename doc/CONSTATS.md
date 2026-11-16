@@ -484,3 +484,20 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   hysteresis 1b 39,21 / 39,35 ; hysteresis 1c 39,16 / 39,31 ; 🔥 surface fondue, inchangé. Les frontières F2 / F4 (seuils de sortie
   des boules de neige, mesurés avant) se décalent de ce fait — elles étaient déjà périmées (HYSTERESIS_FRONTIERES.md).
 
+## C35 — Neige des calottes : l'humidité conservée sur l'emprise (`physics/calottes.js` 1.21.0)
+- **constat** : accumulation de l'Antarctique posé 52 kg m⁻² an⁻¹ contre 143 ± 4 mesurés (Arthern et al. 2006, 🎯) ; la calotte de
+  la bande nord moyenne est nourrie à 7–13 au dernier maximum glaciaire (chaîne C33), d'où une calotte nord d'au plus 2,5 Mkm².
+  Le P − E de Siler par latitude est juste (≈ 300 kg m⁻² an⁻¹ à 60°, 170 vers 85°) : c'est la réduction avec l'altitude
+  p_sat(T_inv(z))/p_sat(T_inv(0)), appliquée point par point, qui retirait l'humidité sans la rendre — l'eau qui converge sur
+  la bande et monte sur la pente disparaissait au lieu de tomber sur les marges.
+- **correction** (⚛, conservation de la masse) : l'air entre dans la calotte par sa marge, à son altitude, et y est soulevé ; la
+  calotte reçoit Σ (P − E)·aire × r_marge sur son emprise, réparti entre ses points ∝ r (intérieur sec, marges humides). Un
+  point seul garde P − E × r (le Tibet n'est pas nourri par la colonne du niveau de la mer). Coût nul.
+- **mesuré** (avant / après, banc `--api`) : Antarctique 52 → **171** (143 ± 4) ; Groenland, aire d'équilibre 0,028 → 0,050 de la
+  bande (actuelle 0,05) ; 2000 14,85 / 14,85 °C, 2025 15,66 / 15,66 °C (les calottes du clic viennent de la config).
+  Une première version (colonne du niveau de la mer pour toute calotte, essayée aussi sur état figé en octobre, carte de l'équation)
+  donnait au Tibet une calotte d'équilibre de 4 Mkm² aujourd'hui : écartée. Effet sur les cycles glaciaires : chaîne à refaire en
+  fin de passe.
+- **vu en passant** : 2025 finit en `oscillation` (avant comme après) ; 2000 → 2025 : +0,81 K à l'équilibre contre ~0,6 mesuré
+  (transitoire).
+

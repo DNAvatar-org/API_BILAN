@@ -72,9 +72,11 @@
 //           humide en diffusion (Siler, Roe & Armour 2018, J. Climate 31:7481, éq. 1, 2, 5) sur le profil T(x) du bilan de North :
 //           F_q(x) = −(2π p_s/g) D (1 − x²) [1 − w(x)] dq/dx, q = HR · q*(T(x)) sur l'eau liquide (une seule phase, ❔ celle des
 //           EBM humides usuels, article non relu), dq/dx analytique, w = e^(−x²/0,3²) (part de la cellule de Hadley),
-//           P − E = −(1/2πa²) dF_q/dx. Sur la glace la sublimation est négligée : la neige d'un point vaut P − E à sa latitude,
-//           réduite avec l'altitude comme la vapeur saturante (sur glace) au sommet de l'inversion, p_sat(T_inv(z))/p_sat(T_inv(0)),
-//           les jours de gel seulement (la pluie ne s'accumule pas) ;
+//           P − E = −(1/2πa²) dF_q/dx. Sur la glace la sublimation est négligée. Humidité CONSERVÉE : l'air entre dans la calotte
+//           par sa marge, à l'altitude de la marge, et y est soulevé ; la calotte reçoit la convergence de vapeur de son emprise,
+//           Σ P−E·aire × r_marge, que l'altitude RÉPARTIT entre ses points au prorata de r = p_sat(T_inv(z))/p_sat(T_inv(0)) au
+//           sommet de l'inversion (sur glace) — intérieur sec, marges humides ; un point seul reçoit P − E × r ; les jours de gel
+//           seulement (la pluie ne s'accumule pas) ;
 //         · fonte : BILAN D'ÉNERGIE DE SURFACE d'une surface qui fond (à 0 °C), Q = τ(1 − α) S + LW↓ − σT₀⁴ + H + LE, linéarisé
 //           autour de T₀ en Q = absorbé + c₀ + c₁ (T_a − T₀) : S = insolation journalière À LA DATE au nœud (physics/orbite.js et
 //           physics/saisons.js) × Soleil de l'époque, τ(1 − α) = part absorbée au sol par une neige sèche, une neige mouillée ou une
@@ -147,7 +149,8 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.20.0
+// Version 1.21.0
+// - v1.21.0 (2026-11-16): neige des calottes : humidité conservée sur l'emprise, colonne au-dessus de la marge (C35).
 // - v1.20.0 (2026-11-02): part ancienne d'un clic sous l'orbite moyenne (SAISONS.moyenne), plus l'orbite d'une date par pas.
 // - v1.19.1 (2026-11-02): commentaires : une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte).
 // - v1.19.0 (2026-11-02): une calotte est N dômes (PALEOGEO.n_morceaux, ses morceaux connexes sur la carte) et non un seul.
@@ -483,12 +486,24 @@
         const g = geometrie(a, bande, geo);
         const cols = c.colonnes(bande, geo), ab = c.absorbe[bande.zone], marge = g.couvertes[g.couvertes.length - 1];
         let B = 0, acc = 0, fonte = 0, Ts = 0, z = 0, lat = 0, H = 0, poids = 0, pdd = 0, mN = 0, mG = 0, sS = 0, sA = 0;
-        for (const k of a === 0 ? [geo.rang[0]] : g.couvertes) {
+        const points = (a === 0 ? [geo.rang[0]] : g.couvertes).map((k) => {
             const w = a === 0 ? 1 : g.f[k] * geo.aire[k];   // aire nulle : le sommet seul, à son point le plus haut
             const zk = socleCouvert(geo, k, a === 0 ? 0 : g.f[k]) + (1 - isostasie()) * g.H[k] - e[k];
             const glace = a > 0 && k !== marge;               // sous la calotte ; sa marge et un sol nu : la terre libre
-            const col = glace ? cols[k].lire(zk) : (a > 0 ? cols[k].marge(zk) : cols[k].libre(zk));
-            const mp = bilanPoint(col.Ts, col.dI, c.cycle(bande, o, glace ? 'calotte' : 'terre'), c.insolation(o, bande.h * geo.lat[k]), ab, c.seb(col.p), cols[k].PmE, col.rapport);
+            return { k: k, w: w, zk: zk, glace: glace, col: glace ? cols[k].lire(zk) : (a > 0 ? cols[k].marge(zk) : cols[k].libre(zk)) };
+        });
+        // Humidité CONSERVÉE : l'air entre dans la calotte par sa MARGE, à l'altitude de la marge, et y est soulevé — la calotte reçoit
+        // toute la convergence de vapeur sur son emprise de la colonne au-dessus de sa marge, Σ P−E·aire × rapport_marge (Siler à
+        // chaque latitude) ; l'altitude de chaque point ne fait que la RÉPARTIR, au prorata de p_sat au sommet de son inversion
+        // (rapport) : intérieur sec, marges humides, la précipitation orographique qui vide l'air montant sur la pente. Une calotte
+        // dont la marge est au niveau de la mer reçoit toute la convergence ; un point seul (aire nulle) garde P − E × son rapport, la
+        // colonne au-dessus de lui. Sans convergence (P − E ≤ 0 partout), pas de neige : rien à répartir.
+        const rMarge = points[points.length - 1].col.rapport;   // la marge : la dernière cellule gagnée (le sommet seul à aire nulle)
+        let conv = 0, reparti = 0;
+        for (const q of points) { const pme = Math.max(0, cols[q.k].PmE); conv += q.w * pme; reparti += q.w * pme * q.col.rapport; }
+        const norme = conv === 0 ? 1 : rMarge * conv / reparti;
+        for (const { k, w, zk, glace, col } of points) {
+            const mp = bilanPoint(col.Ts, col.dI, c.cycle(bande, o, glace ? 'calotte' : 'terre'), c.insolation(o, bande.h * geo.lat[k]), ab, c.seb(col.p), cols[k].PmE, col.rapport * norme);
             B += w * mp.B; acc += w * mp.accumulation; fonte += w * mp.fonte; Ts += w * col.Ts; z += w * zk; lat += w * geo.lat[k];
             H += w * g.H[k]; poids += w; pdd += w * mp.pdd; mN += w * mp.mNeige; mG += w * mp.mGlace; sS += w * mp.sS; sA += w * mp.sA;
         }
