@@ -3,7 +3,8 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.8.8
+// Version 2.9.0
+// - v2.9.0 (2026-11-16): 🧲🌊🔽 (flux de l'océan profond) et 🧮.🌡️🌊 (sa température).
 // Date: [November 4, 2026]
 // logs :
 // - v2.8.8: 📜🔺⚖️🏭⏮, l’émission de la tranche précédente de 📱.
@@ -29,9 +30,9 @@ const KEYS = {
     // Albédo
     '🪩': ['🍰🪩📿', '🍰🪩🎾', '🍰🪩🏜️', '🍰🪩🌳', '🍰🪩🌊', '🍰🪩🧊', '🍰🪩⛅', '🍰🪩🌍', '🍰⚽', '🍰🪩⚽', '🍰🪩💧', '🪩🍰⛅', '☁️', '🪩👁', '🍰📅🧊', '🍰☀️🧊', '🍰☀️🪩🧊', '🧮🪩🍰🧊'],
     // Flux (W/m²) ; ΔF = convention affichage (climate.js), pas calcul T
-    '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
+    '🧲': ['🧲☀️🔽', '🧲🌕🔽', '🧲🌊🔽', '🧲🌑🔼', '🧲🌈🔼', '🧲🪩🔼', '🔺🧲'],
     // Convergence
-    '🧮': ['🧮🌡️', '🧮⚧', '🧮☯', '🧲🔬', '🔬🌈', '🔬🫧', '🧮🔄☀️', '🧮🔄🌊', '🌡️🎱'],
+    '🧮': ['🧮🌡️', '🧮⚧', '🧮☯', '🧲🔬', '🔬🌈', '🔬🫧', '🧮🔄☀️', '🧮🔄🌊', '🌡️🎱', '🌡️🌊'],
     // Soleil
     '☀️': ['🧲☀️', '🧲☀️🎱', '🔋☀️'],
     // Noyau
@@ -142,6 +143,7 @@ const DESC = {
     '🧲': {
         '🧲☀️🔽': 'Flux solaire absorbé',
         '🧲🌕🔽': 'Flux géothermique',
+        '🧲🌊🔽': 'Flux reçu de l’océan profond (W/m²) — négatif quand il prend la chaleur de la surface ; nul au clic frise',
         '🧲🌑🔼': 'Flux sortant (σT⁴)',
         '🧲🌈🔼': 'Courbe spectrale',
         '🧲🪩🔼': 'Flux réfléchi',
@@ -157,6 +159,7 @@ const DESC = {
         '🧮🔄☀️': 'Cycle radiatif (crossings 0°C/T_boil)',
         '🧮🔄🌊': 'Cycle eau (0=init, 1+=après crossing)',
         '🌡️🎱': 'T₂ : coefficient de P₂ du profil méridien T(x) = T̄ + T₂ P₂(x) (K) — état du point fixe glace ↔ gradient, posé par MERIDIEN.resoudre à chaque calcul d’albédo, remis à −28,0 K (condition initiale) au clic frise ; écarts de zone dT_z = −T₂ ⟨P₂⟩_z lus par MERIDIEN.ecarts()',
+        '🌡️🌊': 'Température de l’océan profond (K), portée d’un clic à l’autre : posée à T au clic frise (équilibre), avancée à chaque tictime d’une époque à océan (convergence/calculations_flux.js)',
     },
     '🌕': {
         '🧲🌕': 'Flux géothermique (flux de l\'intérieur à la surface)',
@@ -213,6 +216,7 @@ const FORM = {
     '🧲': {
         '🧲☀️🔽': '🧲☀️🎱 × (1 - 🍰🪩📿) — 🍰🪩📿 inclut le voile SW (1−(1−A_geo)(1−🍰⚽))',
         '🧲🌕🔽': 'Flux géothermique (constant)',
+        '🧲🌊🔽': 'γ_eff (🌡️🌊 du clic précédent − T), γ_eff = γ C₀/(C₀ + γ Δt) (Δt : 📜🔺⏳) : l’océan profond en Euler implicite sur la durée du clic, la couche de mélange à l’équilibre (EARTH.OCEAN_PROFOND, Geoffroy et al. 2013) ; Δ = 🧲☀️🔽 + 🧲🌕🔽 + 🧲🌊🔽 − 🧲🌈🔼, le déséquilibre au sommet vaut alors −🧲🌊🔽',
         '🧲🌑🔼': 'σ × T⁴ = Flux émis par la surface (corps noir théorique à température T). Formule: 🧲🌑🔼 = σT⁴ où σ = 5.670374419e-8 W/(m²·K⁴). Pour T=303.5K: ≈501 W/m². ⚠️ Ce n\'est PAS le flux qui sort au sommet (c\'est 🧲🌈🔼). ⚠️ Ne pas comparer directement à 🧲☀️🔽+🧲🌕🔽 car l\'effet de serre fait que la surface émet plus que ce qui sort.',
         '🧲🌈🔼': 'Σ[λ=0.1→100μm] I_λ(z_max) × Δλ = Aire sous courbe spectrale réelle (émission au sommet atmosphère). Δλ = (λ_max−λ_min)/(N−1) = pas réel de la grille (effective_delta_lambda), pas 0.1 μm fixe. Transfert radiatif: τ_λ(z), transmission exp(-τ), émission (1-exp(-τ))×π×B_λ(T). Intégration: 🧲🌈🔼 = Σ[λ] upward_flux[z_max][λ]. En équilibre: 🧲🌈🔼 ≈ 🧲☀️🔽+🧲🌕🔽',
         '🧲🪩🔼': '🧲☀️🎱 - 🧲☀️🔽 = 🧲☀️🎱 × 🍰🪩📿 (non absorbé en surface, dont voile SW)',
@@ -238,6 +242,7 @@ const FORM = {
         '🧮🔄☀️': 'Cycle radiatif (nombre de crossings 0°C/T_boil)',
         '🧮🔄🌊': 'Cycle eau (0=après init, 1+=après crossing)',
         '🌡️🎱': 'T₂ = 5 (S/S_réf) Σ_z J_z coA_z / (6D + B) (North, Cahalan & Coakley 1981, éq. 32), point fixe avec la glace et les calottes : itération simple x ← G(x) sans relaxation tant que la pente ĝ de G (sécante des deux derniers points) est positive et < 1 ; pas de Wegstein x ← x + (G(x) − x)/(1 − ĝ) quand elle est négative (Wegstein 1958 : une calotte qui répond par un saut) ; pas doublé quand ĝ ≥ 1 (x ← G(x) se traîne loin d’un point fixe instable), x ← x + 2ᵏ (G(x) − x), dans le sens de la dérive jusqu’à encadrer la racine ; racine encadrée (dernier T₂ où G(x) − x > 0, dernier où G(x) − x < 0, itérations ≥ 1) : dichotomie, x ← milieu de l’encadrement (elle converge même quand G saute d’une itération à l’autre) ; arrêt quand |G(x) − x| / (1 − max(ĝ, 0)) < 0,01 K, ĝ < 1 (une pente négative ne réduit pas l’erreur), ou quand l’encadrement fait moins de 0,01 K (G saute : une calotte change de branche, le point fixe est à son seuil), crash au-delà de 100 itérations — physics/meridien.js',
+        '🌡️🌊': 'T₀ ← (C₀ T₀ + γ Δt T)/(C₀ + γ Δt), à la fin d’un tictime ; T₀ = T à la fin d’un clic frise ou hors d’un monde à océan (H2O.mondeOcean)',
         '🧮🌡️🚩': 'T° initiale (T0)'
     },
     '☀️': {

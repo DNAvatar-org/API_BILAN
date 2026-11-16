@@ -62,6 +62,22 @@ Licensed under Apache License 2.0 with Commons Clause.
             d'une stratosphère de peau (carte de la stratosphère). Sherwood et al. 2020 : 2,6–3,9 K par doublement (probable).</p>
         <p class="code">convergence/calculations_flux.js → computeRadiativeTransfer</p>
     </div>
+    <div class="eq M" id="eq-ocean-profond">
+        <div class="titre"><span class="cl M">M</span> Océan profond : la mémoire d'un clic à l'autre</div>
+        <div class="f" data-tex="\bar S(1-A) + F_{\text{int}} - \text{OLR}(T) = \gamma_{\text{eff}}\,(T - T_0),\quad \gamma_{\text{eff}} = \frac{\gamma\,C_0}{C_0 + \gamma\,\Delta t},\quad T_0 \leftarrow \frac{C_0 T_0 + \gamma\,\Delta t\,T}{C_0 + \gamma\,\Delta t}"></div>
+        <p>Modèle à deux couches (Held et al. 2010). La couche de mélange (C = 7,3 W an m⁻² K⁻¹, 77 m) rejoint son équilibre en
+            τ_f = 4,1 ans, moins que les clics les plus courts (25 ans) : elle est prise à l'équilibre. L'océan profond, de capacité
+            C₀ = 91 W an m⁻² K⁻¹ (≈ 1 000 m), échange γ = 0,74 W m⁻² K⁻¹ avec elle ; sa température T₀ avance en Euler implicite sur la
+            durée Δt du clic. Δt → ∞ (clics du Quaternaire) redonne l'équilibre ; un clic de 25 ans en garde le retard. Clic frise :
+            l'équilibre, T₀ = T. Hors d'un monde à océan : rien. Le déséquilibre au sommet vaut γ_eff (T − T₀).</p>
+        <p>💻 C₀ et γ : moyennes de 16 modèles CMIP5 sans INM-CM4 (Geoffroy et al. 2013, table 4 : 91 ± 27 et 0,74 ± 0,18 ; avec lui
+            106 ± 62 et 0,73 ± 0,18). ❔ Valeurs de la Terre actuelle (océan sur 70 %) appliquées à toute époque à océan.</p>
+        <p>🎯 Chemin 1750 → 1875 → 2000 → 2025 (clics de 125 puis 25 ans) : 14,29 / 14,67 / 15,13 °C, déséquilibre 0,15 W/m² en 2000
+            et 0,40 en 2025 (Loeb et al. 2021 : +0,5 → +1,0 W/m²) ; réchauffement 2000 → 2025 +0,46 K (mesuré ≈ +0,64), 1750 → 2025
+            +0,84 K (≈ +1,4) : la sensibilité du modèle est trop basse, ce que l'équilibre (+1,36 K) masquait.</p>
+        <p class="src">Held et al. 2010, J. Climate 23:2418 ; Geoffroy et al. 2013, J. Climate 26:1841 ; contrôle : Loeb et al. 2021, GRL 48:e2021GL093047</p>
+        <p class="code">physics/physics.js → EARTH.OCEAN_PROFOND ; convergence/calculations_flux.js → fluxOceanProfond, avancerOceanProfond ; convergence/clics.js → passer (garde la durée du clic)</p>
+    </div>
     <div class="eq N" id="eq-tolerance-recherche-racine">
         <div class="titre"><span class="cl N">N</span> Tolérance et recherche de la racine</div>
         <div class="f" data-tex="|\Delta F| \le \max\!\left(4\sigma T_e^3\,\delta T,\ \Delta F_{\min}\right),\quad T_e = (\text{OLR}/\sigma)^{1/4}"></div>

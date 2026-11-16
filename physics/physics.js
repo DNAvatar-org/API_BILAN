@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.19.2
+// Version 2.20.0
+// - v2.20.0 (2026-11-16): EARTH.OCEAN_PROFOND (C₀, γ de Geoffroy et al. 2013) — l'océan profond des tictimes (C37).
 // - v2.19.2 (2026-11-01): commentaire : ω des trois boîtes de chaque bande.
 // - v2.19.1 (2026-10-30): commentaires de la glace saisonnière : terre de chaque latitude, forêt sous la neige.
 // - v2.19.0 (2026-10-30): neige des terres masquée par la forêt sous la neige (ALBEDO.foretSousNeige), la même à toutes les latitudes ;
@@ -365,6 +366,15 @@ EARTH.T_FREEZE_SEAWATER_K = 271.15;  // [K]
 // annuelle pour toute saison et toute époque ; ❔ une latitude gelée toute l'année (pack pérenne, boule de neige) est couverte
 // entière — sans bord libre, la glace n'a pas où s'écarter.
 EARTH.CONCENTRATION_BANQUISE = { N: 8.94 / 10.76, S: 8.89 / 11.69 };   // [m²/m²]
+
+// ─── OCÉAN PROFOND : la mémoire d'un clic à l'autre (modèle à deux couches, Held et al. 2010) ───
+// La couche de mélange (C = 7,3 W an m⁻² K⁻¹, ≈ 77 m) rejoint son équilibre en τ_f = 4,1 ans, bien moins que les clics les plus
+// courts (25 ans, 📱) : elle est prise à l'équilibre. L'océan profond, de capacité C₀, échange γ (T − T₀) avec elle et garde la
+// chaleur d'un clic au suivant. 💻 Moyennes de 16 modèles CMIP5 SANS INM-CM4, que l'article écarte (hors de l'ensemble même
+// après correction de sa dérive) : C₀ = 91 ± 27 W an m⁻² K⁻¹, γ = 0,74 ± 0,18 W m⁻² K⁻¹ (avec lui : 106 ± 62 et 0,73 ± 0,18).
+// ❔ Valeurs de la Terre actuelle (océan sur 70 % de la surface) appliquées à toute époque à océan.
+// Réf : Geoffroy et al. 2013, J. Climate 26:1841, table 4 ; Held et al. 2010, J. Climate 23:2418 — doc/equation.html#eq-ocean-profond
+EARTH.OCEAN_PROFOND = { C0_W_AN: 91, GAMMA: 0.74 };   // [W an m⁻² K⁻¹], [W m⁻² K⁻¹]
 EARTH.T_WATER_CYCLE_MIN_C = -10;  // [°C]
 EARTH.T_WATER_CYCLE_MAX_C = 150;  // [°C]
 EARTH.T_WATER_CYCLE_FREEZE_K_PER_ATM = 1;  // [K/atm]

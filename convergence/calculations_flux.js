@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.10.0
+// Version 1.11.0
+// - v1.11.0 (2026-11-16): océan profond à deux couches (Geoffroy 2013) : un tictime cède γ_eff (T − T₀) à l'océan profond (C37).
 // - v1.10.0 (2026-11-16): chaque évaluation du solveur à stratosphère stable (transfertStratoStable) : plus de Δ en retard (C36).
 // - v1.9.0 (2026-11-16): respirations entre les étapes lourdes du fil principal (événement 'respiration', compteur de cycles).
 // - v1.8.0 (2026-11-06): graine de la stratosphère (🫧 🌡️🫧🛩) au début du calcul.
@@ -232,6 +233,7 @@ function calculateT0() {
     delete DATA['🧮']['🧮🌡️🔼'];
     DATA['🧲']['🧲☀️🔽'] = 0;
     DATA['🧲']['🧲🌕🔽'] = 0;
+    DATA['🧲']['🧲🌊🔽'] = 0;
     DATA['🧲']['🧲🌑🔼'] = 0;
     DATA['🧲']['🧲🌈🔼'] = 0;
     DATA['🧲']['🧲🪩🔼'] = 0;
@@ -327,6 +329,27 @@ const STRATO_INIT_MAX = 10;
 // chaque transfert de plus coûte ~0,4 s.
 const STRATO_EVAL_TOL_K = 0.02;
 const STRATO_EVAL_MAX = 4;
+// ─── OCÉAN PROFOND (EARTH.OCEAN_PROFOND, modèle à deux couches) ───
+// Tictime d'un monde à océan : la surface (couche de mélange à l'équilibre) cède γ_eff (T − T₀) à l'océan profond, T₀ celle de la
+// fin du clic précédent, γ_eff = γ C₀/(C₀ + γ Δt) — l'océan profond avancé en Euler implicite sur la durée Δt du clic
+// (📜🔺⏳) : Δt → ∞ (clics du Quaternaire) redonne l'équilibre, Δt → 0 la réponse rapide seule. Clic frise : l'équilibre, sans flux,
+// et T₀ = T à la fin. Hors d'un monde à océan : ni flux ni mémoire.
+// Réf : Held et al. 2010, J. Climate 23:2418 ; Geoffroy et al. 2013, J. Climate 26:1841 — doc/equation.html#eq-ocean-profond
+function oceanProfondActif() { return window.SYNC_STATE.animEnabled && window.H2O.mondeOcean(); }
+/** [W/m²] flux que la surface à T reçoit de l'océan profond pendant ce clic (négatif : elle lui cède sa chaleur) */
+function fluxOceanProfond(T) {
+    if (!oceanProfondActif()) return 0;
+    const O = window.EARTH.OCEAN_PROFOND, gdt = O.GAMMA * window.DATA['📜']['🔺⏳'] * 1e6;   // γ Δt [W an m⁻² K⁻¹]
+    return O.GAMMA * O.C0_W_AN / (O.C0_W_AN + gdt) * (window.DATA['🧮']['🌡️🌊'] - T);
+}
+/** Fin du calcul : l'océan profond à la fin du clic (T : la température retenue) */
+function avancerOceanProfond(T) {
+    const D = window.DATA, O = window.EARTH.OCEAN_PROFOND;
+    if (!oceanProfondActif()) { D['🧮']['🌡️🌊'] = T; return; }
+    const gdt = O.GAMMA * D['📜']['🔺⏳'] * 1e6;
+    D['🧮']['🌡️🌊'] = (O.C0_W_AN * D['🧮']['🌡️🌊'] + gdt * T) / (O.C0_W_AN + gdt);
+}
+
 async function transfertStratoStable() {
     const DATA = window.DATA;
     for (let k = 0; k < (DATA['🧮']['🧮⚧'] === 'Dicho' ? STRATO_EVAL_MAX : 1); k++) {
@@ -574,7 +597,7 @@ async function computeRadiativeTransfer(callback) {
         DATA['🌕']['🧲🌕'] = spectral_result_init.total_flux - flux_solaire_absorbe_init;
         DATA['🌕']['🔋🌕'] = DATA['🌕']['🧲🌕'] * 4 * Math.PI * Math.pow(DATA['📜']['📐'] * 1000, 2);
     }
-    const flux_entrant_init = flux_solaire_absorbe_init + DATA['🌕']['🧲🌕'];
+    const flux_entrant_init = flux_solaire_absorbe_init + DATA['🌕']['🧲🌕'] + fluxOceanProfond(DATA['🧮']['🧮🌡️']);
     // Avertissement mémoire (une fois par session) : pas de garantie cross‑machine, informer si grosse grille
     if (!window._spectralMemoryWarned) {
         const bins = spectral_result_init.lambda_range.length;
@@ -605,6 +628,7 @@ async function computeRadiativeTransfer(callback) {
     // DATA['🧮']['🔬🌈'] et DATA['🧮']['🔬🫧'] déjà mis à jour par calculateFluxForT0
     DATA['🧲']['🧲☀️🔽'] = flux_solaire_absorbe_init;
     DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
+    DATA['🧲']['🧲🌊🔽'] = fluxOceanProfond(DATA['🧮']['🧮🌡️']);
     DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
     DATA['🧲']['🧲🌈🔼'] = flux_sortant_effectif_init;
     DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
@@ -694,11 +718,12 @@ async function computeRadiativeTransfer(callback) {
         const spectral_result = window.RADIATIVE.getSpectralResultFromDATA();
         DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
         DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
+        DATA['🧲']['🧲🌊🔽'] = fluxOceanProfond(DATA['🧮']['🧮🌡️']);
         DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
         DATA['🧲']['🧲🌈🔼'] = spectral_result.total_flux;
         DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
         // 🔺🧲 = entrant − sortant ; équilibre ⇒ ≈ 0. Si |🔺🧲| > tol mais converged, vérifier tol ou état affiché (doc §2.1).
-        DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+        DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] + DATA['🧲']['🧲🌊🔽'] - DATA['🧲']['🧲🌈🔼'];
         T_evalue = DATA['🧮']['🧮🌡️'];
         const b = DATA['📊'] && DATA['📊'].eds_breakdown;
         DATA['📛'] = buildEdsBreakdown(b);
@@ -805,7 +830,7 @@ async function computeRadiativeTransfer(callback) {
                 await respirer(callback, DATA['🧮']['🧮⚧'], 'résolution');
                 const spectral_sync = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_sync.total_flux;
-                DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+                DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] + DATA['🧲']['🧲🌊🔽'] - DATA['🧲']['🧲🌈🔼'];
                 DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
                 window.H2O.calculateH2OGreenhouseForcing();
             }
@@ -821,7 +846,7 @@ async function computeRadiativeTransfer(callback) {
                 const spectral_final = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_final.total_flux;
                 DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
-                DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+                DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] + DATA['🧲']['🧲🌊🔽'] - DATA['🧲']['🧲🌈🔼'];
                 if (DATA['📊'] && DATA['📊'].eds_breakdown) {
                     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
                     if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();
@@ -935,10 +960,11 @@ async function computeRadiativeTransfer(callback) {
             await respirer(callback, DATA['🧮']['🧮⚧'], 'transfert');
             DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
             DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
+            DATA['🧲']['🧲🌊🔽'] = fluxOceanProfond(DATA['🧮']['🧮🌡️']);
             DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
             DATA['🧲']['🧲🌈🔼'] = window.RADIATIVE.getSpectralResultFromDATA().total_flux;
             DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
-            DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
+            DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] + DATA['🧲']['🧲🌊🔽'] - DATA['🧲']['🧲🌈🔼'];
             T_evalue = DATA['🧮']['🧮🌡️'];   // passage du gel ou de l'ébullition : l'état est réévalué au pas atteint
             const bCross = DATA['📊'] && DATA['📊'].eds_breakdown;
             DATA['📛'] = buildEdsBreakdown(bCross);
@@ -1020,6 +1046,7 @@ async function computeRadiativeTransfer(callback) {
             callback('convergenceRefresh', null);
             if (DATA['🧮']['🧮🔄🌊'] >= maxWaterPass) {
                 DATA['🧮']['🧮🛑'] = 'max_water';
+                avancerOceanProfond(DATA['🧮']['🧮🌡️']);
                 return true;
             }
             await window.CONVERGE.cycleDeLeau();
@@ -1144,6 +1171,7 @@ async function computeRadiativeTransfer(callback) {
     if (DATA['🧮']['🧮🛑'] !== 'converged') DATA['🧮']['🧮🌡️'] = T_evalue;
     // Nuages vus d'en haut (simulateur ISCCP, radiative/nuages_isccp.js) : diagnostic de l'état convergé, hors bilan.
     DATA['🪩']['🪩👁'] = window.NUAGES_ISCCP.vusDenHaut(window.RADIATIVE.colonneNuageuse());
+    avancerOceanProfond(DATA['🧮']['🧮🌡️']);   // l'océan profond à la fin du clic, d'où part le suivant
     return true;
     } finally {
         if (apiDbg) console.groupEnd();

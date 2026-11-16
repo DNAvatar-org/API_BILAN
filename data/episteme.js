@@ -347,6 +347,10 @@
         { cible: 'histoire:snyder', ref: 'snyder2016', statut: '🦴', usage: '🎯', quoi: 'température moyenne du globe des 2 derniers Ma, pas de 1 ka, reconstruite des températures de surface de la mer' },
         // ── Équations : bilan, solveur, intérieur, profil (2026-10-14, 2ᵉ lot) ──────────────────────────────────────
         { cible: 'eq:eq-equilibre-sommet-atmosphere', ref: null, statut: '⚛', usage: '📌', quoi: 'bilan d\'énergie au sommet, une seule inconnue T_s' },
+        { cible: 'eq:eq-ocean-profond', ref: 'held2010', statut: '⚛', usage: '📌', quoi: 'modèle à deux couches : couche de mélange à l’équilibre (τ_f ≈ 4 ans ≪ 25 ans), océan profond en Euler implicite sur la durée du clic' },
+        { cible: 'eq:eq-ocean-profond', ref: 'geoffroy2013', statut: '💻', usage: '📌', quoi: 'C₀ = 91 ± 27 W an m⁻² K⁻¹, γ = 0,74 ± 0,18 W m⁻² K⁻¹ : moyennes de 16 modèles CMIP5 sans INM-CM4 (table 4), ajustées sur leurs expériences 4×CO₂' },
+        { cible: 'eq:eq-ocean-profond', ref: 'geoffroy2013', statut: '❔', usage: '📌', quoi: 'valeurs de la Terre actuelle (océan sur 70 % de la surface) appliquées à toute époque à océan' },
+        { cible: 'eq:eq-ocean-profond', ref: 'loeb2021', statut: '📡', usage: '🎯', quoi: 'déséquilibre au sommet 0,5 → 1,0 W/m² (2005–2019) : le modèle donne 0,15 en 2000 et 0,40 en 2025 sur le chemin 1750 → 2025' },
         { cible: 'eq:eq-tolerance-recherche-racine', ref: null, statut: '⚛', usage: '🔢', quoi: 'tolérance 4σT_e³ δT ; pas ≤ 20 K pour s\'arrêter au premier équilibre rencontré' },
         { cible: 'eq:eq-tolerance-recherche-racine', ref: null, statut: '⚛', usage: '🔢', quoi: 'oscillation : deux états évalués à moins de 2 δT = 0,02 K l’un de l’autre, de Δ opposés tous deux hors tolérance — Δ y saute de plus de 2 tol, pas d’équilibre à cette précision ; les motifs de la trace des pas ne décident qu’en Search, quand T stagne' },
         { cible: 'eq:eq-tolerance-recherche-racine', ref: null, statut: '⚛', usage: '🔢', quoi: 'calottes engagées (état porté au clic suivant) sur un calcul convergé seulement ; en sortie oscillation ou max_iter, T du dernier état évalué, calottes gardant leur date' },

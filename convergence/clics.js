@@ -9,7 +9,8 @@
 //
 //       Temps : DATA['📜']['⏳'] = Ma écoulés dans l'époque courante, somme des 🔺⏳ des clics joués. C'est la
 //       seule horloge : getEpochDateConfig en tire la date (▶ ∓ ⏳), l'interface en fait window.infoTimeMa.
-// Version 1.5.0
+// Version 1.6.0
+// - v1.6.0 (2026-11-16): passer garde la durée du clic qui fait passer (océan profond, C37).
 // - v1.5.0 (2026-11-04): 📱 : un bouton à facteur multiplie l'émission de la tranche précédente (📜🔺⚖️🏭⏮).
 // - v1.4.2 (2026-10-29): l'époque se pose par 📜👉 seul (DATA['📅'] en est l'accesseur) ; 🗿 reste écrit pour l'interface.
 // - v1.4.1 (2026-10-29): frise = T₂ du bilan méridien à sa condition initiale (MERIDIEN.depuisConfig).
@@ -181,9 +182,12 @@ window.CLICS = (function () {
             return { passage: null };
         },
 
-        /** Passage à l'époque suivante au fil des clics : l'état (T°, glace, voile) est conservé. */
+        /** Passage à l'époque suivante au fil des clics : l'état (T°, glace, voile) est conservé, et la durée du clic qui a fait
+         *  passer (🔺⏳) — le calcul qui suit est la fin de ce clic (l'océan profond, convergence/calculations_flux.js, l'intègre). */
         passer: function (nextId) {
-            poserEpoque(window.DATA['📜'], nextId);
+            const H = window.DATA['📜'], duree = H['🔺⏳'];
+            poserEpoque(H, nextId);
+            H['🔺⏳'] = duree;
         },
 
         /**

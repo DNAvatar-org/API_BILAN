@@ -516,3 +516,17 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   21 s (avant : oscillation, 17 transferts, 39 s). Version « à chaque évaluation » essayée : 2000 en 64 transferts et 66 s, écartée.
   Les 168 clics de la chaîne C33 avaient tous convergé : l'effet porte sur les grands sauts de T d'un clic.
 
+## C37 — Océan profond : chaque clic allait jusqu'à l'équilibre (`convergence/calculations_flux.js` 1.11.0, `clics.js`)
+- **constat** : 2000 → 2025 donnait +0,82 K, l'équilibre complet en un clic de 25 ans ; la Terre réelle garde ~1 W/m² dans
+  l'océan (Loeb et al. 2021) et se réchauffe avec retard. Le moteur n'avait aucune capacité thermique.
+- **correction** (⚛ + 💻) : modèle à deux couches (Held et al. 2010) ; couche de mélange à l'équilibre (τ_f = 4,1 ans), océan
+  profond C₀ = 91 W an m⁻² K⁻¹, γ = 0,74 W m⁻² K⁻¹ (Geoffroy et al. 2013, table 4, CMIP5 sans INM-CM4, PDF lu) : un tictime d'un
+  monde à océan résout S̄(1−A) + F_int − OLR = γ_eff (T − T₀), γ_eff = γ C₀/(C₀ + γ Δt), puis T₀ avance en Euler implicite ; clic
+  frise = équilibre, T₀ = T. Nouvelles clés 🧲🌊🔽 et 🧮.🌡️🌊. CLICS.passer garde la durée du clic qui fait passer (elle était
+  remise à 0 : le calcul de 2000 au bout du 💫 1875 → 2000 aurait été instantané).
+- **mesuré** : frise 2000 14,85 (inchangé) puis tic 2025 15,30 (déséquilibre 0,28 W/m²) ; chemin 🚂 1750 → 1875 → 2000 → 2025 :
+  14,29 / 14,28 / **14,67** / **15,13** °C (avant : 14,29 / 14,28 / 14,83 / 15,65), déséquilibre 0,15 puis 0,40 W/m² (mesuré
+  +0,5 → +1,0). Réchauffement 2000 → 2025 +0,46 K (≈ +0,64 mesuré), 1750 → 2025 +0,84 K (≈ +1,4) : la sensibilité du modèle
+  est trop basse — l'équilibre (+1,36 K) la masquait. Prochain levier : la rétroaction de la vapeur (DIAGNOSTIC_RETROACTION_VAPEUR.md).
+  Clics du Quaternaire (5 ka) : γ_eff = 0,018 W m⁻² K⁻¹, l'équilibre à 2 % près.
+
