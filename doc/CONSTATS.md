@@ -501,3 +501,18 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - **vu en passant** : 2025 finit en `oscillation` (avant comme après) ; 2000 → 2025 : +0,81 K à l'équilibre contre ~0,6 mesuré
   (transitoire).
 
+## C36 — 2025 en « oscillation » : le Δ en retard d'une stratosphère (`convergence/calculations_flux.js` 1.10.0)
+- **constat** (sondes de scratchpad `osc2025.js`, `bruit_delta.js`) : le clic ⛽ 2000 → 2025 finissait en `oscillation` (Δ non
+  monotone : +0,049 W/m² à 15,651 °C, −0,061 à 15,648). À T fixée (15,65 °C), Δ vaut −0,40 W/m² juste après une évaluation à
+  16,5 °C, −0,12 juste après une à 14,8 °C, −0,275 répétée sur place : le transfert calcule l'OLR avec la stratosphère de
+  l'évaluation précédente, puis pose la sienne (chaque transfert ne fait que la moitié du chemin vers son point fixe). Le bruit,
+  ±0,14 W/m² pour 0,85 K, valait quatorze fois la tolérance de 📱 (0,01 W/m², plancher voulu pour la pente des satellites).
+  L'albédo n'y est pour rien (dépendance au chemin 0,016 W/m², pente lisse −3,4·10⁻³ K⁻¹), le nombre de bins non plus (2 000 en
+  dichotomie). Une oscillation n'engage pas les calottes (branche convergée seulement).
+- **correction** (numérique) : en dichotomie, chaque évaluation refait le transfert tant qu'une couche de la stratosphère bouge de
+  plus de 0,02 K (~0,01 W/m² d'OLR), au plus 4 fois (transfertStratoStable) ; pas pendant la recherche, où Δ vaut des dixièmes à des
+  W/m².
+- **mesuré** (`nb_transferts.js`) : 2000 inchangé (24 transferts, 35 s, 14,85 °C) ; 2025 **converged** 15,67 °C en 19 transferts et
+  21 s (avant : oscillation, 17 transferts, 39 s). Version « à chaque évaluation » essayée : 2000 en 64 transferts et 66 s, écartée.
+  Les 168 clics de la chaîne C33 avaient tous convergé : l'effet porte sur les grands sauts de T d'un clic.
+

@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.9.0
+// Version 1.10.0
+// - v1.10.0 (2026-11-16): chaque évaluation du solveur à stratosphère stable (transfertStratoStable) : plus de Δ en retard (C36).
 // - v1.9.0 (2026-11-16): respirations entre les étapes lourdes du fil principal (événement 'respiration', compteur de cycles).
 // - v1.8.0 (2026-11-06): graine de la stratosphère (🫧 🌡️🫧🛩) au début du calcul.
 // Date: [November 16, 2026]
@@ -317,6 +318,23 @@ let dernierPointRecherche = null;
 // (🦣 à 25 ka : 0,23 K après 10 transferts) ; la boucle du solveur continue de la relaxer à chaque évaluation.
 const STRATO_INIT_TOL_K = 0.5;
 const STRATO_INIT_MAX = 10;
+// Une évaluation du solveur (T, Δ) : le transfert calcule l'OLR avec la stratosphère de l'évaluation précédente, puis pose celle
+// de la sienne. Après un saut de T, l'OLR porte ce retard : à 📱 2025, ±0,14 W/m² pour 0,85 K, quatorze fois la tolérance — la
+// dichotomie lisait du bruit et finissait en « oscillation », sans engager les calottes. Le transfert est refait tant qu'une couche
+// bouge de plus de STRATO_EVAL_TOL_K (~0,01 W/m² d'OLR), au plus STRATO_EVAL_MAX fois ; au-delà (stratosphère qui oscille d'elle-même
+// de quelques dixièmes de K, C32), l'évaluation garde le dernier transfert : son écart reste dans le Δ. Seulement en dichotomie,
+// près de la racine : pendant la recherche (Search), Δ vaut des dixièmes à des W/m², le retard n'y change pas le sens du pas, et
+// chaque transfert de plus coûte ~0,4 s.
+const STRATO_EVAL_TOL_K = 0.02;
+const STRATO_EVAL_MAX = 4;
+async function transfertStratoStable() {
+    const DATA = window.DATA;
+    for (let k = 0; k < (DATA['🧮']['🧮⚧'] === 'Dicho' ? STRATO_EVAL_MAX : 1); k++) {
+        const avant = DATA['🫧']['🌡️🫧🛩'].slice();
+        await window.calculateFluxForT0();
+        if (Math.max(...DATA['🫧']['🌡️🫧🛩'].map((t, i) => Math.abs(t - avant[i]))) < STRATO_EVAL_TOL_K) return;
+    }
+}
 
 /** Calcule l'incrément Search (incTemp) en K.
  * Pente MESURÉE (sécante sur les deux derniers points) quand elle est exploitable (Δ décroît avec T) : ΔT = −Δ/(dΔ/dT).
@@ -669,7 +687,7 @@ async function computeRadiativeTransfer(callback) {
                 if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             }
         }
-        await window.calculateFluxForT0();
+        await transfertStratoStable();
         await respirer(callback, DATA['🧮']['🧮⚧'], 'transfert');
         window.RADIATIVE.calculateRadiativeCapacities();
         await respirer(callback, DATA['🧮']['🧮⚧'], 'capacités');
@@ -912,7 +930,7 @@ async function computeRadiativeTransfer(callback) {
             window.H2O.calculateH2OParameters();
             window.ALBEDO.calculateAlbedo();
             await respirer(callback, DATA['🧮']['🧮⚧'], 'albédo');
-            await window.calculateFluxForT0();
+            await transfertStratoStable();
             window.RADIATIVE.calculateRadiativeCapacities();
             await respirer(callback, DATA['🧮']['🧮⚧'], 'transfert');
             DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
