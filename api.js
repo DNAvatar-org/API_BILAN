@@ -1,6 +1,7 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback), utilisée par les bancs (epoch_bench, headless). Aucun DOM.
-// Version 1.2.2
+// Version 1.3.0
+// - v1.3.0: événement 'respiration' (compteur de cycles, la page reprend la main entre deux étapes lourdes).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Date: October 30, 2026
@@ -15,7 +16,7 @@ window.BILAN_VISU_APP_VERSION = '1.1.0';
 
 /**
  * API Bilan Radiatif : entrée config, sortie via callback(event, payload).
- * Events : 'convergenceStep' | 'cycleCalcul' | 'ProcessFinished'. Singleton : le dernier callback donné gagne.
+ * Events : 'convergenceStep' | 'respiration' | 'cycleCalcul' | 'ProcessFinished'. Singleton : le dernier callback donné gagne.
  */
 function BilanRadiatifAPI(callback) {
     const existing = window.__BILAN_RADIATIF_API_SINGLETON__;
@@ -51,6 +52,7 @@ BilanRadiatifAPI.prototype.prepare = function (config) {
 /**
  * Prépare puis converge. LE point d'entrée de tout calcul (bancs, visu, scie).
  * Le callback (constructeur) reçoit 'convergenceStart' | 'convergenceStep' | 'convergenceRefresh' |
+ * 'respiration' { n, cycle, phase, etape, T_C } (le moteur rend la main au navigateur juste après : compteur, Stop) |
  * 'cycleCalcul' (attendu : peut rendre une promesse) | 'ProcessFinished'.
  * @returns {Promise<true|null>} null si interrompu (window.ABORT_COMPUTE)
  */

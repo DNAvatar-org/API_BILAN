@@ -1,10 +1,10 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.8.0
+// Version 1.9.0
+// - v1.9.0 (2026-11-16): respirations entre les étapes lourdes du fil principal (événement 'respiration', compteur de cycles).
 // - v1.8.0 (2026-11-06): graine de la stratosphère (🫧 🌡️🫧🛩) au début du calcul.
-// - v1.7.4 (2026-11-04): premier pas de Search sous Planck écrit tel quel (les configs frontière en dépendent).
-// Date: [November 6, 2026]
+// Date: [November 16, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // See https://commonsclause.com/ for full terms.
@@ -437,6 +437,23 @@ function cycleEauStep(callback, albedoIter) {
 }
 
 /** Journal fichier des diagnostics (drapeaux CONFIG_COMPUTE.log*) : console + miroir hôte. */
+// Respirations : entre deux étapes lourdes du fil principal (eau et albédo, transfert, capacités), le moteur rend la main au navigateur
+// le temps d'une tâche : la page peint, Stop répond, l'hôte compte. MessageChannel, ni requestAnimationFrame (gelé dans un onglet ou
+// une iframe cachés : le calcul s'arrêterait) ni setTimeout (bridé à 1 s par respiration hors de l'onglet actif). Chaque respiration
+// émet 'respiration' { n, cycle, phase, etape, T_C } au callback du calcul : n compte les respirations du calcul, cycle les pas
+// radiatifs (🧮🔄☀️), phase 'Init' avant le premier pas.
+const canalRespiration = new MessageChannel();
+const respirationsEnAttente = [];
+canalRespiration.port1.onmessage = function () { respirationsEnAttente.shift()(); };
+let respirationN = 0;
+function respirer(callback, phase, etape) {
+    const DATA = window.DATA;
+    respirationN++;
+    callback('respiration', { n: respirationN, cycle: DATA['🧮']['🧮🔄☀️'], phase: phase, etape: etape,
+        T_C: DATA['🧮']['🧮🌡️'] - window.CONST.KELVIN_TO_CELSIUS });
+    return new Promise(function (r) { respirationsEnAttente.push(r); canalRespiration.port2.postMessage(0); });
+}
+
 function logDiag(flag, msg) {
     console.log(msg);
     window.debugMirrorConfigLogToFile(flag, msg);
@@ -445,7 +462,7 @@ function logDiag(flag, msg) {
 /**
  * Convergence radiative depuis l'état préparé par initForConfig (🧮🔄🌊 = 0, previous = []).
  * Contrôle 🎯 (pas une source du calcul) : Sherwood et al. 2020, Rev. Geophys. 58:e2019RG000678 ; Loeb et al. 2021, Geophys. Res. Lett. 48:e2021GL093047 — doc/equation.html#eq-equilibre-sommet-atmosphere
- * @param {function(string, object)} callback - reçoit 'convergenceStep' et 'cycleCalcul'
+ * @param {function(string, object)} callback - reçoit 'convergenceStep', 'cycleCalcul' et 'respiration' (respirer)
  */
 async function computeRadiativeTransfer(callback) {
     const DATA = window.DATA;
@@ -457,13 +474,19 @@ async function computeRadiativeTransfer(callback) {
     try {
     if (window.ABORT_COMPUTE) return null;
     callback('convergenceStart', null);
+    respirationN = 0;
+    await respirer(callback, 'Init', 'départ');   // le compteur s'affiche avant le premier transfert (tables spectrales à froid : ~10 s)
     dernierPointRecherche = null;
     window._convergenceOscTrace = { t: [], d: [] };
     const maxWaterPass = 5;
     DATA['🧮']['🧮🔄🪩'] = 0;
     // Intérieur amené à la date courante (bilan d'énergie, geology/interieur.js). Fondu : la surface EST le
     // magma — la T de départ est celle de l'intérieur, et le flux intérieur sortira du radiatif de l'init.
-    await window.INTERIEUR.avancer(olrNetA);
+    await window.INTERIEUR.avancer(async function (T_K) {
+        const net = await olrNetA(T_K);
+        await respirer(callback, 'Init', 'intérieur');
+        return net;
+    });
     if (window.INTERIEUR.estFondu()) {
         const Tm = DATA['🌕']['🌡️🌕'];
         DATA['🧮']['🧮🌡️'] = Tm; DATA['🧮']['🧮🌡️⏮'] = Tm; DATA['🧮']['🧮🌡️🚩'] = Tm;
@@ -479,6 +502,7 @@ async function computeRadiativeTransfer(callback) {
         DATA['🧮']['🧮⚧'] = 'Search';
         for (let w = 0; w < climateSpinupCyclesEffective; w++) {
             const resSpinup = await window.CONVERGE.cycleDeLeau();
+            await respirer(callback, 'Init', 'eau');
             if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[spinup] CycleEau #' + (w + 1) + ' @' + (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(1) + '°C');
             cycleEauStep(callback, w);
             if (!resSpinup.changed) break;
@@ -488,6 +512,7 @@ async function computeRadiativeTransfer(callback) {
     } else {
         for (let w = 0; w < CONFIG_COMPUTE.maxWaterAlbedoCyclesAtInit; w++) {
             const resInit = await window.CONVERGE.cycleDeLeau();
+            await respirer(callback, 'Init', 'eau');
             if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[cycle] Init @' + (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(1) + '°C');
             cycleEauStep(callback, w);
             if (!resInit.changed) break;
@@ -504,6 +529,7 @@ async function computeRadiativeTransfer(callback) {
     H2O.calculateH2OParameters();
     window.ALBEDO.calculateAlbedo();
     DATA['🧮']['🧮⚧'] = phaseBeforeFirstFlux;
+    await respirer(callback, 'Init', 'albédo');
 
     // Stratosphère : la graine grise de peau (calculateT0) n'est pas son équilibre ; chaque transfert pose l'équilibre SOUS ce transfert
     // pour l'évaluation suivante. Itéré ici à T₀ jusqu'à son point fixe (plus aucune couche ne bouge de STRATO_INIT_TOL_K) avant le
@@ -515,7 +541,9 @@ async function computeRadiativeTransfer(callback) {
         const avant = DATA['🫧']['🌡️🫧🛩'].slice();
         await window.calculateFluxForT0();
         if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
+        await respirer(callback, 'Init', 'stratosphère');
         window.ALBEDO.calculateAlbedo();
+        await respirer(callback, 'Init', 'albédo');
         const ecart = Math.max(...DATA['🫧']['🌡️🫧🛩'].map((t, i) => Math.abs(t - avant[i])));
         if (ecart < STRATO_INIT_TOL_K) break;
         if (k + 1 >= STRATO_INIT_MAX) throw new Error('[computeRadiativeTransfer] Init : stratosphère sans point fixe après ' + STRATO_INIT_MAX
@@ -540,6 +568,7 @@ async function computeRadiativeTransfer(callback) {
         }
     }
     window.RADIATIVE.calculateRadiativeCapacities();
+    await respirer(callback, 'Init', 'capacités');
     // Équilibre radiatif (sommet de l'atmosphère) :
     // - flux_entrant = solaire absorbé + géothermique (ce que la planète reçoit).
     // - flux_sortant_effectif = intégrale du spectre d'émission réel au sommet = aire sous la courbe "réelle"
@@ -626,12 +655,14 @@ async function computeRadiativeTransfer(callback) {
         if (maxWaterAlbedo <= 1) {
             window.H2O.calculateH2OParameters();
             window.ALBEDO.calculateAlbedo();
+            await respirer(callback, DATA['🧮']['🧮⚧'], 'albédo');
             if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[cycle] radiatif @' + (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(1) + '°C CO₂=' + DATA['⚖️']['⚖️🏭'].toExponential(2) + 'kg');
             cycleEauStep(callback, DATA['🧮']['🧮🔄🪩']);
         } else {
             const baseAlbedoIter = DATA['🧮']['🧮🔄🪩'] * maxWaterAlbedo;
             for (let w = 0; w < maxWaterAlbedo; w++) {
                 const res = await window.CONVERGE.cycleDeLeau();
+                await respirer(callback, DATA['🧮']['🧮⚧'], 'eau');
                 if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[cycle] radiatif w=' + w + ' @' + (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(1) + '°C CO₂=' + DATA['⚖️']['⚖️🏭'].toExponential(2) + 'kg');
                 cycleEauStep(callback, baseAlbedoIter + w);
                 if (!res.changed) break;
@@ -639,7 +670,9 @@ async function computeRadiativeTransfer(callback) {
             }
         }
         await window.calculateFluxForT0();
+        await respirer(callback, DATA['🧮']['🧮⚧'], 'transfert');
         window.RADIATIVE.calculateRadiativeCapacities();
+        await respirer(callback, DATA['🧮']['🧮⚧'], 'capacités');
         const spectral_result = window.RADIATIVE.getSpectralResultFromDATA();
         DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
         DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
@@ -751,6 +784,7 @@ async function computeRadiativeTransfer(callback) {
             if (actualBins !== currentBins) {
                 await window.calculateFluxForT0();
                 window.RADIATIVE.calculateRadiativeCapacities();
+                await respirer(callback, DATA['🧮']['🧮⚧'], 'résolution');
                 const spectral_sync = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_sync.total_flux;
                 DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] - DATA['🧲']['🧲🌈🔼'];
@@ -765,6 +799,7 @@ async function computeRadiativeTransfer(callback) {
                 DATA['🧮']['🔬🌈'] = maxBins;
                 await window.calculateFluxForT0();
                 window.RADIATIVE.calculateRadiativeCapacities();
+                await respirer(callback, DATA['🧮']['🧮⚧'], 'passe finale');
                 const spectral_final = window.RADIATIVE.getSpectralResultFromDATA();
                 DATA['🧲']['🧲🌈🔼'] = spectral_final.total_flux;
                 DATA['🧲']['🧲🪩🔼'] = DATA['☀️']['🧲☀️🎱'] * DATA['🪩']['🍰🪩📿'];
@@ -782,6 +817,7 @@ async function computeRadiativeTransfer(callback) {
             // à 3 % de l'EDS quand le retrait en mesure 37 %. Voir doc/DIAGNOSTIC_ATTRIBUTION_EDS.md.
             if (CONFIG_COMPUTE.edsAttributionByRemoval && DATA['📛']) {
                 const shares = await window.RADIATIVE.computeEdsRemovalShares();
+                await respirer(callback, DATA['🧮']['🧮⚧'], 'attribution');
                 if (shares && shares.pct) {
                     const E = DATA['📛']['🧲📛'];
                     DATA['📛']['🍰📛🏭'] = shares.pct['🏭'];
@@ -875,8 +911,10 @@ async function computeRadiativeTransfer(callback) {
             DATA['🧮']['🧮🔄☀️']++;
             window.H2O.calculateH2OParameters();
             window.ALBEDO.calculateAlbedo();
+            await respirer(callback, DATA['🧮']['🧮⚧'], 'albédo');
             await window.calculateFluxForT0();
             window.RADIATIVE.calculateRadiativeCapacities();
+            await respirer(callback, DATA['🧮']['🧮⚧'], 'transfert');
             DATA['🧲']['🧲☀️🔽'] = window.ALBEDO.calculateSolarFluxAbsorbed();
             DATA['🧲']['🧲🌕🔽'] = DATA['🌕']['🧲🌕'];
             DATA['🧲']['🧲🌑🔼'] = CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4);
@@ -967,6 +1005,7 @@ async function computeRadiativeTransfer(callback) {
                 return true;
             }
             await window.CONVERGE.cycleDeLeau();
+            await respirer(callback, DATA['🧮']['🧮⚧'], 'eau');
             callback('convergenceRefresh', null);
             if (window.ABORT_COMPUTE) { DATA['🧮']['🧮🛑'] = 'abort'; return null; }
             DATA['🧮']['🧮🔄🌊']++;
