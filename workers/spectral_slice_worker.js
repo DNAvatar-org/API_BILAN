@@ -1,12 +1,13 @@
 // File: API_BILAN/workers/spectral_slice_worker.js - Tranche spectrale pour parallélisation (découpage bande λ)
 // Desc: Tranche (lambda_range, layers) → transfert radiatif → Float32Array transféré au main (Transferable, zero-copy).
-// Version 0.15.0
+// Version 0.16.0
+// - v0.16.0 (2026-11-16): CO₂ et CH₄ lus à la pression de leur auto-élargissement (iPCO2, iPCH4), comme H₂O.
 // - v0.15.0 (2026-11-06): transmission de chaque couche de stratosphère par λ (leur équilibre radiatif) ; O₃ et N₂O (raies HITRAN).
 // - v0.14.0 (2026-10-30): σ à la (T, P) de la couche : tables σ[iT·nP + iP], ln σ linéaire en ln P (au lieu de σ·√(P/P₀)).
 // - v0.13.2 (2026-10-24): commentaire des nuages — schéma de profilAtmosphere (Ackerman & Marley est rejeté).
 // Copyright 2025 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
-// Date: [November 6, 2026]
+// Date: [November 16, 2026]
 
 
 /**
@@ -84,8 +85,9 @@ function spectralSliceWorkerMain() {
             var delta_z_real = L.delta_z_real;
             var a = L.iT, w = L.wT;
             var r = a * nP + L.iP, v = L.wP, rH = a * nP + L.iPH2O, vH = L.wPH2O;   // lignes (T bas, P bas) ; T haut : + nP
-            var sC00 = sigma_CO2[r], sC01 = sigma_CO2[r + 1], sC10 = sigma_CO2[r + nP], sC11 = sigma_CO2[r + nP + 1];
-            var sM00 = sigma_CH4[r], sM01 = sigma_CH4[r + 1], sM10 = sigma_CH4[r + nP], sM11 = sigma_CH4[r + nP + 1];
+            var rC = a * nP + L.iPCO2, vC = L.wPCO2, rM = a * nP + L.iPCH4, vM = L.wPCH4;   // CO₂, CH₄ : pression de l'auto-élargissement
+            var sC00 = sigma_CO2[rC], sC01 = sigma_CO2[rC + 1], sC10 = sigma_CO2[rC + nP], sC11 = sigma_CO2[rC + nP + 1];
+            var sM00 = sigma_CH4[rM], sM01 = sigma_CH4[rM + 1], sM10 = sigma_CH4[rM + nP], sM11 = sigma_CH4[rM + nP + 1];
             var sO00 = sigma_O3[r], sO01 = sigma_O3[r + 1], sO10 = sigma_O3[r + nP], sO11 = sigma_O3[r + nP + 1];
             var sN00 = sigma_N2O[r], sN01 = sigma_N2O[r + 1], sN10 = sigma_N2O[r + nP], sN11 = sigma_N2O[r + nP + 1];
             var sH00 = sigma_H2O[rH], sH01 = sigma_H2O[rH + 1], sH10 = sigma_H2O[rH + nP], sH11 = sigma_H2O[rH + nP + 1];
@@ -98,9 +100,9 @@ function spectralSliceWorkerMain() {
 
             for (var j = 0; j < nL; j++) {
                 var lambda = lambda_range[j];
-                var kappa_CO2 = enPression(sC00[j] + w * (sC10[j] - sC00[j]), sC01[j] + w * (sC11[j] - sC01[j]), v) * n_CO2;
+                var kappa_CO2 = enPression(sC00[j] + w * (sC10[j] - sC00[j]), sC01[j] + w * (sC11[j] - sC01[j]), vC) * n_CO2;
                 var kappa_H2O = enPression(sH00[j] + w * (sH10[j] - sH00[j]), sH01[j] + w * (sH11[j] - sH01[j]), vH) * n_H2O;
-                var kappa_CH4 = enPression(sM00[j] + w * (sM10[j] - sM00[j]), sM01[j] + w * (sM11[j] - sM01[j]), v) * n_CH4;
+                var kappa_CH4 = enPression(sM00[j] + w * (sM10[j] - sM00[j]), sM01[j] + w * (sM11[j] - sM01[j]), vM) * n_CH4;
                 var kappa_cont = (cS0[j] + w * (cS1[j] - cS0[j])) * cs + (cF0[j] + w * (cF1[j] - cF0[j])) * cf;   // continuum H₂O, m⁻¹
                 // CIA CO₂–CO₂ : κ [cm⁻¹] = k·n², ×100 → m⁻¹. Comptée avec le CO₂ (attribution EDS).
                 var kappa_CIA = (cC0[j] + w * (cC1[j] - cC0[j])) * nCO2cm3 * nCO2cm3 * 100;

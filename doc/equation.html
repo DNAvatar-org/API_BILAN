@@ -340,11 +340,13 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p class="code">calculations.js → tablesSigma, indexPressionSigma, coucheWorker ; spectral_slice_worker.js → enPression ; CONFIG_COMPUTE.pressureBroadening (false : tables de 1 atm à toutes les couches)</p>
     </div>
     <div class="eq P" id="eq-auto-elargissement-vapeur">
-        <div class="titre"><span class="cl P">P</span> Auto-élargissement de la vapeur</div>
-        <div class="f" data-tex="P_{\text{eff}} = P\left[1 + x_v\,(R_{\text{self}}-1)\right],\qquad R_{\text{self}} = \frac{\sum S_i\gamma_{\text{self},i}}{\sum S_i\gamma_{\text{air},i}}"></div>
-        <p>Rapport tiré des raies elles-mêmes (≈ 5) ; négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur.
-            La table de H₂O est lue à la pression effective \(P_{\text{eff}}\) (carte de l'élargissement par la pression).</p>
-        <p class="code">calculations.js → rapportAutoElargissementH2O, coucheWorker</p>
+        <div class="titre"><span class="cl P">P</span> Auto-élargissement de la vapeur, du CO₂ et du CH₄</div>
+        <div class="f" data-tex="P_{\text{eff}} = P\left[1 + x\,(R_{\text{self}}-1)\right],\qquad R_{\text{self}} = \frac{\sum S_i\gamma_{\text{self},i}}{\sum S_i\gamma_{\text{air},i}}"></div>
+        <p>x : fraction molaire du gaz. Rapports tirés des raies elles-mêmes : H₂O 5,30, CO₂ 1,32, CH₄ 1,35. Négligeable à 1 % de
+            vapeur ou à 400 ppm de CO₂, sensible dans une atmosphère de vapeur ou de CO₂. La table de chaque gaz est lue à sa pression
+            effective \(P_{\text{eff}}\) (carte de l'élargissement par la pression). Effet mesuré à l'équilibre : 📱 inchangé ;
+            🦠 et 🪸 (~10 % de CO₂) +0,26 et +0,27 °C.</p>
+        <p class="code">calculations.js → rapportAutoElargissement, coucheWorker ; spectral_slice_worker.js (iPH2O, iPCO2, iPCH4)</p>
     </div>
     <div class="eq M" id="eq-continuum-vapeur-eau">
         <div class="titre"><span class="cl M">M</span> Continuum de la vapeur d'eau</div>

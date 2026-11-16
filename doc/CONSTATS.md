@@ -473,3 +473,14 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   DMG) ; 🛖 13,45 ; 🚂 13,77 (Copernicus 1850–1900 : 13,5) ; **📱 14,25 °C** (mesuré 14,26). Calottes à 📱 : nord 2,94 Mkm²
   (Groenland 1,72 mesuré), sud 15,26 (12,3). Calotte nord au plus 2,5 Mkm² au DMG (Laurentide + Fennoscandie : ~25–30) : les
   cycles glaciaires restent trop faibles (amplitude ~3 K contre 5,5–6,6 chez Snyder), faute des calottes du nord.
+
+## C34 — Auto-élargissement du CO₂ et du CH₄ (`radiative/calculations.js` 1.19.0, worker 0.16.0)
+- **constat** (validation des équations 2026-11-06, `eq-profil-voigt-largeurs`) : seules les raies de H₂O étaient lues à la pression
+  effective de leur auto-élargissement ; le CO₂ et le CH₄ l'étaient à P, comme dans l'air pur — alors que le CO₂ fait ~10 % de
+  l'atmosphère à l'Archéen et au Protérozoïque, et 10–50 % à l'Hadéen.
+- **correction** (⚛ + 📡) : P_eff = P[1 + x(R_self − 1)] pour les trois gaz, x leur fraction molaire, R_self = ΣSγ_self/ΣSγ_air
+  tiré des raies HITRAN : H₂O 5,296, CO₂ 1,324, CH₄ 1,348. Coût nul (un index de pression de plus par couche).
+- **mesuré** (avant / après, banc `--api` sur la version commitée) : 📱 14,85 / 14,85 ; 🦠 16,68 / 16,94 ; 🪸 21,95 / 22,22 ;
+  hysteresis 1b 39,21 / 39,35 ; hysteresis 1c 39,16 / 39,31 ; 🔥 surface fondue, inchangé. Les frontières F2 / F4 (seuils de sortie
+  des boules de neige, mesurés avant) se décalent de ce fait — elles étaient déjà périmées (HYSTERESIS_FRONTIERES.md).
+

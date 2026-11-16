@@ -1,13 +1,14 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.18.0
+// Version 1.19.0
+// - v1.19.0 (2026-11-16): auto-élargissement du CO₂ (1,32) et du CH₄ (1,35) comme celui de H₂O (pression effective de la couche).
 // - v1.18.0 (2026-11-06): stratosphère en N_STRATES couches en équilibre radiatif (flux montant et descendant), ozone à la
 //   forme verticale mesurée (data/ozone_afgl.js).
 // - v1.17.0 (2026-11-06): continuum H₂O MT_CKD 4.3 (tablesContinuum) au lieu de Roberts 1976 ; stratosphère en équilibre radiatif raie par raie, ozone compris (equilibreStratosphere) : le
 //   forçage équilibré est le forçage ajusté ; pas saturé hydrostatique (la vapeur suit p_sat, pas le mélange).
 // - v1.16.0 (2026-10-30): sections efficaces à la pression de la couche (tables σ(λ, T, P), ln σ linéaire en ln P) au lieu de
 //   σ(1 atm)·√(P/P₀).
-// Date: [November 6, 2026]
+// Date: [November 16, 2026]
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 
@@ -168,17 +169,17 @@ function indexTemperatureSigma(T) {
     return { iT: i, wT: (T - G[i]) / (G[i + 1] - G[i]) };
 }
 
-// Auto-élargissement de H₂O : une molécule d'eau élargit les raies d'eau bien plus qu'une molécule d'air
-// (γ_self / γ_air ≈ 5). Négligeable à 1 % de vapeur, dominant dans une atmosphère de vapeur. Le rapport est tiré
-// des raies elles-mêmes (moyenne pondérée par S), pas posé.
+// Auto-élargissement : une molécule d'un gaz élargit ses propres raies plus qu'une molécule d'air — H₂O ≈ 5,3, CO₂ ≈ 1,32,
+// CH₄ ≈ 1,35. Négligeable à 1 % de vapeur ou à 400 ppm de CO₂, sensible dans une atmosphère de vapeur ou de CO₂ (Archéen 5–15 %,
+// Hadéen 10–50 % de CO₂). Le rapport γ_self/γ_air est tiré des raies elles-mêmes (moyenne pondérée par S), pas posé.
 // Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-auto-elargissement-vapeur
-let _rapportSelfH2O = null;
-function rapportAutoElargissementH2O() {
-    if (_rapportSelfH2O !== null) return _rapportSelfH2O;
+const _rapportSelf = {};
+function rapportAutoElargissement(gaz) {
+    if (gaz in _rapportSelf) return _rapportSelf[gaz];
     let num = 0, den = 0;
-    for (const l of window.HITRAN_LINES_H2O) { num += l.sw * l.gamma_self; den += l.sw * l.gamma_air; }
-    _rapportSelfH2O = num / den;
-    return _rapportSelfH2O;
+    for (const l of window['HITRAN_LINES_' + gaz]) { num += l.sw * l.gamma_self; den += l.sw * l.gamma_air; }
+    _rapportSelf[gaz] = num / den;
+    return _rapportSelf[gaz];
 }
 
 /**
@@ -222,8 +223,9 @@ function tablesContinuum(lambda_range) {
 
 /**
  * Une couche pour le worker. x_v : fraction MOLAIRE de vapeur ; n_H2O_mol = x_v·n_total (continuum, molaire par
- * définition). Sections efficaces à la (T, P) de la couche (tablesSigma) ; pour H₂O, l'auto-élargissement donne la pression
- * effective P·(1 + x_v·(R_self − 1)). CONFIG_COMPUTE.pressureBroadening = false : tables de 1 atm à toutes les couches.
+ * définition). Sections efficaces à la (T, P) de la couche (tablesSigma) ; pour H₂O, CO₂ et CH₄, l'auto-élargissement donne la
+ * pression effective P·(1 + x·(R_self − 1)), x fraction molaire du gaz. CONFIG_COMPUTE.pressureBroadening = false : tables de 1 atm
+ * à toutes les couches.
  * Réf : Kochanov et al. 2016, J. Quant. Spectrosc. Radiat. Transfer 177:15 — doc/equation.html#eq-elargissement-par-pression ; Roberts, Selby & Biberman 1976, Appl. Opt. 15:2085 — doc/equation.html#eq-continuum-vapeur-eau
  */
 function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, n_N2O, x_v, dz, tauNuage) {
@@ -235,13 +237,16 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, n_N2O, x_v, dz, ta
     const it = indexTemperatureSigma(T);
     const P_atm = P / P_REF;
     const ip = indexPressionSigma(pb ? P_atm : 1);
-    const ipH2O = indexPressionSigma(pb ? P_atm * (1 + x_v * (rapportAutoElargissementH2O() - 1)) : 1);
+    const pEff = (gaz, x) => indexPressionSigma(pb ? P_atm * (1 + x * (rapportAutoElargissement(gaz) - 1)) : 1);
+    const ipH2O = pEff('H2O', x_v), ipCO2 = pEff('CO2', n_CO2 / n_air), ipCH4 = pEff('CH4', n_CH4 / n_air);
     return {
         T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, n_O3: n_O3, n_N2O: n_N2O, delta_z_real: dz,
         tauNuage: tauNuage,   // τ_eff d'absorption IR des nuages de la couche (gris), profilAtmosphere
         iT: it.iT, wT: it.wT,
-        iP: ip.iP, wP: ip.wP,                 // CO₂, CH₄, O₃, N₂O
-        iPH2O: ipH2O.iP, wPH2O: ipH2O.wP,     // H₂O (pression effective de l'auto-élargissement)
+        iP: ip.iP, wP: ip.wP,                 // O₃, N₂O (traces : sans auto-élargissement)
+        iPH2O: ipH2O.iP, wPH2O: ipH2O.wP,     // H₂O, CO₂, CH₄ : pression effective de l'auto-élargissement
+        iPCO2: ipCO2.iP, wPCO2: ipCO2.wP,
+        iPCH4: ipCH4.iP, wPCH4: ipCH4.wP,
         // Continuum MT_CKD : κ [m⁻¹] = 100·n_w·[self(T)·n_w/n_ref + foreign(T)·n_f/n_ref] (tablesContinuum), n en cm⁻³
         contSelf: 100 * n_w * n_w / n_ref,
         contForeign: 100 * n_w * (n_cm3 - n_w) / n_ref
