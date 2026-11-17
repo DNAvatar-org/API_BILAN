@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.19.0
+// Version 1.19.1
+// - v1.19.1 (2026-11-17): auto-élargissement en pression partielle (n_gaz·k_B·T) : plus de 0/0 dans le vide (⚫).
 // - v1.19.0 (2026-11-16): auto-élargissement du CO₂ (1,32) et du CH₄ (1,35) comme celui de H₂O (pression effective de la couche).
 // - v1.18.0 (2026-11-06): stratosphère en N_STRATES couches en équilibre radiatif (flux montant et descendant), ozone à la
 //   forme verticale mesurée (data/ozone_afgl.js).
@@ -237,8 +238,10 @@ function coucheWorker(T, P, n_air, n_CO2, n_H2O, n_CH4, n_O3, n_N2O, x_v, dz, ta
     const it = indexTemperatureSigma(T);
     const P_atm = P / P_REF;
     const ip = indexPressionSigma(pb ? P_atm : 1);
-    const pEff = (gaz, x) => indexPressionSigma(pb ? P_atm * (1 + x * (rapportAutoElargissement(gaz) - 1)) : 1);
-    const ipH2O = pEff('H2O', x_v), ipCO2 = pEff('CO2', n_CO2 / n_air), ipCH4 = pEff('CH4', n_CH4 / n_air);
+    // P·(1 + x(R−1)) = P + p_gaz(R−1), p_gaz = n_gaz·k_B·T la pression partielle (n = P/k_BT au profil) : nulle dans le vide (⚫, n_air = 0)
+    const pEff = (gaz, p_gaz) => indexPressionSigma(pb ? (P + p_gaz * (rapportAutoElargissement(gaz) - 1)) / P_REF : 1);
+    const kT = CONST.BOLTZMANN_KB * T;
+    const ipH2O = pEff('H2O', x_v * P), ipCO2 = pEff('CO2', n_CO2 * kT), ipCH4 = pEff('CH4', n_CH4 * kT);
     return {
         T: T, n_air: n_air, n_CO2: n_CO2, n_H2O: n_H2O, n_CH4: n_CH4, n_O3: n_O3, n_N2O: n_N2O, delta_z_real: dz,
         tauNuage: tauNuage,   // τ_eff d'absorption IR des nuages de la couche (gris), profilAtmosphere
