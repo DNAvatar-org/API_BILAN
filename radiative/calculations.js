@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.19.1
+// Version 1.20.0
+// - v1.20.0 (2026-11-17): nuages moyens à leur température : part liquide fLiqMoyen (C40).
 // - v1.19.1 (2026-11-17): auto-élargissement en pression partielle (n_gaz·k_B·T) : plus de 0/0 dans le vide (⚫).
 // - v1.19.0 (2026-11-16): auto-élargissement du CO₂ (1,32) et du CH₄ (1,35) comme celui de H₂O (pression effective de la couche).
 // - v1.18.0 (2026-11-06): stratosphère en N_STRATES couches en équilibre radiatif (flux montant et descendant), ozone à la
@@ -537,8 +538,11 @@ function profilAtmosphere(z_range) {
     // Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous 🚂). L'effet Twomey
     // (même eau, gouttes plus petites, τ plus grand) reste entier : r_eff prend N de l'époque (× rapport de CCN).
     const rCCN = window.ALBEDO.rapportCCN();
-    // Réf : aucune source mesurée (voir validation 2026-11-06) — doc/equation.html#eq-phase-liquide-glace
-    /** Part liquide du condensat à la température Tc (Hu & Stamnes 1993 : linéaire de T_TOUT_GLACE à CONST.T0_WATER). */
+    // Rampe linéaire de T_TOUT_GLACE (−40 °C, plus de liquide surfondu) à CONST.T0_WATER (paramétrisation, ⚠️ déclarée).
+    // Contrôle satellite : CALIPSO-GOCCP (Li et al. 2017, ACP 17:1847, §3.1) à −9/−12 °C : 55–75 % de liquide entre 30° N et
+    // 30° S, > 75 % au-delà de 60° ; la rampe donne 0,74 à −10,5 °C. Moins de liquide à −20 °C (< 45 % aux latitudes moyennes
+    // nord en été) ; la rampe donne 0,50. — doc/equation.html#eq-phase-liquide-glace
+    /** Part liquide du condensat à la température Tc. */
     const fLiquide = (Tc) => Math.max(0, Math.min(1, (Tc - N.T_TOUT_GLACE) / (CONST.T0_WATER - N.T_TOUT_GLACE)));
     const nuagesBas = [
         { nom: 'océan', marin: true, poids: oc, k: N.K_MARTIN_OCEAN, nActuel: DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * 1e6 },
@@ -555,7 +559,8 @@ function profilAtmosphere(z_range) {
     }));
     let dansNuage = false, zBase = 0, z = 0;
     let iEnclume = -1, tEnclume = 0;                     // couche où la parcelle passe T_ENCLUME (nuages hauts)
-    let iMoyen = -1, wSousMoyen = 0;                     // couche où p/p_s passe SIGMA_MOYEN (nuages moyens), vapeur effective dessous
+    let iMoyen = -1, wSousMoyen = 0, tMoyen = 0;         // couche où p/p_s passe SIGMA_MOYEN (nuages moyens), vapeur effective dessous,
+                                                         // température de l'environnement à ce niveau (pas fin)
     // Eau précipitable EFFECTIVE pour la vapeur du rayonnement solaire, à l'échelle des coefficients k de Chou & Suarez 1999
     // (NASA TM-104606 vol. 15, éq. 3.3 et 3.5 ; leur table 2 est calculée raie par raie à p_r = 300 hPa et θ_r = 240 K) [g/cm²] :
     //     w = ∫ q (p/p_r)^0,8 [1 + 0,00135 (T − θ_r)] dp/g
@@ -683,7 +688,7 @@ function profilAtmosphere(z_range) {
                 continue;
             }
             if (iEnclume < 0 && Te <= N.T_ENCLUME) { iEnclume = i - 1; tEnclume = Te; }
-            if (iMoyen < 0 && (p_a + p_c) / P_s <= N.SIGMA_MOYEN) { iMoyen = i - 1; wSousMoyen = wTotal; }
+            if (iMoyen < 0 && (p_a + p_c) / P_s <= N.SIGMA_MOYEN) { iMoyen = i - 1; wSousMoyen = wTotal; tMoyen = Te; }
             const dw = wEff(vapeurMoyenne(), pas);
             wTotal += dw;
             if (!dansNuage) wSousBase += dw;
@@ -730,6 +735,9 @@ function profilAtmosphere(z_range) {
     // bas (même émissivité ε̄), recouvrement aléatoire (le worker multiplie les transmissions des couches). Réparti
     // linéairement en σ entre les deux couches qui encadrent le niveau, comme les nuages hauts en température.
     const fMoyen = avecEau && iMoyen >= 0 ? N.F_MOYEN : 0;
+    // Part liquide des nuages moyens, à LEUR température (celle du niveau σ = SIGMA_MOYEN) : leurs gouttes viennent des
+    // populations des nuages bas, mais le reste de leur condensat est en cristaux, que le nombre de CCN ne change pas (C40).
+    let fLiqMoyen = 0;
     if (fMoyen > 0) {
         const tauMoyen = -Math.log(1 - fMoyen * epsBas) / D;
         const sigmaCouche = (c) => c.n_air * CONST.BOLTZMANN_KB * c.T / P_s;
@@ -737,6 +745,7 @@ function profilAtmosphere(z_range) {
         const wMoyen = (sDessous - N.SIGMA_MOYEN) / (sDessous - sDessus);
         couches[iMoyen].tauNuage += (1 - wMoyen) * tauMoyen;
         couches[iMoyen + 1].tauNuage += wMoyen * tauMoyen;
+        fLiqMoyen = fLiquide(tMoyen);                   // au pas fin de l'intégration (les couches de l'appelant peuvent être 2)
     }
     // nuage : colonne DANS le nuage (avant la fraction f) ; W, τ, sommet, seuil de pluie : moyennes pondérées des deux
     // nuages bas (diagnostic), le détail est dans populations.
@@ -744,7 +753,7 @@ function profilAtmosphere(z_range) {
     return { couches: couches, iTrop: iTrop,
         nuage: { W: moy('W'), tauSW: moy('tauSW'), tauIR: tauIR, base: zBase, sommet: moy('zSommet'), lwcPluie: moy('lwcPluie'),
             populations: populations, wTotal: wTotal, wSousBase: wSousBase, wSousMoyen: wSousMoyen,
-            fBas: fBas, fMoyen: fMoyen, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };
+            fBas: fBas, fMoyen: fMoyen, fLiqMoyen: fLiqMoyen, fHaut: hautPossible ? fHaut : 0, tHaut: hautPossible ? tHaut : 0 } };
 }
 
 /** Colonne nuageuse à l'état courant (T, composition) : le profil intégré jusqu'au sommet de l'atmosphère. */

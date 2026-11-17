@@ -572,3 +572,20 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   1850-1900 ≈ 13,5 ; 2000 = 14,26 ; 2025 ≈ 14,9. Réchauffement **+1,58 K** (avant +0,84, mesuré ≈ +1,4). EEI 2025 = 0,58 W/m²
   (CERES ≈ 1). Le clic 🛢 finit en « oscillation » (EEI 0,54) ; le clic 🌈 suivant converge.
 - **équilibre** (`p2025.js`) : 2000 14,85 (inchangé), 2025 15,30 (avant 15,67).
+
+
+## C40 — Nuages moyens à leur propre phase (`radiative/calculations.js` 1.20.0, `radiative/solaire.js` 1.9.0)
+- **avant** : les nuages moyens (σ = 0,55, F_MOYEN 0,23) reprenaient les tranches des nuages bas, presque entièrement liquides :
+  des gouttes chaudes à −15 °C, qui répondaient toutes à Twomey.
+- **physique** : leur part liquide est celle de la rampe de phase à la température de l'environnement de LEUR niveau
+  (`fLiqMoyen`, relevée au pas fin de l'intégration ; les couches de l'appelant peuvent n'être que 2). Les gouttes gardent leur
+  rayon (Twomey), le reste est en cristaux (optique glace de Chou & Suarez 1999). 📱 : 560 hPa à −15,1 °C → **0,62 liquide**.
+- **rampe de phase re-sourcée** : la validation 2026-11-06 l'avait jugée sans source (Hu & Stamnes 1993 n'en parle pas). Contrôle
+  satellite : CALIPSO-GOCCP, Li et al. 2017 (ACP 17:1847, CC BY, §3.1) : 55–75 % de liquide à −10 °C sous les tropiques, > 75 %
+  aux hautes latitudes ; la rampe donne 0,74. Hu et al. 2010 (CALIOP/IIR/MODIS) et Cesana & Chepfer 2013 (GOCCP) donneraient la
+  courbe entière : leurs dépôts bloquent les requêtes automatiques.
+- **mesures** : équilibre 📱 14,85 → **13,96 °C** (albédo 0,3226 → 0,3268 : les cristaux, g plus petit, réfléchissent plus) ;
+  sulfate −1,02 → −0,95 W/m² ; total de la frise 1750 → 2000 +0,50 W/m². Équilibre 2025 : **14,57**.
+- **chemin 1750 → 2025** : 🚂 **12,23** / 2000 **13,52** / 2025 **14,21 °C** (mesures ≈ 13,5 / 14,26 / ≈ 14,9) ; EEI 2025 0,69
+  (CERES ≈ 1). Trop froid de ≈ 0,7 K, et le réchauffement +1,98 K dépasse les ≈ +1,4 mesurés, pour un forçage à T fixe de +0,50
+  W/m² seulement : l'état froid de 1750 est plus sensible (glace). À diagnostiquer avant les jauges bary.

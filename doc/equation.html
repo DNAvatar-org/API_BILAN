@@ -452,8 +452,11 @@ Licensed under Apache License 2.0 with Commons Clause.
     <div class="eq M" id="eq-phase-liquide-glace">
         <div class="titre"><span class="cl M">M</span> Phase liquide / glace</div>
         <div class="f" data-tex="f_{\text{liq}} = \text{clamp}\!\left(\frac{T - 233{,}15}{273{,}15 - 233{,}15},\ 0,\ 1\right)"></div>
-        <p class="src">Hu &amp; Stamnes 1993, J. Climate 6:728</p>
-        <p class="code">calculations.js → profilAtmosphere ; EARTH.NUAGES.T_TOUT_GLACE / T_TOUT_LIQUIDE</p>
+        <p>Rampe de paramétrisation entre −40 °C et 0 °C. Contrôle satellite (CALIPSO-GOCCP) : à −10 °C, 55–75 % de liquide sous
+            les tropiques et plus de 75 % aux hautes latitudes, la rampe donne 0,74. Elle sert aussi aux nuages moyens, à la
+            température de leur niveau : seules leurs gouttes répondent au nombre de noyaux de condensation.</p>
+        <p class="src">Li et al. 2017, Atmos. Chem. Phys. 17:1847 (contrôle)</p>
+        <p class="code">radiative/calculations.js → profilAtmosphere (fLiquide, fLiqMoyen) ; radiative/solaire.js → nuagesColonne ; EARTH.NUAGES.T_TOUT_GLACE / CONST.T0_WATER</p>
     </div>
     <div class="eq M" id="eq-rayon-effectif-gouttes">
         <div class="titre"><span class="cl M">M</span> Rayon effectif des gouttes</div>

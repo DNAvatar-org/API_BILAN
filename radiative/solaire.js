@@ -5,7 +5,8 @@
 //       δ-Eddington (Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452), faisceau direct et diffus portés séparément.
 //       Vapeur : la k-distribution de Chou & Suarez (1999, NASA TM-104606 vol. 15, CLIRAD-SW), calée raie par raie (HITRAN 1996)
 //       et validée à moins de 1 % sur les flux (leur table 8) ; O₂ du même document. Aérosol de fond : climatologie MACv2.
-// Version 1.8.3
+// Version 1.9.0
+// - v1.9.0 (2026-11-17): nuages moyens à leur phase (fLiqMoyen) : seules leurs gouttes répondent aux CCN (C40).
 // - v1.8.3 (2026-10-30): albédo de Rayleigh du ciel clair rapporté à la part visible du flux, dont il sature ; vapeur du PAR
 //   en ciel clair sur le seul visible qui atteint le sol.
 // Date: [October 30, 2026]
@@ -370,11 +371,16 @@
      */
     function nuagesColonne(colonne) {
         if (_nuages.has(colonne)) return _nuages.get(colonne);
-        const populations = (n) => {
+        // fLiq : part liquide de l'épaisseur optique (nuages moyens : colonne.fLiqMoyen, à leur température) ; null = celle des
+        // tranches du nuage bas. Les gouttes gardent leur rayon (τ·r_eff au prorata), le reste est en cristaux.
+        const populations = (n, fLiq) => {
             const out = [];
             for (const pop of colonne.populations) {
                 for (const u of profondeurs(pop, n)) {
-                    const c = etatNuage(pop.tranches, u), o = optiqueEtat(c);
+                    const e = etatNuage(pop.tranches, u);
+                    const c = fLiq === null || e.tauLiq === 0 ? e
+                        : Object.assign({}, e, { tauLiq: e.tauSW * fLiq, tauRLiq: e.tauRLiq * e.tauSW * fLiq / e.tauLiq });
+                    const o = optiqueEtat(c);
                     out.push(nuageDeColonne(pop.poids / n, c, (q) => {
                         const tau = c.tauSW + q.k * c.wSature;
                         return [tau, tau > 0 ? c.tauSW * (1 - o[q.b].a) / tau : 0, o[q.b].g];
@@ -387,7 +393,7 @@
             const o = optiqueNuage(h.tau, 0, 0);
             return nuageDeColonne(h.poids, null, (q) => [h.tau, 1 - o[q.b].a, o[q.b].g]);
         });
-        const N = { bas: populations(N_POPULATION), moyens: populations(N_POPULATION_MOYENS), hauts: hauts };
+        const N = { bas: populations(N_POPULATION, null), moyens: populations(N_POPULATION_MOYENS, colonne.fLiqMoyen), hauts: hauts };
         N.tous = N.bas.concat(N.moyens, N.hauts);
         _nuages.set(colonne, N);
         return N;
