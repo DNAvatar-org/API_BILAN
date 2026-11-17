@@ -527,6 +527,28 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - **mesuré** : frise 2000 14,85 (inchangé) puis tic 2025 15,30 (déséquilibre 0,28 W/m²) ; chemin 🚂 1750 → 1875 → 2000 → 2025 :
   14,29 / 14,28 / **14,67** / **15,13** °C (avant : 14,29 / 14,28 / 14,83 / 15,65), déséquilibre 0,15 puis 0,40 W/m² (mesuré
   +0,5 → +1,0). Réchauffement 2000 → 2025 +0,46 K (≈ +0,64 mesuré), 1750 → 2025 +0,84 K (≈ +1,4) : la sensibilité du modèle
-  est trop basse — l'équilibre (+1,36 K) la masquait. Prochain levier : la rétroaction de la vapeur (DIAGNOSTIC_RETROACTION_VAPEUR.md).
+  est trop basse — l'équilibre (+1,36 K) la masquait. ⚠️ Conclusion corrigée par C38 : la sensibilité ne l'est pas, c'est le
+  forçage 1750 → 2000 qui est presque nul (sulfate).
   Clics du Quaternaire (5 ka) : γ_eff = 0,018 W m⁻² K⁻¹, l'équilibre à 2 % près.
 
+
+## C38 — Le réchauffement depuis 1750 manque de forçage, pas de sensibilité (diagnostic, sondes `retro.js`, `noyau.js`, `profil1k.js`, `forcage.js`, `twomey.js`)
+- **sensibilité, 📱 à l'équilibre (14,85 °C)** : CO₂ ×2 reconvergé → **+4,39 K** (19,24 °C, albédo 0,322 → 0,308) ; forçage
+  instantané 2,37 W/m² (stratosphère figée). À +1 K, eau et albédo libres : λ = 0,94 W m⁻² K⁻¹ ; eau et albédo figés : 2,06.
+- **vapeur vivante** : à +1 K l'eau libre, la vapeur monte de 6,4 % au sol à 20–25 % vers 250–190 hPa (Clausius-Clapeyron sous
+  l'adiabatique humide, la haute troposphère +1,8 K) ; +10 % de vapeur partout à T fixe : OLR −1,11 W/m² (ciel clair −1,61), la
+  moitié dans la haute troposphère. Le λ IR de 2,05 est celui des modèles radiatifs-convectifs à humidité relative fixe. La
+  « rétroaction morte » (DIAGNOSTIC_RETROACTION_VAPEUR.md, 2026-09) est périmée ; une sonde « humidité de surface figée » la
+  retrouve à tort, car elle fige aussi l'adiabatique humide (+0,63 K en altitude au lieu de +1,8) et pas la vapeur d'altitude.
+- **forçage 1750 → 2000 à T fixe, par composante** (instantané) : CO₂ +1,03 ; CH₄ +0,65 ; N₂O +0,12 ; **sulfate ×2,6 : −1,93**
+  (albédo +0,0062) ; relief −0,01 ; **total ≈ −0,15 W/m²** (AR6 : ≈ +1,8, dont aérosols ≈ −0,9). Le sulfate efface le forçage des
+  gaz.
+- **cause** : Twomey sur une colonne unique. Exposant 0,236 → Δln N = 0,228 ; ΔSW = 9,3 W/m² par unité de ln N. Les nuages bas
+  (0,40) ET moyens (0,23, mêmes gouttes), y compris ceux sous les nuages hauts, répondent au rapport GLOBAL de sulfate. McCoy et
+  al. 2017 (JGR 122:1779, PDF lu, éq. 6–7, fig. 9–11) font le même calcul carte par carte : Nd triple sur les régions polluées
+  et ne bouge pas dans presque tout l'hémisphère sud ; −0,84 à −0,92 W/m² avec un exposant 0,31 (nuages à sommet liquide seuls,
+  « conservatif »). Écart du modèle ≈ ×2,5 : la moyenne de ln(rapport) sur le globe est plus petite que le ln du rapport moyen
+  (convexité, ~−20 % estimé) et la susceptibilité de la colonne unique est plus forte.
+- **à faire** : répartir le sulfate anthropique par bande de latitude (moyenne de ln pondérée) et chercher la susceptibilité
+  mesurée des nuages (Bellouin et al. 2020, Rev. Geophys. 58:e2019RG000660, PDF non lu : 403 / trop gros) — puis remesurer le
+  chemin 1750 → 2025.
