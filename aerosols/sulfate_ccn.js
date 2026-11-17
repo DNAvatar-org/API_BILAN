@@ -3,11 +3,12 @@
 // Desc: La relation publiée entre masse de sulfate et nombre de gouttelettes nuageuses.
 //       C'est une LOI DE PUISSANCE, pas un facteur linéaire. Fichier séparé parce que c'est une
 //       physique à part : l'albédo décide de ce qu'il fait des CCN (Twomey), pas d'où ils viennent.
-// Version 1.3.0
-// Date: 2026-09-22
+// Version 1.4.0
+// Date: 2026-11-17
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
 // Logs:
+// - v1.4.0: sulfateCcnRatioPanache — l'excès industriel en panache, moyenne des ln N_d locaux (C39).
 // - v1.3.0: PAS DE GARDES (2026-10-10) : objets du module créés à leur chargement (plus de `x = x || {}`, plus d'état null à tester).
 // ============================================================================
 
@@ -65,7 +66,8 @@
  *
  * Vérification faite, et ce n'est pas un calage — SW absorbé à T figée sur 📱, sulfate seul
  * variable, 4,0e8 → 1,05e9 kg :
- *     ERFaci du modèle = −0,908 W/m²
+ *     ERFaci du modèle = −0,908 W/m²  (⚠️ mesure du 2026-09-22 ; −1,93 au 2026-11-17 en mélange global, −1,02 en
+ *     panache : sulfateCcnRatioPanache, doc/CONSTATS.md C38–C39)
  *     McCoy et al. 2017a = −0,97 W/m²   ·   AR6 Ch. 7 = −1,0 [−1,7 ; −0,3] W/m²
  * Le modèle produisait −0,037 W/m² la veille. Masses de Tsigaridis 2006, exposant d'ici,
  * sensibilité de Twomey 1991 : trois sources indépendantes, aucun paramètre réglé sur le résultat.
@@ -104,8 +106,22 @@ function sulfateCcnDeltaLog10(sulfateKg, sulfateRefKg, exponent) {
     return exponent * Math.log10(sulfateKg / sulfateRefKg);
 }
 
+/**
+ * Rapport de nombre de gouttelettes quand le sulfate n'est pas mélangé : le fond naturel couvre tout le globe, l'excès
+ * industriel est concentré sur une part f (CONV.CCN_PANACHE_FRACTION). La loi de McCoy vaut LOCALEMENT ; l'albédo des
+ * nuages suit ln N_d (Twomey 1977), la colonne prend donc la moyenne des ln locaux :
+ *     ln N̄ = a · [ (1 − f) · ln(fond) + f · ln(fond + excès / f) ]
+ * et le rapport à la référence est exp(a · (L − L_ref)). Sans excès on retrouve (fond / fond_ref)^a. Fond nul : ln 0 = −∞,
+ * le rapport vaut 0 (pas de noyau sulfaté), comme sulfateCcnRatio.
+ */
+function sulfateCcnRatioPanache(fondKg, excesKg, fondRefKg, excesRefKg, exponent, f) {
+    const L = (fond, exces) => (1 - f) * Math.log(fond) + f * Math.log(fond + exces / f);
+    return Math.exp(exponent * (L(fondKg, excesKg) - L(fondRefKg, excesRefKg)));
+}
+
 window.AEROSOL = {};
 window.AEROSOL.sulfateCcnRatio = sulfateCcnRatio;
+window.AEROSOL.sulfateCcnRatioPanache = sulfateCcnRatioPanache;
 window.AEROSOL.sulfateCcnDeltaLog10 = sulfateCcnDeltaLog10;
 /** Exposants mesurés (McCoy 2018 Table 1, 19 régions) — pour les bornes de jauge et la doc. */
 window.AEROSOL.MCCOY2018_SO4_EXPONENT = { median: 0.22, q1: 0.11, q3: 0.29, min: -0.02, max: 0.44 };

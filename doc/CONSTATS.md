@@ -552,3 +552,23 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - **à faire** : répartir le sulfate anthropique par bande de latitude (moyenne de ln pondérée) et chercher la susceptibilité
   mesurée des nuages (Bellouin et al. 2020, Rev. Geophys. 58:e2019RG000660, PDF non lu : 403 / trop gros) — puis remesurer le
   chemin 1750 → 2025.
+
+
+## C39 — Sulfate industriel en panache (`albedo/calculations_albedo.js` 1.18.0, `aerosols/sulfate_ccn.js` 1.4.0, `physics/physics.js` 2.21.0)
+- **avant** : le rapport de sulfate GLOBAL (×2,6) faisait varier les gouttes de tous les nuages : Δln N = 0,228 de 1750 à 2000,
+  forçage −1,93 W/m² (C38).
+- **physique** : la loi de McCoy vaut localement (McCoy et al. 2017, éq. 6, fig. 9 : N_d triple sous les panaches, reste plat
+  sur presque tout l'hémisphère sud). Twomey est linéaire en ln N_d : la colonne unique prend la moyenne des ln locaux. Le fond
+  naturel (≤ 0,40 Tg, Tsigaridis 2006, `CONV.SULFATE_FOND_NATUREL_KG`) couvre tout le globe, sa part DMS suit 🧫. L'excès
+  industriel est concentré sur une part f du globe :
+  ln N̄ = a·[(1 − f)·ln fond + f·ln(fond + excès/f)], référence 📱 (le rapport vaut 1 en 2000, comme avant).
+- **f = 0,25** (`CONV.CCN_PANACHE_FRACTION`, 🛠) : la part qui redonne, avec l'exposant médian 0,22 (McCoy 2018), le Δln N_d
+  1850 → 2005-2015 de Bellouin et al. 2020 (Rev. Geophys. 58:e2019RG000660, table 4 : 0,05–0,17, centre 0,11). PDF lu
+  (dépôt NOAA, CC BY). Dans les époques sans industrie (⚖️✈ ≤ fond), la loi redevient (fond/fond_ref)^a, comme avant.
+- **forçage 1750 → 2000 à T fixe** (`forcage.js`) : sulfate −1,93 → **−1,02 W/m²** (Bellouin RFaci −1,10 à −0,33) ; total de la
+  frise 1750 → 2000 : **+0,59 W/m²**. La susceptibilité de la colonne, ≈ 8,5 W/m² par ln N, reste au-dessus de Bellouin
+  (S_N·c_N = 26,5 × 0,19–0,29 = 5,0–7,7) : les nuages moyens et ceux qui sont sous les nuages hauts répondent aussi.
+- **chemin 1750 → 2025** (`chemin1750.js`, océan profond C37) : 🚂 **13,46** / 2000 **14,42** / 2025 **15,04 °C**. Mesures :
+  1850-1900 ≈ 13,5 ; 2000 = 14,26 ; 2025 ≈ 14,9. Réchauffement **+1,58 K** (avant +0,84, mesuré ≈ +1,4). EEI 2025 = 0,58 W/m²
+  (CERES ≈ 1). Le clic 🛢 finit en « oscillation » (EEI 0,54) ; le clic 🌈 suivant converge.
+- **équilibre** (`p2025.js`) : 2000 14,85 (inchangé), 2025 15,30 (avant 15,67).

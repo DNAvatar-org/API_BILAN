@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.20.0
+// Version 2.21.0
+// - v2.21.0 (2026-11-17): CONV.SULFATE_FOND_NATUREL_KG et CONV.CCN_PANACHE_FRACTION — le sulfate industriel en panache (C39).
 // - v2.20.0 (2026-11-16): EARTH.OCEAN_PROFOND (C₀, γ de Geoffroy et al. 2013) — l'océan profond des tictimes (C37).
 // - v2.19.2 (2026-11-01): commentaire : ω des trois boîtes de chaque bande.
 // - v2.19.1 (2026-10-30): commentaires de la glace saisonnière : terre de chaque latitude, forêt sous la neige.
@@ -130,6 +131,17 @@ CONV.TAU_VAPOR_GLOBAL_S = 10 * CONV.SECONDS_PER_DAY;  // [s]
 //   elle n'avait pas de source et 📱 y donnait 0,80 au lieu de 1,00. Voir configTimeline.js v1.4.89,
 //   encadré « MASSES DE SULFATE », et doc/MASSES_SULFATE_PAR_EPOQUE.md.
 CONV.CCN_SULFATE_REF_KG = 1.05e9;  // [kg (de SO₄)]
+// SULFATE_FOND_NATUREL_KG : fond naturel de nss-sulfate (volcans + DMS), réparti sur tout le globe : 0,40 Tg, colonne
+//   préindustrielle de Tsigaridis et al. 2006 (Table 5) — la même charge que ⚖️✈ de 🚂 et des époques sans industrie.
+//   Ce qui dépasse ce fond est l'excès industriel, concentré en panache (CCN_PANACHE_FRACTION).
+CONV.SULFATE_FOND_NATUREL_KG = 4.0e8;  // [kg (de SO₄)]
+// CCN_PANACHE_FRACTION : part du globe sous le panache de sulfate industriel. Le nombre de gouttes suit le sulfate LOCAL
+//   (McCoy et al. 2017, JGR 122:1779, éq. 6 et fig. 9 : N_d triple sur les régions polluées, reste plat sur presque tout
+//   l'hémisphère sud) ; l'albédo des nuages suit ln N_d (Twomey), donc la colonne unique prend la moyenne des ln locaux.
+//   0,25 = la part qui redonne, avec l'exposant médian 0,22 de McCoy et al. 2018, le Δln N_d global 1850 → 2005-2015 de
+//   Bellouin et al. 2020 (Rev. Geophys. 58:e2019RG000660, §6 et table 4 : 0,05–0,17, centre 0,11) :
+//   0,22 × 0,25 × ln(1 + 0,65/(0,40 × 0,25)) = 0,111. 🛠 Déduite d'une évaluation, pas mesurée sur une carte.
+CONV.CCN_PANACHE_FRACTION = 0.25;  // [m²/m²]
 // CONV.H2O_VAPOR_REF (0,01 kg/kg) SUPPRIMÉE le 2026-09-22 : sans source, et morte. Seule trace
 // restante, un commentaire de calculations_albedo.js:222 qui dit que la formule qui l'utilisait
 // « n'est plus utilisée ». Elle a survécu à sa propre formule.

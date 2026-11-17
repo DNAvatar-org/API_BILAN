@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.17.1
+// Version 1.18.0
+// - v1.18.0 (2026-11-17): rapportCCN — fond naturel réparti, excès industriel en panache (C39).
 // - v1.17.1 (2026-10-31): poserForet crashe sans poids de terre ; albédo d'une terre libre d'aire nulle défini ; 🧫 du clic
 //   (📜🧫).
 // - v1.17.0 (2026-10-30): la terre libre de chaque bande a sa forêt (terresLibres par bande) ; forêt sous la neige des terres la même
@@ -307,13 +308,20 @@ function poserAlbedosMateriaux() {
 // époque sans oxygène. ⚠️ Les autres CCN réels (sel de mer, organiques, poussière) ne sont pas suivis : McCoy 2018 publie
 // leurs exposants, il manque leurs masses par époque.
 function rapportCCN() {
-    const DATA = window.DATA;
+    const DATA = window.DATA, CONV = window.CONV;
     const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
-    const sulfate_kg_effective = DATA['⚖️']['⚖️✈'] * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * DATA['📜']['🧫']);
-    const ccn_ratio = window.AEROSOL.sulfateCcnRatio(
-        sulfate_kg_effective,
-        CONV.CCN_SULFATE_REF_KG,                       // 1,05e9 kg SO₄ = charge moderne (Tsigaridis 2006)
-        DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT
+    // Fond naturel (≤ 0,40 Tg, Tsigaridis 2006) réparti partout, sa part DMS modulée par 🧫 ; excès industriel en panache sur
+    // CONV.CCN_PANACHE_FRACTION du globe (McCoy 2017, Bellouin 2020 : doc/CONSTATS.md C39).
+    const fondNat = CONV.SULFATE_FOND_NATUREL_KG;
+    const m = DATA['⚖️']['⚖️✈'];
+    const fond = Math.min(m, fondNat) * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * DATA['📜']['🧫']);
+    const exces = Math.max(0, m - fondNat);
+    const sulfate_kg_effective = fond + exces;
+    const ccn_ratio = window.AEROSOL.sulfateCcnRatioPanache(
+        fond, exces,
+        fondNat, CONV.CCN_SULFATE_REF_KG - fondNat,   // référence 📱 : 1,05e9 kg SO₄ (Tsigaridis 2006), 🧫 = 1
+        DATA['🎚️'].CLOUD_SW.SULFATE_CCN_EXPONENT,
+        CONV.CCN_PANACHE_FRACTION
     );
     window._hystDiag.ccnRatio = ccn_ratio;
     window._hystDiag.sulfateKgEffective = sulfate_kg_effective;

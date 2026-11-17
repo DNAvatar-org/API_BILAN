@@ -223,7 +223,7 @@
     <div class="authors">Jia, A., Wang, D., Liang, S., Peng, J. &amp; Yu, Y.</div>
     <div class="title">Global Daily Actual and Snow-Free Blue-Sky Land Surface Albedo Climatology From 20-Year MODIS Products</div>
     <div class="venue">Journal of Geophysical Research: Atmospheres, 127:e2021JD035987 (2022)</div>
-    <div class="doi"><a href="https://doi.org/10.1029/2021JD035987">10.1029/2021JD035987</a></div>
+    <div class="doi"><a href="https://doi.org/10.1029/2021JD035987">10.1029/2021JD035987</a> · <a href="https://repository.library.noaa.gov/view/noaa/48574">copie libre (dépôt NOAA)</a></div>
     <div class="used-in">Albédos sans neige par type de végétation (fig. 8) : forêt 🪩🍰🌳 = 0,12 et sol 🪩🍰🌍 = 0,18 (<code>physics/physics.js</code>, EARTH['🪩🍰']).</div>
 </article>
 
@@ -948,7 +948,7 @@
     <div class="title">Predicting decadal trends in cloud droplet number concentration using reanalysis and satellite data</div>
     <div class="venue">Atmospheric Chemistry and Physics, 18:2035–2047 (2018)</div>
     <div class="doi"><a href="https://doi.org/10.5194/acp-18-2035-2018">10.5194/acp-18-2035-2018</a></div>
-    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). Cette plage est la jauge <code>SULFATE_CCN_EXPONENT</code> du barycentre (<code>fine_tuning_bounds.js</code>, quartiles [0,11 ; 0,29]) — le seul paramètre du barycentre dont les bornes viennent d'un tableau de mesures. Loi appliquée dans <code>calculations_albedo.js</code> via <code>AEROSOL.sulfateCcnRatio()</code>. Forçage attendu : <b>−0,97 W/m²</b> (McCoy et al. 2017a) ; <b>vérifié au banc : le modèle sort −0,908 W/m²</b> (SW absorbé à T figée sur 📱, sulfate 4,0e8 → 1,05e9 kg). Aucun calage : les masses viennent de [tsigaridis2006], l'exposant d'ici, la sensibilité de [twomey1977].</div>
+    <div class="used-in">La même loi de puissance, mais CALÉE SUR MESURES — CDNC de MODIS, masses d'aérosols de MERRA2, 2003-2015, validée contre des campagnes aéroportées. log₁₀CDNC = a₁·log₁₀(SO₄) + a₂·log₁₀(BC) + … + b. <b>Exposant sulfate a₁ mesuré sur 19 régions : médiane 0,22, quartiles [0,11 ; 0,29], plage [−0,02 ; 0,44]</b> (Table 1). Cette plage est la jauge <code>SULFATE_CCN_EXPONENT</code> du barycentre (<code>fine_tuning_bounds.js</code>, quartiles [0,11 ; 0,29]) — le seul paramètre du barycentre dont les bornes viennent d'un tableau de mesures. Loi appliquée localement dans <code>calculations_albedo.js</code> via <code>AEROSOL.sulfateCcnRatioPanache()</code> (fond naturel partout, excès industriel en panache, voir [bellouin2020]). Forçage attendu : <b>−0,97 W/m²</b> (McCoy et al. 2017a) ; au banc, le modèle sort <b>−1,02 W/m²</b> (T figée sur 📱, sulfate 4,0e8 → 1,05e9 kg, doc/CONSTATS.md C39). Aucun calage : les masses viennent de [tsigaridis2006], l'exposant d'ici, la sensibilité de [twomey1977].</div>
 </article>
 
 <article class="ref" id="ar6ch7Erfaci" data-tags="aerosol erfaci forcing ipcc assessment">
@@ -957,7 +957,7 @@
     <div class="title">The Earth's Energy Budget, Climate Feedbacks, and Climate Sensitivity</div>
     <div class="venue">Climate Change 2021: The Physical Science Basis, Cambridge University Press (2021)</div>
     <div class="doi"><a href="https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-7/">ipcc.ch — AR6 WGI Ch. 7</a></div>
-    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Au banc, la loi de [mccoy2018] sur les masses de [tsigaridis2006] donne <b>−0,908 W/m²</b>, dans la fourchette et à 6 % du meilleur estimé. Voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
+    <div class="used-in">Forçage radiatif effectif des interactions aérosol-nuage : <b>ERFaci = −1,0 [−1,7 ; −0,3] W/m²</b> (1750–2014). C'est un REFROIDISSEMENT, d'une magnitude d'environ un quart du forçage CO₂ et de signe opposé. Au banc, la loi de [mccoy2018] sur les masses de [tsigaridis2006], l'excès industriel en panache, donne <b>−1,02 W/m²</b>, dans la fourchette. Voir doc/DIAGNOSTIC_SULFATES_CCN.md. NB : c'est une ÉVALUATION (satellites + modèles), pas une mesure directe — sa fourchette couvre un facteur 5,7.</div>
 </article>
 
 <article class="ref" id="tsigaridis2006" data-tags="aerosol sulfate burden preindustrial nss-sulfate epochs">
@@ -1239,7 +1239,7 @@
     <div class="title">Aerosols, clouds and radiation</div>
     <div class="venue">Atmospheric Environment. Part A. General Topics, 25(11):2435–2442 (1991)</div>
     <div class="doi"><a href="https://doi.org/10.1016/0960-1686(91)90159-5">10.1016/0960-1686(91)90159-5</a></div>
-    <div class="used-in">Sensibilité de l’albédo des nuages au nombre de gouttes : une des trois sources indépendantes de la vérification de l’ERFaci (−0,908 W/m²) dans <code>aerosols/sulfate_ccn.js</code>.</div>
+    <div class="used-in">Sensibilité de l’albédo des nuages au nombre de gouttes : sert à l'ERFaci du modèle (−1,02 W/m², doc/CONSTATS.md C39), <code>aerosols/sulfate_ccn.js</code>.</div>
 </article>
 
 <article class="ref" id="mccoy2017" data-tags="aerosol ccn erfaci observation">
@@ -1247,8 +1247,17 @@
     <div class="authors">McCoy, D. T., Bender, F. A.-M., Mohrmann, J. K. C., Hartmann, D. L., Wood, R. &amp; Grosvenor, D. P.</div>
     <div class="title">The global aerosol‐cloud first indirect effect estimated using MODIS, MERRA, and AeroCom</div>
     <div class="venue">Journal of Geophysical Research: Atmospheres, 122(3):1779–1796 (2017)</div>
-    <div class="doi"><a href="https://doi.org/10.1002/2016JD026141">10.1002/2016JD026141</a></div>
-    <div class="used-in">Premier effet indirect global −0,97 W/m² (MODIS, MERRA, AeroCom) : comparaison de l’ERFaci du modèle, <code>aerosols/sulfate_ccn.js</code>.</div>
+    <div class="doi"><a href="https://doi.org/10.1002/2016JD026141">10.1002/2016JD026141</a> · <a href="https://eprints.whiterose.ac.uk/114472/">copie libre (White Rose eprints)</a></div>
+    <div class="used-in">Premier effet indirect global −0,97 W/m² (MODIS, MERRA, AeroCom) : comparaison de l’ERFaci du modèle, <code>aerosols/sulfate_ccn.js</code>. Éq. 6 et fig. 9 : le nombre de gouttes suit le sulfate LOCAL — il triple sur les régions polluées et reste plat sur presque tout l’hémisphère sud. D’où le sulfate industriel en panache de <code>rapportCCN</code> (<code>albedo/calculations_albedo.js</code>, CONV.CCN_PANACHE_FRACTION, doc/CONSTATS.md C39).</div>
+</article>
+
+<article class="ref" id="bellouin2020" data-tags="aerosol erfaci forcing cdnc assessment">
+    <div class="cite-key">[bellouin2020]</div>
+    <div class="authors">Bellouin, N., Quaas, J., Gryspeerdt, E., Kinne, S., Stier, P., Watson-Parris, D. et al.</div>
+    <div class="title">Bounding Global Aerosol Radiative Forcing of Climate Change</div>
+    <div class="venue">Reviews of Geophysics, 58:e2019RG000660 (2020)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2019RG000660">10.1029/2019RG000660</a> · <a href="https://repository.library.noaa.gov/view/noaa/25936">copie libre (dépôt NOAA, CC BY)</a></div>
+    <div class="used-in">Table 4 et §6 : Δln N<sub>d</sub> 1850 → 2005-2015 = 0,05–0,17 ; S<sub>N</sub> = −26 à −27 W/m² par ln N<sub>d</sub> (α<sub>c</sub> = 0,38, CERES) ; c<sub>N</sub> = 0,19–0,29 ; RFaci = −1,10 à −0,33 W/m². Le centre 0,11 de Δln N<sub>d</sub> fixe la part du globe sous le panache industriel, CONV.CCN_PANACHE_FRACTION = 0,25 (<code>physics/physics.js</code>) ; le RFaci est la fourchette de contrôle du sulfate (doc/CONSTATS.md C39).</div>
 </article>
 
 <article class="ref" id="crutzen2006" data-tags="sulfate stratosphere geoengineering">
