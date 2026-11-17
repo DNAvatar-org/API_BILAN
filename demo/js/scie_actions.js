@@ -104,7 +104,7 @@ async function lancerCalcul(animEnabled) {
     try {
         // LE point d'entrée moteur (API_BILAN/api.js) : préparation + convergence, trace par SCIE_ENGINE_EVENT.
         const result = await window.getBilanRadiatifAPI(window.SCIE_ENGINE_EVENT)
-            .run({ epochId: window.DATA['📜']['🗿'], animEnabled: animEnabled });
+            .run({ epochId: window.DATA['📜']['🗿'], animEnabled: animEnabled, precisionK: window.DATA['🔘']['🔘🔬'] });
         if (result !== null) displayResults(result);
         displayConvergence();
         if (result !== null) {

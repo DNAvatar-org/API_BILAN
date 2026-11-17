@@ -4,7 +4,8 @@
 //       référence live lue par la physique (tuning.js/applyTuningPayload écrit dedans via FINE_TUNING_BOUNDS × baryByGroup).
 //       Les paramètres SOLVER (statiques, non interpolés) vivent dans window.CONFIG_COMPUTE (configTimeline.js),
 //       pas dans DATA/DEFAULT.
-// Version 1.10.4
+// Version 1.10.5
+// - v1.10.5 (2026-11-17): 📜🔘🔬 et 🔘.🔘🔬, la précision demandée.
 // - v1.10.4 (2026-11-16): 🧮.🌡️🌊 = null jusqu'au premier calcul.
 // - v1.10.3 (2026-11-01): jauges FROID 61, CHAUD 53 (hauteur).
 // - v1.10.2 (2026-10-31): DATA['📜']['🧫'], biosphère marine du clic.
@@ -140,6 +141,7 @@
     DATA['🗻']['🍰🗻🌳'] = null;       // forêt des bandes, posée à chaque itération du bilan méridien (ALBEDO.poserForet)
     DATA['🧮']['🌡️🎱'] = null;         // T₂ du profil méridien, posé au clic frise (physics/meridien.js)
     DATA['🧮']['🌡️🌊'] = null;         // T de l'océan profond, posée à la fin du premier calcul (clic frise)
+    DATA['📜']['🔘🔬'] = null;         // précision demandée sur T (K), posée par api.prepare (config.precisionK)
     DATA['📜']['🧫'] = null;           // biosphère marine du clic, posée à chaque calcul (getEpochDateConfig, convergence/compute.js)
     // Glace saisonnière des bandes ({ N_pol, S_pol, N_mid, S_mid, N_trop, S_trop } × { terre, mer }) et sa part d’énergie réfléchie,
     // posées par EARTH.glaceSaisonniere à chaque itération du bilan méridien ; son albédo effectif, posé par calculateAlbedo (null
@@ -157,7 +159,7 @@
     DATA['🌊'] = { '⚖️🌊🏭': 0 };
 
     // Flags runtime (anim plot) : hors dico KEYS — 🔘🎞 = false au boot (crash-first : objet toujours présent).
-    DATA['🔘'] = { '🔘🎞': false };
+    DATA['🔘'] = { '🔘🎞': false, '🔘🔬': 0 };   // 🔘🔬 : précision demandée par la page [K] (CO2 ui/precision.js), 0 = la plus fine
 
     window.DATA = DATA;
 

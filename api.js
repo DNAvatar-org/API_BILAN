@@ -1,6 +1,7 @@
 // File: API_BILAN/api.js - Point d'entrée API calcul bilan radiatif
 // Desc: API pure calcul (config + callback), utilisée par les bancs (epoch_bench, headless). Aucun DOM.
-// Version 1.3.0
+// Version 1.4.0
+// - v1.4.0: config.precisionK (K), précision demandée sur T — obligatoire ; 0 = la plus fine que l'époque permet.
 // - v1.3.0: événement 'respiration' (compteur de cycles, la page reprend la main entre deux étapes lourdes).
 // Copyright 2026 DNAvatar.org - Arnaud Maignan
 // Licensed under Apache License 2.0 with Commons Clause.
@@ -31,7 +32,9 @@ function BilanRadiatifAPI(callback) {
 /**
  * Prépare un calcul SANS converger : époque, mode, réglage, masses, T initiale, remises à zéro du solveur,
  * initForConfig (date, Soleil, intérieur, composition, eau, albédo). C'est l'état « d'où l'on part ».
- * @param {{epochId: string, animEnabled: boolean, tuning?: object}} config
+ * @param {{epochId: string, animEnabled: boolean, precisionK: number, tuning?: object}} config
+ *   precisionK : précision demandée sur T [K] (≥ 0) ; le calcul prend la plus lâche de celle-ci et de celle de l'époque
+ *   (EPOCH.🧲🔬). 0 = la plus fine. Sur 📱 : ~40 s à 0,002 K, ~20 s à 0,5 K.
  *   animEnabled:false = clic sur la frise (T init = graine 🌡️🧮) ; true = tictime (T init = T courante).
  * @returns {boolean} false si interrompu (window.ABORT_COMPUTE)
  */
@@ -41,6 +44,8 @@ BilanRadiatifAPI.prototype.prepare = function (config) {
     DATA['📜']['👉'] = window.TIMELINE.indexOf(EP);   // l'époque courante : DATA['📅'] (accesseur)
     DATA['📜']['🗿'] = EP['📅'];                      // son nom, pour l'interface
     window.SYNC_STATE.animEnabled = config.animEnabled;
+    if (!(config.precisionK >= 0)) throw new Error('[API_BILAN] precisionK obligatoire, en K (≥ 0) : ' + config.precisionK);
+    DATA['📜']['🔘🔬'] = config.precisionK;
     if (config.tuning) window.TUNING.applyTuningPayload(config.tuning);
     window.COMPUTE.getMasses();
     DATA['🧮']['previous'] = [];
@@ -119,7 +124,7 @@ BilanRadiatifAPI.prototype.snapshot = function () {
 
 /** Run + snapshot. Usage console : `await api.runDiag('🚂')`. */
 BilanRadiatifAPI.prototype.runDiag = async function (epochId) {
-    const result = await this.run({ epochId: epochId, animEnabled: false });
+    const result = await this.run({ epochId: epochId, animEnabled: false, precisionK: 0 });
     return { snapshot: this.snapshot(), result: result };
 };
 

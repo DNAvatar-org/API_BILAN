@@ -20,7 +20,7 @@
 // doit montrer d'ou on part, pas faire converger — c'est le bouton ▶️ qui fait converger.
 function prechargerConfigEpoque() {
     if (!window.getBilanRadiatifAPI(window.SCIE_ENGINE_EVENT)
-        .prepare({ epochId: window.DATA['📜']['🗿'], animEnabled: window.DATA['🔘']['🔘🎞'] })) return false;   // interrompu
+        .prepare({ epochId: window.DATA['📜']['🗿'], animEnabled: window.DATA['🔘']['🔘🎞'], precisionK: window.DATA['🔘']['🔘🔬'] })) return false;   // interrompu
     displayResults(null);
     // selectEpoch a deja rafraichi l'affichage, mais AVANT la preparation : la date courante y etait encore
     // celle de l'epoque precedente. On repasse une fois la config chargee.

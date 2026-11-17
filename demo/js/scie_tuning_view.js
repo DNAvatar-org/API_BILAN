@@ -111,7 +111,7 @@ async function runSingleFineTuningCompute() {
     initializeGlobals();
     // Essai de réglage : toujours depuis la graine (animEnabled:false), par le point d'entrée unique.
     const result = await window.getBilanRadiatifAPI(window.SCIE_ENGINE_EVENT)
-        .run({ epochId: window.DATA['📜']['🗿'], animEnabled: false });
+        .run({ epochId: window.DATA['📜']['🗿'], animEnabled: false, precisionK: window.DATA['🔘']['🔘🔬'] });
     displayResults(result);
     displayConvergence();
     return result;

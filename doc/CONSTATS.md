@@ -596,3 +596,18 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   **Chemin 1750 → 2025 : 13,10 / 14,22 / 14,90 °C** (mesures ≈ 13,5–13,6 / 14,26 / ≈ 14,9) : 2000 et 2025 à 0,05 K près. EEI
   2025 = 0,70 W/m² (CERES ≈ 1). Reste : 1750 ≈ 0,5 K trop froid, donc un réchauffement de +1,80 K (mesuré ≈ +1,35) ; les deux
   derniers clics finissent en « oscillation ».
+
+
+## C41 — Précision demandée, et tolérance par la pente mesurée (`api.js` 1.4.0, `convergence/calculations_flux.js` 1.12.0)
+- **défaut** : la précision de l'époque (EPOCH.🧲🔬, en K) était convertie en tolérance de flux par la pente de Planck seule
+  (3,65 W/m²/K sur 📱) ; la pente du bilan, rétroactions comprises, est ~1 : 0,05 K demandés donnaient 0,16 K d'erreur (14,64
+  au lieu de 14,80).
+- **correction** : après chaque évaluation, la tolérance vaut précision × pente MESURÉE, la sécante entre les deux dernières
+  évaluations (l'Init d'abord : aucun pas de plus), bornée par Planck, jamais sous le plancher de bruit 🧲🔬⌊.
+- **précision demandée** : `api.run({ epochId, animEnabled, precisionK })`, obligatoire (crash sinon), en K ; le calcul prend
+  la plus lâche de la demandée et de celle de l'époque (📜🧲🔬 = max(EPOCH.🧲🔬, 📜🔘🔬)) ; 0 = la plus fine. Bancs et sondes : 0.
+  Page CO2 : réglage « Précision » du bandeau du bas (ui/precision.js, DATA 🔘🔬 : Fine, 0,05, 0,1, 0,5 °C) ; les boutons radio
+  de précision de main.js (absents du HTML) et CONFIG_COMPUTE.convergencePrecisionK (que le moteur ne lisait pas) sont retirés.
+- **mesure, 📱 frise** : fine 14,804 °C (6 pas, 31–40 s) ; 0,05 → 14,773 (4 pas, 26 s) ; 0,1 → 14,773 (26 s) ; 0,5 → 14,462
+  (1 pas, 19 s). Erreur toujours sous la demandée. Les époques à précision large (0,3 K, Hadéen 1,7 K) font désormais plus de pas :
+  leur erreur réelle était jusqu'à 4 fois la déclarée.

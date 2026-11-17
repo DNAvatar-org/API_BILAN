@@ -3,7 +3,8 @@
 //       quelles clés dedans (KEYS, lu par initDATA.js pour construire DATA), ce que chacune veut dire (DESC)
 //       et par quelle formule elle est obtenue (FORM). Que des définitions : je documente le calcul, donc je
 //       pars avec lui — au même titre que la bibliographie. Le lexique HTML vit dans CO2/static/compute/dico_render.js.
-// Version 2.9.0
+// Version 2.10.0
+// - v2.10.0 (2026-11-17): 📜🔘🔬, la précision sur T demandée par l'appelant (api.run precisionK).
 // - v2.9.0 (2026-11-16): 🧲🌊🔽 (flux de l'océan profond) et 🧮.🌡️🌊 (sa température).
 // Date: [November 4, 2026]
 // logs :
@@ -19,7 +20,7 @@
 // ============================================================================
 const KEYS = {
     // Configuration de date / Événements
-    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '🔺⚖️🏭⏮', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🔺⏳', '🧲🔬', '🌡️🧮', '🧫'],
+    '📜': ['⏳', '📿💫', '📿☄️', '📿🕰', '🔺⚖️💧', '🔺🌡️💫', '🔺🍰⚽', '🔺⚖️🏭', '🔺⚖️🌊🏭', '🔺⚖️🌳🏭', '🔺⚖️🏭⏮', '⚾', '🔁⚖️', '🔁📝', '🖼', '🌙', '🔘🕰', '🔺⏳', '🔘🔬', '🧲🔬', '🌡️🧮', '🧫'],
     // '📅' : pas un groupe de clés — DATA['📅'] est l'époque courante, TIMELINE[📜👉] (accesseur, data/initDATA.js).
     // Masses
     '⚖️': ['⚖️💧', '⚖️🫧', '⚖️🏭', '⚖️🐄', '⚖️🫁', '⚖️✈', '⚖️💨'],
@@ -72,7 +73,8 @@ const DESC = {
         '🔁📝': 'Pourquoi de l’état de cycle courant (texte alt2sec de l’événement)',
         '🖼': 'Texture de la planète imposée (suite 🕰.🖼 parcourue par les tics ; sinon déduite de la date)',
         '🌙': 'Carte de nuit superposée (🕰.🌙) — lumières des villes côté ombre',
-        '🧲🔬': 'Précision de l’époque sur T (K), convertie en flux par la pente de Planck ; la tolérance ne descend pas sous le plancher de l’époque, 🧲🔬⌊ (computeToleranceWm2)',
+        '🔘🔬': 'Précision sur T demandée par l’appelant (K) : api.run({ precisionK }) ; 0 = la plus fine que l’époque permet',
+        '🧲🔬': 'Précision du calcul sur T (K) : la plus lâche de celle de l’époque (EPOCH.🧲🔬) et de la demandée (🔘🔬). Convertie en flux par la pente du bilan que mesure le solveur (sécante entre deux évaluations, bornée par Planck) ; la tolérance ne descend pas sous le plancher de l’époque, 🧲🔬⌊ (computeToleranceWm2)',
         '🧫': 'Biosphère marine du clic (part de la boucle CLAW moderne, 1 = 📱) : celle de l’époque (EPOCH.🧫), ou de son état 🔁 daté quand il en porte une (🦕 à 151,9 Ma) — module la part DMS du sulfate efficace (ALBEDO.rapportCCN) ; posée par getEpochDateConfig',
     },
     '☀️': {

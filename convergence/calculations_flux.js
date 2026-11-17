@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/calculations_flux.js - Calculs de flux radiatif
 // Desc: En français, dans l'architecture, je suis le module de calculs de flux radiatif
-// Version 1.11.0
+// Version 1.12.0
+// - v1.12.0 (2026-11-17): tolérance = précision × pente MESURÉE du bilan (sécante entre deux évaluations), plus Planck seul (C41).
 // - v1.11.0 (2026-11-16): océan profond à deux couches (Geoffroy 2013) : un tictime cède γ_eff (T − T₀) à l'océan profond (C37).
 // - v1.10.0 (2026-11-16): chaque évaluation du solveur à stratosphère stable (transfertStratoStable) : plus de Δ en retard (C36).
 // - v1.9.0 (2026-11-16): respirations entre les étapes lourdes du fil principal (événement 'respiration', compteur de cycles).
@@ -203,11 +204,12 @@ function penteDePlanck(OLR) {
     return 4 * CONST.STEFAN_BOLTZMANN * Math.pow(OLR / CONST.STEFAN_BOLTZMANN, 0.75);
 }
 
-/** Tolérance flux (W/m²) = max(penteDePlanck(OLR) × precision_K, plancher de l'époque DATA[📅][🧲🔬⌊]) : « T à precision_K
- *  de l'équilibre » sous Planck seul ; avec les rétroactions la pente est plus faible et l'écart sur T plus grand.
- *  OLR : celui du dernier transfert ; avant le premier, l'émission est celle de la surface (σT⁴). */
-function computeToleranceWm2(OLR, precision_K) {
-    return Math.max(penteDePlanck(OLR) * precision_K, window.DATA['📅']['🧲🔬⌊']);
+/** Tolérance flux (W/m²) = max(pente × precision_K, plancher de l'époque DATA[📅][🧲🔬⌊]) : « T à precision_K de l'équilibre ».
+ *  pente [W/m²/K] : celle du bilan, |dΔ/dT|. Dans la boucle, c'est la sécante MESURÉE entre les deux dernières évaluations
+ *  (rétroactions comprises : ~0,9 sur 📱, quand Planck seul donne 3,6 — avec Planck, 0,05 K demandés en donnaient 0,16 ; C41),
+ *  bornée par Planck. Avant la première évaluation, Planck (penteDePlanck) : la tolérance de l'Init n'arrête rien. */
+function computeToleranceWm2(pente, precision_K) {
+    return Math.max(pente * precision_K, window.DATA['📅']['🧲🔬⌊']);
 }
 
 // Calcule T0 initial. Nouveau run (previous vide) : toujours T0 = époque. En anim en cours (previous non vide) : garder T actuelle.
@@ -249,7 +251,7 @@ function calculateT0() {
     // raie (RADIATIVE.equilibreStratosphere), qui suit l'itération du solveur.
     const peau = Math.pow(DATA['☀️']['🧲☀️🎱'] * (1 - DATA['🪩']['🍰🪩📿']) / (2 * CONST.STEFAN_BOLTZMANN), 0.25);
     DATA['🫧']['🌡️🫧🛩'] = Array.from({ length: window.RADIATIVE.N_STRATES }, () => peau);   // une graine par couche
-    DATA['🧮']['🧲🔬'] = computeToleranceWm2(window.CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4), DATA['📜']['🧲🔬']);
+    DATA['🧮']['🧲🔬'] = computeToleranceWm2(penteDePlanck(window.CONST.STEFAN_BOLTZMANN * Math.pow(DATA['🧮']['🧮🌡️'], 4)), DATA['📜']['🧲🔬']);
 }
 
 // Fonction helper pour récupérer les valeurs de gaz depuis DATA
@@ -637,7 +639,7 @@ async function computeRadiativeTransfer(callback) {
     if (CONFIG_COMPUTE.logEdsDiagnostic) logDiag('logEdsDiagnostic', '[Init] OLR=' + flux_sortant_effectif_init.toFixed(2) + ' Δ=' + delta_equilibre_init.toFixed(2));
     DATA['📛'] = buildEdsBreakdown(DATA['📊'].eds_breakdown);
     window.H2O.calculateH2OGreenhouseForcing();
-    DATA['🧮']['🧲🔬'] = computeToleranceWm2(flux_sortant_effectif_init, DATA['📜']['🧲🔬']);
+    DATA['🧮']['🧲🔬'] = computeToleranceWm2(penteDePlanck(flux_sortant_effectif_init), DATA['📜']['🧲🔬']);
 
     DATA['🧮']['🧮☯'] = Math.sign(delta_equilibre_init);
     DATA['🧮']['🧮⚧'] = 'Search';
@@ -684,6 +686,10 @@ async function computeRadiativeTransfer(callback) {
     let dichoSameDirCount = 0;
     let lastDichoSign = 0;
     let T_evalue;   // [K] température du dernier état évalué (eau, albédo, calottes, flux, Δ) : 🧮🌡️ s'en écarte dès le pas suivant
+    // Évaluation précédente (T, Δ) — l'Init d'abord — et pente du bilan qu'elles mesurent (computeToleranceWm2). Une évaluation à la
+    // même T que la précédente ne mesure rien : la pente reste celle d'avant.
+    let evalPrec = { T: DATA['🧮']['🧮🌡️⏮'], d: DATA['🧮']['🧲🔺⏮'] };
+    let penteBilan = penteDePlanck(DATA['🧲']['🧲🌈🔼']);
     DATA['🧮']['🧮🌡️Hist'] = [];
     while (DATA['🧮']['🧮🔄☀️'] < maxInnerIters && !innerConverged) {
         if (apiDbg) console.log('[API_BILAN] radiatif step', DATA['🧮']['🧮🔄☀️'], 'phase', DATA['🧮']['🧮⚧'], 'T_C', (DATA['🧮']['🧮🌡️'] - CONST.KELVIN_TO_CELSIUS).toFixed(2), 'Δ', DATA['🧲']['🔺🧲'].toFixed(4));
@@ -691,7 +697,6 @@ async function computeRadiativeTransfer(callback) {
         DATA['🧮']['🔬🌈'] = getBinsFromDelta(DATA['🧲']['🔺🧲']);
         // Mettre à jour hauteur atmosphère (📏🫧🧿, 📏🫧🛩) depuis T courante : même grille verticale à 15,8°C en cold/warm start
         window.ATM.updateAtmosphereHeightFromCurrentT();
-        DATA['🧮']['🧲🔬'] = computeToleranceWm2(DATA['🧲']['🧲🌈🔼'], DATA['📜']['🧲🔬']);
         // Météo : 2 ou N cycles eau/albédo par pas radiatif ; un snapshot CycleEau par cycle pour affichage
         const maxWaterAlbedo = CONFIG_COMPUTE.maxWaterAlbedoCyclesPerStep;
         if (maxWaterAlbedo <= 1) {
@@ -725,6 +730,11 @@ async function computeRadiativeTransfer(callback) {
         // 🔺🧲 = entrant − sortant ; équilibre ⇒ ≈ 0. Si |🔺🧲| > tol mais converged, vérifier tol ou état affiché (doc §2.1).
         DATA['🧲']['🔺🧲'] = DATA['🧲']['🧲☀️🔽'] + DATA['🧲']['🧲🌕🔽'] + DATA['🧲']['🧲🌊🔽'] - DATA['🧲']['🧲🌈🔼'];
         T_evalue = DATA['🧮']['🧮🌡️'];
+        if (T_evalue !== evalPrec.T) {
+            penteBilan = Math.min(penteDePlanck(DATA['🧲']['🧲🌈🔼']), Math.abs((DATA['🧲']['🔺🧲'] - evalPrec.d) / (T_evalue - evalPrec.T)));
+        }
+        evalPrec = { T: T_evalue, d: DATA['🧲']['🔺🧲'] };
+        DATA['🧮']['🧲🔬'] = computeToleranceWm2(penteBilan, DATA['📜']['🧲🔬']);
         const b = DATA['📊'] && DATA['📊'].eds_breakdown;
         DATA['📛'] = buildEdsBreakdown(b);
         if (DATA['📛']) window.H2O.calculateH2OGreenhouseForcing();

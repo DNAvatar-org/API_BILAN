@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/convergence/compute.js - Module de calcul de transfert radiatif
 // Desc: En français, dans l'architecture, je suis le module principal de calcul de transfert radiatif
-// Version 1.5.2
+// Version 1.5.3
+// - v1.5.3: 📜🧲🔬 = la plus lâche de l'époque et de la demandée (🔘🔬).
 // Date: [October 31, 2026]
 // logs :
 // - v1.5.2: 📜🧫, la biosphère marine du clic : celle de l'époque, ou de son état 🔁 daté.
@@ -76,7 +77,7 @@ function getEpochDateConfig() {
     // Graine du clic (calculateT0) : la courbe cyan à ▶ (accesseur de l'époque) ; 🔀 '📜' plus bas l'interpole le long de
     // l'époque quand son ◀ en porte une (🏔, 🦣).
     H['🌡️🧮'] = EPOCH['🌡️🧮'];
-    H['🧲🔬'] = EPOCH['🧲🔬'];
+    H['🧲🔬'] = Math.max(EPOCH['🧲🔬'], H['🔘🔬']);   // la plus lâche : celle de l'époque, ou celle que l'appelant demande
     // Biosphère marine du clic (gate CLAW du sulfate efficace, calculations_albedo.js) : celle de l'époque ; un état 🔁 qui en
     // porte une la remplace plus bas (🦕 à 151,9 Ma).
     H['🧫'] = EPOCH['🧫'];
