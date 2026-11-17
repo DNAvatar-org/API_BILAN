@@ -589,3 +589,10 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - **chemin 1750 → 2025** : 🚂 **12,23** / 2000 **13,52** / 2025 **14,21 °C** (mesures ≈ 13,5 / 14,26 / ≈ 14,9) ; EEI 2025 0,69
   (CERES ≈ 1). Trop froid de ≈ 0,7 K, et le réchauffement +1,98 K dépasse les ≈ +1,4 mesurés, pour un forçage à T fixe de +0,50
   W/m² seulement : l'état froid de 1750 est plus sensible (glace). À diagnostiquer avant les jauges bary.
+- **phase MESURÉE (même jour)** : la rampe est remplacée par la part en masse d'eau surfondue de Hu et al. 2010 (JGR 115:D00H34,
+  éq. 1 et 4, CALIPSO + IIR + MODIS, lue en libre accès sur le site AGU) : f = 1/(1 + e^(−p)), p polynôme de degré 5 en T [°C] —
+  0,985 à −10 °C, 0,75 à −20 °C, 0,09 à −30 °C (la rampe : 0,75 / 0,50 / 0,25). Nuages moyens de 📱 : **0,96 liquide**.
+- **mesures avec Hu 2010** : équilibre 📱 **14,80**, 2025 **15,21** ; sulfate −0,95 W/m² ; frise 1750 → 2000 +0,63 W/m².
+  **Chemin 1750 → 2025 : 13,10 / 14,22 / 14,90 °C** (mesures ≈ 13,5–13,6 / 14,26 / ≈ 14,9) : 2000 et 2025 à 0,05 K près. EEI
+  2025 = 0,70 W/m² (CERES ≈ 1). Reste : 1750 ≈ 0,5 K trop froid, donc un réchauffement de +1,80 K (mesuré ≈ +1,35) ; les deux
+  derniers clics finissent en « oscillation ».

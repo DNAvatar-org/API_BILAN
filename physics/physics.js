@@ -465,8 +465,8 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // ─── Glace : pas de loi physique simple de la taille des cristaux (habitus, agrégation). ⚠️ FOURCHETTE de mémoire
     //     des rayons effectifs MODIS de la glace, ~20–40 µm (King et al. 2013 fig. 13–14, à relever) → 30 µm.
     R_EFF_GLACE: 30e-6,        // [m]
-    // ─── Phase : partition linéaire liquide/glace entre −40 °C et 0 °C (Hu & Stamnes 1993, J. Climate 6:728) ; tout liquide à
-    //     0 °C, CONST.T0_WATER.
+    // ─── Phase : tout gelé sous −40 °C (congélation homogène), tout liquide à 0 °C (CONST.T0_WATER) ; entre les deux, la part
+    //     liquide MESURÉE par CALIPSO (Hu et al. 2010, JGR 115:D00H34), radiative/calculations.js fLiquide.
     T_TOUT_GLACE: 233.15,      // [K]
     // ─── Diffusion solaire : facteur d'asymétrie des gouttes dans le visible (Hansen & Travis 1974, Space Sci. Rev.
     //     16:527 ; Lacis & Hansen 1974, J. Atmos. Sci. 31:118). Réflectance deux-flux d'un nuage conservatif :

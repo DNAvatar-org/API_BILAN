@@ -329,13 +329,22 @@
 <!-- ═══════════════════════════════════════════════════════════════════════ -->
 <h2 id="sec-clouds">4. Nuages, microphysique &amp; CCN</h2>
 
-<article class="ref" id="huStamnes1993" data-tags="cloud phase partition">
-    <div class="cite-key">[huStamnes1993]</div>
-    <div class="authors">Hu, Y. X. &amp; Stamnes, K.</div>
-    <div class="title">An accurate parameterization of the radiative properties of water clouds suitable for use in climate models</div>
-    <div class="venue">Journal of Climate, 6(4):728–742 (1993)</div>
-    <div class="doi"><a href="https://doi.org/10.1175/1520-0442(1993)006%3C0728:AAPOTR%3E2.0.CO;2">10.1175/1520-0442(1993)006&lt;0728:AAPOTR&gt;2.0.CO;2</a></div>
-    <div class="used-in">Partition liquide / glace linéaire entre −40 °C et 0 °C : <code>API_BILAN/physics/physics.js</code> (T_TOUT_GLACE, T_TOUT_LIQUIDE), lue par <code>calculations_albedo.js</code> (f_liq).</div>
+<article class="ref" id="hu2010" data-tags="cloud phase supercooled calipso satellite observation">
+    <div class="cite-key">[hu2010]</div>
+    <div class="authors">Hu, Y., Rodier, S., Xu, K.-M., Sun, W., Huang, J., Lin, B., Zhai, P. &amp; Josset, D.</div>
+    <div class="title">Occurrence, liquid water content, and fraction of supercooled water clouds from combined CALIOP/IIR/MODIS measurements</div>
+    <div class="venue">Journal of Geophysical Research: Atmospheres, 115:D00H34 (2010)</div>
+    <div class="doi"><a href="https://doi.org/10.1029/2009JD012384">10.1029/2009JD012384</a> · <a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2009JD012384">texte intégral en libre accès (AGU)</a></div>
+    <div class="used-in">Éq. 1 et 4 : part en masse de l'eau surfondue du condensat, f = 1/(1 + e<sup>−p(T)</sup>), p polynôme de degré 5 en T [°C], ajusté sur CALIPSO (phase), IIR (température) et MODIS (chemins d'eau et de glace), 2008 : 0,985 à −10 °C, 0,75 à −20 °C, 0,09 à −30 °C. <code>radiative/calculations.js</code> (fLiquide : nuages bas, et nuages moyens à la température de leur niveau, doc/CONSTATS.md C40).</div>
+</article>
+
+<article class="ref" id="li2017" data-tags="cloud phase supercooled calipso-goccp satellite observation">
+    <div class="cite-key">[li2017]</div>
+    <div class="authors">Li, J., Lv, Q., Zhang, M., Wang, T., Kawamoto, K., Chen, S. &amp; Zhang, B.</div>
+    <div class="title">Effects of atmospheric dynamics and aerosols on the fraction of supercooled water clouds</div>
+    <div class="venue">Atmospheric Chemistry and Physics, 17:1847–1863 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.5194/acp-17-1847-2017">10.5194/acp-17-1847-2017</a> · <a href="https://acp.copernicus.org/articles/17/1847/2017/">texte intégral (CC BY)</a></div>
+    <div class="used-in">Contrôle de la phase : CALIPSO-GOCCP, à −10 °C, 55–75 % de liquide entre 30° N et 30° S et plus de 75 % au-delà de 60° (§3.1). <code>radiative/calculations.js</code> (fLiquide).</div>
 </article>
 
 <article class="ref" id="twomey1977" data-tags="ccn indirect-aerosol twomey">

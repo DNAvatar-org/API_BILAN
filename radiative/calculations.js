@@ -1,7 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
 // Version 1.20.0
-// - v1.20.0 (2026-11-17): nuages moyens à leur température : part liquide fLiqMoyen (C40).
+// - v1.20.0 (2026-11-17): nuages moyens à leur température : part liquide fLiqMoyen ; phase de Hu et al. 2010 (C40).
 // - v1.19.1 (2026-11-17): auto-élargissement en pression partielle (n_gaz·k_B·T) : plus de 0/0 dans le vide (⚫).
 // - v1.19.0 (2026-11-16): auto-élargissement du CO₂ (1,32) et du CH₄ (1,35) comme celui de H₂O (pression effective de la couche).
 // - v1.18.0 (2026-11-06): stratosphère en N_STRATES couches en équilibre radiatif (flux montant et descendant), ozone à la
@@ -521,7 +521,7 @@ function profilAtmosphere(z_range) {
     // (adiabatique : q_c = x_surface − x_sat) ; elle reste en gouttes tant que leur rayon effectif est sous le seuil de
     // pluie (R_EFF_PLUIE, 14 µm mesurés), puis précipite : c'est le SOMMET. Épaisseur, eau et τ en sortent, sans réglage :
     //   LWC(z) adiabatique ;  r_eff (Martin 1994) ;  LWC_pluie = (4π/3) ρ_w k N r_pluie³ ;  τ = Σ 3/2·LWC dz/(ρ_w r_eff).
-    // Partition de phase (Hu & Stamnes) : glace au rayon déclaré ; le seuil de précipitation porte sur le condensat total. La FRACTION f (🍰🪩⛅) est MESURÉE (calculations_albedo) : la dynamique 3D qui la fixe n'a pas
+    // Partition de phase (Hu et al. 2010, CALIPSO) : glace au rayon déclaré ; le seuil de précipitation porte sur le condensat total. La FRACTION f (🍰🪩⛅) est MESURÉE (calculations_albedo) : la dynamique 3D qui la fixe n'a pas
     // d'équation en 1D. Essais rejetés le 2026-10-13 : Ackerman & Marley (colonne saturée, W ≈ 2 kg/m²) et schéma
     // statistique (nuages étalés sur 5 km, W/C ≈ 0,5–1,3 kg/m²) — tous deux sans inversion, donc sans sommet.
     // Fractions MESURÉES (jauges FROID / CHAUD, fine_tuning_bounds.js) : sans eau, pas de nuage (branche physique).
@@ -538,12 +538,20 @@ function profilAtmosphere(z_range) {
     // Nature 572:51) ; avec N de l'époque, LWC_pluie ∝ N et W ∝ N² (banc 2026-10-13 : 📱 10 °C sous 🚂). L'effet Twomey
     // (même eau, gouttes plus petites, τ plus grand) reste entier : r_eff prend N de l'époque (× rapport de CCN).
     const rCCN = window.ALBEDO.rapportCCN();
-    // Rampe linéaire de T_TOUT_GLACE (−40 °C, plus de liquide surfondu) à CONST.T0_WATER (paramétrisation, ⚠️ déclarée).
-    // Contrôle satellite : CALIPSO-GOCCP (Li et al. 2017, ACP 17:1847, §3.1) à −9/−12 °C : 55–75 % de liquide entre 30° N et
-    // 30° S, > 75 % au-delà de 60° ; la rampe donne 0,74 à −10,5 °C. Moins de liquide à −20 °C (< 45 % aux latitudes moyennes
-    // nord en été) ; la rampe donne 0,50. — doc/equation.html#eq-phase-liquide-glace
-    /** Part liquide du condensat à la température Tc. */
-    const fLiquide = (Tc) => Math.max(0, Math.min(1, (Tc - N.T_TOUT_GLACE) / (CONST.T0_WATER - N.T_TOUT_GLACE)));
+    // Part liquide du condensat, en MASSE, MESURÉE par satellite : Hu et al. 2010 (JGR 115:D00H34, éq. 1 et 4 ; CALIOP + IIR +
+    // MODIS, 2008), f = 1/(1 + e^(−p)), p polynôme de degré 5 en T [°C] (température IIR du nuage) : 0,985 à −10 °C, 0,75 à
+    // −20 °C, 0,09 à −30 °C. Au-dessus de 0 °C tout est liquide ; à T_TOUT_GLACE (−40 °C), la congélation homogène gèle tout
+    // (le polynôme y vaut déjà 1e−9). Contrôle indépendant : CALIPSO-GOCCP, Li et al. 2017 (ACP 17:1847), > 75 % de liquide à
+    // −10 °C aux hautes latitudes. — doc/equation.html#eq-phase-liquide-glace
+    const HU2010_PATH = [7.6725, 1.0118, 0.1422, 0.0106, 3.39e-4, 3.95e-6];
+    /** Part liquide du condensat à la température Tc [K]. */
+    const fLiquide = (Tc) => {
+        if (Tc >= CONST.T0_WATER) return 1;
+        if (Tc <= N.T_TOUT_GLACE) return 0;
+        const t = Tc - CONST.T0_WATER;
+        const p = HU2010_PATH.reduce((acc, a, k) => acc + a * Math.pow(t, k), 0);
+        return 1 / (1 + Math.exp(-p));
+    };
     const nuagesBas = [
         { nom: 'océan', marin: true, poids: oc, k: N.K_MARTIN_OCEAN, nActuel: DATA['🎚️'].CLOUD_SW.CDNC_OCEAN_CM3 * 1e6 },
         { nom: 'continent', marin: false, poids: 1 - oc, k: N.K_MARTIN_CONTINENT, nActuel: N.CDNC_CONTINENT_CM3 * 1e6 }
@@ -587,7 +595,7 @@ function profilAtmosphere(z_range) {
         // elle l'accélère : dans un nuage mixte les cristaux grossissent aux dépens des gouttes et tombent (processus de
         // Wegener–Bergeron–Findeisen) — le seuil des gouttes liquides (14 µm) est donc une borne haute pour tout condensat.
         // v-2026-10-13 : seuil = f_liq · LWC_pluie. ⚠️ HYPOTHÈSE déclarée (limite du processus WBF) : la glace précipite dès
-        // qu'elle se forme, seule la part liquide (Hu & Stamnes) peut s'accumuler jusqu'au seuil de pluie. Sans elle, un
+        // qu'elle se forme, seule la part liquide (Hu et al. 2010) peut s'accumuler jusqu'au seuil de pluie. Sans elle, un
         // nuage froid ne précipitait jamais : 1 à 8 kg/m² d'eau, τ jusqu'à 500 sous −10 °C (🪸), quand les observations
         // donnent l'eau nuageuse DÉCROISSANTE vers le froid (Somerville & Remer 1984). Aucun effet sur les nuages liquides.
         // Le sommet est là où l'écart au seuil, e = cwc − f_liq·LWC_pluie, s'annule : dans le pas où e change de signe, à la part

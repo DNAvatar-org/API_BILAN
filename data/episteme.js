@@ -398,7 +398,8 @@
 
         // ── Nuages, solaire ───────────────────────────────────────────────────────────────────────────────────────
         { cible: 'eq:eq-nuage-bas-adiabatique-eau', ref: null, statut: '⚛', usage: '📌', quoi: 'la parcelle sature au niveau de condensation, l\'excès condense' },
-        { cible: 'eq:eq-phase-liquide-glace', ref: 'huStamnes1993', statut: '💻', usage: '📌', quoi: 'partition liquide / glace linéaire entre −40 et 0 °C (paramétrisation)' },
+        { cible: 'eq:eq-phase-liquide-glace', ref: 'hu2010', statut: '📡', usage: '📌', quoi: 'part liquide du condensat entre −40 et 0 °C, sigmoïde ajustée sur CALIPSO + IIR + MODIS (éq. 1 et 4)' },
+        { cible: 'eq:eq-phase-liquide-glace', ref: 'li2017', statut: '📡', usage: '🎯', quoi: 'contrôle CALIPSO-GOCCP : 55–75 % de liquide à −10 °C sous les tropiques, > 75 % aux hautes latitudes' },
         { cible: 'eq:eq-rayon-effectif-gouttes', ref: 'martinJohnsonSpice1994', statut: '📡', usage: '📌', quoi: 'rayon effectif ∝ (LWC / N)^⅓, mesures avion en stratocumulus' },
         { cible: 'eq:eq-epaisseurs-optiques-nuage', ref: null, statut: '⚛', usage: '📌', quoi: 'τ = 3 LWP / (2 ρ r_eff) pour des gouttes grandes devant λ' },
         { cible: 'eq:eq-rayon-cristaux-glace', ref: 'king2013', statut: '⚠️', usage: '📌', quoi: '20–40 µm « de mémoire » : à relever dans l\'article' },

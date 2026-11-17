@@ -451,11 +451,12 @@ Licensed under Apache License 2.0 with Commons Clause.
     </div>
     <div class="eq M" id="eq-phase-liquide-glace">
         <div class="titre"><span class="cl M">M</span> Phase liquide / glace</div>
-        <div class="f" data-tex="f_{\text{liq}} = \text{clamp}\!\left(\frac{T - 233{,}15}{273{,}15 - 233{,}15},\ 0,\ 1\right)"></div>
-        <p>Rampe de paramétrisation entre −40 °C et 0 °C. Contrôle satellite (CALIPSO-GOCCP) : à −10 °C, 55–75 % de liquide sous
-            les tropiques et plus de 75 % aux hautes latitudes, la rampe donne 0,74. Elle sert aussi aux nuages moyens, à la
-            température de leur niveau : seules leurs gouttes répondent au nombre de noyaux de condensation.</p>
-        <p class="src">Li et al. 2017, Atmos. Chem. Phys. 17:1847 (contrôle)</p>
+        <div class="f" data-tex="f_{\text{liq}}(T) = \frac{1}{1 + e^{-p(T)}},\quad p = 7{,}6725 + 1{,}0118\,T + 0{,}1422\,T^2 + 0{,}0106\,T^3 + 3{,}39\cdot10^{-4}\,T^4 + 3{,}95\cdot10^{-6}\,T^5\ \ (T\ \text{en °C},\ -40 < T < 0)"></div>
+        <p>Part en masse de l'eau surfondue dans le condensat, mesurée par CALIPSO (lidar, phase) avec l'IIR (température) et MODIS
+            (chemins d'eau et de glace) : 0,985 à −10 °C, 0,75 à −20 °C, 0,09 à −30 °C. Tout liquide au-dessus de 0 °C, tout gelé
+            sous −40 °C (congélation homogène). Sert aux nuages bas et aux nuages moyens, à la température de leur niveau : seules
+            les gouttes répondent au nombre de noyaux de condensation.</p>
+        <p class="src">Hu et al. 2010, J. Geophys. Res. 115:D00H34 (éq. 1 et 4) ; contrôle : Li et al. 2017, Atmos. Chem. Phys. 17:1847</p>
         <p class="code">radiative/calculations.js → profilAtmosphere (fLiquide, fLiqMoyen) ; radiative/solaire.js → nuagesColonne ; EARTH.NUAGES.T_TOUT_GLACE / CONST.T0_WATER</p>
     </div>
     <div class="eq M" id="eq-rayon-effectif-gouttes">
