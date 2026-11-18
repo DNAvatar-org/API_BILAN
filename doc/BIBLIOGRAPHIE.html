@@ -1730,7 +1730,7 @@
     <div class="title">A 485-million-year history of Earth's surface temperature (PhanDA)</div>
     <div class="venue">Science, 385:eadk3705 (2024)</div>
     <div class="doi"><a href="https://doi.org/10.1126/science.adk3705">10.1126/science.adk3705</a></div>
-    <div class="used-in">CO₂ des époques (racines de 🍄 💀 🦕 🦤 🐊 🏔 🦣, états 🔁 de 🍄) : colonne CO2_50 de <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA), interpolée en ln CO₂ entre les âges moyens des deux étages qui encadrent la date, comme la courbe cyan ; fourchettes co2 du banc : CO2_05 et CO2_95 interpolées de même ; tCRepere : GMST 5–95 % de l’étage contenant ▶ (<code>API_BILAN/config/configTimeline.js</code>, encadré « CO₂ DES ÉPOQUES DE PhanDA » et <code>BENCH_LIT_BY_EPOCH_ID</code>). Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>). Sa bande est la précision d'UNE méthode — un seul a priori (le modèle HadCM3L), des températures de mer seules, 420 assimilations qui partagent ces hypothèses : elle est élargie du désaccord entre méthodes mesuré par <a href="#inglis2020">[inglis2020]</a>.</div>
+    <div class="used-in">CO₂ des époques (racines de 🍄 💀 🦕 🦤 🐊 🏔 🦣, états 🔁 de 🍄 ; 🪼 : l'étage le plus ancien, le Trémadocien, 3 261 ppm — PhanDA ne remonte pas au Cambrien) : colonne CO2_50 de <code>PhanDA_GMSTandCO2_percentiles.csv</code> (github.com/EJJudd/PhanDA), interpolée en ln CO₂ entre les âges moyens des deux étages qui encadrent la date, comme la courbe cyan ; fourchettes co2 du banc : CO2_05 et CO2_95 interpolées de même ; tCRepere : GMST 5–95 % de l’étage contenant ▶ (<code>API_BILAN/config/configTimeline.js</code>, encadré « CO₂ DES ÉPOQUES DE PhanDA » et <code>BENCH_LIT_BY_EPOCH_ID</code>). Aussi : la courbe de littérature du Phanérozoïque (médiane et 5–95 %, 85 étages), <code>CO2/histoire.html</code> (<code>static/histoire/litterature.js</code>). Sa bande est la précision d'UNE méthode — un seul a priori (le modèle HadCM3L), des températures de mer seules, 420 assimilations qui partagent ces hypothèses : elle est élargie du désaccord entre méthodes mesuré par <a href="#inglis2020">[inglis2020]</a>.</div>
 </article>
 
 <article class="ref" id="inglis2020" data-tags="paleogene eocene gmst methods uncertainty">
@@ -2115,6 +2115,15 @@
         1999 tirent le co-albédo et l'asymétrie des nuages de glace ; taille effective r_i = (2√3/3ρ_i)·C/A_c, d'où
         r_i = (8√3/9)·r_e à même extinction. <code>API_BILAN/radiative/solaire.js</code> (OPTIQUE, rayonGlace).</div>
 </article>
+<article class="ref" id="klein2017" data-tags="low-cloud feedback satellite cloud-controlling-factors observation">
+    <div class="cite-key">[klein2017]</div>
+    <div class="authors">Klein, S. A., Hall, A., Norris, J. R. &amp; Pincus, R.</div>
+    <div class="title">Low-Cloud Feedbacks from Cloud-Controlling Factors: A Review</div>
+    <div class="venue">Surveys in Geophysics, 38:1307–1329 (2017)</div>
+    <div class="doi"><a href="https://doi.org/10.1007/s10712-017-9433-3">10.1007/s10712-017-9433-3</a> · <a href="https://link.springer.com/article/10.1007/s10712-017-9433-3">texte intégral (CC BY)</a></div>
+    <div class="used-in">Méta-analyse de cinq études satellite des facteurs de contrôle des nuages bas (Qu 2015, Zhai 2015, Myers &amp; Norris 2016, Brient &amp; Schneider 2016, McCoy 2017) : rétroaction des nuages bas tropicaux +0,25 ± 0,18 W m⁻² K⁻¹ sur le globe (local 1,0 ± 0,7), à −1 W/m² par point de % de nuages bas (Klein &amp; Hartmann 1993). D'où la couverture des nuages bas qui baisse de 0,25 point par K, sur la mer libre : EARTH.NUAGES.K_MER (<code>physics/physics.js</code>), <code>radiative/calculations.js</code> (doc/CONSTATS.md C43).</div>
+</article>
+
 <article class="ref" id="kinne2019" data-tags="aerosol climatology solar">
     <div class="cite-key">[kinne2019]</div>
     <div class="authors">Kinne, S.</div>
@@ -2122,7 +2131,7 @@
     <div class="venue">Atmos. Chem. Phys., 19:10919–10959 (2019)</div>
     <div class="doi"><a href="https://doi.org/10.5194/acp-19-10919-2019">10.5194/acp-19-10919-2019</a></div>
     <div class="used-in">Aérosol de fond troposphérique de la Terre actuelle, climatologie MACv2 (AERONET + modèles), moyennes globales au milieu
-        du visible : épaisseur optique 0,12, albédo de diffusion simple 0,94, facteur d'asymétrie 0,70. <code>API_BILAN/radiative/solaire.js</code> (AEROSOL).</div>
+        du visible : épaisseur optique 0,12, albédo de diffusion simple 0,94, facteur d'asymétrie 0,70 ; table 1 : part anthropique (mode fin) τ 0,032 (0,030–0,038 par rapport à 1850), ω 0,919, g 0,639 — l'effet direct des aérosols industriels, qui suit l'excès industriel de sulfate de l'époque. <code>API_BILAN/radiative/solaire.js</code> (AEROSOL, AEROSOL_ANTH, aerosolEpoque ; doc/CONSTATS.md C44).</div>
 </article>
 <article class="ref" id="wild2019" data-tags="energy-budget clear-sky observations">
     <div class="cite-key">[wild2019]</div>
