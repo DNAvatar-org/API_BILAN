@@ -671,13 +671,14 @@ Licensed under Apache License 2.0 with Commons Clause.
         <p class="code">solaire.js → colonneNuageuse, albedoMu, albedo</p>
     </div>
     <div class="eq M" id="eq-aerosol-de-fond">
-        <div class="titre"><span class="cl M">M</span> Aérosol de fond (MACv2)</div>
-        <div class="f" data-tex="\tau_{550} = 0{,}12,\quad \omega = 0{,}94,\quad g = 0{,}70\qquad R_{\text{sol vu}} = R_a + \frac{T_a^2 R_g}{1 - R_a R_g}"></div>
-        <p>Climatologie MACv2 (AERONET + modèles), moyennes globales au milieu du visible. Couche sous les nuages (couche limite),
-            deux-flux de la couche diffusante, posée sur le sol dans l'ultraviolet et le visible (47,074 % du flux). ⚠️ Même valeur pour
-            toutes les époques qui ont une atmosphère (pas de chimie des aérosols) ; plus mince dans le proche IR, non représenté.</p>
-        <p class="src">Kinne 2019, Atmos. Chem. Phys. 19:10919</p>
-        <p class="code">solaire.js → AEROSOL, solAerosol</p>
+        <div class="titre"><span class="cl M">M</span> Aérosol de fond (MACv2) et effet direct des aérosols industriels</div>
+        <div class="f" data-tex="\tau = \tau_{\text{nat}} + 0{,}032\,\frac{m_{\text{ind}}}{m_{\text{ind}}^{2000}},\quad \omega = \frac{\sum \omega_i\tau_i}{\tau},\quad g = \frac{\sum g_i\omega_i\tau_i}{\omega\tau}\qquad R_{\text{sol vu}} = R_a + \frac{T_a^2 R_g}{1 - R_a R_g}"></div>
+        <p>Climatologie MACv2 (AERONET + modèles), moyennes globales au milieu du visible : τ = 0,12, ω = 0,94, g = 0,70 en 2000, dont
+            une part anthropique (mode fin) τ = 0,032, ω = 0,919, g = 0,639. Cette part suit l'excès industriel de sulfate de l'époque
+            (m_ind, ce qui dépasse le fond naturel) ; ⚠️ le sulfate tient lieu de tout l'aérosol industriel, déclaré. Couche sous les
+            nuages, posée sur le sol dans l'ultraviolet et le visible (47,074 % du flux) ; plus mince dans le proche IR, non représenté.</p>
+        <p class="src">Kinne 2019, Atmos. Chem. Phys. 19:10919 (table 1) ; contrôle : Bellouin et al. 2020, Rev. Geophys. 58:e2019RG000660</p>
+        <p class="code">radiative/solaire.js → AEROSOL, AEROSOL_ANTH, aerosolEpoque, solAerosol ; albedo/calculations_albedo.js → excesSulfateIndustriel</p>
     </div>
     <div class="eq M" id="eq-absorption-o2">
         <div class="titre"><span class="cl M">M</span> Absorption de l'O₂</div>

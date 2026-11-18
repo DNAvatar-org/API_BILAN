@@ -1,6 +1,7 @@
 // File: API_BILAN/albedo/calculations_albedo.js - Calculs albedo et couverture nuageuse
 // Desc: En français, dans l'architecture, je suis le module de calculs d'albedo
-// Version 1.18.0
+// Version 1.18.1
+// - v1.18.1 (2026-11-18): excesSulfateIndustriel, lu par rapportCCN et par l'effet direct des aérosols (C44).
 // - v1.18.0 (2026-11-17): rapportCCN — fond naturel réparti, excès industriel en panache (C39).
 // - v1.17.1 (2026-10-31): poserForet crashe sans poids de terre ; albédo d'une terre libre d'aire nulle défini ; 🧫 du clic
 //   (📜🧫).
@@ -307,6 +308,12 @@ function poserAlbedosMateriaux() {
 // des années du calendrier à EPOCH['▶'] (des âges géologiques). Il divisait le nombre de gouttes par ~2,5 sur toute
 // époque sans oxygène. ⚠️ Les autres CCN réels (sel de mer, organiques, poussière) ne sont pas suivis : McCoy 2018 publie
 // leurs exposants, il manque leurs masses par époque.
+/** [kg de SO₄] Excès industriel de sulfate de l'époque : ce qui dépasse le fond naturel (CONV.SULFATE_FOND_NATUREL_KG,
+ *  Tsigaridis 2006). Lu par le nombre de gouttes (rapportCCN, en panache) et par l'aérosol de fond (radiative/solaire.js, effet
+ *  direct). Nul pour toute époque sans industrie. */
+function excesSulfateIndustriel() {
+    return Math.max(0, window.DATA['⚖️']['⚖️✈'] - window.CONV.SULFATE_FOND_NATUREL_KG);
+}
 function rapportCCN() {
     const DATA = window.DATA, CONV = window.CONV;
     const SO4_VOLCANIC_SHARE = 11.5 / (11.5 + 28.1);   // 0,290 — Carn 2017 / Lana 2011
@@ -315,7 +322,7 @@ function rapportCCN() {
     const fondNat = CONV.SULFATE_FOND_NATUREL_KG;
     const m = DATA['⚖️']['⚖️✈'];
     const fond = Math.min(m, fondNat) * (SO4_VOLCANIC_SHARE + (1 - SO4_VOLCANIC_SHARE) * DATA['📜']['🧫']);
-    const exces = Math.max(0, m - fondNat);
+    const exces = excesSulfateIndustriel();
     const sulfate_kg_effective = fond + exces;
     const ccn_ratio = window.AEROSOL.sulfateCcnRatioPanache(
         fond, exces,
@@ -731,6 +738,7 @@ ALBEDO.poserForet = poserForet;
 ALBEDO.surfacesSansGlace = surfacesSansGlace;
 ALBEDO.terresLibres = terresLibres;
 ALBEDO.rapportCCN = rapportCCN;
+ALBEDO.excesSulfateIndustriel = excesSulfateIndustriel;
 ALBEDO.fractionMaritime = fractionMaritime;
 ALBEDO.nombreGouttesActuelCm3 = nombreGouttesActuelCm3;
 ALBEDO.nombreGouttesCm3 = nombreGouttesCm3;

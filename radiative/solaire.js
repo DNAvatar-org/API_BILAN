@@ -5,7 +5,8 @@
 //       δ-Eddington (Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452), faisceau direct et diffus portés séparément.
 //       Vapeur : la k-distribution de Chou & Suarez (1999, NASA TM-104606 vol. 15, CLIRAD-SW), calée raie par raie (HITRAN 1996)
 //       et validée à moins de 1 % sur les flux (leur table 8) ; O₂ du même document. Aérosol de fond : climatologie MACv2.
-// Version 1.9.0
+// Version 1.10.0
+// - v1.10.0 (2026-11-18): effet direct des aérosols industriels (Kinne 2019, part anthropique de MACv2) (C44).
 // - v1.9.0 (2026-11-17): nuages moyens à leur phase (fLiqMoyen) : seules leurs gouttes répondent aux CCN (C40).
 // - v1.8.3 (2026-10-30): albédo de Rayleigh du ciel clair rapporté à la part visible du flux, dont il sature ; vapeur du PAR
 //   en ciel clair sur le seul visible qui atteint le sol.
@@ -97,6 +98,23 @@
     // proche IR), en couche sous les nuages (couche limite), même valeur pour toutes les époques qui ont une atmosphère (pas de
     // chimie des aérosols).
     const AEROSOL = { TAU: 0.12, OMEGA: 0.94, G: 0.70 };   // [-], [-], [-]
+    // EFFET DIRECT des aérosols industriels : la part anthropique de cette épaisseur optique, Terre actuelle, mode fin — Kinne 2019,
+    // table 1 (550 nm) : τ = 0,032 (0,030–0,038 par rapport à 1850), ω = 0,919, g = 0,639. Elle suit l'excès industriel de sulfate
+    // de l'époque (ALBEDO.excesSulfateIndustriel) rapporté à celui de 2000 (CONV.CCN_SULFATE_REF_KG − fond) ; ⚠️ le sulfate tient
+    // lieu de tout l'aérosol industriel (suie, organiques, nitrates suivent les mêmes émissions), déclaré. Le reste (naturel : sel
+    // de mer, poussière, sulfate naturel) garde sa part de MACv2 ; en 2000 le mélange redonne exactement τ, ω, g ci-dessus.
+    const AEROSOL_ANTH = { TAU: 0.032, OMEGA: 0.919, G: 0.639 };   // [-], [-], [-]
+    const AEROSOL_NAT = (() => {
+        const tau = AEROSOL.TAU - AEROSOL_ANTH.TAU, diff = AEROSOL.OMEGA * AEROSOL.TAU - AEROSOL_ANTH.OMEGA * AEROSOL_ANTH.TAU;
+        return { TAU: tau, OMEGA: diff / tau, G: (AEROSOL.G * AEROSOL.OMEGA * AEROSOL.TAU - AEROSOL_ANTH.G * AEROSOL_ANTH.OMEGA * AEROSOL_ANTH.TAU) / diff };
+    })();
+    /** Aérosol de fond de l'époque { tau, omega, g } : la part naturelle plus la part industrielle à sa charge. */
+    function aerosolEpoque() {
+        const ref = window.CONV.CCN_SULFATE_REF_KG - window.CONV.SULFATE_FOND_NATUREL_KG;
+        const n = AEROSOL_NAT, a = AEROSOL_ANTH, tauA = a.TAU * window.ALBEDO.excesSulfateIndustriel() / ref;
+        const tau = n.TAU + tauA, diff = n.OMEGA * n.TAU + a.OMEGA * tauA;
+        return { tau: tau, omega: diff / tau, g: (n.G * n.OMEGA * n.TAU + a.G * a.OMEGA * tauA) / diff };
+    }
     // O₂ : bandes A, B et faibles (7600–8050, 12850–13190, 14310–14590, 15730–15930 cm⁻¹), 6,33 % du flux solaire ; transmission
     // moyenne e^(−k√w), k = 0,000145 (cm-atm STP)^(−1/2), w = quantité d'O₂ ramenée à p_r = 300 hPa par (p/p_r)^0,8, ajustée
     // sur des calculs raie par raie (Chou & Suarez 1999, éq. 3.5, 3.16–3.18). Sous nuages : réduction du flux au sol
@@ -290,8 +308,8 @@
      *  1 − R − (1 − Rg) Db. Sans atmosphère : le sol nu. */
     // Réf : Kinne 2019, Atmos. Chem. Phys. 19:10919 — doc/equation.html#eq-aerosol-de-fond
     function solAerosol(Rg) {
-        const tau = window.DATA['🫧']['🎈'] === 0 ? 0 : AEROSOL.TAU;
-        const a = couche(tau, AEROSOL.OMEGA, AEROSOL.G);
+        const ae = aerosolEpoque();
+        const a = couche(window.DATA['🫧']['🎈'] === 0 ? 0 : ae.tau, ae.omega, ae.g);
         const d = 1 - a.R * Rg;
         return { R: a.R + a.T * a.T * Rg / d, Db: a.T / d };
     }

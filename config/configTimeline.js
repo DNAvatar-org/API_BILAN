@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.13.1
+// Version 1.13.2
+// - v1.13.2 (2026-11-18): CO₂ de 🪼 = PhanDA CO2_50 du Trémadocien (3 261 ppm), au lieu de 1 713 ppm ajustés au banc.
 // - v1.13.1 (2026-11-18): ⛄ et 🏂 portent le N₂O (N2O_1860) : la frise s'y arrêtait.
 // - v1.13.0 (2026-11-04): 📱 : 973 GtCO₂ mesurés en 2000 (🛢), puis chaque bouton multiplie la tranche précédente.
 // - v1.12.0 (2026-11-03): plancher de la tolérance par époque (🧲🔬⌊) : 0,10 W/m², 0,01 pour 📱.
@@ -995,7 +996,7 @@ const timeline = [
         '🍎': 9.81,
         '⚾': window.OBLIQUITE_ACTUELLE_DEG, // ❔ obliquité de l'époque, hors de la solution La2004 : celle d'aujourd'hui, faute de reconstruction
         '🗻': { '🍰🗻🌊': 0.78, '🍰🗻🏔': 0.06, '🍰🗻🌍': 0.16, '🍰🗻🧊': CALOTTES_SANS },
-        '⚖️🏭': 1.1494e+16, // ppm inchangés avec l'O₂ sourcé (2026-10-13) ; // 1 PAL N₂ (2026-10-13), ppm inchangés ; avant 1.38e16 // co2_kg — léger − (bench 🪼)
+        '⚖️🏭': 2.1879e+16, // CO₂ = 3 261 ppm d'air sec : PhanDA CO2_50 du Trémadocien (477–487 Ma, Judd et al. 2024), l'étage le plus proche — PhanDA ne remonte pas au Cambrien (règle « tenue à la plus proche hors du domaine », encadré CO₂ DES ÉPOQUES) ; 5–95 % : 2 286–4 665 ppm. Avant : 1 713 ppm, ajusté au banc sans source.
         '⚖️🐄': 1.7042e+12, // CH₄ ≈ 0,697 ppm d'air sec, celui de 🚂 (Law Dome 1750) : règle des époques sans CH₄ mesuré ni simulé (encadré « CH₄ DES ÉPOQUES »)
         '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
         '⚖️💧': 1.3e21,
@@ -1891,9 +1892,9 @@ window.BENCH_LIT_BY_EPOCH_ID = {
                co2: "🔀 hystérésis : repère, PAS une cible (config frontière) — PhanDA Priabonien",
                ch4: "🔀 hystérésis : repère, PAS une cible (config frontière)",
                h2oVap: "🔀 hystérésis : repère, PAS une cible (config frontière)" } },
-    '🪼': { tCRepere: [15, 25], co2: [1500, 5000], ch4: [5, 20], h2oVap: [1.19, 2.54],
-        src: { tCRepere: "⚠️ non sourcée (▶ 600 Ma, hors PhanDA)",
-               co2: "⚠️ non sourcée",
+    '🪼': { tCRepere: [15, 25], co2: [2286, 4665], ch4: [5, 20], h2oVap: [1.19, 2.54],
+        src: { tCRepere: "⚠️ non sourcée (▶ 538,8 Ma, hors PhanDA ; KT2018 à 525 Ma : 11,3–14,6 °C ; PhanDA Trémadocien : 22,6–36,9 °C)",
+               co2: "✅ PhanDA CO2_05–CO2_95 du Trémadocien (477–487 Ma), l'étage le plus proche (Judd et al. 2024)",
                ch4: "⚠️ non sourcée",
                h2oVap: "🧮 C-C (Murphy & Koop 2005) × RH mesurée [0,70 ; 0,80] (Dai 2006) à tC, P modèle" } },
     '🍄': { tCRepere: [26, 39], co2: [472, 3991], ch4: [2.58, 3.614], h2oVap: [2.36, 5.6],

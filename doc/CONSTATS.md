@@ -643,3 +643,22 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   🪼, plus froid qu'aujourd'hui, en devient plus froid (12,0 °C, toujours au pli de sa branche chaude). Chaîne non relancée.
   Le déficit chaud est ailleurs : à décomposer (forçage CO₂ à haute concentration, vapeur et gradient vertical en climat
   chaud, transport méridien, nuages hauts) — prochain diagnostic.
+
+
+## C44 — Effet direct des aérosols industriels (Kinne 2019) et CO₂ de 🪼 (PhanDA) (`radiative/solaire.js` 1.10.0, `configTimeline.js`)
+- **sensibilité dépendante de l'état** (`retro.js` sur 🐊 et 📱) : ECS 5,1 K en 2000, 3,3 K à l'Éocène (24,4 °C) ; λ infrarouge
+  (Planck + vapeur + gradient) 2,06 → 2,10, réponse solaire (nuages et glace) +1,23 → +0,81 W m⁻² K⁻¹ (plus de glace) ; F₂ₓ 2,37 →
+  3,04 W/m². La synthèse DeepMIP (Inglis et al. 2020) met l'Éocène vers 23–30 °C pour ~1 500 ppm ; la fourchette PhanDA de 🐊
+  (30–39 °C) est plus chaude : la cible est elle-même en débat.
+- **recul au seuil de glace essayé puis retiré** : dans le solveur, revenir au milieu quand |ΔS_abs| > |Δ₀| entre deux évaluations de
+  même signe. Sur le clic hysteresis 1c → 🪼, l'équilibre chaud n'existait plus (Δ max −0,49 W/m²), et le critère se déclenchait
+  sur le bruit de Δ (±0,4 W/m² à T égale) : 57 pas au lieu de 15. Non gardé.
+- **CO₂ de 🪼** : 1 713 ppm, « ajusté au banc » sans source → 3 261 ppm, PhanDA CO2_50 du Trémadocien (477–487 Ma, l'étage le plus
+  proche : PhanDA ne remonte pas au Cambrien ; règle « tenue à la plus proche hors du domaine »), fourchette banc 2 286–4 665.
+  Les sources se contredisent au Cambrien : KT2018 12,7 °C (11,3–14,6) à 525 Ma, PhanDA 32 °C (22,6–36,9) à 482 Ma.
+- **effet direct** : la part anthropique de MACv2 (τ 0,032, ω 0,919, g 0,639, Kinne 2019 table 1) suit l'excès industriel de sulfate
+  (ALBEDO.excesSulfateIndustriel, lu aussi par rapportCCN) ; naturelle τ 0,088, ω 0,948, g 0,722 ; 2000 inchangé.
+- **mesures** : forçage du sulfate 1750 → 2000 −0,95 → −1,40 W/m² (direct −0,45, dans l'ERFari de Bellouin −0,58/−0,23) ; frise
+  1750 → 2000 +0,13 W/m². Chemin 1750 / 2000 / 2025 : **13,54 / 14,39 / 14,90–15,07** (mesures ≈ 13,5 / 14,26 / 14,9) ; réchauffement
+  +1,4 à +1,5 K (mesuré ≈ +1,4) ; EEI 2025 0,58–0,70. Graines : 🪼 **18,48** (était 12,04, au pli), 🦕 21,82, 🐊 24,84, 🦣 13,30,
+  ⛄ −59,46, 🪸 22,82. Équilibre 2000 14,88, 2025 15,37.
