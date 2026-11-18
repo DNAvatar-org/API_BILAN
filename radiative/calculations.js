@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.21.0
+// Version 1.22.0
+// - v1.22.0 (2026-11-18): nuages moyens : la glace précipite, ils gardent τ × f_liq (C45).
 // - v1.21.0 (2026-11-18): couverture des nuages bas selon T̄ et la mer libre (rétroaction mesurée, C43).
 // - v1.20.0 (2026-11-17): nuages moyens à leur température : part liquide fLiqMoyen ; phase de Hu et al. 2010 (C40).
 // - v1.19.1 (2026-11-17): auto-élargissement en pression partielle (n_gaz·k_B·T) : plus de 0/0 dans le vide (⚫).
@@ -745,20 +746,22 @@ function profilAtmosphere(z_range) {
         couches[iHaut + 1].tauNuage += wHaut * tauHaut;
     }
     // NUAGES MOYENS (physics.js EARTH.NUAGES) au niveau σ = SIGMA_MOYEN, s'il est sous la tropopause : populations des nuages
-    // bas (même émissivité ε̄), recouvrement aléatoire (le worker multiplie les transmissions des couches). Réparti
-    // linéairement en σ entre les deux couches qui encadrent le niveau, comme les nuages hauts en température.
+    // bas, recouvrement aléatoire (le worker multiplie les transmissions des couches). Réparti linéairement en σ entre les deux
+    // couches qui encadrent le niveau, comme les nuages hauts en température.
+    // Phase : la part liquide f_liq de LEUR température (fLiquide, Hu et al. 2010) ; la glace précipite dès qu'elle se forme — la
+    // règle des nuages bas (seuil de pluie f_liq·LWC_pluie, limite de Wegener–Bergeron–Findeisen, ⚠️ déclarée) : seul le liquide
+    // reste, le nuage garde τ × f_liq, en gouttes (C40, C45). Un nuage mixte qui se glace s'amincit : la rétroaction de phase
+    // observée est négative (McCoy et al. 2015, JGR 120:9539).
     const fMoyen = avecEau && iMoyen >= 0 ? N.F_MOYEN : 0;
-    // Part liquide des nuages moyens, à LEUR température (celle du niveau σ = SIGMA_MOYEN) : leurs gouttes viennent des
-    // populations des nuages bas, mais le reste de leur condensat est en cristaux, que le nombre de CCN ne change pas (C40).
-    let fLiqMoyen = 0;
+    const fLiqMoyen = fMoyen > 0 ? fLiquide(tMoyen) : 0;   // au pas fin de l'intégration (les couches de l'appelant peuvent être 2)
     if (fMoyen > 0) {
-        const tauMoyen = -Math.log(1 - fMoyen * epsBas) / D;
+        const epsMoyen = window.SOLAIRE.moyennePopulation(populations, (c) => 1 - Math.exp(-D * c.tauIR * fLiqMoyen));
+        const tauMoyen = -Math.log(1 - fMoyen * epsMoyen) / D;
         const sigmaCouche = (c) => c.n_air * CONST.BOLTZMANN_KB * c.T / P_s;
         const sDessous = sigmaCouche(couches[iMoyen]), sDessus = sigmaCouche(couches[iMoyen + 1]);
         const wMoyen = (sDessous - N.SIGMA_MOYEN) / (sDessous - sDessus);
         couches[iMoyen].tauNuage += (1 - wMoyen) * tauMoyen;
         couches[iMoyen + 1].tauNuage += wMoyen * tauMoyen;
-        fLiqMoyen = fLiquide(tMoyen);                   // au pas fin de l'intégration (les couches de l'appelant peuvent être 2)
     }
     // nuage : colonne DANS le nuage (avant la fraction f) ; W, τ, sommet, seuil de pluie : moyennes pondérées des deux
     // nuages bas (diagnostic), le détail est dans populations.

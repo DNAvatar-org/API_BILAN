@@ -5,7 +5,8 @@
 //       δ-Eddington (Joseph, Wiscombe & Weinman 1976, J. Atmos. Sci. 33:2452), faisceau direct et diffus portés séparément.
 //       Vapeur : la k-distribution de Chou & Suarez (1999, NASA TM-104606 vol. 15, CLIRAD-SW), calée raie par raie (HITRAN 1996)
 //       et validée à moins de 1 % sur les flux (leur table 8) ; O₂ du même document. Aérosol de fond : climatologie MACv2.
-// Version 1.10.0
+// Version 1.10.1
+// - v1.10.1 (2026-11-18): nuages moyens : τ × f_liq, la glace a précipité (C45).
 // - v1.10.0 (2026-11-18): effet direct des aérosols industriels (Kinne 2019, part anthropique de MACv2) (C44).
 // - v1.9.0 (2026-11-17): nuages moyens à leur phase (fLiqMoyen) : seules leurs gouttes répondent aux CCN (C40).
 // - v1.8.3 (2026-10-30): albédo de Rayleigh du ciel clair rapporté à la part visible du flux, dont il sature ; vapeur du PAR
@@ -389,15 +390,15 @@
      */
     function nuagesColonne(colonne) {
         if (_nuages.has(colonne)) return _nuages.get(colonne);
-        // fLiq : part liquide de l'épaisseur optique (nuages moyens : colonne.fLiqMoyen, à leur température) ; null = celle des
-        // tranches du nuage bas. Les gouttes gardent leur rayon (τ·r_eff au prorata), le reste est en cristaux.
+        // fLiq : nuages moyens, la part liquide de leur température (colonne.fLiqMoyen) — la glace a précipité : le nuage garde
+        // τ × f_liq, ses gouttes et leur rayon (radiative/calculations.js, C45) ; null = les tranches du nuage bas telles quelles.
         const populations = (n, fLiq) => {
             const out = [];
             for (const pop of colonne.populations) {
                 for (const u of profondeurs(pop, n)) {
                     const e = etatNuage(pop.tranches, u);
-                    const c = fLiq === null || e.tauLiq === 0 ? e
-                        : Object.assign({}, e, { tauLiq: e.tauSW * fLiq, tauRLiq: e.tauRLiq * e.tauSW * fLiq / e.tauLiq });
+                    const c = fLiq === null ? e
+                        : Object.assign({}, e, { tauSW: e.tauSW * fLiq, tauIR: e.tauIR * fLiq, tauLiq: e.tauLiq * fLiq, tauRLiq: e.tauRLiq * fLiq });
                     const o = optiqueEtat(c);
                     out.push(nuageDeColonne(pop.poids / n, c, (q) => {
                         const tau = c.tauSW + q.k * c.wSature;

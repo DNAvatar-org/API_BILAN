@@ -662,3 +662,21 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   1750 → 2000 +0,13 W/m². Chemin 1750 / 2000 / 2025 : **13,54 / 14,39 / 14,90–15,07** (mesures ≈ 13,5 / 14,26 / 14,9) ; réchauffement
   +1,4 à +1,5 K (mesuré ≈ +1,4) ; EEI 2025 0,58–0,70. Graines : 🪼 **18,48** (était 12,04, au pli), 🦕 21,82, 🐊 24,84, 🦣 13,30,
   ⛄ −59,46, 🪸 22,82. Équilibre 2000 14,88, 2025 15,37.
+
+
+## C45 — Les nuages moyens perdent leur glace (règle de Wegener–Bergeron–Findeisen) : le froid redevient stable
+- **chaîne C44** : passe tout le Phanérozoïque (🪼 18,4, 🐊 24,8, 🏔 21,8) mais le 2ᵉ clic 🐾 de 🦣 (CO₂ 281,7 → 199,6 ppm, EPICA) tombe
+  en boule de neige (−50,8 °C) et y reste jusqu'en 2025.
+- **diagnostic** : à 200 ppm, figé de 13 à 5 °C, le bilan reste négatif (max −0,55 W/m² à 9 °C) — l'albédo planétaire monte de 0,005
+  à 0,009 par K. Ni C43 (K_MER = 0 : chute aussi), ni la phase de Hu 2010, ni la phase propre des nuages moyens (copies `_api_v1`,
+  `_api_v2` : chute aussi). Séparation sur 📱 (`sw_vap.js`, +1 K) : ciel clair, glace et neige +0,58 W/m²/K, vapeur (absorption
+  solaire) +0,17 ✅ ; ciel réel, ~+1,0 W/m²/K des NUAGES qui répondent à la vapeur. Nuages marins −2 %/K d'eau (61 g/m² sur 📱,
+  58–72 mesurés) ; nuages MOYENS : leur part liquide tombe au froid (0,96 → 0,84 de 15 à 11 °C) mais ils gardaient tout leur τ,
+  en cristaux plus réfléchissants — l'inverse de l'observé (McCoy et al. 2015, JGR 120:9539 : un nuage mixte qui se glace perd son
+  eau, la glace précipite ; rétroaction de phase négative).
+- **correction** : la règle des nuages bas (la glace précipite dès qu'elle se forme ; seuil f_liq·LWC_pluie, ⚠️ déclarée) appliquée
+  aux nuages moyens : ils gardent τ_SW et τ_IR × f_liq(T_moyen), en gouttes (`solaire.js` populations, `calculations.js` epsMoyen).
+- **mesures** : 🦣 à 200 ppm : **11,12 °C** (était boule de neige) ; équilibre 2000 14,88 → 15,13, 2025 15,37 → 15,77. Chemin 1750 /
+  2000 / 2025 : 14,01 / 14,88 / 15,46 (mesures ≈ 13,5 / 14,26 / 14,9) : forme juste (+1,45 K), hauteur +0,55 K → jauges. Graines :
+  🪼 18,74, 🦕 21,83, 🐊 24,84, 🦣 14,02, ⛄ −59,46, 🪸 22,84. La réponse solaire de 📱 reste ~1,2 W/m²/K (amincissement des nuages
+  bas marins et continentaux, −2 à −2,5 %/K d'eau) : au-dessus de la rétroaction nuageuse satellite (~+0,4) — chantier suivant.
