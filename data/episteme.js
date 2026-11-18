@@ -83,7 +83,7 @@
         // ── Nuages ──────────────────────────────────────────────────────────────────────────────────────────────
         { cible: 'eq:eq-fractions-nuages-bas-hauts', ref: 'stubenrauch2024', statut: '📡', usage: '🎚️', quoi: 'fractions de nuages bas / hauts (CloudSat-CALIPSO, ISCCP)' },
         { cible: 'eq:eq-fractions-nuages-bas-hauts', ref: 'stubenrauch2024', statut: '📡', usage: '📌', quoi: 'nuages moyens : fraction en colonne 0,23 (CAMcol, ISCCP-CVL), nuages masqués compris, au niveau σ = 560/1 013,25 (milieu de 440–680 hPa)' },
-        { cible: 'eq:eq-fractions-nuages-bas-hauts', ref: null, statut: '⚠️', usage: '📌', quoi: 'nuages moyens aux épaisseurs optiques de la population des nuages bas (même parcelle) : pas de microphysique propre à leur phase mixte, plus froide' },
+        { cible: 'eq:eq-fractions-nuages-bas-hauts', ref: null, statut: '⚠️', usage: '📌', quoi: 'nuages moyens aux épaisseurs optiques de la population des nuages bas (même parcelle) ; leur part liquide est celle de leur température (Hu et al. 2010), mais pas de microphysique propre à la phase mixte' },
         { cible: 'eq:eq-nombre-gouttes', ref: 'bennartz2007', statut: '📡', usage: '🎚️', quoi: 'gouttes sur océan 40–89 cm⁻³ (MODIS)' },
         { cible: 'eq:eq-nombre-gouttes', ref: 'gultepeIsaac2004', statut: '📡', usage: '📌', quoi: 'gouttes sur continent (mesures avion)' },
         { cible: 'eq:eq-sommet-nuage-seuil-pluie', ref: 'rosenfeldGutman1994', statut: '📡', usage: '🎚️', quoi: 'seuil de pluie à r_eff 13–14 µm' },
