@@ -611,3 +611,20 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
 - **mesure, 📱 frise** : fine 14,804 °C (6 pas, 31–40 s) ; 0,05 → 14,773 (4 pas, 26 s) ; 0,1 → 14,773 (26 s) ; 0,5 → 14,462
   (1 pas, 19 s). Erreur toujours sous la demandée. Les époques à précision large (0,3 K, Hadéen 1,7 K) font désormais plus de pas :
   leur erreur réelle était jusqu'à 4 fois la déclarée.
+
+
+## C42 — Chaîne complète après C39–C41 (diagnostic, `courbe_modele.py` clics et frise, 2026-11-18)
+- **deux plantages anciens corrigés en route** (API_BILAN 4c56dcd) : ⛄ et 🏂 sans N₂O depuis bb036be (la frise s'arrêtait à
+  l'hystérésis 1a) ; P − E de Siler NaN au-delà du point critique de l'eau (Hadéen à 641 K, équateur > 647 K) → dq*/dx = 0.
+- **frise (graines)**, avant → après C39–C41 : 📱 14,42 → 14,80 (13,9–14,9 ✅) ; 🚂 14,00 → 13,10 ✅ ; 🦣 14,1 → 13,05 ✅ ;
+  ⛄ / 🏂 −74,6 → −59 ✅ ; 🦠 16,3 ✅ ; 💀 20,72 (≤ 20,7) ; Phanérozoïque chaud réchauffé de 1 à 3,5 K mais encore trop froid :
+  🪼 12,41 (15–25), 🍄 23,16 (26–39), 🦕 20,62 (24–32), 🦤 22,38 (25–32), 🐊 23,55 (30,3–39,2), hysteresis 2 19,22 (25–28),
+  🏔 18,52 (21–25), 🛖 12,69 (13–15) ; 🪸 21,59 trop chaud (0–15).
+- **chaîne de clics** : bonne jusqu'à hysteresis 1c (38,85 °C), puis le premier clic de 🪼 (même CO₂ que sa graine, 1713 ppm)
+  tombe en boule de neige (−52 °C) et n'en sort plus jusqu'à 2025. Pas à pas (`pas_1c.js`) : l'équilibre chaud de 🪼 est au
+  PLI de sa branche — Δ y touche 0 (11,2 °C, Δ = −0,02 W/m²) puis la glace fait chuter Δ à −5 W/m² sous 11 °C ; le pas de la
+  sécante (8,4 K de 17,9 à 9,5 °C, permis par le plafond « 2 × pas précédent ») l'enjambe ; à pas de 3 K, il est trouvé.
+- **conclusion** : le solveur n'est pas en faute — le Phanérozoïque chaud est trop froid de 2,5 à 7 K, ce qui met 🪼 au bord de
+  la boule de neige. Les fractions de nuages sont fixées aux mesures actuelles (ISCCP-H, CALIPSO) : le modèle n'a pas de
+  rétroaction de la COUVERTURE des nuages bas, mesurée par satellite positive (moins de stratocumulus au chaud). Prochain
+  chantier physique. Courbes Histoire NON régénérées (gardées à la version commitée).
