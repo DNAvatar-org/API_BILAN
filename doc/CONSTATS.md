@@ -628,3 +628,18 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   la boule de neige. Les fractions de nuages sont fixées aux mesures actuelles (ISCCP-H, CALIPSO) : le modèle n'a pas de
   rétroaction de la COUVERTURE des nuages bas, mesurée par satellite positive (moins de stratocumulus au chaud). Prochain
   chantier physique. Courbes Histoire NON régénérées (gardées à la version commitée).
+
+
+## C43 — Rétroaction de couverture des nuages bas, mesurée par satellite (`radiative/calculations.js` 1.21.0, `physics/physics.js`)
+- **physique** : F_bas = F_BAS − K_MER · mer libre · (T̄ − 287,41 K), dans [0, 1]. K_MER = 0,0025/0,71 : méta-analyse des cinq
+  études satellite des facteurs de contrôle (Klein, Hall, Norris & Pincus 2017, Surv. Geophys. 38:1307, CC BY) : +0,25 ± 0,18
+  W m⁻² K⁻¹ sur le globe, à −1 W/m² par point de % de nuages bas (Klein & Hartmann 1993) ; localement ~1 point/K (Zhai 2015 :
+  −1,28 %/K de SST). Marine : proportionnelle à la mer libre de l'époque (pas de stratocumulus sur une boule de neige).
+  Référence : 14,26 °C (an 2000, échelle Copernicus). ⚠️ Extrapolée loin des variations actuelles où elle est mesurée.
+- **mesures** : équilibre 2000 14,80 → 14,88, 2025 15,21 → 15,37. Chemin 1750 / 2000 / 2025 : 12,88 / 14,14 / 14,80–14,92
+  (mesures ≈ 13,5 / 14,26 / 14,9). Graines : 🪼 12,41 → 12,04, 🦕 20,62 → 21,43, 🐊 23,55 → 24,43, 🦣 13,05 → 12,72,
+  ⛄ −59,0 (inchangé, mer libre 0,15), 🪸 21,59 → 22,32.
+- **conclusion** : dans le bon sens, +0,8–0,9 K aux climats chauds, mais trop faible pour le déficit de 3 à 7 K du Phanérozoïque ;
+  🪼, plus froid qu'aujourd'hui, en devient plus froid (12,0 °C, toujours au pli de sa branche chaude). Chaîne non relancée.
+  Le déficit chaud est ailleurs : à décomposer (forçage CO₂ à haute concentration, vapeur et gradient vertical en climat
+  chaud, transport méridien, nuages hauts) — prochain diagnostic.

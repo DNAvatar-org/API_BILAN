@@ -1,6 +1,7 @@
 // File: API_BILAN/radiative/calculations.js - Calculs de transfert radiatif
 // Desc: Module de calculs radiatifs
-// Version 1.20.0
+// Version 1.21.0
+// - v1.21.0 (2026-11-18): couverture des nuages bas selon T̄ et la mer libre (rétroaction mesurée, C43).
 // - v1.20.0 (2026-11-17): nuages moyens à leur température : part liquide fLiqMoyen ; phase de Hu et al. 2010 (C40).
 // - v1.19.1 (2026-11-17): auto-élargissement en pression partielle (n_gaz·k_B·T) : plus de 0/0 dans le vide (⚫).
 // - v1.19.0 (2026-11-16): auto-élargissement du CO₂ (1,32) et du CH₄ (1,35) comme celui de H₂O (pression effective de la couche).
@@ -526,7 +527,11 @@ function profilAtmosphere(z_range) {
     // statistique (nuages étalés sur 5 km, W/C ≈ 0,5–1,3 kg/m²) — tous deux sans inversion, donc sans sommet.
     // Fractions MESURÉES (jauges FROID / CHAUD, fine_tuning_bounds.js) : sans eau, pas de nuage (branche physique).
     const avecEau = w_c > 0;
-    const fBas = avecEau ? DATA['🎚️'].CLOUD_SW.F_BAS : 0, fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
+    // Nuages bas : la fraction mesurée (jauge F_BAS) moins la rétroaction de couverture MESURÉE (EARTH.NUAGES.K_MER, Klein et al. 2017),
+    // sur la mer libre de l'époque (🍰🪩🌊, posée par calculateAlbedo à l'évaluation précédente : point fixe du solveur).
+    const fBas = avecEau ? Math.min(1, Math.max(0, DATA['🎚️'].CLOUD_SW.F_BAS
+        - N.K_MER * DATA['🪩']['🍰🪩🌊'] * (DATA['🧮']['🧮🌡️'] - N.T_MESURE_FRACTIONS))) : 0;
+    const fHaut = avecEau ? DATA['🎚️'].CLOUD_SW.F_HAUT : 0;
     const oc = window.ALBEDO.fractionMaritime();                   // masse d'air maritime (bassins, banquise comprise) / continentale
     // DEUX NUAGES BAS, un par masse d'air, chacun avec SES gouttes : maritime (k de Martin 0,80, N jauge Bennartz 2007) et
     // continentale (k 0,67, N 200 cm⁻³, Gultepe & Isaac 2004). Le seuil de pluie LWC_pluie ∝ k N fixe la profondeur, donc

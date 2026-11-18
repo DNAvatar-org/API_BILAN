@@ -1,7 +1,8 @@
 // ============================================================================
 // File: API_BILAN/physics/physics.js - Constantes et lois physiques fondamentales
 // Desc: module de physique fondamentale
-// Version 2.21.0
+// Version 2.22.0
+// - v2.22.0 (2026-11-18): EARTH.NUAGES.K_MER, T_MESURE_FRACTIONS — rétroaction de couverture des nuages bas (Klein 2017, C43).
 // - v2.21.0 (2026-11-17): CONV.SULFATE_FOND_NATUREL_KG et CONV.CCN_PANACHE_FRACTION — le sulfate industriel en panache (C39).
 // - v2.20.0 (2026-11-16): EARTH.OCEAN_PROFOND (C₀, γ de Geoffroy et al. 2013) — l'océan profond des tictimes (C37).
 // - v2.19.2 (2026-11-01): commentaire : ω des trois boîtes de chaque bande.
@@ -501,6 +502,18 @@ EARTH.NUAGES = {   // [objet — unité de chaque champ sur sa ligne]
     // Classes de τ des nuages de glace (Hong & Liu 2015) : bornes [-] et parts [-] (somme 1).
     HAUTS_GLACE: { BORNES: [0.01, 0.03, 0.3, 3, 20, 100], PARTS: [0.09, 0.31, 0.39, 0.16, 0.05] },
     F_MOYEN: 0.23,             // [m²/m²] Stubenrauch et al. 2024 (CAMcol, ISCCP-CVL)
+    // ─── Rétroaction de COUVERTURE des nuages bas, MESURÉE par satellite : dans les régions océaniques de subsidence
+    //     (stratocumulus, cumulus d'alizé), la couverture baisse quand la surface se réchauffe, à facteurs de contrôle constants,
+    //     ~1 point de % par K (Zhai et al. 2015 : −1,28 %/K de SST, saisons). Méta-analyse des cinq études satellite (Qu 2015,
+    //     Zhai 2015, Myers & Norris 2016, Brient & Schneider 2016, McCoy 2017) : Klein, Hall, Norris & Pincus 2017, Surv.
+    //     Geophys. 38:1307 (CC BY) — +0,25 ± 0,18 W m⁻² K⁻¹ sur le globe (90 %), à −1 W/m² par point de % de nuages bas
+    //     (Klein & Hartmann 1993) : −0,25 point de couverture du globe par K. Marine : rapportée à l'océan actuel (0,71), elle
+    //     s'applique à la MER LIBRE de l'époque (🪩.🍰🪩🌊) — pas de stratocumulus sur une boule de neige.
+    //     F_bas = F_BAS − K_MER · mer libre · (T̄ − T_MESURE_FRACTIONS), dans [0, 1] (radiative/calculations.js).
+    //     ⚠️ Mesurée sur les variations actuelles (saisons, interannuel) ; appliquée loin d'elles (Éocène, Hadéen) : extrapolation
+    //     déclarée. T_MESURE_FRACTIONS : la Terre des mesures de fraction, 14,26 °C (an 2000, échelle Copernicus du banc).
+    K_MER: 0.0025 / 0.71,      // [1/K par m²/m² d'océan libre]
+    T_MESURE_FRACTIONS: 287.41, // [K]
     // ─── Couverture bas + moyens sur la MER POLAIRE (|φ| > 60°) en saison de fonte, MESURÉE : la seule que voit la banquise qui
     //     fond (EARTH.glaceSaisonniere, rayonnement descendant et soleil au sol ; physics/meridien.js absorbe.mer). Arctique,
     //     SHEBA mai–août 1998 : occurrence radar + lidar 0,88–0,93 (Intrieri et al. 2002a, JGR 107(C10), doi:10.1029/2000JC000423, fig. 5), fraction
