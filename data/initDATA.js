@@ -54,7 +54,10 @@
         // FROID 50 / CHAUD 50 : milieu des plages mesurées, point de départ des explorations (2026-10-26, demande utilisateur ;
         // essai dans l'interface : 📱 14,49 °C, 14,4 mesurés).
         // FROID 61 / CHAUD 53 : réglage de hauteur du propriétaire (interface, 2025 à 14,9 °C par le clic depuis 2000).
-        baryByGroup: { FROID: 61, CHAUD: 53, SUBTIL: 70 },
+        // FROID 60 (2026-11-18, après C39–C45) : chemin 1750 → 2025 à FROID 61 : 14,01 / 14,88 / 15,46 °C, forme juste (+1,45 K),
+        // hauteur +0,55 K ; −0,47 K par point de FROID (balayage 61 → 50 : −5,2 K ; plus bas = plus de nuages bas = plus froid).
+        // ⚠️ les commentaires ci-dessus datent d'une autre physique : leur sens n'est plus celui-ci.
+        baryByGroup: { FROID: 60, CHAUD: 53, SUBTIL: 70 },
 
         // Nuages SW : nombre de gouttes, seuil de pluie, fractions, exposant sulfate (jauges mesurées).
         // Une constante par ligne, son UNITÉ entre crochets en tête du commentaire : la page

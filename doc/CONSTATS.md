@@ -680,3 +680,17 @@ hors de DATA n'ont pas de ligne de dico : c'est là que se font les contresens (
   2000 / 2025 : 14,01 / 14,88 / 15,46 (mesures ≈ 13,5 / 14,26 / 14,9) : forme juste (+1,45 K), hauteur +0,55 K → jauges. Graines :
   🪼 18,74, 🦕 21,83, 🐊 24,84, 🦣 14,02, ⛄ −59,46, 🪸 22,84. La réponse solaire de 📱 reste ~1,2 W/m²/K (amincissement des nuages
   bas marins et continentaux, −2 à −2,5 %/K d'eau) : au-dessus de la rétroaction nuageuse satellite (~+0,4) — chantier suivant.
+
+
+## C46 — Jauge FROID 60 et chaîne complète (2026-11-18)
+- **jauge** : FROID 61 → 60 (`data/initDATA.js`), dans les fourchettes mesurées (nuages bas 0,41 ± 0,05, Stubenrauch 2024 ; gouttes
+  40–89 cm⁻³, Bennartz 2007) : −0,47 K par point (balayage 61 → 50 : −5,2 K ; 40 : boule de neige).
+- **chaîne de clics complète** (`courbe_modele.py`, 207 points) : passe d'un bout à l'autre sans boule de neige parasite — 🪼 18,31,
+  🐊 24,52, 🏔 21,67 ; Quaternaire 160 clics 🐾 entre 9,33 et 13,76 °C (amplitude 4,4 K ; Snyder 5,5–6,6) ; **1750 13,53 /
+  2000 14,26 / 2025 14,83 °C** (mesures ≈ 13,5 / 14,26 / 14,9).
+- **frise (graines)** : 12 / 21 dans leur fourchette (⚫ 🔥 🦠 1a ⛄ 1b 1c 🪼 🦣 🛖 🚂 📱). Hors : 🪸 22,49 (0–15, +7,5) ; 🏂 −60,11
+  (−0,1) ; 💀 21,74 (+1,0) ; 🍄 24,38 (−1,6), 🦕 21,6 (−2,4), 🦤 23,45 (−1,6), 🐊 24,47 (−5,8 sur PhanDA ; dans les 23–30 de DeepMIP,
+  Inglis 2020), hysteresis 2 20,24 (repère, −4,8), 🏔 19,38 (−1,6).
+- **reste** : la réponse solaire des nuages au réchauffement (~+1,0 W/m²/K, nuages bas qui perdent 2–2,5 %/K d'eau au seuil de pluie)
+  dépasse la rétroaction nuageuse satellite (~+0,4) ; le Phanérozoïque chaud reste froid de 1,6 à 2,4 K (PhanDA) ; 🪸 trop chaud.
+  Courbes Histoire régénérées.
