@@ -1,6 +1,7 @@
 // File: API_BILAN/config/configTimeline.js - Configuration de la timeline (chronologie des époques)
 // Desc: Données de configuration pour la timeline et les événements interactifs
-// Version 1.13.0
+// Version 1.13.1
+// - v1.13.1 (2026-11-18): ⛄ et 🏂 portent le N₂O (N2O_1860) : la frise s'y arrêtait.
 // - v1.13.0 (2026-11-04): 📱 : 973 GtCO₂ mesurés en 2000 (🛢), puis chaque bouton multiplie la tranche précédente.
 // - v1.12.0 (2026-11-03): plancher de la tolérance par époque (🧲🔬⌊) : 0,10 W/m², 0,01 pour 📱.
 // - v1.11.0 (2026-11-02): fourchettes du banc à la date du clic (benchLitA, BENCH_LIT_DATEES : NOAA 2025 pour 📱).
@@ -717,6 +718,7 @@ const timeline = [
     //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
     //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
     "⚖️✈": 400000000,
+    '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
     "⚖️💨": N2_1PAL_KG, // v-2026-10-14 : 1 PAL (était 5,133e18, oublié le 2026-10-13 dans les blocs JSON)
     "🔒": {
         "⚖️🏭": {
@@ -871,6 +873,7 @@ const timeline = [
     //   Elle y vaut pour les 19 époques au lieu d'être codée en dur sur celle-ci.
     //   ⚠️ Le voile Franklin qui déclenche la bascule reste ailleurs : 🔺🍰⚽ = 0,05, ci-dessus.
     "⚖️✈": 400000000,
+    '🍰🧪🍳': N2O_1860,   // N₂O [mol/mol d'air sec] — ❔ règle des époques sans N₂O mesuré
     "⚖️💨": N2_1PAL_KG, // v-2026-10-14 : 1 PAL (était 5,133e18, oublié le 2026-10-13 dans les blocs JSON)
     "🔒": {
         "⚖️🏭": {

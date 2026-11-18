@@ -149,7 +149,8 @@
 //       Terre de chaque bande (parts) : le continent (socle > −1 000 m, toutes ses cellules) porte les calottes ; la terre émergée
 //       (cellules de socle > 0) est la terre thermique et d'albédo du bilan méridien et de l'albédo planétaire — une seule source
 //       par bande et par date.
-// Version 1.21.0
+// Version 1.21.1
+// - v1.21.1 (2026-11-18): P − E nul au-delà du point critique de l'eau (plus de NaN à l'Hadéen chaud).
 // - v1.21.0 (2026-11-16): neige des calottes : humidité conservée sur l'emprise, colonne au-dessus de la marge (C35).
 // - v1.20.0 (2026-11-02): part ancienne d'un clic sous l'orbite moyenne (SAISONS.moyenne), plus l'orbite d'une date par pas.
 // - v1.19.1 (2026-11-02): commentaires : une calotte est N dômes égaux (nombre effectif des morceaux connexes de la carte).
@@ -650,8 +651,12 @@
         // P − E [kg m⁻² an⁻¹] à x = sin |φ| (en-tête) : humidité de surface du modèle (jauge SUBTIL H2O_SURFACE_RH_01), q* sur l'eau
         // liquide de l'air de l'époque (ε = M_H₂O / M_air), pression et gravité de l'époque ; dq/dx = (dq*/dT) 3 T₂ x analytique, dF_q/dx
         // en différence centrée (F_q est lisse : une seule phase).
+        // Au-delà du point critique (PHYS.EAU.T_C, 647 K), l'eau ne condense plus (p_sat = +∞) : pas de pluie, pas de transport de
+        // chaleur latente par condensation — dq*/dx = 0 (sinon ∞/∞ : un Hadéen à 641 K dont l'équateur passe 647 K rendait NaN).
         const dqdx = (x) => {
-            const T2 = D['🧮']['🌡️🎱'], T = D['🧮']['🧮🌡️'] + T2 * window.MERIDIEN.P2(x), e = PHYS.pSatLiquide(T);
+            const T2 = D['🧮']['🌡️🎱'], T = D['🧮']['🧮🌡️'] + T2 * window.MERIDIEN.P2(x);
+            if (T >= PHYS.EAU.T_C) return 0;
+            const e = PHYS.pSatLiquide(T);
             const ps = D['🫧']['🎈'] * CONV.STANDARD_ATMOSPHERE_PA, eps = CONST.M_H2O / D['🫧']['🧪'], den = ps - (1 - eps) * e;
             return D['🎚️'].H2O.H2O_SURFACE_RH_01 * eps * ps * e * PHYS.dLnPSatLiquide(T) / (den * den) * 3 * T2 * x;
         };
